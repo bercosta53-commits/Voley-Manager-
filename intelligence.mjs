@@ -1,40 +1,364 @@
-import {stats,athleteLabel} from './engine.mjs';
-export function leagueStats(matches){const out={attacks:0,kills:0,errors:0,blocked:0,aces:0,served:0,serveErrors:0,receptions:0,positive:0,received:0,sideout:0,breaks:0};for(const m of matches)for(const side of [0,1]){let s=m.aggregate?.[side]||stats(m.events||[],side);for(const k in out)if(Number.isFinite(s[k]))out[k]+=s[k];}return out;}
-function laneGroups(m,side,set,all,limit=Infinity){const groups=['PON','CEN','OPO'].map(pos=>({pos,attacks:0,kills:0,errors:0,blocked:0})),steps=[];for(const e of m.events.filter(e=>e.set===set))for(const s of e.steps)if(s.team===side&&s.type==='attack')steps.push(s);for(const s of steps.slice(-limit)){let g=groups.find(g=>g.pos===all.find(p=>p.id===s.player)?.pos);if(!g)continue;g.attacks++;if(s.outcome==='kill')g.kills++;if(s.outcome==='error')g.errors++;if(s.outcome==='blocked')g.blocked++;}return groups;}
-export function lanes(m,side,set,all){return laneGroups(m,side,set,all);}
-function recentLanes(m,side,set,all,limit=12){return laneGroups(m,side,set,all,limit);}
-function recentAdviceKeys(m,set){const now=m.events.length,blocked=new Set();for(const d of m.decisions||[]){if(d.set!==set)continue;if(!['adviceSeen','adviceResponse'].includes(d.type))continue;if(now-(d.rally??-99)>9)continue;if(d.key)blocked.add(d.key);if(d.title)blocked.add('title:'+d.title);}return blocked;}
+import { stats, athleteLabel } from './engine.mjs';
+export function leagueStats(matches) {
+  const out = {
+    attacks: 0,
+    kills: 0,
+    errors: 0,
+    blocked: 0,
+    aces: 0,
+    served: 0,
+    serveErrors: 0,
+    receptions: 0,
+    positive: 0,
+    received: 0,
+    sideout: 0,
+    breaks: 0
+  };
+  for (const m of matches)
+    for (const side of [0, 1]) {
+      let s = m.aggregate?.[side] || stats(m.events || [], side);
+      for (const k in out) if (Number.isFinite(s[k])) out[k] += s[k];
+    }
+  return out;
+}
+function laneGroups(m, side, set, all, limit = Infinity) {
+  const groups = ['PON', 'CEN', 'OPO'].map(pos => ({ pos, attacks: 0, kills: 0, errors: 0, blocked: 0 })),
+    steps = [];
+  for (const e of m.events.filter(e => e.set === set))
+    for (const s of e.steps) if (s.team === side && s.type === 'attack') steps.push(s);
+  for (const s of steps.slice(-limit)) {
+    let g = groups.find(g => g.pos === all.find(p => p.id === s.player)?.pos);
+    if (!g) continue;
+    g.attacks++;
+    if (s.outcome === 'kill') g.kills++;
+    if (s.outcome === 'error') g.errors++;
+    if (s.outcome === 'blocked') g.blocked++;
+  }
+  return groups;
+}
+export function lanes(m, side, set, all) {
+  return laneGroups(m, side, set, all);
+}
+function recentLanes(m, side, set, all, limit = 12) {
+  return laneGroups(m, side, set, all, limit);
+}
+function recentAdviceKeys(m, set) {
+  const now = m.events.length,
+    blocked = new Set();
+  for (const d of m.decisions || []) {
+    if (d.set !== set) continue;
+    if (!['adviceSeen', 'adviceResponse'].includes(d.type)) continue;
+    if (now - (d.rally ?? -99) > 9) continue;
+    if (d.key) blocked.add(d.key);
+    if (d.title) blocked.add('title:' + d.title);
+  }
+  return blocked;
+}
 
-function targetPlanReaction(m,side,set,all){
- const bucket=m.assistantPlans?.[side],plan=bucket?.target;if(!plan||plan.set!==set||!String(plan.value).startsWith('player:'))return null;
- const elapsed=m.events.length-plan.startRally;if(elapsed<8)return null;
- const id=Number(String(plan.value).slice(7)),events=m.events.slice(plan.startRally).filter(e=>e.set===set),rec=events.flatMap(e=>e.steps||[]).filter(s=>s.team===1-side&&s.type==='receive'),targeted=rec.filter(s=>s.player===id);
- if(targeted.length<5)return null;
- const first=targeted.slice(0,Math.min(4,targeted.length)),last=targeted.slice(-Math.min(4,targeted.length)),rate=a=>a.length?a.filter(s=>s.quality>=3).length/a.length:0,firstRate=rate(first),lastRate=rate(last),isProtected=m.tactics?.[1-side]?.protect==='player:'+id;
- const earlyEvents=events.slice(0,Math.min(5,events.length)),lateEvents=events.slice(-Math.min(5,events.length)),share=ev=>{let r=ev.flatMap(e=>e.steps||[]).filter(s=>s.team===1-side&&s.type==='receive');return r.length?r.filter(s=>s.player===id).length/r.length:0},loadDrop=share(earlyEvents)-share(lateEvents)>=.22,recovered=lastRate-firstRate>=.25;
- if(!isProtected&&!loadDrop&&!recovered)return null;
- const p=all.find(p=>p.id===id),why=isProtected?'o rival passou a proteger o alvo':loadDrop?'o alvo está recebendo menos saques':'a qualidade do passe se recuperou';
- return {kind:'ANTECIPAR',title:'A cobertura mudou. Volte a variar o alvo',detail:`${p?.name||'O passador'} foi o foco por ${targeted.length} recepções, mas ${why}. O ganho inicial está ficando previsível.`,key:'target',value:'mixed',risk:'Variar cedo demais pode abandonar uma fragilidade que ainda existia.',priority:97};
+function targetPlanReaction(m, side, set, all) {
+  const bucket = m.assistantPlans?.[side],
+    plan = bucket?.target;
+  if (!plan || plan.set !== set || !String(plan.value).startsWith('player:')) return null;
+  const elapsed = m.events.length - plan.startRally;
+  if (elapsed < 8) return null;
+  const id = Number(String(plan.value).slice(7)),
+    events = m.events.slice(plan.startRally).filter(e => e.set === set),
+    rec = events.flatMap(e => e.steps || []).filter(s => s.team === 1 - side && s.type === 'receive'),
+    targeted = rec.filter(s => s.player === id);
+  if (targeted.length < 5) return null;
+  const first = targeted.slice(0, Math.min(4, targeted.length)),
+    last = targeted.slice(-Math.min(4, targeted.length)),
+    rate = a => (a.length ? a.filter(s => s.quality >= 3).length / a.length : 0),
+    firstRate = rate(first),
+    lastRate = rate(last),
+    isProtected = m.tactics?.[1 - side]?.protect === 'player:' + id;
+  const earlyEvents = events.slice(0, Math.min(5, events.length)),
+    lateEvents = events.slice(-Math.min(5, events.length)),
+    share = ev => {
+      let r = ev.flatMap(e => e.steps || []).filter(s => s.team === 1 - side && s.type === 'receive');
+      return r.length ? r.filter(s => s.player === id).length / r.length : 0;
+    },
+    loadDrop = share(earlyEvents) - share(lateEvents) >= 0.22,
+    recovered = lastRate - firstRate >= 0.25;
+  if (!isProtected && !loadDrop && !recovered) return null;
+  const p = all.find(p => p.id === id),
+    why = isProtected
+      ? 'o rival passou a proteger o alvo'
+      : loadDrop
+        ? 'o alvo está recebendo menos saques'
+        : 'a qualidade do passe se recuperou';
+  return {
+    kind: 'ANTECIPAR',
+    title: 'A cobertura mudou. Volte a variar o alvo',
+    detail: `${p?.name || 'O passador'} foi o foco por ${targeted.length} recepções, mas ${why}. O ganho inicial está ficando previsível.`,
+    key: 'target',
+    value: 'mixed',
+    risk: 'Variar cedo demais pode abandonar uma fragilidade que ainda existia.',
+    priority: 97
+  };
 }
-export function advice(m,side,set,all){
- let events=m.events.filter(e=>e.set===set),s=stats(events,side),opp=stats(events,1-side),out=[],t=m.tactics[side],recent=recentAdviceKeys(m,set),add=(kind,title,detail,key,value,risk,priority=50)=>{if(t[key]!==value&&!recent.has(key)&&!recent.has('title:'+title))out.push({kind,title,detail,key,value,risk,priority})};
- if(s.served>=7&&s.serveErrors/s.served>.20)add('CORRIGIR','Diminuir risco no saque',`${s.serveErrors} erros em ${s.served} saques neste set.`,'serve','safe','Reduz a pressão do serviço e a chance de ace.',96);
- const weak=Object.entries(s.players).filter(([,p])=>p.receptions>=6).sort((a,b)=>a[1].positive/a[1].receptions-b[1].positive/b[1].receptions)[0];
- if(weak&&weak[1].positive/weak[1].receptions<.30&&s.receptions>=10&&s.positive/Math.max(1,s.receptions)<.40)add('CORRIGIR','Proteger a recepção',`${athleteLabel(all.find(p=>p.id===Number(weak[0])))}: ${weak[1].positive} passes positivos em ${weak[1].receptions}.`,'protect','player:'+weak[0],'Melhora o passador protegido, mas reduz a cobertura dos outros.',94);
- const reaction=targetPlanReaction(m,side,set,all);if(reaction&&t.target!==reaction.value&&!recent.has('title:'+reaction.title))out.push(reaction);
- const target=Object.entries(opp.players).filter(([,p])=>p.receptions>=6).sort((a,b)=>a[1].positive/a[1].receptions-b[1].positive/b[1].receptions)[0],activeTargetPlan=m.assistantPlans?.[side]?.target,targetPlanLive=activeTargetPlan?.set===set;
- if(!targetPlanLive&&target&&target[1].positive/target[1].receptions<.35)add('POTENCIALIZAR','Explorar o passador',`${athleteLabel(all.find(p=>p.id===Number(target[0])))} está cedendo passe: ${target[1].positive} positivos em ${target[1].receptions}.`,'target','player:'+target[0],'Concentrar o saque facilita a proteção do passador pelo adversário.',84);
- const threats=lanes(m,1-side,set,all).filter(g=>g.attacks>=6).sort((a,b)=>b.kills/Math.max(1,b.attacks)-a.kills/Math.max(1,a.attacks));
- if(threats[0]&&threats[0].kills>=4&&threats[0].kills/threats[0].attacks>=.60){let g=threats[0];add('CORRIGIR','Ajustar o foco do bloqueio',`${{PON:'Ponteiros',CEN:'Centrais',OPO:'Opostos'}[g.pos]} adversários: ${g.kills} pontos em ${g.attacks} ataques.`,'block',{PON:'wings',CEN:'middle',OPO:'opposite'}[g.pos],'Reforça o setor escolhido e abre espaço nos outros.',90);}
- const playerAttack=Object.entries(s.players).map(([id,p])=>({id:Number(id),...p,athlete:all.find(q=>q.id===Number(id))})).filter(x=>x.athlete&&['PON','CEN','OPO'].includes(x.athlete.pos)&&x.attacks>=6).map(x=>({...x,eff:(x.kills-x.errors-x.blocked)/x.attacks})).sort((a,b)=>b.eff-a.eff||b.kills-a.kills)[0];
- if(playerAttack&&playerAttack.kills>=4&&playerAttack.eff>=.50){let value={PON:'wings',CEN:'middle',OPO:'opposite'}[playerAttack.athlete.pos];add('POTENCIALIZAR',`Aumentar o volume de ${playerAttack.athlete.name.split(' ')[0]}`,`${playerAttack.kills}/${playerAttack.attacks} no ataque e eficiência de ${Math.round(playerAttack.eff*100)}% neste set. O matchup ainda está favorável.`,'distribution',value,'Mais volume pode tornar a distribuição previsível e induzir ajuste do bloqueio rival.',88);}
- const serveRuns=new Map();for(const e of events.filter(e=>e.serving===side)){const sv=e.steps.find(x=>x.type==='serve'&&x.team===side);if(!sv)continue;let g=serveRuns.get(sv.player)||{id:sv.player,serves:0,breaks:0,aces:0,errors:0};g.serves++;if(e.winner===side)g.breaks++;if(e.reason==='Ace')g.aces++;if(e.reason==='Erro de saque'||e.reason==='Infração de saque')g.errors++;serveRuns.set(sv.player,g);}const hotServer=[...serveRuns.values()].filter(g=>g.serves>=5&&g.breaks>=3&&g.errors===0).sort((a,b)=>b.breaks-a.breaks||b.aces-a.aces)[0];
- if(hotServer&&t.serve!=='aggressive'&&t.serve!=='selective'){let p=all.find(q=>q.id===hotServer.id);add('POTENCIALIZAR','Forçar com os melhores sacadores',`${p?.name||'Um dos sacadores'} gerou ${hotServer.breaks} pontos em ${hotServer.serves} serviços sem erro. O modo Seletivo aumenta o risco apenas dos melhores sacadores.`,'serve','selective','Os sacadores escolhidos assumem risco de erro maior; os demais permanecem equilibrados.',80);}
- const options=lanes(m,side,set,all).filter(g=>g.attacks>=4).map(g=>({...g,eff:(g.kills-g.errors-g.blocked)/g.attacks})).sort((a,b)=>b.eff-a.eff);
- if(options.length>=2&&s.attacks>=12&&!playerAttack&&options[0].attacks>=5&&options[0].eff>=.48&&options[0].eff-options[1].eff>=.12){let g=options[0];add('POTENCIALIZAR','Explorar o setor mais eficiente',`${{PON:'Ponteiros',CEN:'Centrais',OPO:'Opostos'}[g.pos]}: ${g.kills} pontos, ${g.errors+g.blocked} erros/bloqueios sofridos em ${g.attacks} ataques.`,'distribution',{PON:'wings',CEN:'middle',OPO:'opposite'}[g.pos],'Mais volume torna o ataque previsível; o recorte ainda pode ser pequeno.',74);}
- if(s.receptions>=10&&s.positive/s.receptions<.35)add('CORRIGIR','Controlar o ritmo',`${s.positive} passes positivos em ${s.receptions} recepções. A bola rápida perde qualidade com passe ruim.`,'pace','control','Menos erros de ataque, mas menor potência ofensiva.',86);
- if(t.distribution!=='balanced'&&s.attacks>=9){const focusPos={middle:'CEN',opposite:'OPO',wings:'PON'}[t.distribution],recentGroups=recentLanes(m,side,set,all,12),focus=recentGroups.find(g=>g.pos===focusPos),others=recentGroups.filter(g=>g.pos!==focusPos&&g.attacks>=2).sort((a,b)=>b.kills/Math.max(1,b.attacks)-a.kills/Math.max(1,a.attacks)),other=others[0];if(focus&&other&&focus.attacks>=5&&other.attacks>=2){const focusRate=focus.kills/focus.attacks,focusTrouble=((focus.errors+focus.blocked)>=2&&focusRate<=.40)||focusRate<=.25,otherRate=other.kills/Math.max(1,other.attacks);if(focusTrouble&&otherRate>=.55)add('ANTECIPAR','O bloqueio começou a responder',`Nas últimas bolas, o setor priorizado ficou em ${focus.kills}/${focus.attacks}; outro setor está em ${other.kills}/${other.attacks}. O ajuste rival está abrindo um novo espaço.`,'distribution',{PON:'wings',CEN:'middle',OPO:'opposite'}[other.pos],'Trocar cedo demais também pode abandonar uma vantagem que ainda voltaria a aparecer.',91);}}
- const sorted=out.sort((a,b)=>b.priority-a.priority);if(!sorted.length)return[];const result=[sorted[0]];if(sorted[1]&&sorted[0].priority>=94&&sorted[1].priority>=94&&sorted[1].key!==sorted[0].key)result.push(sorted[1]);return result;
+export function advice(m, side, set, all) {
+  let events = m.events.filter(e => e.set === set),
+    s = stats(events, side),
+    opp = stats(events, 1 - side),
+    out = [],
+    t = m.tactics[side],
+    recent = recentAdviceKeys(m, set),
+    add = (kind, title, detail, key, value, risk, priority = 50) => {
+      if (t[key] !== value && !recent.has(key) && !recent.has('title:' + title))
+        out.push({ kind, title, detail, key, value, risk, priority });
+    };
+  if (s.served >= 7 && s.serveErrors / s.served > 0.2)
+    add(
+      'CORRIGIR',
+      'Diminuir risco no saque',
+      `${s.serveErrors} erros em ${s.served} saques neste set.`,
+      'serve',
+      'safe',
+      'Reduz a pressão do serviço e a chance de ace.',
+      96
+    );
+  const weak = Object.entries(s.players)
+    .filter(([, p]) => p.receptions >= 6)
+    .sort((a, b) => a[1].positive / a[1].receptions - b[1].positive / b[1].receptions)[0];
+  if (
+    weak &&
+    weak[1].positive / weak[1].receptions < 0.3 &&
+    s.receptions >= 10 &&
+    s.positive / Math.max(1, s.receptions) < 0.4
+  )
+    add(
+      'CORRIGIR',
+      'Proteger a recepção',
+      `${athleteLabel(all.find(p => p.id === Number(weak[0])))}: ${weak[1].positive} passes positivos em ${weak[1].receptions}.`,
+      'protect',
+      'player:' + weak[0],
+      'Melhora o passador protegido, mas reduz a cobertura dos outros.',
+      94
+    );
+  const reaction = targetPlanReaction(m, side, set, all);
+  if (reaction && t.target !== reaction.value && !recent.has('title:' + reaction.title)) out.push(reaction);
+  const target = Object.entries(opp.players)
+      .filter(([, p]) => p.receptions >= 6)
+      .sort((a, b) => a[1].positive / a[1].receptions - b[1].positive / b[1].receptions)[0],
+    activeTargetPlan = m.assistantPlans?.[side]?.target,
+    targetPlanLive = activeTargetPlan?.set === set;
+  if (!targetPlanLive && target && target[1].positive / target[1].receptions < 0.35)
+    add(
+      'POTENCIALIZAR',
+      'Explorar o passador',
+      `${athleteLabel(all.find(p => p.id === Number(target[0])))} está cedendo passe: ${target[1].positive} positivos em ${target[1].receptions}.`,
+      'target',
+      'player:' + target[0],
+      'Concentrar o saque facilita a proteção do passador pelo adversário.',
+      84
+    );
+  const threats = lanes(m, 1 - side, set, all)
+    .filter(g => g.attacks >= 6)
+    .sort((a, b) => b.kills / Math.max(1, b.attacks) - a.kills / Math.max(1, a.attacks));
+  if (threats[0] && threats[0].kills >= 4 && threats[0].kills / threats[0].attacks >= 0.6) {
+    let g = threats[0];
+    add(
+      'CORRIGIR',
+      'Ajustar o foco do bloqueio',
+      `${{ PON: 'Ponteiros', CEN: 'Centrais', OPO: 'Opostos' }[g.pos]} adversários: ${g.kills} pontos em ${g.attacks} ataques.`,
+      'block',
+      { PON: 'wings', CEN: 'middle', OPO: 'opposite' }[g.pos],
+      'Reforça o setor escolhido e abre espaço nos outros.',
+      90
+    );
+  }
+  const playerAttack = Object.entries(s.players)
+    .map(([id, p]) => ({ id: Number(id), ...p, athlete: all.find(q => q.id === Number(id)) }))
+    .filter(x => x.athlete && ['PON', 'CEN', 'OPO'].includes(x.athlete.pos) && x.attacks >= 6)
+    .map(x => ({ ...x, eff: (x.kills - x.errors - x.blocked) / x.attacks }))
+    .sort((a, b) => b.eff - a.eff || b.kills - a.kills)[0];
+  if (playerAttack && playerAttack.kills >= 4 && playerAttack.eff >= 0.5) {
+    let value = { PON: 'wings', CEN: 'middle', OPO: 'opposite' }[playerAttack.athlete.pos];
+    add(
+      'POTENCIALIZAR',
+      `Aumentar o volume de ${playerAttack.athlete.name.split(' ')[0]}`,
+      `${playerAttack.kills}/${playerAttack.attacks} no ataque e eficiência de ${Math.round(playerAttack.eff * 100)}% neste set. O matchup ainda está favorável.`,
+      'distribution',
+      value,
+      'Mais volume pode tornar a distribuição previsível e induzir ajuste do bloqueio rival.',
+      88
+    );
+  }
+  const serveRuns = new Map();
+  for (const e of events.filter(e => e.serving === side)) {
+    const sv = e.steps.find(x => x.type === 'serve' && x.team === side);
+    if (!sv) continue;
+    let g = serveRuns.get(sv.player) || { id: sv.player, serves: 0, breaks: 0, aces: 0, errors: 0 };
+    g.serves++;
+    if (e.winner === side) g.breaks++;
+    if (e.reason === 'Ace') g.aces++;
+    if (e.reason === 'Erro de saque' || e.reason === 'Infração de saque') g.errors++;
+    serveRuns.set(sv.player, g);
+  }
+  const hotServer = [...serveRuns.values()]
+    .filter(g => g.serves >= 5 && g.breaks >= 3 && g.errors === 0)
+    .sort((a, b) => b.breaks - a.breaks || b.aces - a.aces)[0];
+  if (hotServer && t.serve !== 'aggressive' && t.serve !== 'selective') {
+    let p = all.find(q => q.id === hotServer.id);
+    add(
+      'POTENCIALIZAR',
+      'Forçar com os melhores sacadores',
+      `${p?.name || 'Um dos sacadores'} gerou ${hotServer.breaks} pontos em ${hotServer.serves} serviços sem erro. O modo Seletivo aumenta o risco apenas dos melhores sacadores.`,
+      'serve',
+      'selective',
+      'Os sacadores escolhidos assumem risco de erro maior; os demais permanecem equilibrados.',
+      80
+    );
+  }
+  const options = lanes(m, side, set, all)
+    .filter(g => g.attacks >= 4)
+    .map(g => ({ ...g, eff: (g.kills - g.errors - g.blocked) / g.attacks }))
+    .sort((a, b) => b.eff - a.eff);
+  if (
+    options.length >= 2 &&
+    s.attacks >= 12 &&
+    !playerAttack &&
+    options[0].attacks >= 5 &&
+    options[0].eff >= 0.48 &&
+    options[0].eff - options[1].eff >= 0.12
+  ) {
+    let g = options[0];
+    add(
+      'POTENCIALIZAR',
+      'Explorar o setor mais eficiente',
+      `${{ PON: 'Ponteiros', CEN: 'Centrais', OPO: 'Opostos' }[g.pos]}: ${g.kills} pontos, ${g.errors + g.blocked} erros/bloqueios sofridos em ${g.attacks} ataques.`,
+      'distribution',
+      { PON: 'wings', CEN: 'middle', OPO: 'opposite' }[g.pos],
+      'Mais volume torna o ataque previsível; o recorte ainda pode ser pequeno.',
+      74
+    );
+  }
+  if (s.receptions >= 10 && s.positive / s.receptions < 0.35)
+    add(
+      'CORRIGIR',
+      'Controlar o ritmo',
+      `${s.positive} passes positivos em ${s.receptions} recepções. A bola rápida perde qualidade com passe ruim.`,
+      'pace',
+      'control',
+      'Menos erros de ataque, mas menor potência ofensiva.',
+      86
+    );
+  if (t.distribution !== 'balanced' && s.attacks >= 9) {
+    const focusPos = { middle: 'CEN', opposite: 'OPO', wings: 'PON' }[t.distribution],
+      recentGroups = recentLanes(m, side, set, all, 12),
+      focus = recentGroups.find(g => g.pos === focusPos),
+      others = recentGroups
+        .filter(g => g.pos !== focusPos && g.attacks >= 2)
+        .sort((a, b) => b.kills / Math.max(1, b.attacks) - a.kills / Math.max(1, a.attacks)),
+      other = others[0];
+    if (focus && other && focus.attacks >= 5 && other.attacks >= 2) {
+      const focusRate = focus.kills / focus.attacks,
+        focusTrouble = (focus.errors + focus.blocked >= 2 && focusRate <= 0.4) || focusRate <= 0.25,
+        otherRate = other.kills / Math.max(1, other.attacks);
+      if (focusTrouble && otherRate >= 0.55)
+        add(
+          'ANTECIPAR',
+          'O bloqueio começou a responder',
+          `Nas últimas bolas, o setor priorizado ficou em ${focus.kills}/${focus.attacks}; outro setor está em ${other.kills}/${other.attacks}. O ajuste rival está abrindo um novo espaço.`,
+          'distribution',
+          { PON: 'wings', CEN: 'middle', OPO: 'opposite' }[other.pos],
+          'Trocar cedo demais também pode abandonar uma vantagem que ainda voltaria a aparecer.',
+          91
+        );
+    }
+  }
+  const sorted = out.sort((a, b) => b.priority - a.priority);
+  if (!sorted.length) return [];
+  const result = [sorted[0]];
+  if (sorted[1] && sorted[0].priority >= 94 && sorted[1].priority >= 94 && sorted[1].key !== sorted[0].key)
+    result.push(sorted[1]);
+  return result;
 }
-export function setterMetrics(matches){let pairs=[];for(const m of matches)for(const e of m.events)for(let i=0;i<e.steps.length-1;i++){let s=e.steps[i],a=e.steps[i+1];if(s.type==='set'&&a.type==='attack'&&a.player===s.target&&a.team===s.team&&Number.isInteger(a.nblock)&&Number.isFinite(s.quality)&&Number.isFinite(s.precision)&&Number.isFinite(s.expected)&&Number.isFinite(s.bestExpected))pairs.push({id:s.player,precision:s.precision/100,choice:s.expected-s.bestExpected,ctx:s.quality+':'+!!s.transition,kill:Number(a.outcome==='kill'),error:Number(['error','blocked'].includes(a.outcome)),adv:Number(a.nblock<=1),oos:s.quality<=2||s.transition});}
- let contexts=new Map();for(const p of pairs){let c=contexts.get(p.ctx)||{n:0,k:0};c.n++;c.k+=p.kill;contexts.set(p.ctx,c);}let groups=new Map();for(const p of pairs){let g=groups.get(p.id)||{id:p.id,n:0,kill:0,error:0,adv:0,decision:0,oosN:0,oosK:0};g.n++;g.kill+=p.kill;g.precision=(g.precision||0)+p.precision;g.error+=p.error;g.adv+=p.adv;g.decision+=p.choice;if(p.oos){g.oosN++;g.oosK+=p.kill;}groups.set(p.id,g);}let rows=[...groups.values()].filter(g=>g.n>=8).map(g=>({...g,execution:g.precision/g.n,errorControl:g.error/g.n,blockAdv:g.adv/g.n,decision:g.decision/g.n,oos:g.oosN?g.oosK/g.oosN:null}));if(rows.length<2)return [];let dimensions=[['decision',.1,1,.3],['execution',.15,1,.25],['blockAdv',.15,1,.2],['oos',.15,1,.15],['errorControl',.12,-1,.1]];for(const [key,scale,sign]of dimensions){let valid=rows.filter(r=>r[key]!==null),mean=valid.reduce((n,r)=>n+r[key],0)/valid.length;for(const r of rows)r[key+'Plus']=r[key]===null?null:Math.max(60,Math.min(150,100+100*sign*(r[key]-mean)/Math.max(scale,Math.abs(mean)*.45,.05)));}for(const r of rows){let used=dimensions.filter(([k])=>r[k+'Plus']!==null);r.setterPlus=used.reduce((s,[k,,,w])=>s+r[k+'Plus']*w,0)/used.reduce((s,[,,,w])=>s+w,0);}return rows;}
+export function setterMetrics(matches) {
+  let pairs = [];
+  for (const m of matches)
+    for (const e of m.events)
+      for (let i = 0; i < e.steps.length - 1; i++) {
+        let s = e.steps[i],
+          a = e.steps[i + 1];
+        if (
+          s.type === 'set' &&
+          a.type === 'attack' &&
+          a.player === s.target &&
+          a.team === s.team &&
+          Number.isInteger(a.nblock) &&
+          Number.isFinite(s.quality) &&
+          Number.isFinite(s.precision) &&
+          Number.isFinite(s.expected) &&
+          Number.isFinite(s.bestExpected)
+        )
+          pairs.push({
+            id: s.player,
+            precision: s.precision / 100,
+            choice: s.expected - s.bestExpected,
+            ctx: s.quality + ':' + !!s.transition,
+            kill: Number(a.outcome === 'kill'),
+            error: Number(['error', 'blocked'].includes(a.outcome)),
+            adv: Number(a.nblock <= 1),
+            oos: s.quality <= 2 || s.transition
+          });
+      }
+  let contexts = new Map();
+  for (const p of pairs) {
+    let c = contexts.get(p.ctx) || { n: 0, k: 0 };
+    c.n++;
+    c.k += p.kill;
+    contexts.set(p.ctx, c);
+  }
+  let groups = new Map();
+  for (const p of pairs) {
+    let g = groups.get(p.id) || { id: p.id, n: 0, kill: 0, error: 0, adv: 0, decision: 0, oosN: 0, oosK: 0 };
+    g.n++;
+    g.kill += p.kill;
+    g.precision = (g.precision || 0) + p.precision;
+    g.error += p.error;
+    g.adv += p.adv;
+    g.decision += p.choice;
+    if (p.oos) {
+      g.oosN++;
+      g.oosK += p.kill;
+    }
+    groups.set(p.id, g);
+  }
+  let rows = [...groups.values()]
+    .filter(g => g.n >= 8)
+    .map(g => ({
+      ...g,
+      execution: g.precision / g.n,
+      errorControl: g.error / g.n,
+      blockAdv: g.adv / g.n,
+      decision: g.decision / g.n,
+      oos: g.oosN ? g.oosK / g.oosN : null
+    }));
+  if (rows.length < 2) return [];
+  let dimensions = [
+    ['decision', 0.1, 1, 0.3],
+    ['execution', 0.15, 1, 0.25],
+    ['blockAdv', 0.15, 1, 0.2],
+    ['oos', 0.15, 1, 0.15],
+    ['errorControl', 0.12, -1, 0.1]
+  ];
+  for (const [key, scale, sign] of dimensions) {
+    let valid = rows.filter(r => r[key] !== null),
+      mean = valid.reduce((n, r) => n + r[key], 0) / valid.length;
+    for (const r of rows)
+      r[key + 'Plus'] =
+        r[key] === null
+          ? null
+          : Math.max(
+              60,
+              Math.min(150, 100 + (100 * sign * (r[key] - mean)) / Math.max(scale, Math.abs(mean) * 0.45, 0.05))
+            );
+  }
+  for (const r of rows) {
+    let used = dimensions.filter(([k]) => r[k + 'Plus'] !== null);
+    r.setterPlus = used.reduce((s, [k, , , w]) => s + r[k + 'Plus'] * w, 0) / used.reduce((s, [, , , w]) => s + w, 0);
+  }
+  return rows;
+}
