@@ -49,7 +49,9 @@ export const onlyDigits = s => String(s ?? '').replace(/\D/g, '');
 export function parseCsv(text) {
   text = String(text ?? '').replace(/^﻿/, '');
   const firstLine = text.split(/\r?\n/, 1)[0];
-  const delim = (firstLine.match(/;/g) || []).length > (firstLine.match(/,/g) || []).length ? ';' : ',';
+  // Tabulação vem de células coladas do Excel ou do Google Planilhas.
+  const count = ch => firstLine.split(ch).length - 1;
+  const delim = ['\t', ';', ','].reduce((best, ch) => (count(ch) > count(best) ? ch : best), ',');
   const rows = [];
   let row = [],
     field = '',
@@ -179,6 +181,32 @@ const HEADER_ALIASES = {
   headcount_6m: ['headcount_6m', 'headcount_6_meses', 'funcionarios_6m', 'headcount_anterior'],
   observacoes: ['observacoes', 'obs', 'notas', 'notes']
 };
+export const ACCOUNT_FIELD_LABELS = {
+  nome: 'Nome da empresa',
+  cnpj: 'CNPJ',
+  site: 'Site',
+  uf: 'UF',
+  cidade: 'Cidade',
+  setor: 'Setor',
+  braco: 'Braço do ICP',
+  abc: 'Classe ABC',
+  decisor: 'Decisor',
+  cargo: 'Cargo do decisor',
+  linkedin: 'LinkedIn do decisor',
+  uf_decisor: 'UF do decisor',
+  headcount: 'Headcount atual',
+  headcount_6m: 'Headcount 6 meses atrás',
+  observacoes: 'Observações'
+};
+
+// Diz, para cada coluna da planilha, qual campo da conta ela preenche (ou nenhum).
+export function mapAccountColumns(headers) {
+  return headers.map(header => ({
+    header,
+    field: Object.keys(HEADER_ALIASES).find(f => HEADER_ALIASES[f].includes(header)) || null
+  }));
+}
+
 function pick(row, field) {
   for (const alias of HEADER_ALIASES[field]) if (row[alias] != null && row[alias] !== '') return row[alias];
   return '';
@@ -463,14 +491,18 @@ export function cadenceBlock(cadence, accountId, profile, today) {
   return '';
 }
 
-export function buildQueue({ accounts, signals, cadence = [], profile, today = todayIso() }) {
+// `snoozed` guarda, por conta, até quando ela fica fora da fila (adiada pelo time).
+export function buildQueue({ accounts, signals, cadence = [], snoozed = {}, profile, today = todayIso() }) {
   const evaluations = accounts.map(a => evaluateAccount(a, signals, profile, today));
   const eligible = [],
     held = [];
   for (const ev of evaluations) {
     if (!ACTIONS[ev.action].contact) continue;
-    const block = cadenceBlock(cadence, ev.account.id, profile, today);
-    block ? held.push({ ...ev, block }) : eligible.push(ev);
+    const until = snoozed[ev.account.id];
+    const block =
+      cadenceBlock(cadence, ev.account.id, profile, today) ||
+      (until && until > today ? `Adiada até ${formatDate(until)}` : '');
+    block ? held.push({ ...ev, block, snoozedUntil: until > today ? until : null }) : eligible.push(ev);
   }
   eligible.sort(
     (a, b) =>
@@ -532,6 +564,13 @@ export function digestText(queue, profile) {
 }
 
 export const formatDate = iso => (iso ? iso.split('-').reverse().join('/') : '');
+
+// Convites parados há mais de `days` dias sem mudança de status.
+export function staleCadence(cadence, today, days) {
+  return cadence.filter(
+    c => ['convite_enviado', 'aceito'].includes(c.status) && daysBetween(c.atualizadaEm || c.iniciadaEm, today) > days
+  );
+}
 
 // ---------- resultado e calibragem ----------
 

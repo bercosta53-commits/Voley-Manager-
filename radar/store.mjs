@@ -5,7 +5,7 @@ const PARTS = ['accounts', 'signals', 'cadence', 'config'];
 // Um documento do banco aceita até 256 KiB; listas longas são divididas em pedaços.
 const CHUNK_BYTES = 180 * 1024;
 
-const emptyData = () => ({ accounts: [], signals: [], cadence: [], overrides: {}, drafts: {} });
+const emptyData = () => ({ accounts: [], signals: [], cadence: [], overrides: {}, drafts: {}, snoozed: {} });
 
 // ---------- navegador ----------
 
@@ -69,7 +69,7 @@ function splitData(data) {
   const docs = {};
   for (const part of PARTS.slice(0, 3))
     chunk(data[part] || []).forEach((items, i, all) => (docs[`${part}-${i}`] = { items, total: all.length }));
-  docs['config-0'] = { overrides: data.overrides || {}, drafts: data.drafts || {} };
+  docs['config-0'] = { overrides: data.overrides || {}, drafts: data.drafts || {}, snoozed: data.snoozed || {} };
   return docs;
 }
 
@@ -84,7 +84,11 @@ function joinDocs(docs) {
     }
   }
   const config = docs.find(d => d.id === 'config-0')?.data();
-  if (config) ((data.overrides = structuredClone(config.overrides || {})), (data.drafts = { ...config.drafts }));
+  if (config) {
+    data.overrides = structuredClone(config.overrides || {});
+    data.drafts = { ...config.drafts };
+    data.snoozed = { ...config.snoozed };
+  }
   data.accounts = structuredClone(data.accounts);
   data.signals = structuredClone(data.signals);
   data.cadence = structuredClone(data.cadence);

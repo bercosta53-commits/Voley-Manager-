@@ -23,16 +23,32 @@ Testes do núcleo (Node 20+):
 node --test radar/core.test.mjs
 ```
 
+## Rotina no painel
+
+1. **Semana:** toda segunda, a fila traz as contas a abordar, cada uma com o sinal, o decisor e a
+   primeira linha da abordagem. Revise o texto, use “Copiar abordagem”, envie pelo Sales Navigator e
+   clique em “Marcar convite enviado”. “Adiar 1 semana” tira a conta da fila até a próxima segunda.
+2. **Cadência:** avance cada conta com um clique (Aceitou, Respondeu, Reunião marcada, Sem
+   resposta). Convites parados há mais de 14 dias ficam destacados. “Desfazer” volta um passo.
+3. **Contas:** importe colando direto do Excel ou do Google Planilhas (ou por CSV), com conferência
+   das colunas antes de gravar; cadastre contas avulsas; filtre por “Faltando dados” para chegar às
+   100 contas prontas.
+4. **Sinais:** registre pelo botão “+ Sinal” na linha da conta ou pela aba Sinais; “Registrar e
+   adicionar outro” agiliza a pesquisa em série.
+
+Enquanto a base não está montada, a aba Semana mostra os primeiros passos, e há um espaço de
+exemplo com dados fictícios para conhecer o painel.
+
 ## Estrutura
 
-| Arquivo                 | Papel                                                                                 |
-| ----------------------- | ------------------------------------------------------------------------------------- |
-| `core.mjs`              | Núcleo fixo: importação, deduplicação, pontuação, matriz ABC × sinal, fila, métricas  |
-| `profiles/velora.mjs`   | Perfil da Velora: ICP, 44 tipos de sinal em 7 famílias, pesos, capacidade, tom de voz |
-| `profiles/modelo.mjs`   | Perfil-modelo para escritórios de advocacia (base para o piloto da Lefosse)           |
-| `profiles/index.mjs`    | Registro dos perfis disponíveis no painel                                             |
-| `store.mjs`             | Persistência por espaço de trabalho no navegador, backup e restauração                |
-| `app.mjs`, `index.html` | Painel web                                                                            |
+| Arquivo                 | Papel                                                                                  |
+| ----------------------- | -------------------------------------------------------------------------------------- |
+| `core.mjs`              | Núcleo fixo: importação, deduplicação, pontuação, matriz ABC × sinal, fila, métricas   |
+| `profiles/velora.mjs`   | Perfil da Velora: ICP, 44 tipos de sinal em 7 famílias, pesos, capacidade, tom de voz  |
+| `profiles/modelo.mjs`   | Perfil-modelo para escritórios de advocacia (base para o piloto da Lefosse)            |
+| `profiles/index.mjs`    | Registro dos perfis disponíveis no painel                                              |
+| `store.mjs`             | Persistência por espaço: banco do link publicado no claude.ai ou navegador, com backup |
+| `app.mjs`, `index.html` | Painel web                                                                             |
 
 Nada específico de cliente fica em `core.mjs`: tudo o que muda vive no perfil.
 
@@ -88,7 +104,7 @@ confirmação.
 2. Registre o perfil em `profiles/index.mjs`.
 3. No painel, crie um espaço com esse perfil e importe a planilha de contas.
 
-Cada espaço fica numa chave separada do navegador; os dados de um nunca alimentam outro.
+Cada espaço é guardado separadamente; os dados de um nunca alimentam outro.
 
 ## O que fica para as próximas fases
 
@@ -96,6 +112,6 @@ Cada espaço fica numa chave separada do navegador; os dados de um nunca aliment
   MVP os sinais entram pelo formulário ou pela planilha de sinais, que é o formato que os coletores
   vão gerar.
 - **Classificação e resumo por IA** dos sinais coletados.
-- **Login por cliente e base no servidor** (fase de produtização): hoje os dados ficam no navegador
-  de quem usa, com backup em JSON.
+- **Login por cliente** (fase de produtização): publicado no claude.ai, os dados ficam no banco do
+  link e são compartilhados com quem tem acesso a ele; rodando localmente, ficam no navegador.
 - **Alertas por e-mail, WhatsApp ou Slack:** hoje o resumo da fila é copiado para e-mail.

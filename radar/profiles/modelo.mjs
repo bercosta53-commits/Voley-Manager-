@@ -31,7 +31,7 @@ export default {
     regions: [],
     excludedSectors: ['saude']
   },
-  capacity: { weeklyContacts: 20, cooldownDays: 90 },
+  capacity: { weeklyContacts: 20, cooldownDays: 90, staleDays: 14 },
   goals: { readyAccounts: 80 },
   approach: {
     ...velora.approach,

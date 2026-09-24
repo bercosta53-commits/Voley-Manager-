@@ -363,7 +363,7 @@ export default {
     calibration: { minSample: 5, maxChange: 0.5 }
   },
   // Sales Navigator define o teto: 25 contas por semana leva as 100 contas em 4 semanas.
-  capacity: { weeklyContacts: 25, cooldownDays: 60 },
+  capacity: { weeklyContacts: 25, cooldownDays: 60, staleDays: 14 },
   goals: { readyAccounts: 100 },
   approach: {
     greeting: 'Olá, {decisor},',

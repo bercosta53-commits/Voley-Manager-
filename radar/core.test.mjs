@@ -14,7 +14,9 @@ import {
   buildQueue,
   metrics,
   calibrate,
-  lintApproach
+  lintApproach,
+  mapAccountColumns,
+  staleCadence
 } from './core.mjs';
 import velora from './profiles/velora.mjs';
 import modelo from './profiles/modelo.mjs';
@@ -306,4 +308,36 @@ test('calibragem só sugere com amostra mínima e limita a mudança', () => {
   assert.equal(byId.vaga_sdr.enough, false);
   const p = resolveProfile(velora, { signals: { novo_cmo: { weight: 4.5 } } });
   assert.equal(evaluateAccount(account(), [sig('x', 'novo_cmo', '2026-09-20')], p, TODAY).score, 4.5);
+});
+
+test('colagem do Excel (tabulação) e mapa de colunas', () => {
+  const rows = parseCsv('Empresa\tCNPJ\tCor favorita\nAlfa; Filial\t11222333000181\tazul');
+  assert.deepEqual(rows, [{ empresa: 'Alfa; Filial', cnpj: '11222333000181', cor_favorita: 'azul' }]);
+  assert.deepEqual(
+    mapAccountColumns(Object.keys(rows[0])).map(c => c.field),
+    ['nome', 'cnpj', null]
+  );
+});
+
+test('conta adiada sai da fila até a data e depois volta', () => {
+  const accounts = [account({ id: 'a1', abc: 'A' })];
+  const signals = [sig('a1', 'novo_cmo', '2026-09-20')];
+  const snoozed = { a1: '2026-09-28' };
+  const q = buildQueue({ accounts, signals, snoozed, profile, today: TODAY });
+  assert.equal(q.items.length, 0);
+  assert.equal(q.held[0].block, 'Adiada até 28/09/2026');
+  assert.equal(q.held[0].snoozedUntil, '2026-09-28');
+  assert.equal(buildQueue({ accounts, signals, snoozed, profile, today: '2026-09-28' }).items.length, 1);
+});
+
+test('convites parados são apontados', () => {
+  const cadence = [
+    { accountId: 'a', status: 'convite_enviado', iniciadaEm: '2026-09-01', atualizadaEm: '2026-09-01' },
+    { accountId: 'b', status: 'convite_enviado', iniciadaEm: '2026-09-20', atualizadaEm: '2026-09-20' },
+    { accountId: 'c', status: 'reuniao', iniciadaEm: '2026-08-01', atualizadaEm: '2026-08-01' }
+  ];
+  assert.deepEqual(
+    staleCadence(cadence, TODAY, 14).map(c => c.accountId),
+    ['a']
+  );
 });
