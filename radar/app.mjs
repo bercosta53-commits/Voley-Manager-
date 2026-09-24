@@ -28,6 +28,18 @@ import {
   todayIso,
   weekStart
 } from './core.mjs';
+import {
+  applyIcpDraft,
+  buildClassifyPrompt,
+  buildHooksPrompt,
+  buildIcpPrompt,
+  buildSignalExtractPrompt,
+  icpFromProfile,
+  sanitizeClassification,
+  sanitizeExtractedSignals,
+  sanitizeHooks,
+  sanitizeIcp
+} from './ai.mjs';
 import { profiles, profileById } from './profiles/index.mjs';
 import * as store from './store.mjs';
 
@@ -88,6 +100,7 @@ function normalizeData(data) {
   data.drafts ||= {};
   data.snoozed ||= {};
   data.overrides ||= {};
+  data.icpHistory ||= [];
   return data;
 }
 
@@ -250,6 +263,7 @@ const TABS = [
   ['cadencia', 'Cadência'],
   ['contas', 'Contas'],
   ['sinais', 'Sinais'],
+  ['icp', 'ICP'],
   ['resultados', 'Resultados'],
   ['configurar', 'Configurar']
 ];
@@ -283,6 +297,7 @@ function render() {
     cadencia: renderCadence,
     contas: renderAccounts,
     sinais: renderSignals,
+    icp: renderIcp,
     resultados: renderResults,
     configurar: renderSettings
   }[state.tab]();
@@ -306,20 +321,24 @@ function renderGuide() {
     {
       done: ready > 0,
       title: 'Defina ABC e decisor',
-      text: `${ready} de ${state.profile.goals.readyAccounts} contas prontas para contato.`,
-      button: '<button data-action="filter-accounts" data-group="pendentes">Ver o que falta</button>'
+      text: `${ready} de ${state.profile.goals.readyAccounts} contas prontas. A IA classifica pelo ICP e indica o cargo a procurar.`,
+      button:
+        aiButton('ai-classify', 'Classificar com IA') +
+        '<button data-action="filter-accounts" data-group="pendentes">Fazer manualmente</button>'
     },
     {
       done: state.data.signals.length > 0,
-      title: 'Registre os sinais que encontrar',
-      text: 'Novo CMO, vaga de SDR, rodada, download de white paper…',
-      button: '<button data-action="new-signal">Registrar sinal</button>'
+      title: 'Registre os sinais',
+      text: 'Cole notícias, vagas ou posts e a IA identifica os sinais das suas contas.',
+      button:
+        aiButton('ai-signals', 'Encontrar sinais com IA') +
+        '<button data-action="new-signal">Registrar manualmente</button>'
     },
     {
       done: state.data.cadence.length > 0,
       title: 'Envie o primeiro convite da fila',
-      text: 'Revise a abordagem, copie, envie pelo Sales Navigator e marque aqui.',
-      button: ''
+      text: 'A IA escreve as abordagens; você revisa, envia pelo Sales Navigator e marca aqui.',
+      button: state.queue.items.length ? aiButton('ai-hooks', 'Escrever abordagens com IA') : ''
     }
   ];
   if (steps.every(s => s.done)) return '';
@@ -332,10 +351,11 @@ function renderGuide() {
         (s, i) => `<li class="${s.done ? 'done' : i === next ? 'current' : ''}">
           <span class="mark" aria-hidden="true">${s.done ? '✓' : i + 1}</span>
           <div><b>${esc(s.title)}</b><div class="small muted">${esc(s.text)}</div></div>
-          <div>${!s.done && i === next ? s.button : ''}</div>
+          <div class="row">${!s.done && i === next ? s.button : ''}</div>
         </li>`
       )
       .join('')}</ol>
+    ${aiNote()}
   </section>`;
 }
 
@@ -365,7 +385,8 @@ function renderWeek() {
           <textarea data-draft="${esc(id)}" rows="3">${esc(text)}</textarea></label>
         <div class="row between small">
           <span class="${warnings.length ? 'warn' : 'muted'}" data-warn="${esc(id)}">${warnings.length ? esc(warnings.join(' · ')) : `${text.length}/${state.profile.approach.maxChars} caracteres`}</span>
-          ${state.data.drafts[id] != null ? `<button class="link" data-action="reset-draft" data-id="${esc(id)}">Voltar à sugestão</button>` : ''}
+          <span class="row">${ai ? `<button class="link" data-action="ai-hook-one" data-id="${esc(id)}">Reescrever com IA</button>` : ''}
+          ${state.data.drafts[id] != null ? `<button class="link" data-action="reset-draft" data-id="${esc(id)}">Voltar à sugestão</button>` : ''}</span>
         </div>
         <div class="row actions">
           <button data-action="snooze" data-id="${esc(id)}" title="Tira a conta da fila até a próxima segunda">Adiar 1 semana</button>
@@ -395,6 +416,7 @@ function renderWeek() {
         <div><h2>Fila da semana de ${esc(formatDate(q.weekStart))}</h2>
           <div class="muted small">${q.items.length} de ${q.capacity} contatos da semana · ordem pela matriz ABC × sinal</div></div>
         <div class="row">
+          ${q.items.length ? aiButton('ai-hooks', 'Escrever abordagens com IA', '') : ''}
           <button data-action="copy-digest" ${q.items.length ? '' : 'disabled'}>Copiar resumo</button>
           <button data-action="export-queue" ${q.items.length ? '' : 'disabled'}>Exportar CSV</button>
         </div>
@@ -549,7 +571,7 @@ function renderAccounts() {
         ]
           .map(v => `<option value="${v}" ${a.abc === v ? 'selected' : ''}>${v || '—'}</option>`)
           .join('')}</select></td>
-        <td class="small">${a.decisor ? `${esc(a.decisor)}${a.cargo ? `<div class="muted">${esc(a.cargo)}</div>` : ''}` : `<button class="link" data-action="open-account" data-id="${esc(a.id)}" data-focus="decisor">Adicionar decisor</button>`}</td>
+        <td class="small">${a.decisor ? `${esc(a.decisor)}${a.decisorIA ? ' <span class="badge warnb" title="Sugerido pela IA; confirme no LinkedIn">IA · confirmar</span>' : ''}${a.cargo ? `<div class="muted">${esc(a.cargo)}</div>` : ''}` : `<button class="link" data-action="open-account" data-id="${esc(a.id)}" data-focus="decisor">Adicionar decisor</button>`}</td>
         <td>${actionBadge(ev.action)}${ev.active.length ? `<div class="small muted">${esc(ev.top.def.label)}${ev.active.length > 1 ? ` +${ev.active.length - 1}` : ''}</div>` : ''}</td>
         <td class="small">${c ? esc(statusLabel(c.status)) : '<span class="muted">—</span>'}</td>
         <td><button data-action="new-signal" data-id="${esc(a.id)}" title="Registrar sinal para esta conta">+ Sinal</button></td>
@@ -693,6 +715,434 @@ function renderResults() {
     </section>`;
 }
 
+// ---------- IA ----------
+
+// A IA só existe no link publicado no claude.ai; rodando localmente, os botões somem.
+let ai = null;
+let aiChecked = false;
+let aiRun = null; // { controller, label } enquanto um pedido está em andamento
+
+function aiButton(action, label, cls = 'primary') {
+  if (!ai) return '';
+  const busy = aiRun ? 'disabled' : '';
+  return `<button class="${cls} ai" data-action="${action}" ${busy}><span class="spark" aria-hidden="true">✦</span> ${esc(label)}</button>`;
+}
+function aiNote() {
+  if (ai || !aiChecked) return '';
+  return '<p class="small muted">Os recursos de IA aparecem quando o painel é aberto pelo link publicado no claude.ai.</p>';
+}
+
+const AI_ERRORS = {
+  not_granted: 'O uso da IA não foi autorizado nesta página. Recarregue para autorizar de novo.',
+  sampling_disabled: 'A IA não está disponível para esta conta.',
+  not_declared: 'A IA não está disponível nesta versão da página.',
+  capability_disabled: 'A IA não está disponível nesta visualização.',
+  rate_limited: 'Muitos pedidos seguidos ou limite de uso atingido. Tente de novo em alguns minutos.',
+  session_expired: 'Sua sessão expirou. Entre de novo no claude.ai.',
+  prompt_too_large: 'Material grande demais para um pedido. Envie menos de cada vez.',
+  refused: 'A IA recusou este pedido. Reformule o texto.',
+  empty_completion: 'A IA não respondeu nada. Tente pedir menos de cada vez.',
+  invalid_json: 'A resposta da IA veio num formato inesperado. Tente de novo.'
+};
+
+// Um pedido por vez. Devolve o JSON da IA ou null (cancelado ou com erro já avisado).
+async function askAI(prompt, { tier = 'default', label = 'Pensando…', cache = false } = {}) {
+  if (!ai || aiRun) return null;
+  const controller = new AbortController();
+  aiRun = { controller, label };
+  renderAiStatus();
+  try {
+    return await ai.json(prompt, { modelTier: tier, signal: controller.signal, cache });
+  } catch (err) {
+    if (err?.code === 'cancelled') return null;
+    if (
+      ['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed'].includes(
+        err?.code
+      )
+    )
+      ai = null;
+    toast(AI_ERRORS[err?.code] || 'A IA não respondeu. Tente de novo.');
+    return null;
+  } finally {
+    aiRun = null;
+    renderAiStatus();
+  }
+}
+
+// Faixa fixa com o que a IA está fazendo e o botão de parar.
+function renderAiStatus() {
+  let bar = $('#ai-status');
+  if (!aiRun) {
+    bar?.remove();
+    view.querySelectorAll('button.ai').forEach(b => (b.disabled = false));
+    dialog.querySelectorAll('button.ai').forEach(b => (b.disabled = false));
+    return;
+  }
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'ai-status';
+    bar.setAttribute('role', 'status');
+    document.body.append(bar);
+  }
+  bar.innerHTML = `<span class="pulse" aria-hidden="true"></span><span>${esc(aiRun.label)}</span><button data-stop-ai>Parar</button>`;
+  bar.querySelector('[data-stop-ai]').onclick = () => aiRun?.controller.abort();
+  view.querySelectorAll('button.ai').forEach(b => (b.disabled = true));
+  dialog.querySelectorAll('button.ai').forEach(b => (b.disabled = true));
+}
+
+// ---------- ICP ----------
+
+const ICP_PLACEHOLDER =
+  'Ex.: Somos a Velora, consultoria de marketing e vendas B2B. Vendemos diagnóstico comercial e operação de ABM para empresas com venda complexa. Nossos melhores clientes são escritórios de advocacia empresarial com mais de 50 advogados, cooperativas de crédito e empresas de software B2B com mais de 5 anos. Atuamos em SP e no Sul. Não atendemos saúde nem gestoras de investimento. Quem decide a compra costuma ser o sócio-diretor, o CMO ou o diretor comercial.';
+
+function chips(items, cls = '') {
+  return items.length
+    ? `<div class="chips tight">${items.map(t => `<span class="chip static ${cls}">${esc(t)}</span>`).join('')}</div>`
+    : '<span class="small muted">—</span>';
+}
+
+function renderIcp() {
+  const draft = state.data.icpDraft;
+  const current = icpFromProfile(state.profile);
+  const shown = draft || current;
+  const editable = Boolean(draft);
+  const label = s => state.profile.signalById[s]?.label || s;
+  const field = (path, value, rows = 2) =>
+    editable
+      ? `<textarea class="inline" rows="${rows}" data-icp="${path}">${esc(value)}</textarea>`
+      : `<div class="small">${esc(value) || '<span class="muted">—</span>'}</div>`;
+  const listField = (path, values, cls) =>
+    editable
+      ? `<input class="inline" data-icp="${path}" data-list value="${esc(values.join(', '))}" placeholder="separe por vírgula" />`
+      : chips(values, cls);
+  const arms = shown.bracos
+    .map(
+      (b, i) => `<article class="arm">
+        <div class="row between"><span class="eyebrow">Braço ${i + 1}</span>
+          ${editable && shown.bracos.length > 1 ? `<button class="link danger small" data-action="icp-remove-arm" data-index="${i}">Remover</button>` : ''}</div>
+        ${editable ? `<input class="inline title" data-icp="bracos.${i}.nome" value="${esc(b.nome)}" aria-label="Nome do braço" />` : `<h3 class="arm-name">${esc(b.nome)}</h3>`}
+        ${field(`bracos.${i}.descricao`, b.descricao)}
+        <div class="kv"><span>Setores</span>${listField(`bracos.${i}.setores`, b.setores)}</div>
+        <div class="kv"><span>Porte</span>${editable ? `<input class="inline" data-icp="bracos.${i}.porte" value="${esc(b.porte)}" />` : `<div class="small">${esc(b.porte) || '—'}</div>`}</div>
+        <div class="kv"><span>Decisores</span>${listField(`bracos.${i}.decisores`, b.decisores)}</div>
+        <div class="kv"><span>Sinais que mais pesam</span>${chips(b.sinaisChave.map(label), 'signal')}</div>
+      </article>`
+    )
+    .join('');
+  const abc = ['A', 'B', 'C']
+    .map(k => `<div class="abc-col"><span class="badge ${k}">${k}</span>${field(`abc.${k}`, shown.abc[k], 3)}</div>`)
+    .join('');
+  const history = state.data.icpHistory
+    .map(
+      (h, i) =>
+        `<li><span class="small">${esc(formatDate(h.em))} · ${esc(h.icp.bracos.map(b => b.nome).join(', '))}</span>
+          <button class="link" data-action="icp-restore" data-index="${i}">Usar esta versão</button></li>`
+    )
+    .join('');
+  return `<section class="panel">
+      <div class="row between"><div><h2>Desenhe o ICP</h2>
+        <div class="small muted">Descreva a operação com suas palavras. A IA propõe os braços, os critérios ABC, os decisores e os sinais que mais pesam; você ajusta e aplica.</div></div></div>
+      <label class="field" style="margin-top:10px">Sua operação, clientes ideais e o que evitar
+        <textarea id="icp-brief" rows="6" placeholder="${esc(ICP_PLACEHOLDER)}">${esc(state.data.icpBrief || '')}</textarea></label>
+      <div class="row" style="margin-top:8px">
+        ${ai ? aiButton('icp-generate', draft ? 'Desenhar de novo com IA' : 'Desenhar ICP com IA') : '<span class="small muted">O desenho com IA funciona pelo link publicado no claude.ai. Você ainda pode ajustar o ICP abaixo.</span>'}
+        ${!draft ? '<button data-action="icp-edit">Editar manualmente</button>' : ''}
+      </div>
+    </section>
+    <section class="panel icp ${editable ? 'is-draft' : ''}">
+      <div class="row between">
+        <div><h2>${editable ? 'Rascunho do ICP' : 'ICP em uso'}</h2>
+          <div class="small ${editable ? 'warn' : 'muted'}">${editable ? 'Ainda não aplicado. Edite os campos à vontade antes de aplicar.' : state.profile.icpDesign ? 'Desenhado neste espaço.' : `Padrão do perfil ${esc(state.profile.name)}.`}</div></div>
+        ${editable ? '<div class="row"><button data-action="icp-discard">Descartar</button><button class="primary" data-action="icp-apply">Aplicar ao espaço</button></div>' : ''}
+      </div>
+      ${shown.resumo ? `<p class="lead">${esc(shown.resumo)}</p>` : ''}
+      <div class="arms">${arms}</div>
+      <div class="icp-grid">
+        <div><h3>Geografia</h3>${listField('regioes', shown.regioes, 'uf')}${!shown.regioes.length && !editable ? '<div class="small muted">Brasil todo</div>' : ''}</div>
+        <div><h3>Fora do ICP</h3>${listField('exclusoes', shown.exclusoes, 'out')}</div>
+        <div><h3>Tom de voz</h3>${field('tom', shown.tom)}</div>
+        <div><h3>Termos a evitar</h3>${chips(
+          shown.termosEvitar.map(t => t.termo),
+          'out'
+        )}</div>
+      </div>
+      <h3>Critérios ABC</h3>
+      <div class="abc">${abc}</div>
+      ${
+        editable && ai
+          ? `<div class="refine"><label class="field">Pedir ajuste à IA
+              <textarea id="icp-refine" rows="2" placeholder="Ex.: separe cooperativas de seguradoras e dê mais peso a novos sócios nos escritórios"></textarea></label>
+              <div class="row" style="margin-top:6px">${aiButton('icp-refine', 'Ajustar com IA', '')}</div></div>`
+          : ''
+      }
+    </section>
+    ${history ? `<section class="panel"><h2>Versões aplicadas</h2><ul class="plain">${history}</ul></section>` : ''}`;
+}
+
+function setIcpField(path, value, isList) {
+  const draft = state.data.icpDraft;
+  const keys = path.split('.');
+  let target = draft;
+  for (const k of keys.slice(0, -1)) target = target[k];
+  const last = keys[keys.length - 1];
+  let v = isList
+    ? value
+        .split(',')
+        .map(x => x.trim())
+        .filter(Boolean)
+    : value;
+  if (path === 'regioes') v = v.map(u => u.toUpperCase());
+  target[last] = v;
+  save();
+}
+
+async function generateIcp(refine) {
+  const brief = $('#icp-brief')?.value.trim() ?? state.data.icpBrief ?? '';
+  state.data.icpBrief = brief;
+  save();
+  const instruction = refine ? $('#icp-refine')?.value.trim() : '';
+  if (!brief && !refine) return toast('Descreva a operação antes de pedir o desenho.');
+  if (refine && !instruction) return toast('Escreva o ajuste que você quer.');
+  const prompt = buildIcpPrompt({
+    description: brief || '(sem descrição; parta do ICP atual)',
+    current: refine ? state.data.icpDraft : null,
+    instruction,
+    profile: state.profile
+  });
+  const raw = await askAI(prompt, { label: refine ? 'Ajustando o ICP…' : 'Desenhando o ICP…' });
+  if (!raw) return;
+  try {
+    state.data.icpDraft = sanitizeIcp(raw, state.profile);
+  } catch (err) {
+    return toast(`Não deu para usar a resposta: ${err.message}. Tente de novo.`);
+  }
+  save();
+  render();
+  toast('Rascunho pronto. Revise e aplique quando estiver bom.');
+}
+
+function applyIcp(draft) {
+  const clean = sanitizeIcp(draft, state.profile);
+  state.data.overrides = applyIcpDraft(state.data.overrides, clean, state.profile);
+  state.data.icpHistory = [{ em: state.today, icp: clean }, ...state.data.icpHistory].slice(0, 5);
+  state.data.icpDraft = null;
+  save();
+  render();
+  const known = new Set(Object.keys(state.profile.icp.arms));
+  const orphan = state.data.accounts.filter(a => a.braco && !known.has(a.braco)).length;
+  toast(
+    orphan
+      ? `ICP aplicado. ${plural(orphan, 'conta está', 'contas estão')} num braço que não existe mais: reclassifique com IA.`
+      : 'ICP aplicado. A fila já usa os novos critérios.'
+  );
+}
+
+// ---------- IA: classificar contas (passo 2) ----------
+
+let classify = null; // { scope, results: Map, done, total, running }
+
+function classifyTargets(scope) {
+  const arms = new Set(Object.keys(state.profile.icp.arms));
+  return state.data.accounts.filter(a =>
+    scope === 'todas' ? true : !a.abc || !a.braco || !arms.has(a.braco) || !a.decisor
+  );
+}
+
+function openClassify() {
+  classify ||= { scope: 'pendentes', results: new Map(), done: 0, total: 0 };
+  renderClassify();
+}
+
+function renderClassify() {
+  const c = classify;
+  const targets = classifyTargets(c.scope);
+  const arms = state.profile.icp.arms;
+  const rows = [...c.results.values()]
+    .map(r => {
+      const a = accountById(r.id);
+      if (!a) return '';
+      return `<tr class="${r.confianca === 'baixa' ? 'low' : ''}">
+        <td><input type="checkbox" data-cls-pick="${esc(r.id)}" ${r.pick ? 'checked' : ''} aria-label="Aplicar para ${esc(a.nome)}" /></td>
+        <td><b>${esc(a.nome)}</b><div class="small muted">${esc(r.motivo)}</div></td>
+        <td><select data-cls-abc="${esc(r.id)}" aria-label="ABC">${['', 'A', 'B', 'C'].map(v => `<option ${r.abc === v ? 'selected' : ''} value="${v}">${v || '—'}</option>`).join('')}</select>${a.abc && a.abc !== r.abc ? `<div class="small muted">era ${esc(a.abc)}</div>` : ''}</td>
+        <td class="small">${esc(arms[r.braco]?.label || '—')}</td>
+        <td class="small">${esc(r.cargo || '—')}${r.decisor && !a.decisor ? `<div>${esc(r.decisor)} <span class="badge warnb">confirmar</span></div>` : ''}</td>
+        <td><span class="badge ${r.confianca === 'alta' ? 'A' : r.confianca === 'media' ? '' : 'C'}">${{ alta: 'alta', media: 'média', baixa: 'baixa' }[r.confianca]}</span></td>
+      </tr>`;
+    })
+    .join('');
+  const picked = [...c.results.values()].filter(r => r.pick).length;
+  openDialog(`<form data-form="classify" class="wide-dialog">
+    <div class="row between"><h2>Classificar contas com IA</h2><button type="button" class="link" data-action="close-dialog">Fechar</button></div>
+    <p class="small muted">A IA lê o ICP e os dados de cada conta e sugere a classe ABC, o braço e o cargo do decisor. Nomes de pessoas só aparecem quando a IA tem alta certeza, e sempre marcados para você confirmar. Nada é gravado antes de você aplicar.</p>
+    <div class="row">
+      <label class="row small"><input type="radio" name="scope" value="pendentes" ${c.scope === 'pendentes' ? 'checked' : ''} /> Só contas com dados faltando</label>
+      <label class="row small"><input type="radio" name="scope" value="todas" ${c.scope === 'todas' ? 'checked' : ''} /> Todas as contas</label>
+      <span class="grow"></span>
+      ${aiButton('ai-classify-run', `Classificar ${plural(targets.length, 'conta', 'contas')}`)}
+    </div>
+    ${c.total ? `<div class="small muted">${c.done} de ${c.total} contas analisadas</div><div class="bar"><span style="width:${Math.round((c.done / c.total) * 100)}%"></span></div>` : ''}
+    ${
+      rows
+        ? `<div class="table-wrap"><table><thead><tr><th></th><th>Conta</th><th>ABC</th><th>Braço</th><th>Decisor</th><th>Confiança</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="row between"><span class="small muted">Confiança baixa vem desmarcada.</span>
+        <button class="primary" type="submit" ${picked ? '' : 'disabled'}>Aplicar ${plural(picked, 'sugestão', 'sugestões')}</button></div>`
+        : ''
+    }
+  </form>`);
+  renderAiStatus();
+}
+
+async function runClassify() {
+  const targets = classifyTargets(classify.scope);
+  if (!targets.length) return toast('Nenhuma conta para classificar neste filtro.');
+  classify.results = new Map();
+  classify.total = targets.length;
+  classify.done = 0;
+  renderClassify();
+  const size = 20;
+  for (let i = 0; i < targets.length; i += size) {
+    const batch = targets.slice(i, i + size);
+    const raw = await askAI(buildClassifyPrompt(batch, state.profile), {
+      label: `Classificando contas ${i + 1}–${i + batch.length} de ${targets.length}…`
+    });
+    if (!raw) break;
+    for (const r of sanitizeClassification(raw, batch, state.profile))
+      classify.results.set(r.id, { ...r, pick: r.confianca !== 'baixa' && Boolean(r.abc) });
+    classify.done = Math.min(targets.length, i + batch.length);
+    if (dialog.open && dialog.querySelector('[data-form="classify"]')) renderClassify();
+  }
+}
+
+function applyClassify() {
+  let n = 0;
+  for (const r of classify.results.values()) {
+    if (!r.pick) continue;
+    const a = accountById(r.id);
+    if (!a) continue;
+    if (r.abc) a.abc = r.abc;
+    if (r.braco) a.braco = r.braco;
+    if (r.cargo && !a.cargo) a.cargo = r.cargo;
+    if (r.decisor && !a.decisor) ((a.decisor = r.decisor), (a.decisorIA = true));
+    a.motivoIA = r.motivo;
+    a.atualizadaEm = state.today;
+    n++;
+  }
+  classify = null;
+  save();
+  dialog.close();
+  render();
+  toast(`${plural(n, 'conta atualizada', 'contas atualizadas')} com as sugestões da IA.`);
+}
+
+// ---------- IA: sinais a partir de texto (passo 3) ----------
+
+let extracted = null; // { source, items: [] }
+
+function openExtract() {
+  extracted ||= { source: '', items: [] };
+  renderExtract();
+}
+
+function renderExtract() {
+  const rows = extracted.items
+    .map(
+      (s, i) => `<li class="found">
+        <input type="checkbox" data-ext-pick="${i}" ${s.pick ? 'checked' : ''} aria-label="Registrar este sinal" />
+        <div><div><b>${esc(s.conta)}</b> · <span class="dot ${s.strength}"></span> ${esc(s.label)} <span class="small muted">· ${esc(formatDate(s.date))}</span></div>
+          ${s.detail ? `<div class="small">${esc(s.detail)}</div>` : ''}
+          ${s.evidence ? `<div class="small muted quote">“${esc(s.evidence)}”</div>` : ''}</div>
+      </li>`
+    )
+    .join('');
+  const picked = extracted.items.filter(s => s.pick).length;
+  openDialog(`<form data-form="extract" class="wide-dialog">
+    <div class="row between"><h2>Encontrar sinais com IA</h2><button type="button" class="link" data-action="close-dialog">Fechar</button></div>
+    <p class="small muted">Cole notícias, descrições de vagas, posts do LinkedIn, anotações do Apollo ou do Sales Navigator. A IA procura sinais das contas da sua base nesse material; ela não pesquisa na internet sozinha.</p>
+    <label class="field">Material
+      <textarea id="extract-text" rows="8" maxlength="30000" placeholder="Cole aqui o texto que você encontrou…">${esc(extracted.source)}</textarea></label>
+    <div class="row between"><span class="small muted">Até 30 mil caracteres por vez.</span>${aiButton('ai-signals-run', 'Procurar sinais')}</div>
+    ${
+      extracted.ran
+        ? rows
+          ? `<h3>${plural(extracted.items.length, 'sinal encontrado', 'sinais encontrados')}</h3><ul class="plain">${rows}</ul>
+            <div class="row" style="justify-content:flex-end"><button class="primary" type="submit" ${picked ? '' : 'disabled'}>Registrar ${plural(picked, 'sinal', 'sinais')}</button></div>`
+          : '<p class="small">Nenhum sinal das suas contas nesse material.</p>'
+        : ''
+    }
+  </form>`);
+  renderAiStatus();
+}
+
+async function runExtract() {
+  const source = $('#extract-text').value.trim();
+  if (!source) return toast('Cole o material antes.');
+  extracted.source = source;
+  const raw = await askAI(
+    buildSignalExtractPrompt({ source, accounts: state.data.accounts, profile: state.profile, today: state.today }),
+    { label: 'Lendo o material e procurando sinais…' }
+  );
+  if (!raw) return;
+  extracted.items = sanitizeExtractedSignals(raw, state.data.accounts, state.profile, state.today).map(s => ({
+    ...s,
+    pick: true
+  }));
+  extracted.ran = true;
+  if (dialog.open) renderExtract();
+}
+
+function applyExtract() {
+  let added = 0;
+  for (const s of extracted.items.filter(x => x.pick)) {
+    const r = addSignal(state.data.signals, {
+      accountId: s.accountId,
+      type: s.type,
+      date: s.date,
+      source: s.source,
+      detail: s.detail,
+      person: s.person,
+      url: ''
+    });
+    state.data.signals = r.signals;
+    if (r.added) added++;
+  }
+  extracted = null;
+  save();
+  dialog.close();
+  render();
+  toast(`${plural(added, 'sinal registrado', 'sinais registrados')}.`);
+}
+
+// ---------- IA: abordagens (passo 4) ----------
+
+async function writeHooks(ids) {
+  const items = state.queue.items
+    .filter(ev => ids.includes(ev.account.id))
+    .map(ev => ({
+      id: ev.account.id,
+      empresa: ev.account.nome,
+      setor: ev.account.setor || undefined,
+      decisor: ev.hook.decisor.nome || undefined,
+      cargo: ev.hook.decisor.cargo || undefined,
+      sinais: ev.active.map(e => ({ tipo: e.def.label, detalhe: e.signal.detail || undefined, data: e.signal.date })),
+      rascunhoAtual: state.data.drafts[ev.account.id] ?? ev.hook.text
+    }));
+  if (!items.length) return;
+  const raw = await askAI(buildHooksPrompt(items, state.profile), {
+    label: items.length > 1 ? `Escrevendo ${items.length} abordagens…` : 'Reescrevendo a abordagem…'
+  });
+  if (!raw) return;
+  const hooks = sanitizeHooks(raw, ids);
+  for (const h of hooks) state.data.drafts[h.id] = h.texto;
+  save();
+  render();
+  toast(
+    hooks.length
+      ? `${plural(hooks.length, 'abordagem escrita', 'abordagens escritas')}. Revise antes de enviar.`
+      : 'A IA não devolveu abordagens. Tente de novo.'
+  );
+}
+
 // ---------- configurar ----------
 
 function renderSettings() {
@@ -722,18 +1172,9 @@ function renderSettings() {
       ? 'Os dados ficam guardados neste link e são os mesmos para todos com quem você compartilhar a página.'
       : 'Os dados ficam só neste navegador. Faça backup regularmente.';
   return `<section class="panel">
-      <h2>Perfil: ${esc(p.name)}</h2>
-      <p class="small muted">${esc(p.description)}</p>
-      <div class="grid-form">
-        <div><h3>Braços do ICP</h3>${Object.values(p.icp.arms)
-          .map(a => `<div class="small">${esc(a.label)}</div>`)
-          .join('')}</div>
-        <div><h3>Geografia</h3><div class="small">${esc(p.icp.regions.join(', ') || 'Sem restrição')}</div>
-          <h3>Fora do ICP</h3><div class="small">${esc(p.icp.excludedSectors.join(', ') || '—')}</div></div>
-        <div><h3>Critérios ABC</h3>${Object.entries(p.abcCriteria)
-          .map(([k, v]) => `<div class="small"><b>${k}</b>: ${esc(v)}</div>`)
-          .join('')}</div>
-      </div>
+      <div class="row between"><div><h2>Perfil de partida: ${esc(p.name)}</h2>
+        <p class="small muted">${esc(p.description)} O ICP deste espaço é desenhado na aba ICP.</p></div>
+        <button data-action="goto" data-tab="icp">Abrir ICP</button></div>
     </section>
     <section class="panel">
       <h2>Ritmo e pontuação</h2>
@@ -794,7 +1235,7 @@ function openAccountForm(id, focus) {
       )
         .map(([k, v]) => `<option value="${k}" ${a.braco === k ? 'selected' : ''}>${esc(v.label)}</option>`)
         .join('')}</select></label>
-      ${input('decisor', 'Decisor', a.decisor, focus === 'decisor' ? 'autofocus' : '')}
+      ${input('decisor', a.decisorIA ? 'Decisor <span class="badge warnb">sugerido pela IA</span>' : 'Decisor', a.decisor, focus === 'decisor' ? 'autofocus' : '')}
       ${input('cargo', 'Cargo do decisor', a.cargo)}
       ${input('linkedin', 'LinkedIn do decisor', a.linkedin, 'type="url" placeholder="https://www.linkedin.com/in/…"')}
       ${input('cnpj', `CNPJ${a.cnpj && !isValidCnpj(a.cnpj) ? ' (inválido)' : ''}`, a.cnpj, 'inputmode="numeric"')}
@@ -839,6 +1280,8 @@ function saveAccountForm(form) {
   }
   const a = accountById(id);
   const [n] = importAccounts([], [row], state.profile, state.today).accounts;
+  // Salvar a ficha confirma o decisor sugerido pela IA.
+  a.decisorIA = false;
   Object.assign(a, {
     nome: n.nome,
     nomeNorm: n.nomeNorm,
@@ -1057,6 +1500,37 @@ function newCadence(ev, extra = {}) {
 
 const actions = {
   goto: el => ((state.tab = el.dataset.tab), render()),
+  'ai-classify': () => openClassify(),
+  'ai-classify-run': () => runClassify(),
+  'ai-signals': () => openExtract(),
+  'ai-signals-run': () => runExtract(),
+  'ai-hooks': () => writeHooks(state.queue.items.map(ev => ev.account.id)),
+  'ai-hook-one': el => writeHooks([el.dataset.id]),
+  'icp-generate': () => generateIcp(false),
+  'icp-refine': () => generateIcp(true),
+  'icp-edit': () => {
+    state.data.icpDraft = structuredClone(icpFromProfile(state.profile));
+    save();
+    render();
+  },
+  'icp-discard': () => {
+    state.data.icpDraft = null;
+    save();
+    render();
+  },
+  'icp-apply': () => {
+    try {
+      applyIcp(state.data.icpDraft);
+    } catch (err) {
+      toast(`Não foi possível aplicar: ${err.message}.`);
+    }
+  },
+  'icp-remove-arm': el => {
+    state.data.icpDraft.bracos.splice(Number(el.dataset.index), 1);
+    save();
+    render();
+  },
+  'icp-restore': el => applyIcp(state.data.icpHistory[Number(el.dataset.index)].icp),
   'close-dialog': () => dialog.close(),
   'open-account': el => openAccountForm(el.dataset.id, el.dataset.focus),
   'new-account': () => openAccountForm(null),
@@ -1350,7 +1824,12 @@ view.addEventListener('input', e => {
 view.addEventListener('change', async e => {
   const t = e.target;
   const o = state.data.overrides;
-  if (t.id === 'ref-date') {
+  if (t.dataset.icp) {
+    setIcpField(t.dataset.icp, t.value, 'list' in t.dataset);
+  } else if (t.id === 'icp-brief') {
+    state.data.icpBrief = t.value;
+    save();
+  } else if (t.id === 'ref-date') {
     const d = parseDate(t.value);
     if (d) ((state.today = d), render());
   } else if (t.dataset.field === 'abc') {
@@ -1394,9 +1873,24 @@ view.addEventListener('change', async e => {
   }
 });
 
+dialog.addEventListener('input', e => {
+  if (e.target.id === 'extract-text' && extracted) extracted.source = e.target.value;
+});
+
 dialog.addEventListener('change', async e => {
   const t = e.target;
-  if (t.id === 'sig-tipo') {
+  if (t.dataset.clsPick) {
+    classify.results.get(t.dataset.clsPick).pick = t.checked;
+    renderClassify();
+  } else if (t.dataset.clsAbc) {
+    classify.results.get(t.dataset.clsAbc).abc = t.value;
+  } else if (t.name === 'scope' && classify) {
+    classify.scope = t.value;
+    renderClassify();
+  } else if (t.dataset.extPick != null) {
+    extracted.items[Number(t.dataset.extPick)].pick = t.checked;
+    renderExtract();
+  } else if (t.id === 'sig-tipo') {
     $('#sig-hint').textContent = signalHint(t.value);
     $('#sig-fonte').placeholder = state.profile.signalById[t.value]?.sources[0] || '';
   } else if (t.dataset.importFile != null) {
@@ -1415,6 +1909,8 @@ dialog.addEventListener('submit', e => {
   const form = e.target;
   const kind = form.dataset.form;
   if (kind === 'account') saveAccountForm(form);
+  else if (kind === 'classify') applyClassify();
+  else if (kind === 'extract') applyExtract();
   else if (kind === 'signal') saveSignalForm(form, e.submitter?.name === 'again');
   else if (kind === 'import-source') {
     const text = form.querySelector('#import-text').value;
@@ -1483,3 +1979,11 @@ window.claude
   ?.use?.('downloads')
   .then(ns => (downloads = ns))
   .catch(() => {});
+// A IA chega depois do primeiro desenho da página; quando chega, os botões aparecem.
+(window.claude?.use ? window.claude.use('sample') : Promise.resolve(null))
+  .catch(() => null)
+  .then(ns => {
+    ai = ns;
+    aiChecked = true;
+    if (state.data) render();
+  });

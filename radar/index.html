@@ -632,6 +632,171 @@
         z-index: 20;
         box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
       }
+      /* IA */
+      button.ai .spark {
+        font-size: 12px;
+      }
+      #ai-status {
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        z-index: 30;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--panel);
+        color: var(--text);
+        border: 1px solid var(--accent);
+        border-radius: 999px;
+        padding: 6px 8px 6px 14px;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+        font-size: 14px;
+        max-width: calc(100vw - 32px);
+      }
+      #ai-status button {
+        border-radius: 999px;
+        font-size: 13px;
+        padding: 3px 10px;
+      }
+      .pulse {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--accent);
+        flex: none;
+        animation: pulse 1.2s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        50% {
+          opacity: 0.3;
+          transform: scale(0.7);
+        }
+      }
+      /* ICP */
+      .icp.is-draft {
+        border-color: var(--warn);
+        border-style: dashed;
+      }
+      .lead {
+        font-size: 16px;
+        margin: 10px 0 4px;
+      }
+      .arms {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .arm {
+        border: 1px solid var(--line);
+        border-top: 3px solid var(--accent);
+        border-radius: 8px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        background: var(--panel);
+      }
+      .arm-name {
+        font-size: 16px;
+        margin: 0;
+        color: var(--text);
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      .eyebrow {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .kv {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .kv > span:first-child {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .chips.tight {
+        margin-top: 0;
+        gap: 4px;
+      }
+      .chip.static {
+        cursor: default;
+        font-size: 12px;
+        padding: 2px 8px;
+        border: 1px solid var(--line);
+        background: var(--sunken);
+      }
+      .chip.static.signal {
+        background: var(--accent-soft);
+        border-color: transparent;
+        color: var(--accent);
+      }
+      .chip.static.out {
+        background: var(--bad-soft);
+        border-color: transparent;
+        color: var(--bad);
+      }
+      .chip.static.uf {
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+      }
+      .icp-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 4px 16px;
+      }
+      .abc {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+      }
+      .abc-col {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        align-items: flex-start;
+      }
+      .abc-col textarea {
+        width: 100%;
+      }
+      input.inline,
+      textarea.inline {
+        width: 100%;
+        font-size: 13px;
+        background: var(--bg);
+      }
+      input.inline.title {
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .refine {
+        margin-top: 16px;
+        padding-top: 12px;
+        border-top: 1px dashed var(--line);
+      }
+      dialog:has(.wide-dialog) {
+        width: min(960px, calc(100vw - 24px));
+      }
+      tr.low td {
+        background: var(--warn-soft);
+      }
+      li.found {
+        display: grid;
+        grid-template-columns: 20px 1fr;
+        gap: 8px;
+        padding: 8px 0;
+        border-top: 1px solid var(--line);
+      }
+      li.found .dot {
+        margin: 0 2px 1px 0;
+        vertical-align: middle;
+      }
       @media (max-width: 600px) {
         main {
           padding: 12px 16px;
@@ -650,6 +815,7 @@
       @media (prefers-reduced-motion: reduce) {
         * {
           scroll-behavior: auto !important;
+          animation: none !important;
         }
       }
     </style>

@@ -20,7 +20,7 @@ python3 -m http.server 8080   # ou: npx serve .
 Testes do núcleo (Node 20+):
 
 ```sh
-node --test radar/core.test.mjs
+node --test radar/core.test.mjs radar/ai.test.mjs
 ```
 
 ## Rotina no painel
@@ -39,6 +39,25 @@ node --test radar/core.test.mjs
 Enquanto a base não está montada, a aba Semana mostra os primeiros passos, e há um espaço de
 exemplo com dados fictícios para conhecer o painel.
 
+## IA no painel
+
+Pelo link publicado no claude.ai, o painel usa a IA do Claude (com a conta de quem está usando, que
+autoriza no primeiro uso). Rodando localmente, esses botões não aparecem.
+
+- **ICP (aba ICP):** descreva a operação num texto livre e a IA desenha o ICP: braços, setores,
+  porte, decisores, sinais que mais pesam em cada braço, geografia, exclusões, critérios ABC e tom de
+  voz. O rascunho é editável, pode ser ajustado com novos pedidos e só vale depois de “Aplicar ao
+  espaço”. As últimas cinco versões aplicadas ficam guardadas.
+- **Passo 2, ABC e decisor:** a IA classifica as contas em lotes de 20 pelo ICP e sugere classe,
+  braço e cargo do decisor. Nomes de pessoas só vêm quando a IA tem alta certeza e ficam marcados
+  “IA · confirmar”. Tudo passa por uma tela de revisão; confiança baixa vem desmarcada.
+- **Passo 3, sinais:** a IA lê o material colado (notícias, vagas, posts, anotações) e aponta os
+  sinais das contas da base, com o trecho que comprova. Ela não pesquisa na internet sozinha.
+- **Passo 4, abordagens:** a IA escreve a primeira linha de cada conta da fila seguindo o tom e os
+  termos vetados do ICP. O envio continua manual, pelo Sales Navigator.
+
+Os pedidos e a checagem das respostas ficam em `ai.mjs`, com testes em `ai.test.mjs`.
+
 ## Estrutura
 
 | Arquivo                 | Papel                                                                                  |
@@ -47,6 +66,7 @@ exemplo com dados fictícios para conhecer o painel.
 | `profiles/velora.mjs`   | Perfil da Velora: ICP, 44 tipos de sinal em 7 famílias, pesos, capacidade, tom de voz  |
 | `profiles/modelo.mjs`   | Perfil-modelo para escritórios de advocacia (base para o piloto da Lefosse)            |
 | `profiles/index.mjs`    | Registro dos perfis disponíveis no painel                                              |
+| `ai.mjs`                | Pedidos à IA (ICP, classificação, sinais, abordagens) e checagem das respostas         |
 | `store.mjs`             | Persistência por espaço: banco do link publicado no claude.ai ou navegador, com backup |
 | `app.mjs`, `index.html` | Painel web                                                                             |
 

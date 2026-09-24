@@ -69,7 +69,9 @@ function splitData(data) {
   const docs = {};
   for (const part of PARTS.slice(0, 3))
     chunk(data[part] || []).forEach((items, i, all) => (docs[`${part}-${i}`] = { items, total: all.length }));
-  docs['config-0'] = { overrides: data.overrides || {}, drafts: data.drafts || {}, snoozed: data.snoozed || {} };
+  // Tudo o que não é lista (ajustes, rascunhos, ICP desenhado) vai num documento só.
+  const { accounts, signals, cadence, ...config } = data;
+  docs['config-0'] = config;
   return docs;
 }
 
@@ -84,11 +86,7 @@ function joinDocs(docs) {
     }
   }
   const config = docs.find(d => d.id === 'config-0')?.data();
-  if (config) {
-    data.overrides = structuredClone(config.overrides || {});
-    data.drafts = { ...config.drafts };
-    data.snoozed = { ...config.snoozed };
-  }
+  if (config) Object.assign(data, structuredClone(config));
   data.accounts = structuredClone(data.accounts);
   data.signals = structuredClone(data.signals);
   data.cadence = structuredClone(data.cadence);

@@ -149,8 +149,14 @@ export function resolveProfile(base, overrides = {}) {
     const o = overrides.signals?.[s.id];
     return o ? { ...s, ...o } : s;
   });
+  // Um ICP desenhado no painel substitui braços, geografia e exclusões do perfil-base.
+  const icp = overrides.icp ? { ...base.icp, ...overrides.icp } : base.icp;
   return {
     ...base,
+    icp,
+    abcCriteria: { ...base.abcCriteria, ...overrides.abcCriteria },
+    approach: { ...base.approach, ...overrides.approach },
+    icpDesign: overrides.icpDesign || null,
     scoring: { ...base.scoring, ...overrides.scoring },
     capacity: { ...base.capacity, ...overrides.capacity },
     signals,
