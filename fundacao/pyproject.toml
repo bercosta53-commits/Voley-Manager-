@@ -3,7 +3,7 @@ name = "velora-radar"
 version = "0.1.0"
 description = "Fundação de dados do Radar de Sinais Velora: contas, pessoas, sinais, abordagens e desfechos em Postgres."
 requires-python = ">=3.11"
-dependencies = ["psycopg[binary]>=3.1", "openpyxl>=3.1"]
+dependencies = ["psycopg[binary]>=3.1", "openpyxl>=3.1", "anthropic>=1.8"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]

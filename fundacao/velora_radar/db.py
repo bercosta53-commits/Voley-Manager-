@@ -13,7 +13,9 @@ URL_PADRAO = "postgresql://postgres@/radar?host=/tmp&port=5433"
 
 
 def conectar(url: str | None = None) -> psycopg.Connection:
-    return psycopg.connect(url or os.environ.get("RADAR_DB_URL", URL_PADRAO), row_factory=dict_row)
+    # Autocommit: cada ``with conn.transaction()`` é uma transação de verdade, que grava ao sair do bloco.
+    # Sem isso, um select anterior abre uma transação implícita e os blocos viram savepoints perdidos.
+    return psycopg.connect(url or os.environ.get("RADAR_DB_URL", URL_PADRAO), row_factory=dict_row, autocommit=True)
 
 
 def migrar(conn: psycopg.Connection) -> list[str]:

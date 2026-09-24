@@ -7,6 +7,7 @@ import json
 import sys
 
 from . import db, dominios, importar, rubrica, visao
+from .sinais import classificador, pipeline
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -33,6 +34,22 @@ def main(argv: list[str] | None = None) -> int:
     gru.add_argument("contas", nargs="+")
     exp = sub.add_parser("exportar", help="gera a planilha (visão) em CSV ou XLSX")
     exp.add_argument("arquivo")
+    sin = sub.add_parser("sinais", help="radar de sinais: coletar, classificar e revisar")
+    sin_sub = sin.add_subparsers(dest="acao", required=True)
+    col = sin_sub.add_parser("coletar", help="busca notícias, CNPJ e CVM das contas")
+    col.add_argument("--fontes", default=",".join(pipeline.FONTES))
+    col.add_argument("--limite", type=int, help="quantas contas (A primeiro)")
+    imp_s = sin_sub.add_parser("importar", help="itens trazidos pelo agente de captação (vagas etc.)")
+    imp_s.add_argument("arquivo", help="JSON [{conta_id, titulo, url, fonte, texto?, publicado_em?}]")
+    imp_s.add_argument("--coletor", default="vagas")
+    cla = sin_sub.add_parser("classificar", help="transforma itens em sinais (Claude ou regras)")
+    cla.add_argument("--regras", action="store_true", help="usa as regras mesmo com credencial da API")
+    cla.add_argument("--limite", type=int, default=300)
+    sin_sub.add_parser("pendentes", help="sinais esperando revisão")
+    apr = sin_sub.add_parser("aprovar")
+    apr.add_argument("ids", nargs="+")
+    des = sin_sub.add_parser("descartar")
+    des.add_argument("ids", nargs="+")
     a = p.parse_args(argv)
 
     conn = db.conectar()
@@ -72,9 +89,37 @@ def main(argv: list[str] | None = None) -> int:
         print("Contas mescladas.")
     elif a.comando == "grupo":
         print(f"Grupo {a.nome}: {dominios.unir_grupo(conn, a.nome, a.contas)}")
+    elif a.comando == "sinais":
+        _sinais(conn, a)
     elif a.comando == "exportar":
         print(f"{visao.exportar(conn, a.arquivo)} contas exportadas para {a.arquivo}.")
     return 0
+
+
+def _sinais(conn, a) -> None:
+    if a.acao == "coletar":
+        fontes = [f.strip() for f in a.fontes.split(",") if f.strip()]
+        res = pipeline.coletar(conn, fontes=fontes, limite=a.limite)
+        print("Itens novos: " + ", ".join(f"{f} {n}" for f, n in res.novos.items()))
+        for erro in res.erros:
+            print("  erro: " + erro)
+    elif a.acao == "importar":
+        with open(a.arquivo, encoding="utf-8") as f:
+            print(f"{pipeline.importar(conn, json.load(f), a.coletor)} itens novos.")
+    elif a.acao == "classificar":
+        cls = classificador.padrao(forcar_regras=a.regras)
+        print(f"Classificador: {cls.nome}")
+        res = pipeline.classificar(conn, cls, limite=a.limite)
+        print(f"{res.sinais} sinais para revisão, {res.ruido} itens descartados como ruído, {res.duplicados} já registrados.")
+        if res.falha:
+            print(f"  parou antes do fim: {res.falha}")
+    elif a.acao == "pendentes":
+        for s in pipeline.pendentes(conn):
+            print(f"{s['id']}  {s['conta']} · {s['tipo']} · {s['data_evento']} · peso {s['peso']} · {s['confianca']} · {s['classificador']}")
+            print(f"    {s['detalhe']}")
+            print(f"    “{s['evidencia_trecho']}” {s['evidencia_url'] or ''}")
+    elif a.acao in ("aprovar", "descartar"):
+        print(f"{pipeline.revisar(conn, a.ids, a.acao == 'aprovar')} sinais atualizados.")
 
 
 def _imprimir_buracos(conn, detalhe: bool = False) -> None:

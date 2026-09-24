@@ -16,6 +16,8 @@ planilha passando a ser uma visão do banco, não a fonte.
 | `desfecho`         | O que aconteceu: aceite, resposta, reunião, oportunidade, ganho, perdido, sem resposta       |
 | `rubrica_versao`   | Versões da rubrica de fit; uma ativa por vez                                                 |
 | `buraco`           | O que falta ou conflita na migração. A etapa 1 termina quando os abertos chegam a zero       |
+| `coleta_item`      | Item bruto de cada fonte (link, texto, data), antes de virar sinal ou ruído                  |
+| `fonte_snapshot`   | Última foto de uma fonte estruturada (QSA, capital social) para comparar na coleta seguinte  |
 
 `vw_planilha` é a planilha como visão: conta, CNPJ, site, ABC, grupo, decisor, sinais dos últimos 30
 dias, último desfecho e buracos abertos.
@@ -52,6 +54,33 @@ silenciosa.
 3. `dominios aplicar` valida cada resolução. Confiança baixa não é gravada. Um CNPJ que já é de
    outra conta revela duplicata e as duas são mescladas, com sinais, pessoas, abordagens e
    desfechos preservados. A fonte fica registrada no buraco fechado.
+
+## Radar de sinais (etapa 2)
+
+```sh
+python -m velora_radar sinais coletar --fontes noticias,cnpj,cvm   # itens brutos das fontes
+python -m velora_radar sinais importar vagas.json                  # itens do agente (Indeed, Gupy…)
+python -m velora_radar sinais classificar                          # Claude se houver credencial; senão regras
+python -m velora_radar sinais pendentes
+python -m velora_radar sinais aprovar <id> …                       # ou descartar
+```
+
+- **Coletores**: Google News (RSS por empresa, últimos 30 dias), CNPJ na BrasilAPI (quadro societário
+  e capital social comparados com a foto anterior; na primeira coleta só entram sócios recentes),
+  CVM (documentos IPE do ano: fatos relevantes, comunicados e emissões, casados pela raiz do CNPJ)
+  e vagas importadas do agente de captação.
+- **Itens brutos** ficam em `coleta_item`, com a chave da fonte; o mesmo item nunca entra duas vezes.
+- **Classificador**: com `ANTHROPIC_API_KEY`, usa a API do Claude (`claude-opus-5`, saída estruturada
+  e reserva automática em caso de recusa) para descartar ruído e atribuir tipo, confiança, papel e
+  cargo afetados, detalhe e trecho de evidência. Sem credencial, usa regras por palavras-chave. Em
+  ambos, o trecho precisa existir no texto coletado; se não existir, o título entra no lugar e a
+  confiança cai um nível.
+- **Peso e decaimento** vêm do catálogo, nunca do modelo: força do tipo (forte 3, médio 1,5,
+  negativo -3) ajustada pela confiança, com meia-vida por tipo. `vw_sinal_vigente` mostra o valor
+  de cada sinal aprovado hoje.
+- **Revisão humana**: todo sinal nasce pendente e só conta depois de aprovado.
+
+Próximas fontes: Diário Oficial, CADE, BCB/SUSEP e diff de site.
 
 ## Pendências da etapa 1
 

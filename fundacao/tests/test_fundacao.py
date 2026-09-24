@@ -54,9 +54,13 @@ def test_identidade():
 
 def test_migracao_idempotente(conn):
     assert db.migrar(conn) == []
+    conn.execute("select 1")  # uma leitura antes da escrita não pode engolir a gravação
     rid = rubrica.garantir_inicial(conn)
     assert rubrica.garantir_inicial(conn) == rid
     assert rubrica.ativa(conn)["pesos"]["validade_dias"] == 30
+    # Visto por outra conexão: a rubrica foi gravada de fato.
+    with db.conectar(conn.info.dsn) as outra:
+        assert outra.execute("select count(*) as n from rubrica_versao where ativa").fetchone()["n"] == 1
 
 
 def test_importar_deduplica_por_raiz_dominio_e_nome(conn):
