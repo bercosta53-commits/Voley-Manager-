@@ -752,9 +752,9 @@ function renderResults() {
     )
     .join('');
   const pending = cal.filter(r => !r.enough && r.n > 0).length;
-  return `<section class="panel">
+  return `<section class="panel turn">
       <h2>Contas prontas para contato</h2>
-      <div class="row between"><b class="big">${m.ready} de ${m.goal}</b>
+      <div class="row between" style="margin-top:14px"><b class="big">${m.ready}<mark>/${m.goal}</mark></b>
         <span class="small muted">com ABC, decisor e dentro do ICP, sem sinal negativo</span></div>
       <div class="bar" style="margin-top:8px"><span style="width:${progress}%"></span></div>
       <div class="stats" style="margin-top:16px">${Object.entries(m.byAction)

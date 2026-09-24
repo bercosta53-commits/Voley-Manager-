@@ -58,6 +58,21 @@ autoriza no primeiro uso). Rodando localmente, esses botões não aparecem.
 
 Os pedidos e a checagem das respostas ficam em `ai.mjs`, com testes em `ai.test.mjs`.
 
+## Captação semanal
+
+Toda segunda às 7h (Brasília), uma rotina agendada no Claude Code segue `coletor.md`: pesquisa até 40
+contas por espaço nos sites de vagas (Indeed, Glassdoor, Gupy, Vagas.com, Catho, InfoJobs) e em
+notícias, sem LinkedIn, e deixa cada sinal na caixa “Captados pela IA” da aba Sinais para aprovação.
+Conectores que aprofundam a captação quando conectados no claude.ai: Indeed, Apollo.io, Crustdata e
+Parallel Search.
+
+## Visual
+
+O painel segue o Velora Design System v2026: fundo Ink, neon #CCFF00 só onde há ação ou o dado
+que importa, Space Grotesk nos títulos, Manrope no texto e JetBrains Mono nos rótulos, alinhamento
+à esquerda e a assinatura de barras (barra-acento e hash no rodapé). O único bloco Bone é o número
+de contas prontas, na aba Resultados.
+
 ## Estrutura
 
 | Arquivo                 | Papel                                                                                  |
