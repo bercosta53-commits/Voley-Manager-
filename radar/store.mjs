@@ -1,60 +1,211 @@
-// Persistência por espaço de trabalho. Cada cliente fica numa chave separada:
-// os dados de um nunca alimentam outro.
-const INDEX_KEY = 'radar:espacos';
-const wsKey = id => `radar:espaco:${id}`;
+// Persistência por espaço de trabalho. Cada cliente fica separado: os dados de um nunca
+// alimentam outro. Publicado no claude.ai, grava no banco do próprio link (capacidade `db`),
+// compartilhado por quem abre a página; rodando localmente, grava no navegador.
+const PARTS = ['accounts', 'signals', 'cadence', 'config'];
+// Um documento do banco aceita até 256 KiB; listas longas são divididas em pedaços.
+const CHUNK_BYTES = 180 * 1024;
 
-const emptyData = () => ({ accounts: [], signals: [], cadence: [], overrides: {} });
+const emptyData = () => ({ accounts: [], signals: [], cadence: [], overrides: {}, drafts: {} });
 
-function read(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
+// ---------- navegador ----------
+
+const localBackend = {
+  kind: 'local',
+  read(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch {
+      return fallback;
+    }
+  },
+  write(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  async list() {
+    return this.read('radar:espacos', []);
+  },
+  async saveList(list) {
+    if (!this.write('radar:espacos', list)) throw new Error('armazenamento do navegador indisponível');
+  },
+  async load(id) {
+    return { ...emptyData(), ...this.read(`radar:espaco:${id}`, {}) };
+  },
+  async save(id, data) {
+    if (!this.write(`radar:espaco:${id}`, data)) throw new Error('armazenamento do navegador indisponível');
+  },
+  async remove(id) {
+    try {
+      localStorage.removeItem(`radar:espaco:${id}`);
+    } catch {}
+  },
+  watch() {
+    return () => {};
   }
-}
-function write(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-    return true;
-  } catch {
-    return false;
+};
+
+// ---------- banco do artifact ----------
+
+function chunk(items) {
+  const chunks = [];
+  let current = [],
+    size = 0;
+  for (const item of items) {
+    const bytes = JSON.stringify(item).length * 2;
+    if (current.length && size + bytes > CHUNK_BYTES) (chunks.push(current), (current = []), (size = 0));
+    current.push(item);
+    size += bytes;
   }
+  chunks.push(current);
+  return chunks;
 }
 
-export const listWorkspaces = () => read(INDEX_KEY, []);
-
-export function createWorkspace(name, profileId) {
-  const list = listWorkspaces();
-  const id = `${profileId}-${Date.now().toString(36)}`;
-  list.push({ id, name, profileId });
-  write(INDEX_KEY, list);
-  write(wsKey(id), emptyData());
-  return id;
+function splitData(data) {
+  const docs = {};
+  for (const part of PARTS.slice(0, 3))
+    chunk(data[part] || []).forEach((items, i, all) => (docs[`${part}-${i}`] = { items, total: all.length }));
+  docs['config-0'] = { overrides: data.overrides || {}, drafts: data.drafts || {} };
+  return docs;
 }
 
-export function deleteWorkspace(id) {
-  write(
-    INDEX_KEY,
-    listWorkspaces().filter(w => w.id !== id)
-  );
-  try {
-    localStorage.removeItem(wsKey(id));
-  } catch {}
+function joinDocs(docs) {
+  const data = emptyData();
+  for (const part of PARTS.slice(0, 3)) {
+    const pieces = docs.filter(d => d.id.startsWith(part + '-'));
+    const total = pieces[0]?.data().total ?? 0;
+    for (let i = 0; i < total; i++) {
+      const piece = pieces.find(d => d.id === `${part}-${i}`);
+      if (piece) data[part].push(...piece.data().items);
+    }
+  }
+  const config = docs.find(d => d.id === 'config-0')?.data();
+  if (config) ((data.overrides = structuredClone(config.overrides || {})), (data.drafts = { ...config.drafts }));
+  data.accounts = structuredClone(data.accounts);
+  data.signals = structuredClone(data.signals);
+  data.cadence = structuredClone(data.cadence);
+  return data;
 }
 
-export const loadWorkspace = id => ({ ...emptyData(), ...read(wsKey(id), {}) });
-export const saveWorkspace = (id, data) => write(wsKey(id), data);
-
-export function exportBackup(id) {
-  const meta = listWorkspaces().find(w => w.id === id);
-  return JSON.stringify({ formato: 'radar-backup-1', espaco: meta, dados: loadWorkspace(id) }, null, 2);
+function dbBackend(db) {
+  const written = new Map(); // caminho -> JSON do último conteúdo gravado
+  const parts = id => db.collection(`espacos/${id}/partes`);
+  let queue = Promise.resolve();
+  return {
+    kind: 'db',
+    async list() {
+      const snap = await db.collection('espacos').get();
+      return snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => String(a.criadoEm).localeCompare(String(b.criadoEm)));
+    },
+    async saveList(list, changed) {
+      for (const w of changed.added)
+        await db.doc(`espacos/${w.id}`).set({ name: w.name, profileId: w.profileId, criadoEm: w.criadoEm });
+      for (const w of changed.removed) await db.doc(`espacos/${w.id}`).delete();
+    },
+    async load(id) {
+      const snap = await parts(id).get();
+      for (const d of snap.docs) written.set(`${id}/${d.id}`, JSON.stringify(d.data()));
+      return joinDocs(snap.docs);
+    },
+    // Grava só os pedaços que mudaram, um de cada vez, em ordem.
+    save(id, data) {
+      const docs = splitData(data);
+      queue = queue.then(async () => {
+        for (const [name, body] of Object.entries(docs)) {
+          const key = `${id}/${name}`,
+            json = JSON.stringify(body);
+          if (written.get(key) === json) continue;
+          // Marca antes de gravar para que o eco da própria gravação não pareça alteração alheia.
+          written.set(key, json);
+          try {
+            await parts(id).doc(name).set(body);
+          } catch (err) {
+            written.delete(key);
+            throw err;
+          }
+        }
+        for (const key of [...written.keys()])
+          if (key.startsWith(id + '/') && !(key.slice(id.length + 1) in docs)) {
+            await parts(id)
+              .doc(key.slice(id.length + 1))
+              .delete();
+            written.delete(key);
+          }
+      });
+      return queue;
+    },
+    async remove(id) {
+      const snap = await parts(id).get();
+      for (const d of snap.docs) {
+        await parts(id).doc(d.id).delete();
+        written.delete(`${id}/${d.id}`);
+      }
+    },
+    // Avisa quando outra pessoa altera o espaço aberto.
+    watch(id, onChange) {
+      let first = true;
+      return parts(id).onSnapshot(
+        snap => {
+          if (first) return void (first = false);
+          if (snap.metadata.hasPendingWrites) return;
+          const fresh = snap.docs.some(d => written.get(`${id}/${d.id}`) !== JSON.stringify(d.data()));
+          if (!fresh) return;
+          for (const d of snap.docs) written.set(`${id}/${d.id}`, JSON.stringify(d.data()));
+          onChange(joinDocs(snap.docs));
+        },
+        () => {}
+      );
+    }
+  };
 }
 
-export function importBackup(text) {
+// ---------- API usada pelo painel ----------
+
+let backend = localBackend;
+let workspaces = [];
+
+export async function init() {
+  const db = window.claude?.use ? await window.claude.use('db').catch(() => null) : null;
+  if (db) backend = dbBackend(db);
+  workspaces = await backend.list();
+  return backend.kind;
+}
+
+export const storageKind = () => backend.kind;
+export const listWorkspaces = () => workspaces.slice();
+
+export async function createWorkspace(name, profileId, data = emptyData()) {
+  const ws = { id: `${profileId}-${Date.now().toString(36)}`, name, profileId, criadoEm: new Date().toISOString() };
+  workspaces.push(ws);
+  await backend.saveList(workspaces, { added: [ws], removed: [] });
+  await backend.save(ws.id, { ...emptyData(), ...data });
+  return ws.id;
+}
+
+export async function deleteWorkspace(id) {
+  const ws = workspaces.find(w => w.id === id);
+  workspaces = workspaces.filter(w => w.id !== id);
+  await backend.saveList(workspaces, { added: [], removed: ws ? [ws] : [] });
+  await backend.remove(id);
+}
+
+export const loadWorkspace = async id => ({ ...emptyData(), ...(await backend.load(id)) });
+export const saveWorkspace = (id, data) => backend.save(id, data);
+export const watchWorkspace = (id, onChange) => backend.watch(id, onChange);
+
+export function exportBackup(id, data) {
+  const meta = workspaces.find(w => w.id === id);
+  return JSON.stringify({ formato: 'radar-backup-1', espaco: meta, dados: data }, null, 2);
+}
+
+export async function importBackup(text) {
   const parsed = JSON.parse(text);
-  if (parsed.formato !== 'radar-backup-1' || !parsed.espaco?.profileId) throw new Error('Arquivo de backup inválido');
-  const id = createWorkspace(parsed.espaco.name + ' (restaurado)', parsed.espaco.profileId);
-  saveWorkspace(id, { ...emptyData(), ...parsed.dados });
-  return id;
+  if (parsed.formato !== 'radar-backup-1' || !parsed.espaco?.profileId) throw new Error('arquivo de backup inválido');
+  return createWorkspace(parsed.espaco.name + ' (restaurado)', parsed.espaco.profileId, parsed.dados);
 }

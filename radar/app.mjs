@@ -56,12 +56,17 @@ const strengthLabel = { F: 'Forte', M: 'Médio', N: 'Negativo' };
 
 // ---------- espaço de trabalho ----------
 
-function openWorkspace(id) {
+let stopWatching = () => {};
+let pendingRemote = null;
+
+async function openWorkspace(id) {
   const meta = store.listWorkspaces().find(w => w.id === id);
   const base = meta && profileById(meta.profileId);
   if (!base) return;
+  await flushSave();
+  stopWatching();
   state.wsId = id;
-  state.data = store.loadWorkspace(id);
+  state.data = await store.loadWorkspace(id);
   state.data.drafts ||= {};
   state.base = base;
   state.profile = resolveProfile(base, state.data.overrides);
@@ -69,22 +74,62 @@ function openWorkspace(id) {
   try {
     localStorage.setItem('radar:ultimo', id);
   } catch {}
+  stopWatching = store.watchWorkspace(id, data => {
+    pendingRemote = data;
+    applyRemote();
+  });
   render();
 }
 
-function save() {
+// Alterações feitas por outra pessoa entram quando ninguém está digitando aqui.
+function applyRemote() {
+  if (!pendingRemote) return;
+  const active = document.activeElement;
+  if (dialog.open || (active && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName) && view.contains(active)))
+    return void setTimeout(applyRemote, 2000);
+  state.data = { ...pendingRemote, drafts: pendingRemote.drafts || {} };
+  pendingRemote = null;
   state.profile = resolveProfile(state.base, state.data.overrides);
-  if (!store.saveWorkspace(state.wsId, state.data)) toast('Não foi possível salvar no navegador.');
+  render();
 }
 
-function ensureWorkspace() {
+// Grava depois de uma pausa, para que digitar não gere uma gravação por tecla.
+let saveTimer = null;
+function save() {
+  state.profile = resolveProfile(state.base, state.data.overrides);
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flushSave, 700);
+}
+async function flushSave() {
+  if (!saveTimer) return;
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  try {
+    await store.saveWorkspace(state.wsId, state.data);
+  } catch (err) {
+    toast(`Não foi possível salvar: ${err.message || err.code || 'erro desconhecido'}.`);
+  }
+}
+window.addEventListener('pagehide', flushSave);
+
+async function ensureWorkspace() {
   let list = store.listWorkspaces();
-  if (!list.length) (store.createWorkspace('Velora', 'velora'), (list = store.listWorkspaces()));
+  if (!list.length) (await store.createWorkspace('Velora', 'velora'), (list = store.listWorkspaces()));
   let last = null;
   try {
     last = localStorage.getItem('radar:ultimo');
   } catch {}
-  openWorkspace(list.some(w => w.id === last) ? last : list[0].id);
+  await openWorkspace(list.some(w => w.id === last) ? last : list[0].id);
+}
+
+// Confirmação dentro da própria página (a janela confirm() do navegador nem sempre aparece).
+function ask(message, confirmLabel) {
+  const box = $('#confirm');
+  box.querySelector('p').textContent = message;
+  box.querySelector('[value="ok"]').textContent = confirmLabel;
+  box.returnValue = '';
+  box.showModal();
+  return new Promise(resolve => box.addEventListener('close', () => resolve(box.returnValue === 'ok'), { once: true }));
 }
 
 // ---------- utilidades de interface ----------
@@ -100,7 +145,17 @@ function toast(msg) {
   toastTimer = setTimeout(() => el.remove(), 3200);
 }
 
-function download(name, content, type = 'text/csv;charset=utf-8') {
+let downloads = null;
+async function download(name, content, type = 'text/csv;charset=utf-8') {
+  if (downloads) {
+    try {
+      await downloads.save({ filename: name, data: content });
+      toast('Arquivo salvo.');
+    } catch (err) {
+      if (err?.code !== 'declined') toast('Não foi possível salvar o arquivo aqui.');
+    }
+    return;
+  }
   const url = URL.createObjectURL(new Blob([content], { type }));
   const a = Object.assign(document.createElement('a'), { href: url, download: name });
   document.body.append(a);
@@ -172,8 +227,11 @@ function render() {
 }
 
 function emptyBase() {
-  return `<section class="panel"><div class="empty">Nenhuma conta na base ainda.<br />
-    <button class="primary" data-action="goto" data-tab="contas" style="margin-top:12px">Importar contas</button></div></section>`;
+  return `<section class="panel"><div class="empty">Nenhuma conta neste espaço ainda.
+    <div class="row" style="justify-content:center;margin-top:12px">
+      <button class="primary" data-action="goto" data-tab="contas">Importar contas</button>
+      <button data-action="load-example">Ver com dados de exemplo</button>
+    </div></div></section>`;
 }
 
 function renderQueue() {
@@ -714,13 +772,14 @@ const actions = {
     save();
     render();
   },
-  'delete-account': el => {
+  'delete-account': async el => {
     const a = accountById(el.dataset.id);
-    if (!a || !confirm(`Excluir ${a.nome} com seus sinais e histórico de cadência?`)) return;
+    if (!a) return;
+    dialog.close();
+    if (!(await ask(`Excluir ${a.nome} com seus sinais e histórico de cadência?`, 'Excluir conta'))) return;
     state.data.accounts = state.data.accounts.filter(x => x !== a);
     state.data.signals = state.data.signals.filter(s => s.accountId !== a.id);
     state.data.cadence = state.data.cadence.filter(c => c.accountId !== a.id);
-    dialog.close();
     save();
     render();
   },
@@ -731,19 +790,37 @@ const actions = {
     render();
     toast('Peso atualizado.');
   },
-  'reset-overrides': () => {
-    if (!confirm('Voltar pesos, capacidade e sinais ativos ao padrão do perfil?')) return;
+  'reset-overrides': async () => {
+    if (!(await ask('Voltar pesos, capacidade e sinais ativos ao padrão do perfil?', 'Voltar ao padrão'))) return;
     state.data.overrides = {};
     save();
     render();
   },
   backup: () =>
-    download(`radar-backup-${state.wsId}-${state.today}.json`, store.exportBackup(state.wsId), 'application/json'),
-  'delete-workspace': () => {
+    download(
+      `radar-backup-${state.wsId}-${state.today}.json`,
+      store.exportBackup(state.wsId, state.data),
+      'application/json'
+    ),
+  'delete-workspace': async () => {
     const meta = store.listWorkspaces().find(w => w.id === state.wsId);
-    if (!confirm(`Excluir o espaço “${meta?.name}” e todos os seus dados deste navegador?`)) return;
-    store.deleteWorkspace(state.wsId);
-    ensureWorkspace();
+    if (!(await ask(`Excluir o espaço “${meta?.name}” com todas as contas, sinais e resultados?`, 'Excluir espaço')))
+      return;
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    stopWatching();
+    await store.deleteWorkspace(state.wsId);
+    await ensureWorkspace();
+  },
+  'load-example': async () => {
+    const id = await store.createWorkspace('Exemplo (dados fictícios)', 'velora');
+    await openWorkspace(id);
+    await handleImport('contas', EXAMPLE_ACCOUNTS);
+    await handleImport('sinais', EXAMPLE_SIGNALS.replaceAll('{hoje}', formatDate(state.today)));
+    state.tab = 'fila';
+    state.lastReport = null;
+    render();
+    toast('Espaço de exemplo criado. Seus espaços continuam intactos.');
   }
 };
 
@@ -824,9 +901,9 @@ view.addEventListener('change', async e => {
 
 async function handleImport(kind, text) {
   if (kind === 'backup') {
-    const id = store.importBackup(text);
-    if (!profileById(store.listWorkspaces().find(w => w.id === id)?.profileId)) throw new Error('perfil desconhecido');
-    openWorkspace(id);
+    const parsed = JSON.parse(text);
+    if (!profileById(parsed.espaco?.profileId)) throw new Error('perfil desconhecido');
+    await openWorkspace(await store.importBackup(text));
     toast('Backup restaurado em um novo espaço.');
     return;
   }
@@ -908,11 +985,39 @@ $('#new-workspace').addEventListener('click', () => {
   dialog.returnValue = '';
   dialog.showModal();
 });
-dialog.addEventListener('close', () => {
+dialog.addEventListener('close', async () => {
   const form = dialog.querySelector('#ws-form');
   if (!form || dialog.returnValue !== 'create') return;
   const fd = new FormData(form);
-  openWorkspace(store.createWorkspace(String(fd.get('nome')).trim() || 'Sem nome', String(fd.get('perfil'))));
+  await openWorkspace(
+    await store.createWorkspace(String(fd.get('nome')).trim() || 'Sem nome', String(fd.get('perfil')))
+  );
 });
 
-ensureWorkspace();
+// Base fictícia para conhecer o painel sem mexer nos dados reais.
+const EXAMPLE_ACCOUNTS = `empresa;cnpj;site;uf;cidade;setor;braco;abc;decisor;cargo;headcount;headcount_6m
+Exemplo Alfa Advogados;11.222.333/0001-81;alfa.exemplo;SP;São Paulo;Advocacia;prof;A;Ana Souza;Sócia-diretora;;
+Exemplo Beta Seguros;;beta.exemplo;PR;Curitiba;Seguros;fin;B;Bruno Lima;Diretor comercial;130;100
+Exemplo Gama Software;;gama.exemplo;SC;Florianópolis;Software;tech;C;;;;
+Exemplo Delta Consultoria;;delta.exemplo;RS;Porto Alegre;Consultoria;prof;A;Eva Reis;CEO;;
+Exemplo Épsilon Cooperativa;;epsilon.exemplo;RS;Caxias do Sul;Cooperativa de crédito;fin;B;Caio Prado;Superintendente;;
+Exemplo Zeta Clínica;;zeta.exemplo;SP;Campinas;Saúde;;B;Dora;;;`;
+const EXAMPLE_SIGNALS = `empresa;tipo;data;fonte;detalhe
+Exemplo Alfa Advogados;novo_cmo;{hoje};Sales Navigator;
+Exemplo Gama Software;rodada_investimento;{hoje};Notícias;Série A de R$ 20 milhões
+Exemplo Beta Seguros;vaga_sdr;{hoje};Gupy;Vaga para SDR em Curitiba
+Exemplo Delta Consultoria;download_white_paper;{hoje};Formulário do site;`;
+
+$('#view').innerHTML = '<div class="empty">Carregando…</div>';
+store
+  .init()
+  .then(() => ensureWorkspace())
+  .catch(
+    err =>
+      ($('#view').innerHTML =
+        `<div class="empty">Não foi possível abrir os dados: ${esc(err.message || err.code)}.</div>`)
+  );
+window.claude
+  ?.use?.('downloads')
+  .then(ns => (downloads = ns))
+  .catch(() => {});
