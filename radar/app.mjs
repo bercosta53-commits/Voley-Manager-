@@ -73,6 +73,9 @@ const statusLabel = id => CADENCE_STATUSES.find(s => s.id === id)?.label || id;
 // ---------- espaço de trabalho ----------
 
 let stopWatching = () => {};
+let stopInbox = () => {};
+// Sinais que a captação semanal encontrou na web e ainda esperam revisão.
+let inbox = { items: [], status: null };
 let pendingRemote = null;
 
 async function openWorkspace(id) {
@@ -92,6 +95,12 @@ async function openWorkspace(id) {
   stopWatching = store.watchWorkspace(id, data => {
     pendingRemote = data;
     applyRemote();
+  });
+  stopInbox();
+  inbox = { items: [], status: null };
+  stopInbox = store.watchInbox(id, (items, status) => {
+    inbox = { items, status };
+    if (state.data) render();
   });
   render();
 }
@@ -277,7 +286,8 @@ function renderHeader() {
   const counts = {
     semana: state.queue.items.length,
     cadencia: openCadence().length,
-    contas: state.data.accounts.length
+    contas: state.data.accounts.length,
+    sinais: inbox.items.length
   };
   $('#tabs').innerHTML = TABS.map(
     ([id, label]) =>
@@ -329,9 +339,13 @@ function renderGuide() {
     {
       done: state.data.signals.length > 0,
       title: 'Registre os sinais',
-      text: 'Cole notícias, vagas ou posts e a IA identifica os sinais das suas contas.',
+      text: inbox.items.length
+        ? `A IA captou ${plural(inbox.items.length, 'sinal', 'sinais')} na web. Aprove os que valem.`
+        : 'Toda segunda a IA capta sinais das suas contas na web. Você também pode colar material para ela ler.',
       button:
-        aiButton('ai-signals', 'Encontrar sinais com IA') +
+        (inbox.items.length
+          ? `<button class="primary" data-action="goto" data-tab="sinais">Revisar ${plural(inbox.items.length, 'sinal captado', 'sinais captados')}</button>`
+          : aiButton('ai-signals', 'Ler material com IA')) +
         '<button data-action="new-signal">Registrar manualmente</button>'
     },
     {
@@ -648,10 +662,11 @@ function renderSignals() {
       </tr>`;
     })
     .join('');
-  return `<section class="panel">
+  return `${renderInbox()}<section class="panel">
       <div class="row between">
         <div><h2>Sinais</h2><div class="small muted">Cada sinal vale ${validDays} dias. Sinais diferentes na mesma conta somam.</div></div>
         <div class="row">
+          ${aiButton('ai-signals', 'Ler material com IA', '')}
           <button class="primary" data-action="new-signal" ${state.data.accounts.length ? '' : 'disabled'}>Registrar sinal</button>
           <button data-action="import" data-kind="sinais" ${state.data.accounts.length ? '' : 'disabled'}>Importar em lote</button>
         </div>
@@ -665,6 +680,58 @@ function renderSignals() {
     <section class="panel">
       ${rows ? `<div class="table-wrap"><table><thead><tr><th>Data</th><th>Conta</th><th>Sinal</th><th>Fonte</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : `<div class="empty">${state.data.accounts.length ? 'Nenhum sinal aqui ainda.' : 'Cadastre contas antes de registrar sinais.'}</div>`}
     </section>`;
+}
+
+function renderInbox() {
+  const st = inbox.status;
+  const last = st?.ultimaExecucao
+    ? `Última captação: ${formatDate(String(st.ultimaExecucao).slice(0, 10))} · ${plural(st.contasVerificadas || 0, 'conta pesquisada', 'contas pesquisadas')}, ${plural(st.sinaisEncontrados || 0, 'sinal encontrado', 'sinais encontrados')}.`
+    : 'A captação automática roda toda segunda de manhã e pesquisa as contas na web.';
+  if (store.storageKind() !== 'db') return '';
+  const items = inbox.items
+    .slice()
+    .sort((a, b) => (a.date < b.date ? 1 : -1))
+    .map(it => {
+      const def = state.profile.signalById[it.type];
+      const acc = accountById(it.accountId);
+      return `<li class="found">
+        <span class="dot ${def?.strength || 'M'}" aria-hidden="true"></span>
+        <div>
+          <div class="row between"><div><b>${esc(acc?.nome || it.conta)}</b> · ${esc(def?.label || it.type)} <span class="small muted">· ${esc(formatDate(it.date))}</span></div>
+            <span class="row">
+              <button class="link danger" data-action="inbox-discard" data-id="${esc(it.docId)}">Descartar</button>
+              <button class="primary" data-action="inbox-approve" data-id="${esc(it.docId)}" ${acc && def ? '' : 'disabled'}>Aprovar</button>
+            </span></div>
+          ${it.detail ? `<div class="small">${esc(it.detail)}</div>` : ''}
+          ${it.evidence ? `<div class="small muted quote">“${esc(it.evidence)}”</div>` : ''}
+          <div class="small muted">${esc(it.source || 'Web')}${it.url ? ` · <a href="${esc(it.url)}" target="_blank" rel="noopener">abrir fonte</a>` : ''}</div>
+        </div>
+      </li>`;
+    })
+    .join('');
+  return `<section class="panel inbox">
+    <div class="row between"><div><h2>Captados pela IA <span class="count">${inbox.items.length}</span></h2>
+      <div class="small muted">${esc(last)}</div></div>
+      ${inbox.items.length > 1 ? '<button data-action="inbox-approve-all">Aprovar todos</button>' : ''}</div>
+    ${items ? `<ul class="plain">${items}</ul>` : '<p class="small muted">Nada esperando revisão.</p>'}
+  </section>`;
+}
+
+async function approveInbox(docId) {
+  const it = inbox.items.find(x => x.docId === docId);
+  if (!it || !accountById(it.accountId) || !state.profile.signalById[it.type]) return false;
+  const r = addSignal(state.data.signals, {
+    accountId: it.accountId,
+    type: it.type,
+    date: parseDate(it.date) || state.today,
+    source: it.source || 'Captação com IA',
+    detail: it.detail || '',
+    url: it.url || '',
+    person: it.person || ''
+  });
+  state.data.signals = r.signals;
+  await store.setInboxStatus(state.wsId, docId, 'aprovado');
+  return true;
 }
 
 // ---------- resultados ----------
@@ -1503,6 +1570,29 @@ const actions = {
   'ai-classify': () => openClassify(),
   'ai-classify-run': () => runClassify(),
   'ai-signals': () => openExtract(),
+  'inbox-approve': async el => {
+    try {
+      if (await approveInbox(el.dataset.id)) {
+        save();
+        render();
+        toast('Sinal aprovado; já conta na fila.');
+      }
+    } catch {
+      toast('Não foi possível aprovar agora. Tente de novo.');
+    }
+  },
+  'inbox-approve-all': async () => {
+    let n = 0;
+    for (const it of inbox.items.slice()) if (await approveInbox(it.docId).catch(() => false)) n++;
+    save();
+    render();
+    toast(`${plural(n, 'sinal aprovado', 'sinais aprovados')}.`);
+  },
+  'inbox-discard': async el => {
+    await store
+      .setInboxStatus(state.wsId, el.dataset.id, 'descartado')
+      .catch(() => toast('Não foi possível descartar agora.'));
+  },
   'ai-signals-run': () => runExtract(),
   'ai-hooks': () => writeHooks(state.queue.items.map(ev => ev.account.id)),
   'ai-hook-one': el => writeHooks([el.dataset.id]),

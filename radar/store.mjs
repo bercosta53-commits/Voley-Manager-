@@ -46,7 +46,13 @@ const localBackend = {
   },
   watch() {
     return () => {};
-  }
+  },
+  // A captação automática só existe no link publicado (grava no banco do link).
+  watchInbox(id, onChange) {
+    onChange([], null);
+    return () => {};
+  },
+  async setInboxStatus() {}
 };
 
 // ---------- banco do artifact ----------
@@ -149,6 +155,27 @@ function dbBackend(db) {
         written.delete(`${id}/${d.id}`);
       }
     },
+    // Caixa de sinais captados pela IA fora da página, à espera de revisão, e o resumo da última coleta.
+    watchInbox(id, onChange) {
+      let items = [],
+        status = null;
+      const emit = () => onChange(items, status);
+      const stopItems = db
+        .collection(`espacos/${id}/caixa`)
+        .where('status', '==', 'pendente')
+        .onSnapshot(
+          snap => ((items = snap.docs.map(d => ({ docId: d.id, ...d.data() }))), emit()),
+          () => {}
+        );
+      const stopStatus = db.doc(`espacos/${id}/coleta/estado`).onSnapshot(
+        snap => ((status = snap.exists ? snap.data() : null), emit()),
+        () => {}
+      );
+      return () => (stopItems(), stopStatus());
+    },
+    async setInboxStatus(id, docId, status) {
+      await db.doc(`espacos/${id}/caixa/${docId}`).update({ status, revisadoEm: new Date().toISOString() });
+    },
     // Avisa quando outra pessoa altera o espaço aberto.
     watch(id, onChange) {
       let first = true;
@@ -200,6 +227,8 @@ export async function deleteWorkspace(id) {
 export const loadWorkspace = async id => ({ ...emptyData(), ...(await backend.load(id)) });
 export const saveWorkspace = (id, data) => backend.save(id, data);
 export const watchWorkspace = (id, onChange) => backend.watch(id, onChange);
+export const watchInbox = (id, onChange) => backend.watchInbox(id, onChange);
+export const setInboxStatus = (id, docId, status) => backend.setInboxStatus(id, docId, status);
 
 export function exportBackup(id, data) {
   const meta = workspaces.find(w => w.id === id);
