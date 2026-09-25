@@ -16,7 +16,7 @@ from .taxonomia import Taxonomia
 
 BRACOS = {"servicos_profissionais": "Serviços profissionais", "servicos_financeiros": "Serviços financeiros",
           "tecnologia": "Tecnologia B2B"}
-ORIGEM = {"cnpj": "Receita Federal (BrasilAPI)", "apollo": "Apollo", "regras": "Notícia (regras)"}
+ORIGEM = {"cnpj": "Receita Federal (BrasilAPI)", "apollo": "Apollo", "regras": "Notícia (regras)", "vagas": "Vagas (Gupy ou Indeed)"}
 
 
 def _origem(classificador: str | None) -> str:
