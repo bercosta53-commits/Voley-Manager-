@@ -1,0 +1,364 @@
+# Taxonomia de sinais do Radar (rascunho v1). Editável sem mexer em código.
+#
+# Cada tipo de sinal tem:
+#   rotulo           nome legível
+#   braco_icp        a quais braços do ICP ele se aplica: servicos_profissionais, servicos_financeiros,
+#                    tecnologia, ou "todos"
+#   peso             1 a 10: quanto este sinal esquenta a conta
+#   meia_vida_dias   em quantos dias o sinal perde metade do valor (decaimento)
+#   membro_comite    quem ele "acorda": decisor, influenciador, usuario ou bloqueador
+#   angulo_sugerido  a abordagem que o sinal abre para a Velora
+#   palavras_chave   usadas só pelo classificador por regras (sem chave da API do Claude)
+#   ajustes          (opcional) valores diferentes por braço do ICP
+#
+# Depois de editar: python manager.py taxonomia   (confere se o arquivo está válido)
+
+versao: 1
+
+# Abaixo desta confiança o sinal vai para "revisar" em vez de virar alerta.
+limiar_confianca: 0.6
+
+tipos:
+
+  # ----------------------------------------------------------------------------------------------
+  # Serviços profissionais B2B (advocacia full-service, auditoria, contabilidade, consultoria tributária)
+  # ----------------------------------------------------------------------------------------------
+  entrada_socio:
+    rotulo: Entrada de sócio (lateral hire)
+    braco_icp: [servicos_profissionais]
+    peso: 8
+    meia_vida_dias: 120
+    membro_comite: decisor
+    angulo_sugerido: Sócio novo chega com carteira e meta de originação; plano de posicionamento e ABM para a frente dele nos primeiros 90 dias.
+    palavras_chave: [novo sócio, novos sócios, nova sócia, anuncia sócio, contrata sócio, chega como sócio, reforça equipe com sócio, promove a sócio, promovidos a sócios]
+
+  saida_socio:
+    rotulo: Saída de sócio
+    braco_icp: [servicos_profissionais]
+    peso: 6
+    meia_vida_dias: 90
+    membro_comite: decisor
+    angulo_sugerido: Saída de sócio expõe carteira e marca; plano de retenção de clientes e reforço de posicionamento da área afetada.
+    palavras_chave: [deixa o escritório, deixa a sociedade, sai do escritório, saída de sócio, se despede]
+
+  nova_area_pratica:
+    rotulo: Nova área de prática
+    braco_icp: [servicos_profissionais]
+    peso: 8
+    meia_vida_dias: 120
+    membro_comite: decisor
+    angulo_sugerido: Área nova precisa de pipeline; go-to-market da prática com conteúdo, lista de contas e cadência.
+    palavras_chave: [nova área, lança área, cria área, nova prática, estrutura área, amplia atuação em]
+
+  novo_escritorio:
+    rotulo: Novo escritório ou praça
+    braco_icp: [servicos_profissionais]
+    peso: 7
+    meia_vida_dias: 120
+    membro_comite: decisor
+    angulo_sugerido: Praça nova sem marca local; plano de entrada regional com lista de contas, eventos e parcerias.
+    palavras_chave: [novo escritório, inaugura escritório, abre escritório, chega a, nova unidade, nova sede]
+
+  fusao_escritorios:
+    rotulo: Fusão ou incorporação de escritório
+    braco_icp: [servicos_profissionais]
+    peso: 9
+    meia_vida_dias: 180
+    membro_comite: decisor
+    angulo_sugerido: Fusão exige unificar marca, CRM e mensagem; integração comercial nos primeiros 100 dias.
+    palavras_chave: [fusão, incorpora, incorporação, se une a, integração com o escritório, combinação de escritórios]
+
+  # ----------------------------------------------------------------------------------------------
+  # Serviços financeiros exceto investimentos (cooperativas, seguros, previdência, consórcios)
+  # ----------------------------------------------------------------------------------------------
+  troca_diretoria:
+    rotulo: Troca de diretoria
+    braco_icp: [servicos_financeiros]
+    peso: 8
+    meia_vida_dias: 120
+    membro_comite: decisor
+    angulo_sugerido: Diretoria nova revisa fornecedores e metas nos primeiros meses; diagnóstico de growth como primeira entrega.
+    palavras_chave: [novo diretor, nova diretora, nova diretoria, novo presidente, nova presidente, assume a diretoria, assume a presidência, novo superintendente, novo ceo, nomeia]
+
+  fusao_singulares:
+    rotulo: Fusão ou incorporação de singulares
+    braco_icp: [servicos_financeiros]
+    peso: 9
+    meia_vida_dias: 180
+    membro_comite: decisor
+    angulo_sugerido: Incorporação de singulares pede padronizar marca, dados e jornada do cooperado; plano de integração comercial.
+    palavras_chave: [incorporação, incorpora, fusão, se une, união das cooperativas, aprovam fusão]
+
+  novo_produto:
+    rotulo: Novo produto
+    braco_icp: [servicos_financeiros]
+    peso: 7
+    meia_vida_dias: 90
+    membro_comite: influenciador
+    angulo_sugerido: Produto novo precisa de adoção na base; segmentação por carteira e campanhas de ativação com metas por agência ou corretor.
+    palavras_chave: [lança, lançamento, novo produto, nova linha, nova solução, amplia portfólio, apresenta novo]
+
+  norma_regulatoria:
+    rotulo: Norma do BCB ou da SUSEP
+    braco_icp: [servicos_financeiros]
+    peso: 5
+    meia_vida_dias: 120
+    membro_comite: influenciador
+    angulo_sugerido: Norma nova muda a jornada ou a oferta; adequação com comunicação à base e captação no novo cenário.
+    palavras_chave: [resolução, circular, banco central, bcb, susep, cmn, nova regra, norma]
+
+  expansao_rede:
+    rotulo: Expansão da rede (agências, praças)
+    braco_icp: [servicos_financeiros]
+    peso: 6
+    meia_vida_dias: 90
+    membro_comite: influenciador
+    angulo_sugerido: Praças novas precisam de originação local; plano de abertura com lista de contas e ativação regional.
+    palavras_chave: [nova agência, inaugura agência, inaugura, amplia presença, chega a, expansão, novas agências]
+
+  # ----------------------------------------------------------------------------------------------
+  # Tecnologia B2B madura
+  # ----------------------------------------------------------------------------------------------
+  rodada_investimento:
+    rotulo: Rodada de investimento
+    braco_icp: [tecnologia]
+    peso: 9
+    meia_vida_dias: 120
+    membro_comite: decisor
+    angulo_sugerido: Rodada vem com meta de crescimento; estruturar máquina de aquisição e RevOps antes de escalar o time.
+    palavras_chave: [rodada, capta, captação, aporte, investimento de, série a, série b, series a, series b, recebe investimento]
+
+  fusao_aquisicao:
+    rotulo: Fusão ou aquisição (M&A)
+    braco_icp: [tecnologia]
+    peso: 8
+    meia_vida_dias: 150
+    membro_comite: decisor
+    angulo_sugerido: M&A pede integrar portfólios, base e go-to-market; cross-sell na base combinada.
+    palavras_chave: [adquire, aquisição, compra a, compra da, fusão, incorpora, é adquirida]
+
+  troca_c_level:
+    rotulo: Troca de C-level
+    braco_icp: [tecnologia]
+    peso: 8
+    meia_vida_dias: 120
+    membro_comite: decisor
+    angulo_sugerido: C-level novo revisa metas e fornecedores; diagnóstico de funil e plano de 90 dias.
+    palavras_chave: [novo ceo, nova ceo, novo cmo, nova cmo, novo cro, novo coo, assume como, anuncia novo, contrata executivo]
+
+  # ----------------------------------------------------------------------------------------------
+  # Vagas (conector de vagas: Gupy e arquivo importado do Indeed). Valem para todos os braços.
+  # ----------------------------------------------------------------------------------------------
+  vaga_lideranca_receita:
+    rotulo: Vaga de liderança em marketing, growth ou comercial
+    braco_icp: todos
+    peso: 9
+    meia_vida_dias: 90
+    membro_comite: decisor
+    angulo_sugerido: Contratar uma liderança de receita é redesenhar a área; oferecer o diagnóstico e o plano de 90 dias que essa pessoa vai precisar apresentar.
+    palavras_chave: [contrata head, contrata diretor de marketing, novo head de marketing, vaga de head]
+
+  vaga_marketing_growth:
+    rotulo: Vaga de marketing, growth ou RevOps
+    braco_icp: todos
+    peso: 7
+    meia_vida_dias: 60
+    membro_comite: influenciador
+    angulo_sugerido: Time de marketing ou RevOps em formação; apoiar a operação enquanto contratam e desenhar o processo que a pessoa nova vai rodar.
+    palavras_chave: [está contratando, abre vagas de marketing, analista de marketing, vaga de marketing, revops]
+
+  vaga_comercial:
+    rotulo: Vagas comerciais (SDR, vendas, desenvolvimento de negócios)
+    braco_icp: todos
+    peso: 5
+    meia_vida_dias: 60
+    membro_comite: influenciador
+    angulo_sugerido: Time comercial crescendo precisa de demanda qualificada e processo; ABM e cadência para o time novo não começar do zero.
+    palavras_chave: [contrata vendedores, abre vagas comerciais, vagas de sdr]
+
+  # ----------------------------------------------------------------------------------------------
+  # Todos os braços
+  # ----------------------------------------------------------------------------------------------
+  expansao_negocio:
+    rotulo: Expansão do negócio (crescimento, novo mercado, parceria relevante)
+    braco_icp: todos
+    peso: 5
+    meia_vida_dias: 90
+    membro_comite: decisor
+    angulo_sugerido: Crescimento declarado pede previsibilidade de receita; plano de aquisição e expansão na base.
+    palavras_chave: [cresce, crescimento, expansão, parceria, novo mercado, recorde, amplia]
+
+  # Sinais gerados pelos conectores (CNPJ e Apollo). O classificador não os cria; a taxonomia dá peso e ângulo.
+  socio_entrou:
+    rotulo: Entrada no quadro societário (Receita)
+    braco_icp: todos
+    peso: 7
+    meia_vida_dias: 120
+    membro_comite: decisor
+    angulo_sugerido: Gente nova no comando revisa prioridades; abrir conversa com um diagnóstico curto.
+    ajustes:
+      servicos_profissionais:
+        peso: 8
+        angulo_sugerido: Sócio novo chega com carteira e meta de originação; plano de posicionamento e ABM para a frente dele.
+      servicos_financeiros:
+        angulo_sugerido: Diretor novo na cooperativa ou seguradora revisa fornecedores; diagnóstico de growth como primeira entrega.
+
+  socio_saiu:
+    rotulo: Saída do quadro societário (Receita)
+    braco_icp: todos
+    peso: 5
+    meia_vida_dias: 90
+    membro_comite: decisor
+    angulo_sugerido: Mudança na liderança abre reorganização; mapear quem assume e o que muda.
+
+  administracao_mudou:
+    rotulo: Mudança de cargo na administração (Receita)
+    braco_icp: todos
+    peso: 6
+    meia_vida_dias: 90
+    membro_comite: decisor
+    angulo_sugerido: Promoção ou troca de função no comando; parabenizar e oferecer diagnóstico para a nova agenda.
+
+  capital_mudou:
+    rotulo: Mudança de capital social (Receita)
+    braco_icp: todos
+    peso: 5
+    meia_vida_dias: 120
+    membro_comite: decisor
+    angulo_sugerido: Aumento de capital costuma anteceder investimento em crescimento; plano de aquisição para o novo ciclo.
+
+  situacao_mudou:
+    rotulo: Mudança de situação cadastral (Receita)
+    braco_icp: todos
+    peso: 1
+    meia_vida_dias: 60
+    membro_comite: decisor
+    angulo_sugerido: Situação diferente de ATIVA pede checagem antes de qualquer abordagem.
+
+  sede_mudou:
+    rotulo: Mudança de sede (Receita)
+    braco_icp: todos
+    peso: 4
+    meia_vida_dias: 90
+    membro_comite: influenciador
+    angulo_sugerido: Mudança de sede costuma vir com reposicionamento; reforçar marca e presença na nova praça.
+
+  membro_mudou_de_empresa:
+    rotulo: Pessoa do comitê mudou de empresa (Apollo)
+    braco_icp: todos
+    peso: 7
+    meia_vida_dias: 60
+    membro_comite: decisor
+    angulo_sugerido: Campeão saiu; reconstruir o comitê na conta e seguir a pessoa na empresa nova.
+
+  membro_mudou_de_cargo:
+    rotulo: Pessoa do comitê mudou de cargo (Apollo)
+    braco_icp: todos
+    peso: 6
+    meia_vida_dias: 90
+    membro_comite: decisor
+    angulo_sugerido: Promoção traz orçamento e agenda nova; parabenizar e propor diagnóstico para o novo escopo.
+
+  pessoa_nova_cargo_alvo:
+    rotulo: Pessoa nova em cargo-alvo (Apollo)
+    braco_icp: todos
+    peso: 8
+    meia_vida_dias: 90
+    membro_comite: influenciador
+    angulo_sugerido: Executivo recém-chegado monta plano e escolhe fornecedores nos primeiros 90 dias; abordar cedo.
+
+  # ----------------------------------------------------------------------------------------------
+  # Bibliotecas de anúncios (Google Ads Transparency Center e Meta Ad Library). Só o conector de
+  # anúncios gera estes tipos (fonte_exclusiva): o classificador de notícias não os usa.
+  # Checagem semanal; meia-vida de 45 dias.
+  # ----------------------------------------------------------------------------------------------
+  anuncio_comecou:
+    rotulo: Começou a anunciar
+    braco_icp: todos
+    peso: 8
+    meia_vida_dias: 45
+    membro_comite: decisor
+    fonte_exclusiva: anuncios
+    angulo_sugerido: Está estruturando aquisição agora; chegar com o raio-x de mídia e um plano para a mídia paga virar pipeline, não só clique.
+
+  anuncio_parou:
+    rotulo: Parou de anunciar
+    braco_icp: todos
+    peso: 7
+    meia_vida_dias: 45
+    membro_comite: decisor
+    fonte_exclusiva: anuncios
+    angulo_sugerido: Corte, troca de agência ou problema de resultado; janela para rever fornecedor com um diagnóstico do que rodava antes.
+
+  anuncio_canal_novo:
+    rotulo: Entrou num canal novo de anúncios
+    braco_icp: todos
+    peso: 5
+    meia_vida_dias: 45
+    membro_comite: influenciador
+    fonte_exclusiva: anuncios
+    angulo_sugerido: Expandindo canais; mostrar como integrar a mensagem e medir cada canal pelo pipeline que gera.
+
+  anuncio_mensagem_nova:
+    rotulo: Mudou a mensagem dos anúncios
+    braco_icp: todos
+    peso: 5
+    meia_vida_dias: 45
+    membro_comite: influenciador
+    fonte_exclusiva: anuncios
+    angulo_sugerido: Produto, vertical ou público novo; ajudar a posicionar a oferta nova para as contas certas.
+
+  anuncio_destino_novo:
+    rotulo: Anúncios levam a um destino novo
+    braco_icp: todos
+    peso: 5
+    meia_vida_dias: 45
+    membro_comite: influenciador
+    fonte_exclusiva: anuncios
+    angulo_sugerido: Landing page dedicada ou ferramenta de LP nova é sinal de estruturação; oferecer o funil que falta depois da página.
+
+  anuncio_volume:
+    rotulo: Variação brusca de criativos
+    braco_icp: todos
+    peso: 3
+    meia_vida_dias: 45
+    membro_comite: influenciador
+    fonte_exclusiva: anuncios
+    angulo_sugerido: Aumento ou corte forte de criativos; entender o que mudou na meta ou no orçamento.
+
+  infraestrutura_sem_operacao:
+    rotulo: Infraestrutura de mídia sem operação
+    braco_icp: todos
+    peso: 5
+    meia_vida_dias: 45
+    membro_comite: decisor
+    fonte_exclusiva: anuncios
+    angulo_sugerido: Tem pixel e tag instalados, mas nenhum anúncio rodando; tem a ferramenta, não tem o motor.
+
+
+# Ruído: notícias que citam a empresa mas não abrem janela de compra. O classificador descarta.
+ruido:
+  premio_ranking: [prêmio, premiação, ranking, reconhecida, reconhecido, eleita, eleito, melhor empresa, gptw, great place, homenagem, destaque do ano]
+  patrocinio_evento: [patrocina, patrocínio, copa, torneio, futsal, corrida, campeonato, festival, apoia evento, taça, liga]
+  sorteio_promocao: [sorteio, ganha prêmio, ganha r$, contemplado, campanha de prêmios, entrega prêmio, premia cooperado]
+  release_generico: [dicas, saiba como, entenda, confira, veja como, artigo, opinião, alerta jurídico]
+  acao_social: [doação, doa, solidária, voluntariado, apae, beneficente, dia c, ação social]
+
+# Como o conector de vagas decide se uma vaga importa (títulos comparados sem acento e sem maiúsculas):
+#   área + liderança  -> vaga_lideranca_receita   (ex.: "Head de Growth", "Gerente de Marketing", "Diretor Comercial")
+#   área              -> vaga_marketing_growth    (ex.: "Especialista em Marketing | Conteúdo", "Analista de CRM")
+#   comercial         -> vaga_comercial           (ex.: "SDR", "Executivo de Contas")
+#   ignorar           -> a vaga não conta          (ex.: "Banco de Talentos - Marketing", "Estágio em Marketing")
+vagas:
+  areas: [marketing, growth, revops, revenue operations, crm, inbound, geração de demanda, demand generation, branding, brand, mídia paga, performance marketing, marketing ops, comunicação e marketing]
+  lideranca: [head, diretor, diretora, gerente, coordenador, coordenadora, cmo, cro, vp, vice-presidente, chief, líder, lead, superintendente]
+  comercial: [sdr, bdr, pré-vendas, pre-vendas, inside sales, vendas, comercial, executivo de contas, executiva de contas, account executive, business development, desenvolvimento de negócios, key account]
+  ignorar: [banco de talentos, estágio, estagiário, estagiária, jovem aprendiz, aprendiz, trainee]
+
+# Vagas de consultorias de recrutamento (Michael Page, Robert Half, Hays, Talenses...). O anúncio costuma
+# esconder o cliente; o setor e a descrição dizem o braço do ICP, e a cidade restringe as contas candidatas.
+consultorias:
+  setores:
+    servicos_financeiros: [seguros, seguradora, resseguro, resseguradora, insurtech, previdência, cooperativa, cooperativismo, crédito, consórcio, banco, bancos, serviços financeiros, financial services, fintech, meios de pagamento]
+    servicos_profissionais: [advocacia, escritório de advocacia, jurídico, law firm, auditoria, contabilidade, consultoria tributária, tributário, big four]
+    tecnologia: [software, saas, tecnologia b2b, erp, plataforma b2b, empresa de tecnologia, segmento de tecnologia, dados e analytics]

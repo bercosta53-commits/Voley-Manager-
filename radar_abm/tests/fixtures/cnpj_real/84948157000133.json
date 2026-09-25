@@ -1,0 +1,51 @@
+{
+ "descricao_identificador_matriz_filial": "MATRIZ",
+ "complemento": "",
+ "cnpj": "84948157000133",
+ "razao_social": "JUNTO SEGUROS S.A.",
+ "nome_fantasia": "",
+ "descricao_situacao_cadastral": "ATIVA",
+ "data_situacao_cadastral": "2005-11-03",
+ "capital_social": 135550640,
+ "cnae_fiscal": 6512000,
+ "cnae_fiscal_descricao": "Sociedade seguradora de seguros não vida",
+ "descricao_tipo_de_logradouro": "AVENIDA",
+ "logradouro": "DOUTOR DARIO LOPES DOS SANTOS",
+ "numero": "2197",
+ "bairro": "JARDIM BOTANICO",
+ "municipio": "CURITIBA",
+ "uf": "PR",
+ "cep": "80210010",
+ "qsa": [
+  {
+   "nome_socio": "DIEGO MARINS MASSARA",
+   "qualificacao_socio": "Diretor",
+   "data_entrada_sociedade": "2022-07-27"
+  },
+  {
+   "nome_socio": "EDUARDO CRUCI",
+   "qualificacao_socio": "Diretor",
+   "data_entrada_sociedade": "2026-04-06"
+  },
+  {
+   "nome_socio": "ELISA FRANCIELLI MARCHI PRESTES",
+   "qualificacao_socio": "Diretor",
+   "data_entrada_sociedade": "2021-09-22"
+  },
+  {
+   "nome_socio": "GUILHERME MALUCELLI GOBBO",
+   "qualificacao_socio": "Diretor",
+   "data_entrada_sociedade": "2021-10-01"
+  },
+  {
+   "nome_socio": "KETLYN PAROLIN BERTHOLDI STEFANOVIC",
+   "qualificacao_socio": "Diretor",
+   "data_entrada_sociedade": "2024-09-12"
+  },
+  {
+   "nome_socio": "ROQUE JUNIOR DE HOLANDA MELO",
+   "qualificacao_socio": "Presidente",
+   "data_entrada_sociedade": "2014-07-04"
+  }
+ ]
+}
