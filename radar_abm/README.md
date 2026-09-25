@@ -21,6 +21,7 @@ python manager.py coletar --conector cnpj --tier A --limite 5 --dry-run
 python manager.py coletar --conector cnpj
 python manager.py coletar --conector noticias --tier A --limite 5 --dry-run
 python manager.py coletar --conector noticias
+python manager.py coletar --conector apollo --tier A --dry-run
 python manager.py execucoes
 python -m pytest tests                    # testes, sem internet
 ```
@@ -48,3 +49,4 @@ duplicar.
 | `abm/conectores/http.py` | timeout, retry com backoff e rate limit; respostas salvas para testes |
 | `abm/conectores/cnpj.py` | conector CNPJ (BrasilAPI) |
 | `abm/conectores/noticias.py` | conector Google News (RSS) |
+| `abm/conectores/apollo.py` | conector Apollo (comitê de compra) |

@@ -143,7 +143,7 @@ def main(argv: list[str] | None = None) -> None:
     s.set_defaults(f=cmd_aliases)
 
     s = sub.add_parser("coletar", help="roda os conectores (todos, ou um com --conector)")
-    s.add_argument("--conector", choices=["cnpj", "noticias"], help="só este conector")
+    s.add_argument("--conector", choices=["cnpj", "noticias", "apollo"], help="só este conector")
     s.add_argument("--contas", help="ids separados por vírgula (ex.: T-001,F-003)")
     s.add_argument("--tier", help="só contas deste tier (A, B ou C)")
     s.add_argument("--limite", type=int, help="no máximo N contas")

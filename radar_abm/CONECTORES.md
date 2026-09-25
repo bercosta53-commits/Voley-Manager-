@@ -212,8 +212,65 @@ python manager.py coletar --conector noticias
   que a imprensa usa (`aliases listar <conta>`); acrescente com `aliases adicionar`.
 - O Google mudou o formato do RSS: o erro aparece no passo TRADUZ. Só esse passo precisa ser ajustado.
 
-## Apollo (comitê de compra): fase 4, a construir
+## Apollo (comitê de compra)
 
-- **BUSCA**: dados atuais só das pessoas mapeadas no comitê, com a chave `APOLLO_API_KEY`.
-  `reveal_personal_emails` e `reveal_phone_number` sempre desligados.
-- **COMPARA**: mudou cargo ou empresa de alguém do comitê; apareceu pessoa nova num cargo-alvo.
+Arquivo: `abm/conectores/apollo.py`. Vigia as pessoas do comitê de compra.
+
+- **BUSCA**: vai à API do Apollo (`https://api.apollo.io`) com a sua chave e faz duas consultas.
+  1. **Atualização do comitê** (`people/bulk_match`): só as pessoas que **já estão** na tabela `pessoas`
+     da conta, e só as que não foram consultadas nos últimos 30 dias. Vão até 10 pessoas por chamada.
+     Na primeira vez a pessoa é procurada por nome, empresa e domínio; depois, pelo id do Apollo, que é
+     exato. **Custa 1 crédito por pessoa encontrada.**
+  2. **Pessoas novas em cargos-alvo** (`mixed_people/api_search`): quem ocupa hoje cargos de marketing,
+     growth, RevOps e comercial no domínio da conta. Não gasta crédito, mas **exige plano pago**. No
+     plano Free o Apollo recusa; o conector avisa e segue só com a parte 1.
+
+  `reveal_personal_emails` e `reveal_phone_number` vão **sempre** como `false`, no endereço e no corpo
+  de toda chamada. Isso está travado no código e coberto por teste.
+- **TRADUZ**: de cada pessoa guarda só nome, cargo, empresa atual, domínio da empresa e id do Apollo.
+  Descarta e-mail, telefone, LinkedIn e foto, mesmo quando o Apollo manda.
+- **COMPARA**: com a foto anterior, procura três coisas:
+  - **mudou de empresa**: o domínio da empresa atual não é o da conta. Sem domínio, compara o nome da
+    empresa com os aliases da conta. Na dúvida, não acusa;
+  - **mudou de cargo**: o cargo no Apollo mudou desde a última consulta. O cargo que veio da planilha não
+    entra nessa comparação, porque a grafia é outra ("CEO e fundador" x "Founder & CEO");
+  - **pessoa nova em cargo-alvo**: está hoje num cargo-alvo, não estava na lista anterior e não é do
+    comitê. Na primeira coleta, a lista vira só a linha de base.
+- **ENTREGA**: cada mudança vira item bruto e sinal (confiança 0,8: dado de terceiro, não oficial), com o
+  membro do comitê afetado. Guarda o id do Apollo da pessoa e o cargo atual, mas não sobrescreve o cargo
+  de quem saiu da empresa.
+
+**Como economizar créditos**:
+- Só pessoas do comitê são consultadas. Nunca a empresa inteira.
+- Cada pessoa é consultada no máximo **uma vez a cada 30 dias** (`RADAR_APOLLO_INTERVALO_DIAS`).
+  Coletar toda semana não multiplica o gasto.
+- Cada execução tem um **teto** (`RADAR_APOLLO_MAX_CREDITOS`, padrão 25). O que passa do teto fica para a
+  próxima semana, com **decisores primeiro**.
+- Pessoa não encontrada não custa crédito.
+- `--dry-run` mostra quem seria consultado e quantos créditos **seriam** gastos, sem gastar nada.
+
+Na base de hoje são 126 pessoas (98 decisores e 28 influenciadores, todas em contas A). A primeira
+volta custa até 126 créditos. Com teto de 30 por semana, ela fecha em cerca de 4 semanas e se repete todo
+mês, dentro dos 180 créditos mensais do seu plano.
+
+**Precisa para funcionar**:
+- `APOLLO_API_KEY` no `.env` (Apollo > Settings > Integrations > API);
+- créditos de enriquecimento;
+- a busca de pessoas novas exige plano pago;
+- o limite de chamadas por minuto depende do plano. O conector espera 1 segundo entre chamadas e respeita
+  o "espere" (código 429).
+- Com o site da conta preenchido, o Apollo acha a pessoa certa com mais frequência.
+
+**Comandos**:
+```sh
+python manager.py coletar --conector apollo --tier A --dry-run   # quem seria consultado e quanto custaria
+python manager.py coletar --conector apollo --tier A
+```
+
+**Quando quebra**:
+- "respondeu 401": a chave está errada ou foi revogada. Gere outra no Apollo e troque no `.env`.
+- "respondeu 403" na atualização do comitê: o plano não permite a API de enriquecimento. Na busca de
+  cargos-alvo, 403 é esperado no plano Free: o conector segue sem ela.
+- "respondeu 422": o Apollo não entendeu o pedido (nome vazio, por exemplo). Confira a pessoa na planilha.
+- Créditos acabando: baixe `RADAR_APOLLO_MAX_CREDITOS` ou aumente `RADAR_APOLLO_INTERVALO_DIAS`.
+- Muitas pessoas "não encontradas": preencha o site das contas; sem domínio, homônimos confundem a busca.

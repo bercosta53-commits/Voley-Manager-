@@ -51,10 +51,10 @@ class ClienteHTTP:
     def get(self, url: str, headers: dict[str, str] | None = None, chave: str | None = None) -> bytes:
         return self.requisitar("GET", url, headers=headers)
 
-    def get_json(self, url: str, headers: dict[str, str] | None = None):
+    def get_json(self, url: str, headers: dict[str, str] | None = None, chave: str | None = None):
         return json.loads(self.get(url, headers).decode("utf-8"))
 
-    def post_json(self, url: str, corpo: dict, headers: dict[str, str] | None = None):
+    def post_json(self, url: str, corpo: dict, headers: dict[str, str] | None = None, chave: str | None = None):
         dados = json.dumps(corpo).encode("utf-8")
         h = {"Content-Type": "application/json", **(headers or {})}
         return json.loads(self.requisitar("POST", url, dados, h).decode("utf-8"))
@@ -94,6 +94,7 @@ class ClienteLocal:
 
     pasta: str
     chamadas: int = 0
+    pedidos: list = field(default_factory=list)  # (url, corpo) de cada POST, para os testes conferirem
 
     def _arquivo(self, url: str, chave: str | None):
         from pathlib import Path
@@ -110,5 +111,13 @@ class ClienteLocal:
             raise ErroHTTP(f"sem resposta salva para {url} (esperava {arquivo})", 404)
         return arquivo.read_bytes()
 
-    def get_json(self, url: str, headers: dict[str, str] | None = None):
-        return json.loads(self.get(url, headers).decode("utf-8"))
+    def get_json(self, url: str, headers: dict[str, str] | None = None, chave: str | None = None):
+        return json.loads(self.get(url, headers, chave).decode("utf-8"))
+
+    def post_json(self, url: str, corpo: dict, headers: dict[str, str] | None = None, chave: str | None = None):
+        """Resposta salva em <chave>.json. Um arquivo {"_status": 403} simula a fonte recusando."""
+        self.pedidos.append((url, corpo))
+        dados = self.get_json(url, headers, chave)
+        if isinstance(dados, dict) and "_status" in dados:
+            raise ErroHTTP(f"POST respondeu {dados['_status']}", dados["_status"])
+        return dados
