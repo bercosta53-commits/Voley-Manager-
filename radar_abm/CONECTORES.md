@@ -306,6 +306,55 @@ python manager.py vagas paginas saidas/paginas_vagas.csv              # endereç
 - Vagas do arquivo "sem conta correspondente": o nome da empresa na fonte é diferente do da conta.
   Preencha `id_conta` no CSV ou acrescente o nome como alias (`aliases adicionar`).
 
+## Consultorias de recrutamento (pistas)
+
+Arquivo: `abm/pistas.py`. Vagas da Michael Page, Robert Half, Hays, Talenses e outras consultorias. Esses
+anúncios **quase nunca dizem quem é o cliente**. Exemplo real da Michael Page: *"Nosso cliente é uma
+empresa brasileira em forte expansão no segmento de consumo"*. Por isso a vaga vira uma **pista**, não um
+sinal.
+
+- **BUSCA**: as vagas chegam num CSV montado pela rotina do Claude (`VAGAS_ROTINA.md`, parte D), a partir
+  dos sites públicos das consultorias. Colunas: `consultoria, referencia, titulo, url, data, local, setor,
+  descricao, empresa` (a última só quando o anúncio diz o nome).
+- **TRADUZ**:
+  - **grupo** da vaga pelo título, com as mesmas regras das vagas no `sinais.yaml`;
+  - **braço do ICP** pelo setor e pela descrição, com as palavras da seção `consultorias.setores` do
+    `sinais.yaml` ("seguradora", "cooperativa de crédito", "escritório de advocacia", "software"...).
+- **COMPARA**:
+  - descarta o que não é liderança, marketing/growth ou comercial, e o que está fora do ICP (consumo,
+    indústria, saúde...);
+  - se o anúncio diz o nome e ele é de uma conta, liga direto;
+  - senão, lista até 5 **contas candidatas** do mesmo braço e da mesma cidade. Pontos: cidade 2,
+    subsegmento do mesmo setor do anúncio 3 (anúncio de seguradora x conta de seguro garantia), tier A 1;
+  - a mesma vaga (consultoria e referência) nunca entra duas vezes.
+- **ENTREGA**: grava a pista com as candidatas. **Só vira sinal quando você confirma a conta**:
+  `python manager.py vagas atribuir <pista> <conta>`, com confiança 0,9 porque uma pessoa confirmou. Com o
+  nome no anúncio, o sinal nasce na hora, com confiança 0,8. `vagas atribuir <pista> -` descarta. As pistas
+  abertas aparecem no digest.
+
+**Precisa para funcionar**: nenhuma chave. A busca é feita pelo Claude na rotina.
+
+**Comandos**:
+```sh
+python manager.py vagas consultorias saidas/consultorias_AAAA-MM-DD.csv --dry-run
+python manager.py vagas consultorias saidas/consultorias_AAAA-MM-DD.csv
+python manager.py vagas pistas
+python manager.py vagas atribuir <pista> <conta>
+```
+
+**Limites**:
+- Em cidades com muitas contas do mesmo setor (escritórios de advocacia em São Paulo), as candidatas
+  empatam: o anúncio não traz o que distingue uma da outra. A descrição do cliente ("grande porte",
+  "presença nacional", "foco em seguro garantia") ajuda você a decidir.
+- Um próximo passo possível: o classificador com Claude ordenar as candidatas lendo a descrição do cliente
+  junto com o contexto de cada conta.
+
+**Quando quebra**:
+- Muitas vagas "fora do ICP" que deveriam entrar: acrescente as palavras do setor em
+  `consultorias.setores` no `sinais.yaml`.
+- Pista "sem conta na cidade": nenhuma conta do braço está naquela cidade (ou a conta está sem cidade;
+  veja `qualidade`).
+
 ## Apollo (comitê de compra)
 
 Arquivo: `abm/conectores/apollo.py`. Vigia as pessoas do comitê de compra.

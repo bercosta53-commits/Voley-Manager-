@@ -29,8 +29,9 @@ mostra.
    ```sh
    python manager.py semana --dry-run
    ```
-2. **Vagas do Indeed e do Glassdoor** (opcional, 10 minutos): siga o `VAGAS_ROTINA.md` para o Claude
-   gerar `saidas/vagas_AAAA-MM-DD.csv`. As páginas de carreiras (Gupy, Greenhouse, Lever, Ashby, Sólides)
+2. **Vagas do Indeed, Glassdoor e consultorias** (opcional, 15 minutos): siga o `VAGAS_ROTINA.md` para o
+   Claude gerar `saidas/vagas_AAAA-MM-DD.csv` e `saidas/consultorias_AAAA-MM-DD.csv`. Importe as
+   consultorias com `python manager.py vagas consultorias saidas/consultorias_AAAA-MM-DD.csv`. As páginas de carreiras (Gupy, Greenhouse, Lever, Ashby, Sólides)
    o radar visita sozinho.
 3. **Para valer**:
    ```sh
@@ -66,7 +67,9 @@ mostra.
    python manager.py feedback <id> ruido     # não era sinal: sai do score
    python manager.py feedback <id> util --comentario "abordado; reunião marcada"
    ```
-3. Esvazie a fila **Esperando revisão** do fim do digest com o mesmo comando. Sinal em revisão não conta no
+3. Esvazie a fila **Esperando revisão** do fim do digest com o mesmo comando. Nas **Pistas de headhunters**,
+   confirme a empresa quando reconhecer (`python manager.py vagas atribuir <pista> <conta>`) ou descarte
+   (`... <pista> -`). Sinal em revisão não conta no
    score até você aprovar.
 4. Leve as 3 a 5 contas do topo para a cadência da semana, com o ângulo e a pessoa indicados.
 

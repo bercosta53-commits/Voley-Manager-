@@ -4,7 +4,7 @@ Dada a lista de contas-alvo e seus comitês de compra, vigia movimentações das
 de compra B2B. Python 3.11+, banco SQLite num arquivo só (schema compatível com Postgres), sem painel.
 
 Como cada conector funciona, em português simples: [CONECTORES.md](CONECTORES.md).
-Passo a passo de uma semana completa: [SEMANA.md](SEMANA.md). Rotina de vagas (páginas de carreiras, Indeed, Glassdoor): [VAGAS_ROTINA.md](VAGAS_ROTINA.md).
+Passo a passo de uma semana completa: [SEMANA.md](SEMANA.md). Rotina de vagas (páginas de carreiras, Indeed, Glassdoor, consultorias de recrutamento): [VAGAS_ROTINA.md](VAGAS_ROTINA.md).
 
 ## Primeiros passos
 
@@ -61,6 +61,7 @@ duplicar.
 | `abm/conectores/noticias.py` | conector Google News (RSS) |
 | `abm/conectores/vagas.py` | conector de vagas (páginas de carreiras e arquivo do Indeed/Glassdoor) |
 | `abm/conectores/plataformas.py` | leitores de Gupy, Greenhouse, Lever, Ashby e Sólides |
+| `abm/pistas.py` | vagas de consultorias de recrutamento (cliente confidencial) viram pistas com contas candidatas |
 | `abm/conectores/apollo.py` | conector Apollo (comitê de compra) |
 | `sinais.yaml` | taxonomia de sinais: pesos, meia-vida, membro do comitê, ângulo (editável) |
 | `abm/taxonomia.py` | leitura e validação do sinais.yaml |

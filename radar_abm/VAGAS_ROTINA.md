@@ -38,6 +38,15 @@ Anexe `saidas/contas_vagas.csv` e cole o texto abaixo:
 > Em B e C, guarde **só** as vagas cuja empresa é a mesma da linha. Nome parecido não serve. **Não**
 > filtre pelo tipo de vaga; o radar decide o que interessa. Não use o LinkedIn.
 >
+> **D. Consultorias de recrutamento.** Nos sites públicos de vagas da Michael Page (michaelpage.com.br),
+> Robert Half (roberthalf.com/br), Hays (hays.com.br) e Talenses, procure vagas de liderança em marketing,
+> growth, RevOps e comercial (gerente, head, diretor, coordenador) nas cidades do arquivo. De cada vaga,
+> anote: consultoria, código da vaga (referência), título, link, data, local, setor (o "Resumo da vaga" da
+> Michael Page traz setor, subsetor e indústria) e a descrição do cliente ("Sobre nosso cliente", copiada
+> literalmente). Se o anúncio disser o nome da empresa, preencha `empresa`; senão, deixe vazio e **não**
+> tente adivinhar. Monte `consultorias_AAAA-MM-DD.csv` com as colunas
+> `consultoria,referencia,titulo,url,data,local,setor,descricao,empresa`.
+>
 > Monte `vagas_AAAA-MM-DD.csv`, com a data de hoje, e as colunas `id_conta,empresa,titulo,url,fonte,data,local`,
 > uma linha por vaga:
 > - `id_conta`: o da linha do arquivo;
@@ -46,7 +55,7 @@ Anexe `saidas/contas_vagas.csv` e cole o texto abaixo:
 > - `fonte`: Indeed ou Glassdoor;
 > - `data`: a data de publicação, se a fonte informar.
 >
-> Me devolva os dois arquivos.
+> Me devolva os três arquivos.
 
 ## 3. Importar
 
@@ -56,7 +65,14 @@ Salve os arquivos em `saidas/` e rode:
 python manager.py vagas paginas saidas/paginas_vagas.csv                  # grava as páginas de carreiras
 python manager.py vagas importar saidas/vagas_AAAA-MM-DD.csv --dry-run    # o que entraria
 python manager.py vagas importar saidas/vagas_AAAA-MM-DD.csv
+python manager.py vagas consultorias saidas/consultorias_AAAA-MM-DD.csv   # vagas de headhunters viram pistas
+python manager.py vagas pistas                                             # pistas com as contas candidatas
+python manager.py vagas atribuir <pista> <conta>                           # confirma a empresa (ou - descarta)
 ```
+
+As consultorias escondem o nome do cliente. Por isso a vaga vira uma **pista** com as contas candidatas
+(mesmo setor e mesma cidade), e só vira sinal quando você confirma qual é a empresa. As pistas abertas
+também aparecem no digest.
 
 Ou junte à rotina da semana: `python manager.py semana --arquivo-vagas saidas/vagas_AAAA-MM-DD.csv`.
 

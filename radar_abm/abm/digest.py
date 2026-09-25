@@ -16,7 +16,8 @@ from .taxonomia import Taxonomia
 
 BRACOS = {"servicos_profissionais": "Serviços profissionais", "servicos_financeiros": "Serviços financeiros",
           "tecnologia": "Tecnologia B2B"}
-ORIGEM = {"cnpj": "Receita Federal (BrasilAPI)", "apollo": "Apollo", "regras": "Notícia (regras)", "vagas": "Vagas (Gupy ou Indeed)"}
+ORIGEM = {"cnpj": "Receita Federal (BrasilAPI)", "apollo": "Apollo", "regras": "Notícia (regras)",
+          "vagas": "Vagas (páginas de carreiras ou Indeed)", "consultoria": "Vaga de consultoria de recrutamento"}
 
 
 def _origem(classificador: str | None) -> str:
@@ -72,8 +73,14 @@ def montar(conn, taxonomia: Taxonomia, hoje: date | None = None, top: int = 15) 
         """select conector, count(*) as rodadas, sum(itens) as itens, sum(erros) as erros from execucoes
            where substr(inicio, 1, 10) > ? group by conector order by conector""", (inicio.isoformat(),)
     ).fetchall()
+    try:
+        from .pistas import abertas
+
+        pistas = abertas(conn)
+    except Exception:  # banco antigo sem a tabela de pistas
+        pistas = []
     return {"hoje": hoje, "inicio": inicio, "contas": contas[:top], "total_esquentaram": len(contas),
-            "revisar": revisar, "execucoes": execucoes}
+            "revisar": revisar, "execucoes": execucoes, "pistas": pistas}
 
 
 def _e(texto) -> str:
@@ -123,7 +130,8 @@ def html_digest(d: dict) -> str:
 <p class="sub">Semana de {d['inicio'].strftime('%d/%m')} a {d['hoje'].strftime('%d/%m/%Y')}. Esquentar = score de hoje menos o de 7 dias atrás.</p>
 <div class="resumo"><div><b>{d['total_esquentaram']}</b>contas esquentaram</div>
 <div><b>{sum(len(c['sinais']) for c in d['contas'])}</b>sinais novos em alerta</div>
-<div><b>{len(d['revisar'])}</b>sinais esperando revisão</div></div>
+<div><b>{len(d['revisar'])}</b>sinais esperando revisão</div>
+<div><b>{len(d.get('pistas') or [])}</b>pistas de headhunters</div></div>
 <h2>Contas que mais esquentaram</h2>"""]
     if not d["contas"]:
         partes.append('<p class="sub">Nenhuma conta esquentou nesta semana.</p>')
@@ -152,6 +160,16 @@ def html_digest(d: dict) -> str:
                       "descartar: <code>python manager.py feedback &lt;id&gt; ruido</code></p>")
     else:
         partes.append('<p class="sub">Nada para revisar.</p>')
+    if d.get("pistas"):
+        partes.append("<h2>Pistas de headhunters (cliente confidencial)</h2><p class='sub'>Vagas de consultorias de recrutamento que "
+                      "podem ser de contas suas. Confirme a empresa para virar sinal.</p><div class='tabela'><table>"
+                      "<tr><th>Pista</th><th>Vaga</th><th>Contas candidatas</th></tr>")
+        for p in d["pistas"][:20]:
+            cands = "<br>".join(f"{_e(c['nome'])} <span class='mono'>({_e(c['conta_id'])}, {c['pontos']} pts)</span>" for c in p["candidatas"])
+            partes.append(f"<tr><td class='mono'>{_e(p['id'])}</td><td><b>{_e(p['titulo'])}</b> · {_e(p['consultoria'])} · {_e(p['local'] or '-')}"
+                          f"<br><span class='sub'>{_e((p['descricao'] or '')[:180])}</span> {_link(p['url'])}</td><td>{cands}</td></tr>")
+        partes.append("</table></div><p class='sub'>Confirmar: <code>python manager.py vagas atribuir &lt;pista&gt; &lt;conta&gt;</code> · "
+                      "descartar: <code>python manager.py vagas atribuir &lt;pista&gt; -</code></p>")
     partes.append("<h2>Saúde da coleta na semana</h2>")
     if d["execucoes"]:
         partes.append("<table><tr><th>Conector</th><th>Rodadas</th><th>Itens</th><th>Erros</th></tr>")

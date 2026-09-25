@@ -285,3 +285,11 @@ vagas:
   lideranca: [head, diretor, diretora, gerente, coordenador, coordenadora, cmo, cro, vp, vice-presidente, chief, líder, lead, superintendente]
   comercial: [sdr, bdr, pré-vendas, pre-vendas, inside sales, vendas, comercial, executivo de contas, executiva de contas, account executive, business development, desenvolvimento de negócios, key account]
   ignorar: [banco de talentos, estágio, estagiário, estagiária, jovem aprendiz, aprendiz, trainee]
+
+# Vagas de consultorias de recrutamento (Michael Page, Robert Half, Hays, Talenses...). O anúncio costuma
+# esconder o cliente; o setor e a descrição dizem o braço do ICP, e a cidade restringe as contas candidatas.
+consultorias:
+  setores:
+    servicos_financeiros: [seguros, seguradora, resseguro, resseguradora, insurtech, previdência, cooperativa, cooperativismo, crédito, consórcio, banco, bancos, serviços financeiros, financial services, fintech, meios de pagamento]
+    servicos_profissionais: [advocacia, escritório de advocacia, jurídico, law firm, auditoria, contabilidade, consultoria tributária, tributário, big four]
+    tecnologia: [software, saas, tecnologia b2b, erp, plataforma b2b, empresa de tecnologia, segmento de tecnologia, dados e analytics]

@@ -253,6 +253,37 @@ def cmd_vagas(args) -> None:
             conn.execute("update contas set vagas_url = ? where id = ?", (url, conta_id))
             print(f"{conta_id}: " + ("página de vagas desligada" if url == "-" else f"{reconhecer(url)[0].nome} {url}"))
         conn.commit()
+    elif args.acao == "consultorias":
+        from abm import pistas
+
+        tax = _taxonomia()
+        linhas = pistas.ler_arquivo(args.arquivo)
+        print(f"{len(linhas)} vaga(s) de consultorias no arquivo" + ("  (DRY-RUN: nada será gravado)" if args.dry_run else ""))
+        r = pistas.importar(conn, linhas, tax, dry_run=args.dry_run)
+        print(f"Resumo: {r.novas} nova(s) ({r.com_candidatas} pista(s) com contas candidatas, {r.ligadas} ligada(s) direto "
+              f"pelo nome, {r.sem_candidata} sem conta na cidade, {r.fora_do_icp} fora do ICP); "
+              f"{len(r.fora_dos_grupos)} fora dos grupos de vaga; {r.repetidas} já vista(s)")
+        if r.com_candidatas and not args.dry_run:
+            print("Confirme a empresa de cada pista: python manager.py vagas atribuir <pista> <conta>  (ou - para descartar)")
+    elif args.acao == "pistas":
+        from abm import pistas
+
+        abertas = pistas.abertas(conn)
+        if not abertas:
+            print("Nenhuma pista aberta.")
+        for p in abertas:
+            print(f"{p['id']}  {p['consultoria']}: {p['titulo']} ({p['local'] or '-'})  {p['url'] or ''}")
+            print(f"      {(p['descricao'] or '')[:160]}")
+            for c in p["candidatas"]:
+                print(f"      candidata {c['conta_id']:<7} {c['nome'][:35]:<35} {c['pontos']} pts: {'; '.join(c['motivos'])}")
+    elif args.acao == "atribuir":
+        from abm import pistas
+
+        try:
+            r = pistas.atribuir(conn, args.pista, args.conta, _taxonomia())
+        except pistas.PistaInvalida as e:
+            sys.exit(str(e))
+        print(f"Pista {args.pista} descartada." if r == "descartada" else f"Pista {args.pista} ligada a {args.conta}: sinal {r} em alerta.")
     elif args.acao == "contas":
         # Lista para a rotina do Indeed (VAGAS_ROTINA.md): quem procurar e onde.
         destino = args.saida
@@ -382,6 +413,13 @@ def main(argv: list[str] | None = None) -> None:
     r.add_argument("url")
     r = acoes.add_parser("paginas", help="define páginas de carreiras em lote (CSV com id_conta,url)")
     r.add_argument("arquivo")
+    r = acoes.add_parser("consultorias", help="importa vagas de consultorias (Michael Page, Robert Half...) como pistas")
+    r.add_argument("arquivo")
+    r.add_argument("--dry-run", action="store_true")
+    acoes.add_parser("pistas", help="lista as pistas abertas com as contas candidatas")
+    r = acoes.add_parser("atribuir", help="confirma a conta de uma pista (vira sinal) ou descarta com -")
+    r.add_argument("pista")
+    r.add_argument("conta")
     r = acoes.add_parser("contas", help="exporta a lista de contas para a rotina do Indeed")
     r.add_argument("--saida", default="saidas/contas_vagas.csv")
     r.add_argument("--tier")

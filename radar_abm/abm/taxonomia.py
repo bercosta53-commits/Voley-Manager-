@@ -58,6 +58,7 @@ class Taxonomia:
     tipos: dict[str, Tipo]
     ruido: dict[str, tuple[str, ...]]
     vagas: RegrasVagas = RegrasVagas()
+    setores_consultoria: dict = None  # braço do ICP -> palavras que o indicam no anúncio de uma consultoria
 
     def tipos_para(self, braco: str | None) -> list[Tipo]:
         return [t.para(braco) for t in self.tipos.values() if t.vale_para(braco)]
@@ -114,4 +115,8 @@ def carregar(arquivo: str | Path | None = None) -> Taxonomia:
     ruido = {k: tuple(v or ()) for k, v in (dados.get("ruido") or {}).items()}
     v = dados.get("vagas") or {}
     vagas = RegrasVagas(*(tuple(str(x) for x in (v.get(k) or ())) for k in ("areas", "lideranca", "comercial", "ignorar")))
-    return Taxonomia(int(dados.get("versao", 1)), float(limiar), tipos, ruido, vagas)
+    setores = {b: tuple(str(x) for x in (lista or ())) for b, lista in ((dados.get("consultorias") or {}).get("setores") or {}).items()}
+    for b in setores:
+        if b not in BRACOS:
+            raise TaxonomiaInvalida(f"{arquivo.name}: consultorias.setores tem braço desconhecido '{b}'")
+    return Taxonomia(int(dados.get("versao", 1)), float(limiar), tipos, ruido, vagas, setores)
