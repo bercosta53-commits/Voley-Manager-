@@ -450,6 +450,61 @@ python manager.py coletar --conector apollo --tier A
 
 ---
 
+## Painel (caixa "Captados pela IA")
+
+Arquivo: `abm/painel.py`. Leva os sinais do radar ao painel Radar de Sinais publicado no claude.ai
+(https://claude.ai/artifact/7cRJtmAGEYnia4TdvF5wK8). Lá, cada sinal espera na caixa "Captados pela IA", na aba Sinais,
+até uma pessoa aprovar ou descartar. Nada entra na fila da semana sem essa aprovação.
+
+- **BUSCA**: lê no banco do radar os sinais em alerta ou em revisão, com data do fato nos últimos 90 dias, que
+  ainda não foram enviados. Com `--reenviar`, lê também os já enviados.
+- **TRADUZ**: monta cada sinal no formato da caixa:
+  - conta do painel;
+  - tipo do catálogo do painel;
+  - data;
+  - resumo de até 15 palavras;
+  - pessoa, quando houver (só o nome);
+  - fonte, link e trecho que comprova.
+
+  O tipo do radar vira o tipo mais próximo do painel. Nas vagas e nas trocas de pessoas, o título decide:
+  - vaga de SDR vira `vaga_sdr`;
+  - vaga de CRM ou RevOps vira `vaga_revops`;
+  - vaga de marketing vira `vaga_marketing`;
+  - vaga comercial vira `vaga_executivo_regiao`;
+  - novo diretor de marketing vira `novo_cmo`;
+  - novo presidente vira `novo_ceo`.
+- **COMPARA**: deixa de fora:
+  - o que o painel não tem como receber: saída de sócio, mudança de capital ou de endereço, parceria;
+  - conta que não existe no painel;
+  - o mesmo tipo na mesma conta em menos de 30 dias. Isso vale dentro do envio e, com `--painel-baixado`,
+    também contra o que o painel já tem, na lista de sinais ou na caixa, aprovado ou descartado.
+
+  Sinal descartado no painel não volta.
+- **ENTREGA**: grava `saidas/painel_caixa_<espaço>.json` com os documentos em lotes de até 50, e marca no
+  radar quais sinais foram enviados. Quem grava no painel é o Claude, com a ferramenta de dados do artifact:
+  o radar não tem acesso direto ao banco do link.
+
+**A conta do painel** é achada pela raiz do CNPJ, porque o painel usa o id `cnpj-<raiz>`. Com o banco do painel
+baixado, ela também é achada pelo domínio e pelo nome.
+
+**Precisa para funcionar**: nada além do radar. Para gravar no painel, peça ao Claude numa sessão do Claude Code.
+
+**Comandos**:
+```sh
+python manager.py painel --dry-run                        # o que iria, com o tipo do painel de cada sinal
+python manager.py painel --painel-baixado <pasta>         # usa o banco do painel baixado para não repetir
+python manager.py painel --espaco <id-do-espaço>          # outro espaço do painel (padrão: velora-cnpj70)
+```
+Depois, peça ao Claude: "grave no painel os lotes de saidas/painel_caixa_velora-cnpj70.json".
+
+**Quando quebra**:
+- "Conta não achada no painel": a conta não tem CNPJ, ou não está no espaço. Baixe o banco do painel e use
+  `--painel-baixado`, que também procura pelo site e pelo nome, ou cadastre a conta no painel.
+- "Sem tipo equivalente no painel": o painel não tem esse tipo. O sinal continua no radar e no digest.
+- O botão "Aprovar" avisa que a conta não está no espaço: o sinal foi para o espaço errado. Use `--espaco`.
+
+---
+
 ## Classificador (API do Claude)
 
 Arquivo: `abm/classificador.py`. Não vigia uma fonte, mas conversa com um serviço de fora (a API do

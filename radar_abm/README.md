@@ -1,7 +1,7 @@
 # Radar de sinais ABM (protótipo)
 
 Dada a lista de contas-alvo e seus comitês de compra, vigia movimentações das empresas que abrem janela
-de compra B2B. Python 3.11+, banco SQLite num arquivo só (schema compatível com Postgres), sem painel.
+de compra B2B. Python 3.11+, banco SQLite num arquivo só (schema compatível com Postgres). Os sinais vão para a caixa de aprovação do painel publicado (`python manager.py painel`).
 
 Como cada conector funciona, em português simples: [CONECTORES.md](CONECTORES.md).
 Passo a passo de uma semana completa: [SEMANA.md](SEMANA.md). Rotina de vagas (páginas de carreiras, Indeed, Glassdoor, consultorias de recrutamento): [VAGAS_ROTINA.md](VAGAS_ROTINA.md).
@@ -32,6 +32,7 @@ python manager.py digest                  # HTML semanal em saidas/
 python manager.py feedback <id> util      # ou ruido
 python manager.py metricas
 python manager.py semana                  # coletar + classificar + digest
+python manager.py painel                  # sinais para a caixa do painel publicado
 python manager.py execucoes
 python -m pytest tests                    # testes, sem internet
 ```
@@ -70,6 +71,7 @@ duplicar.
 | `abm/score.py` | score da conta com decaimento |
 | `abm/digest.py` | digest semanal em HTML |
 | `abm/metricas.py` | feedback e métricas (precisão, latência, volume) |
+| `abm/painel.py` | leva os sinais à caixa "Captados pela IA" do painel publicado |
 
 ## Próximas fases (fora do escopo agora)
 
@@ -79,4 +81,4 @@ duplicar.
 | CADE | SEI/CADE (pesquisa pública de processos) e o boletim de atos de concentração | fusões e aquisições submetidas ao CADE, muitas vezes antes da imprensa |
 | CVM | Dados abertos da CVM (dados.cvm.gov.br: documentos IPE, fatos relevantes, emissões) | fato relevante, emissão de dívida, comunicado ao mercado (companhias abertas) |
 | HubSpot ou Dynamics | APIs do HubSpot (CRM v3) e do Dataverse (Dynamics 365) | levar sinal e "por que agora" para a conta no CRM e trazer de volta o desfecho (reunião, oportunidade) para medir conversão |
-| Painel web | a pasta `radar/` do repositório (painel já publicado) lendo o mesmo banco | digest, fila de revisão e feedback com um clique, sem terminal |
+| Painel web, direto | o painel `radar/` já recebe os sinais na caixa (`manager.py painel`); falta a volta: aprovação e descarte no painel virarem feedback no radar | feedback com um clique, sem terminal |

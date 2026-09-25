@@ -330,6 +330,31 @@ def cmd_execucoes(args) -> None:
                 print(f"    {linha}")
 
 
+def cmd_painel(args) -> None:
+    import json
+
+    from abm import painel
+
+    conn = _conn()
+    contas = painel.ContasDoPainel.ler(args.painel_baixado, args.espaco)
+    if not contas.carregado:
+        print("Sem --painel-baixado: a conta do painel é achada só pela raiz do CNPJ, e não confiro o que o painel já tem.")
+    res = painel.exportar(conn, args.espaco, contas, reenviar=args.reenviar, dry_run=args.dry_run)
+    for titulo, lista in (("Sem tipo equivalente no painel", res.sem_tipo), ("Conta não achada no painel", sorted(set(res.sem_conta)))):
+        if lista:
+            print(f"{titulo} ({len(lista)}): " + "; ".join(lista[:10]) + (" ..." if len(lista) > 10 else ""))
+    if args.dry_run or not res.documentos:
+        return
+    destino = Path(args.saida or config.pasta_saidas() / f"painel_caixa_{args.espaco}.json")
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    destino.write_text(json.dumps({"artifact": args.artifact, "espaco": args.espaco,
+                                   "lotes": painel.lotes(args.espaco, res.documentos)}, ensure_ascii=False, indent=1),
+                       encoding="utf-8")
+    print(f"Arquivo pronto em {destino}. Peça ao Claude: \"grave no painel os lotes de {destino.name}\" "
+          "(ele usa a ferramenta de dados do artifact, um lote por vez). No painel, os sinais aparecem na caixa "
+          "Captados pela IA, na aba Sinais, esperando aprovação.")
+
+
 def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser(prog="manager.py", description="Radar de sinais ABM da Velora")
     sub = p.add_subparsers(dest="comando", required=True)
@@ -448,6 +473,15 @@ def main(argv: list[str] | None = None) -> None:
     r.add_argument("--saida", default="saidas/contas_vagas.csv")
     r.add_argument("--tier")
     s.set_defaults(f=cmd_vagas)
+
+    s = sub.add_parser("painel", help="prepara os sinais para a caixa Captados pela IA do painel publicado")
+    s.add_argument("--espaco", default="velora-cnpj70", help="id do espaço no painel (padrão: velora-cnpj70)")
+    s.add_argument("--artifact", default="https://claude.ai/artifact/7cRJtmAGEYnia4TdvF5wK8")
+    s.add_argument("--painel-baixado", help="pasta com o banco do painel baixado (contas, sinais e caixa) para achar as contas e não repetir")
+    s.add_argument("--reenviar", action="store_true", help="inclui sinais já enviados antes")
+    s.add_argument("--saida", help="padrão: saidas/painel_caixa_<espaço>.json")
+    s.add_argument("--dry-run", action="store_true")
+    s.set_defaults(f=cmd_painel)
 
     s = sub.add_parser("execucoes", help="últimas execuções dos conectores")
     s.add_argument("--limite", type=int, default=20)
