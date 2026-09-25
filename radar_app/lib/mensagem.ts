@@ -16,5 +16,8 @@ export function rascunho(sinal: Sinal, conta: Conta) {
     nova_unidade: 'Expansão regional pede um plano de aquisição por praça.',
     lancamento: 'Lançamento B2B ganha tração quando marketing e vendas miram as mesmas contas.',
   };
-  return `${abre} Vi que a ${conta.nome} ${fato}. ${gancho[sinal.tipo] ?? ''} Faz sentido uma conversa de 20 minutos para trocar ideias sobre isso?`.replace(/\s+/g, ' ').trim();
+  // "Contratou…", "Abriu…", "Está…" encaixam em "Vi que a X…"; frases sem verbo ("Vaga de…") entram depois de dois-pontos.
+  const comVerbo = /^(\S+(ou|iu|eu)|está|passou|contratando|concluiu)(?=\s)/i.test(sinal.porQueAgora);
+  const visto = comVerbo ? `Vi que a ${conta.nome} ${fato}.` : `Vi um movimento na ${conta.nome}: ${fato}.`;
+  return `${abre} ${visto} ${gancho[sinal.tipo] ?? ''} Faz sentido uma conversa de 20 minutos para trocar ideias sobre isso?`.replace(/\s+/g, ' ').trim();
 }

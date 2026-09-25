@@ -8,6 +8,8 @@ import { cn, dataCurta, diasEntre, quando } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/ui/kbd';
 import { Tooltip } from '@/components/ui/tooltip';
+import Link from 'next/link';
+import { hrefConta, primeiraMaiuscula } from '@/lib/contas';
 import { IconeSinal } from './icone-sinal';
 import { LogoConta } from './logo-conta';
 import { ScoreTendencia } from './score';
@@ -108,7 +110,16 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                   <span className="sr-only">Novo.</span>
                 </span>
               )}
-              <h2 className="truncate text-md font-semibold">{conta.nome}</h2>
+              <h2 className="truncate text-md font-semibold">
+                <Link
+                  href={hrefConta(conta.id)}
+                  tabIndex={-1}
+                  onClick={e => e.stopPropagation()}
+                  className="rounded-chip decoration-border-strong underline-offset-4 hover:underline"
+                >
+                  {conta.nome}
+                </Link>
+              </h2>
               {conta.tier && (
                 <span className="shrink-0 rounded-chip border border-border px-1 text-[11px] font-medium text-text-3" title={`Tier ${conta.tier}`}>
                   <span className="sr-only">Tier </span>
@@ -213,8 +224,6 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
     </motion.li>
   );
 });
-
-const primeiraMaiuscula = (t: string) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
 
 function situacao(estado?: EstadoSinal) {
   const av = estado?.avaliacao === 'util' ? ' · marcado como útil' : estado?.avaliacao === 'ruido' ? ' · marcado como ruído' : '';

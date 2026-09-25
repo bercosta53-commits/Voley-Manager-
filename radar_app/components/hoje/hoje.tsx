@@ -12,7 +12,11 @@ import { PainelFlutuante } from '@/components/ui/painel-flutuante';
 import { Abordar } from './abordar';
 import { CartaoSinal, type AcaoCartao } from './cartao-sinal';
 import { CaixaVazia, ErroCarregar, ListaEsqueleto, SemPermissao } from './estados';
-import { NavInferior, NavTopo, TopoCelular, VISOES, type Visao } from './navegacao';
+import { VISOES, type Visao } from './navegacao';
+import { Casca } from '@/components/casca/casca';
+import { hrefConta } from '@/lib/contas';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEstados } from './estado';
 
 export type EstadoTela = 'normal' | 'carregando' | 'vazio' | 'erro' | 'sem-permissao';
@@ -48,6 +52,7 @@ export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?
   const [abordarAlvo, setAbordarAlvo] = useState<Sinal | null>(null);
   const [detalhe, setDetalhe] = useState<Sinal | null>(null);
   const celular = useCelular();
+  const router = useRouter();
   const refs = useRef<(HTMLElement | null)[]>([]);
 
   const contas = useMemo(() => new Map(base.contas.map(c => [c.id, c])), [base.contas]);
@@ -139,6 +144,9 @@ export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?
         setFoco(prox);
         refs.current[prox]?.focus();
         refs.current[prox]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      } else if ((ev.key === 'Enter' || ev.key === 'o') && refs.current.some(r => r && r === document.activeElement)) {
+        ev.preventDefault();
+        router.push(hrefConta(lista[atual]!.contaId));
       } else if (mapa[ev.key]) {
         ev.preventDefault();
         agir(lista[atual]!, mapa[ev.key]!);
@@ -146,7 +154,7 @@ export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?
     }
     window.addEventListener('keydown', tecla);
     return () => window.removeEventListener('keydown', tecla);
-  }, [lista, foco, visao, agir, abordarAlvo, detalhe]);
+  }, [lista, foco, visao, agir, abordarAlvo, detalhe, router]);
 
   // Quando um cartão sai, o foco fica no que subiu para o lugar dele.
   const tamanho = lista.length;
@@ -197,9 +205,7 @@ export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?
   const detalheConta = detalhe ? contas.get(detalhe.contaId) : undefined;
 
   return (
-    <>
-      <NavTopo ficticia={!!base.ficticia} />
-      <TopoCelular ficticia={!!base.ficticia} />
+    <Casca base={base} novos={carregando || semDados ? 0 : contagens.caixa}>
       <main className="mx-auto w-full max-w-[760px] px-4 pt-2 pb-28 md:px-6 md:pt-10 md:pb-16">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4 md:mb-8">
           <div>
@@ -216,7 +222,7 @@ export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?
             </p>
           </div>
           {!semDados && (
-            <div role="tablist" aria-label="Visões de Hoje" className="hidden rounded-control border border-border bg-card p-0.5 shadow-1 md:flex">
+            <div role="tablist" aria-label="Visões de Hoje" className="flex w-full rounded-control border border-border bg-card p-0.5 shadow-1 md:w-auto">
               {VISOES.map(v => (
                 <button
                   key={v.id}
@@ -224,7 +230,7 @@ export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?
                   aria-selected={visao === v.id}
                   onClick={() => trocarVisao(v.id)}
                   className={cn(
-                    'flex h-8 items-center gap-1.5 rounded-chip px-3 text-sm font-medium text-text-3 transition-colors duration-[var(--vr-dur-hover)] hover:text-foreground',
+                    'flex h-10 flex-1 items-center justify-center gap-1.5 rounded-chip px-3 text-sm font-medium md:h-8 md:flex-none text-text-3 transition-colors duration-[var(--vr-dur-hover)] hover:text-foreground',
                     visao === v.id && 'bg-secondary text-foreground',
                   )}
                 >
@@ -246,14 +252,13 @@ export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?
             <span className="flex items-center gap-1"><Kbd>r</Kbd> ruído</span>
             <span className="flex items-center gap-1"><Kbd>s</Kbd> adiar</span>
             <span className="flex items-center gap-1"><Kbd>e</Kbd> arquivar</span>
+            <span className="flex items-center gap-1"><Kbd>o</Kbd> abrir conta</span>
           </p>
         )}
         {celular && comLista && visao === 'caixa' && (
           <p className="mt-6 text-center text-xs text-text-3">Deslize para a direita: útil. Para a esquerda: arquivar.</p>
         )}
       </main>
-
-      {!semDados && <NavInferior visao={visao} contagens={contagens} onVisao={trocarVisao} />}
 
       <Abordar
         alvo={abordarAlvo ? { sinal: abordarAlvo, conta: contas.get(abordarAlvo.contaId)! } : null}
@@ -301,7 +306,12 @@ export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?
             )}
           </div>
         )}
+        {detalheConta && (
+          <Link href={hrefConta(detalheConta.id)} className="mt-3 block rounded-control py-2 text-center text-sm font-semibold text-text-2 underline decoration-border-strong underline-offset-4">
+            Ver a conta {detalheConta.nome}
+          </Link>
+        )}
       </PainelFlutuante>
-    </>
+    </Casca>
   );
 }

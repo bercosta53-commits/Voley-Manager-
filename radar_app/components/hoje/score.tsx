@@ -1,7 +1,7 @@
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-function Curva({ serie, largura, altura, classe }: { serie: number[]; largura: number; altura: number; classe: string }) {
+export function Curva({ serie, largura, altura, classe }: { serie: number[]; largura: number; altura: number; classe: string }) {
   const min = Math.min(...serie),
     max = Math.max(...serie);
   const faixa = Math.max(8, max - min);

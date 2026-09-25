@@ -17,40 +17,104 @@
     "nome": "Helena Duarte",
     "cargo": "Diretora de Negócios"
    },
-   "score": 53,
-   "tendencia": 26,
+   "score": 100,
+   "tendencia": 0,
    "serie": [
-    31,
-    32,
-    33,
-    33,
-    31,
-    31,
-    30,
-    31,
-    30,
-    31,
-    31,
-    32,
-    33,
-    32,
-    31,
-    32,
-    30,
-    29,
-    28,
-    27,
-    26,
-    25,
-    25,
-    26,
-    28,
-    28,
-    30,
-    34,
-    39,
     46,
-    53
+    46,
+    46,
+    46,
+    46,
+    46,
+    46,
+    46,
+    46,
+    46,
+    46,
+    46,
+    46,
+    46,
+    46,
+    46,
+    46,
+    46,
+    46,
+    46,
+    46,
+    46,
+    46,
+    100,
+    100,
+    100,
+    100,
+    98,
+    100,
+    100,
+    100
+   ],
+   "composicao": [
+    {
+     "rotulo": "Encaixe no perfil ideal",
+     "detalhe": "Tier A, cooperativas de crédito",
+     "pontos": 34
+    },
+    {
+     "rotulo": "Momento da conta",
+     "detalhe": "Porte, maturidade digital e abertura para conversa",
+     "pontos": 12
+    },
+    {
+     "rotulo": "Fusão ou incorporação",
+     "detalhe": "Assembleias aprovaram a incorporação de duas singulares à central",
+     "pontos": 34,
+     "data": "2026-09-19"
+    },
+    {
+     "rotulo": "Troca de diretoria",
+     "detalhe": "Novo diretor executivo assumiu a central com mandato até 2030",
+     "pontos": 25,
+     "data": "2026-09-04"
+    },
+    {
+     "rotulo": "Vaga de marketing",
+     "detalhe": "Abriu vaga de coordenação de marketing para aquisição de cooperados",
+     "pontos": 22,
+     "data": "2026-09-03"
+    },
+    {
+     "rotulo": "Ajuste",
+     "detalhe": "Arredondamento e teto de 100 pontos",
+     "pontos": -27
+    }
+   ],
+   "comite": [
+    {
+     "nome": "Helena Duarte",
+     "cargo": "Diretora de Negócios",
+     "area": "comercial",
+     "papel": "decisor",
+     "fonte": "Planilha"
+    }
+   ],
+   "historico": [
+    {
+     "tipo": "troca_diretoria",
+     "rotulo": "Troca de diretoria",
+     "porQueAgora": "Novo diretor executivo assumiu a central com mandato até 2030",
+     "fonte": "Receita Federal",
+     "data": "2026-09-04",
+     "url": "",
+     "exemplo": true
+    },
+    {
+     "tipo": "vaga_marketing",
+     "rotulo": "Vaga de marketing",
+     "porQueAgora": "Abriu vaga de coordenação de marketing para aquisição de cooperados",
+     "fonte": "Vagas",
+     "data": "2026-09-03",
+     "url": "",
+     "exemplo": true
+    }
    ]
   },
   {
@@ -69,41 +133,69 @@
     "nome": "Rafael Moura",
     "cargo": "CEO"
    },
-   "score": 58,
-   "tendencia": 24,
+   "score": 65,
+   "tendencia": 25,
    "serie": [
-    39,
-    38,
-    39,
-    38,
-    39,
     40,
     40,
-    39,
-    38,
-    37,
-    37,
-    37,
-    38,
-    37,
-    35,
-    35,
-    34,
-    36,
-    34,
-    33,
-    33,
-    35,
-    35,
-    36,
-    37,
-    37,
-    38,
-    44,
-    49,
-    55,
-    58
-   ]
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    68,
+    67,
+    66,
+    65
+   ],
+   "composicao": [
+    {
+     "rotulo": "Encaixe no perfil ideal",
+     "detalhe": "Tier A, seguro garantia",
+     "pontos": 28
+    },
+    {
+     "rotulo": "Momento da conta",
+     "detalhe": "Porte, maturidade digital e abertura para conversa",
+     "pontos": 12
+    },
+    {
+     "rotulo": "Entrada de sócio",
+     "detalhe": "Diretor novo entrou no quadro societário",
+     "pontos": 25,
+     "data": "2026-09-16"
+    }
+   ],
+   "comite": [
+    {
+     "nome": "Rafael Moura",
+     "cargo": "CEO",
+     "area": "executivo",
+     "papel": "decisor",
+     "fonte": "Planilha"
+    }
+   ],
+   "historico": []
   },
   {
    "id": "cnpj-34567890",
@@ -121,41 +213,61 @@
     "nome": "",
     "cargo": ""
    },
-   "score": 68,
-   "tendencia": 20,
+   "score": 75,
+   "tendencia": 36,
    "serie": [
-    46,
-    45,
-    44,
-    44,
-    43,
-    45,
-    46,
-    47,
-    47,
-    48,
-    47,
-    48,
-    49,
-    50,
-    50,
-    50,
-    48,
-    47,
-    48,
-    49,
-    50,
-    48,
-    47,
-    48,
-    50,
-    48,
-    51,
-    54,
-    58,
-    63,
-    68
-   ]
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    75
+   ],
+   "composicao": [
+    {
+     "rotulo": "Encaixe no perfil ideal",
+     "detalhe": "Tier A, banco médio e crédito",
+     "pontos": 31
+    },
+    {
+     "rotulo": "Momento da conta",
+     "detalhe": "Porte, maturidade digital e abertura para conversa",
+     "pontos": 8
+    },
+    {
+     "rotulo": "Fusão ou incorporação",
+     "detalhe": "Concluiu a compra de uma fintech de crédito consignado",
+     "pontos": 36,
+     "data": "2026-09-24"
+    }
+   ],
+   "comite": [],
+   "historico": []
   },
   {
    "id": "cnpj-45678901",
@@ -173,40 +285,96 @@
     "nome": "",
     "cargo": ""
    },
-   "score": 15,
-   "tendencia": 2,
+   "score": 78,
+   "tendencia": 14,
    "serie": [
-    16,
-    15,
-    14,
-    15,
-    13,
-    15,
-    16,
-    16,
-    15,
-    15,
-    13,
-    15,
-    17,
-    17,
-    14,
-    14,
-    13,
-    12,
-    14,
-    12,
-    12,
-    11,
-    11,
-    13,
-    11,
-    10,
-    10,
-    11,
-    12,
-    13,
-    15
+    24,
+    24,
+    24,
+    24,
+    24,
+    24,
+    24,
+    24,
+    24,
+    24,
+    24,
+    24,
+    24,
+    24,
+    24,
+    24,
+    51,
+    50,
+    50,
+    49,
+    48,
+    71,
+    69,
+    68,
+    66,
+    65,
+    64,
+    62,
+    61,
+    60,
+    78
+   ],
+   "composicao": [
+    {
+     "rotulo": "Encaixe no perfil ideal",
+     "detalhe": "Tier C, consórcios",
+     "pontos": 16
+    },
+    {
+     "rotulo": "Momento da conta",
+     "detalhe": "Porte, maturidade digital e abertura para conversa",
+     "pontos": 8
+    },
+    {
+     "rotulo": "Vaga comercial",
+     "detalhe": "Contratando 8 consultores comerciais na região metropolitana",
+     "pontos": 20,
+     "data": "2026-09-23"
+    },
+    {
+     "rotulo": "Começou a anunciar",
+     "detalhe": "Passou a veicular anúncios de consórcio de imóveis no Google e na Meta",
+     "pontos": 18,
+     "data": "2026-08-29"
+    },
+    {
+     "rotulo": "Entrada de sócio",
+     "detalhe": "Novo sócio-administrador registrado na Receita",
+     "pontos": 17,
+     "data": "2026-08-12"
+    },
+    {
+     "rotulo": "Ajuste",
+     "detalhe": "Arredondamento e teto de 100 pontos",
+     "pontos": -1
+    }
+   ],
+   "comite": [],
+   "historico": [
+    {
+     "tipo": "anuncios",
+     "rotulo": "Começou a anunciar",
+     "porQueAgora": "Passou a veicular anúncios de consórcio de imóveis no Google e na Meta",
+     "fonte": "Bibliotecas de anúncios",
+     "data": "2026-08-29",
+     "url": "",
+     "exemplo": true
+    },
+    {
+     "tipo": "socio_entrou",
+     "rotulo": "Entrada de sócio",
+     "porQueAgora": "Novo sócio-administrador registrado na Receita",
+     "fonte": "Receita Federal",
+     "data": "2026-08-12",
+     "url": "",
+     "exemplo": true
+    }
    ]
   },
   {
@@ -225,41 +393,69 @@
     "nome": "Marina Lopes",
     "cargo": "Head de Growth"
    },
-   "score": 59,
-   "tendencia": 12,
+   "score": 62,
+   "tendencia": 24,
    "serie": [
-    44,
-    45,
-    46,
-    44,
-    45,
-    44,
-    43,
-    43,
-    43,
-    43,
-    43,
-    42,
-    42,
-    41,
-    41,
-    43,
-    43,
-    43,
-    42,
-    43,
-    44,
-    44,
-    45,
-    45,
-    47,
-    45,
-    46,
-    49,
-    53,
-    55,
-    59
-   ]
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    38,
+    62
+   ],
+   "composicao": [
+    {
+     "rotulo": "Encaixe no perfil ideal",
+     "detalhe": "Tier A, pagamentos b2b",
+     "pontos": 28
+    },
+    {
+     "rotulo": "Momento da conta",
+     "detalhe": "Porte, maturidade digital e abertura para conversa",
+     "pontos": 10
+    },
+    {
+     "rotulo": "Começou a anunciar",
+     "detalhe": "Começou campanha de mídia paga para o produto de pagamentos B2B",
+     "pontos": 24,
+     "data": "2026-09-24"
+    }
+   ],
+   "comite": [
+    {
+     "nome": "Marina Lopes",
+     "cargo": "Head de Growth",
+     "area": "marketing",
+     "papel": "influenciador",
+     "fonte": "Planilha"
+    }
+   ],
+   "historico": []
   },
   {
    "id": "cnpj-67890123",
@@ -277,41 +473,69 @@
     "nome": "Otávio Reis",
     "cargo": "Superintendente"
    },
-   "score": 49,
-   "tendencia": 16,
+   "score": 80,
+   "tendencia": 36,
    "serie": [
-    34,
-    33,
-    31,
-    34,
-    32,
-    32,
-    34,
-    34,
-    36,
-    36,
-    36,
-    36,
-    34,
-    33,
-    32,
-    31,
-    33,
-    34,
-    32,
-    33,
-    32,
-    32,
-    32,
-    31,
-    30,
-    31,
-    32,
-    37,
-    41,
-    45,
-    49
-   ]
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    44,
+    80
+   ],
+   "composicao": [
+    {
+     "rotulo": "Encaixe no perfil ideal",
+     "detalhe": "Tier A, cooperativas de crédito",
+     "pontos": 31
+    },
+    {
+     "rotulo": "Momento da conta",
+     "detalhe": "Porte, maturidade digital e abertura para conversa",
+     "pontos": 13
+    },
+    {
+     "rotulo": "Fusão ou incorporação",
+     "detalhe": "Assembleias aprovaram a incorporação de duas singulares à central",
+     "pontos": 36,
+     "data": "2026-09-25"
+    }
+   ],
+   "comite": [
+    {
+     "nome": "Otávio Reis",
+     "cargo": "Superintendente",
+     "area": "executivo",
+     "papel": "decisor",
+     "fonte": "Planilha"
+    }
+   ],
+   "historico": []
   },
   {
    "id": "cnpj-78901234",
@@ -329,40 +553,76 @@
     "nome": "",
     "cargo": ""
    },
-   "score": 57,
-   "tendencia": 22,
+   "score": 75,
+   "tendencia": 25,
    "serie": [
-    37,
-    38,
-    39,
-    37,
-    38,
-    39,
-    39,
-    39,
-    40,
-    37,
-    37,
-    36,
-    37,
-    35,
-    34,
-    35,
-    33,
-    34,
-    34,
-    34,
-    33,
-    34,
     33,
     33,
-    32,
     33,
-    35,
-    40,
-    46,
+    33,
+    68,
+    67,
+    66,
+    65,
+    64,
+    63,
+    62,
+    61,
+    60,
+    59,
+    58,
+    57,
+    56,
+    55,
+    55,
+    54,
+    53,
+    53,
     52,
-    57
+    51,
+    51,
+    50,
+    49,
+    49,
+    48,
+    48,
+    75
+   ],
+   "composicao": [
+    {
+     "rotulo": "Encaixe no perfil ideal",
+     "detalhe": "Tier C, seguros e previdência",
+     "pontos": 21
+    },
+    {
+     "rotulo": "Momento da conta",
+     "detalhe": "Porte, maturidade digital e abertura para conversa",
+     "pontos": 12
+    },
+    {
+     "rotulo": "Vaga de marketing",
+     "detalhe": "Abriu vaga de gerente de growth para canais digitais",
+     "pontos": 28,
+     "data": "2026-09-25"
+    },
+    {
+     "rotulo": "Nova liderança de marketing",
+     "detalhe": "Contratou head de marketing vindo de seguradora de grande porte",
+     "pontos": 14,
+     "data": "2026-07-07"
+    }
+   ],
+   "comite": [],
+   "historico": [
+    {
+     "tipo": "novo_cmo",
+     "rotulo": "Nova liderança de marketing",
+     "porQueAgora": "Contratou head de marketing vindo de seguradora de grande porte",
+     "fonte": "Notícias",
+     "data": "2026-07-07",
+     "url": "",
+     "exemplo": true
+    }
    ]
   },
   {
@@ -381,41 +641,61 @@
     "nome": "",
     "cargo": ""
    },
-   "score": 22,
-   "tendencia": 12,
+   "score": 51,
+   "tendencia": 24,
    "serie": [
-    7,
-    6,
-    5,
-    6,
-    5,
-    4,
-    3,
-    3,
-    3,
-    3,
-    5,
-    6,
-    8,
-    8,
-    9,
-    10,
-    9,
-    11,
-    11,
-    12,
-    12,
-    12,
-    13,
-    12,
-    11,
-    10,
-    10,
-    12,
-    13,
-    16,
-    22
-   ]
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    27,
+    51
+   ],
+   "composicao": [
+    {
+     "rotulo": "Encaixe no perfil ideal",
+     "detalhe": "Tier C, consórcios",
+     "pontos": 17
+    },
+    {
+     "rotulo": "Momento da conta",
+     "detalhe": "Porte, maturidade digital e abertura para conversa",
+     "pontos": 10
+    },
+    {
+     "rotulo": "Começou a anunciar",
+     "detalhe": "Passou a veicular anúncios de consórcio de imóveis no Google e na Meta",
+     "pontos": 24,
+     "data": "2026-09-25"
+    }
+   ],
+   "comite": [],
+   "historico": []
   },
   {
    "id": "cnpj-90123456",
@@ -433,40 +713,84 @@
     "nome": "Paula Serra",
     "cargo": "Diretora de Marketing"
    },
-   "score": 59,
-   "tendencia": 17,
+   "score": 96,
+   "tendencia": 27,
    "serie": [
-    37,
-    38,
-    39,
-    40,
-    39,
-    37,
-    38,
     39,
     39,
     39,
-    38,
-    38,
-    39,
-    38,
-    38,
-    39,
-    40,
-    39,
-    40,
     39,
     39,
-    38,
-    41,
-    41,
-    40,
-    41,
-    42,
-    48,
-    52,
-    57,
-    59
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    39,
+    75,
+    73,
+    72,
+    71,
+    70,
+    69,
+    68,
+    67,
+    66,
+    65,
+    96
+   ],
+   "composicao": [
+    {
+     "rotulo": "Encaixe no perfil ideal",
+     "detalhe": "Tier A, banco digital e crédito",
+     "pontos": 33
+    },
+    {
+     "rotulo": "Momento da conta",
+     "detalhe": "Porte, maturidade digital e abertura para conversa",
+     "pontos": 6
+    },
+    {
+     "rotulo": "Troca de diretoria",
+     "detalhe": "Conselho aprovou novo diretor comercial para o varejo",
+     "pontos": 32,
+     "data": "2026-09-25"
+    },
+    {
+     "rotulo": "Fusão ou incorporação",
+     "detalhe": "Concluiu a compra de uma fintech de crédito consignado",
+     "pontos": 25,
+     "data": "2026-08-25"
+    }
+   ],
+   "comite": [
+    {
+     "nome": "Paula Serra",
+     "cargo": "Diretora de Marketing",
+     "area": "marketing",
+     "papel": "decisor",
+     "fonte": "Planilha"
+    }
+   ],
+   "historico": [
+    {
+     "tipo": "fusao",
+     "rotulo": "Fusão ou incorporação",
+     "porQueAgora": "Concluiu a compra de uma fintech de crédito consignado",
+     "fonte": "Notícias",
+     "data": "2026-08-25",
+     "url": "",
+     "exemplo": true
+    }
    ]
   },
   {
@@ -485,40 +809,81 @@
     "nome": "",
     "cargo": ""
    },
-   "score": 33,
+   "score": 61,
    "tendencia": 15,
    "serie": [
-    13,
-    13,
-    14,
-    15,
-    17,
-    15,
-    15,
-    13,
-    14,
-    13,
-    14,
-    15,
-    14,
-    15,
-    17,
-    17,
-    16,
-    18,
-    16,
-    17,
-    18,
-    17,
-    16,
-    17,
-    17,
-    17,
-    19,
-    22,
-    26,
-    29,
-    33
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    20,
+    56,
+    54,
+    53,
+    52,
+    51,
+    50,
+    49,
+    48,
+    47,
+    46,
+    45,
+    44,
+    43,
+    43,
+    61
+   ],
+   "composicao": [
+    {
+     "rotulo": "Encaixe no perfil ideal",
+     "detalhe": "Tier C, fintech b2b",
+     "pontos": 16
+    },
+    {
+     "rotulo": "Momento da conta",
+     "detalhe": "Porte, maturidade digital e abertura para conversa",
+     "pontos": 4
+    },
+    {
+     "rotulo": "Vaga comercial",
+     "detalhe": "Contratando executivos de contas para o mercado LATAM",
+     "pontos": 20,
+     "data": "2026-09-23"
+    },
+    {
+     "rotulo": "Nova liderança de marketing",
+     "detalhe": "Nova VP de marketing, vinda de SaaS internacional",
+     "pontos": 22,
+     "data": "2026-08-13"
+    },
+    {
+     "rotulo": "Ajuste",
+     "detalhe": "Arredondamento e teto de 100 pontos",
+     "pontos": -1
+    }
+   ],
+   "comite": [],
+   "historico": [
+    {
+     "tipo": "novo_cmo",
+     "rotulo": "Nova liderança de marketing",
+     "porQueAgora": "Nova VP de marketing, vinda de SaaS internacional",
+     "fonte": "Notícias",
+     "data": "2026-08-13",
+     "url": "",
+     "exemplo": true
+    }
    ]
   }
  ],
@@ -532,6 +897,7 @@
    "porQueAgora": "Assembleias aprovaram a incorporação de duas singulares à central",
    "fonte": "Notícias",
    "data": "2026-09-25",
+   "alertaEm": "2026-09-25",
    "url": "",
    "exemplo": true,
    "abordar": {
@@ -550,6 +916,7 @@
    "porQueAgora": "Conselho aprovou novo diretor comercial para o varejo",
    "fonte": "Notícias",
    "data": "2026-09-25",
+   "alertaEm": "2026-09-25",
    "url": "",
    "exemplo": true,
    "abordar": {
@@ -560,6 +927,25 @@
    "pontos": 32
   },
   {
+   "id": "cnpj-78901234-vaga_marketing-0",
+   "contaId": "cnpj-78901234",
+   "tipo": "vaga_marketing",
+   "rotulo": "Vaga de marketing",
+   "peso": 7,
+   "porQueAgora": "Abriu vaga de gerente de growth para canais digitais",
+   "fonte": "Vagas",
+   "data": "2026-09-25",
+   "alertaEm": "2026-09-25",
+   "url": "",
+   "exemplo": true,
+   "abordar": {
+    "nome": "",
+    "cargo": "Liderança de marketing",
+    "papel": "influenciador"
+   },
+   "pontos": 28
+  },
+  {
    "id": "cnpj-89012345-anuncios-0",
    "contaId": "cnpj-89012345",
    "tipo": "anuncios",
@@ -568,6 +954,7 @@
    "porQueAgora": "Passou a veicular anúncios de consórcio de imóveis no Google e na Meta",
    "fonte": "Bibliotecas de anúncios",
    "data": "2026-09-25",
+   "alertaEm": "2026-09-25",
    "url": "",
    "exemplo": true,
    "abordar": {
@@ -586,6 +973,7 @@
    "porQueAgora": "Concluiu a compra de uma fintech de crédito consignado",
    "fonte": "Notícias",
    "data": "2026-09-24",
+   "alertaEm": "2026-09-25",
    "url": "",
    "exemplo": true,
    "abordar": {
@@ -604,6 +992,7 @@
    "porQueAgora": "Começou campanha de mídia paga para o produto de pagamentos B2B",
    "fonte": "Bibliotecas de anúncios",
    "data": "2026-09-24",
+   "alertaEm": "2026-09-25",
    "url": "",
    "exemplo": true,
    "abordar": {
@@ -614,14 +1003,15 @@
    "pontos": 24
   },
   {
-   "id": "cnpj-01234567-vaga_comercial-0",
-   "contaId": "cnpj-01234567",
+   "id": "cnpj-45678901-vaga_comercial-0",
+   "contaId": "cnpj-45678901",
    "tipo": "vaga_comercial",
    "rotulo": "Vaga comercial",
    "peso": 5,
-   "porQueAgora": "Contratando executivos de contas para o mercado LATAM",
+   "porQueAgora": "Contratando 8 consultores comerciais na região metropolitana",
    "fonte": "Vagas",
-   "data": "2026-09-24",
+   "data": "2026-09-23",
+   "alertaEm": "2026-09-23",
    "url": "",
    "exemplo": true,
    "abordar": {
@@ -632,40 +1022,23 @@
    "pontos": 20
   },
   {
-   "id": "cnpj-78901234-socio_entrou-0",
-   "contaId": "cnpj-78901234",
-   "tipo": "socio_entrou",
-   "rotulo": "Entrada de sócio",
-   "peso": 7,
-   "porQueAgora": "Diretor novo entrou no quadro societário",
-   "fonte": "Receita Federal",
-   "data": "2026-09-22",
+   "id": "cnpj-01234567-vaga_comercial-0",
+   "contaId": "cnpj-01234567",
+   "tipo": "vaga_comercial",
+   "rotulo": "Vaga comercial",
+   "peso": 5,
+   "porQueAgora": "Contratando executivos de contas para o mercado LATAM",
+   "fonte": "Vagas",
+   "data": "2026-09-23",
+   "alertaEm": "2026-09-23",
    "url": "",
    "exemplo": true,
    "abordar": {
     "nome": "",
-    "cargo": "Diretoria executiva",
-    "papel": "decisor"
+    "cargo": "Liderança de marketing",
+    "papel": "influenciador"
    },
-   "pontos": 27
-  },
-  {
-   "id": "cnpj-23456789-novo_cmo-0",
-   "contaId": "cnpj-23456789",
-   "tipo": "novo_cmo",
-   "rotulo": "Nova liderança de marketing",
-   "peso": 9,
-   "porQueAgora": "Contratou head de marketing vindo de seguradora de grande porte",
-   "fonte": "Notícias",
-   "data": "2026-09-19",
-   "url": "",
-   "exemplo": true,
-   "abordar": {
-    "nome": "Rafael Moura",
-    "cargo": "CEO",
-    "papel": "decisor"
-   },
-   "pontos": 34
+   "pontos": 20
   },
   {
    "id": "cnpj-12345678-fusao-0",
@@ -675,7 +1048,8 @@
    "peso": 9,
    "porQueAgora": "Assembleias aprovaram a incorporação de duas singulares à central",
    "fonte": "Notícias",
-   "data": "2026-09-16",
+   "data": "2026-09-19",
+   "alertaEm": "2026-09-19",
    "url": "",
    "exemplo": true,
    "abordar": {
@@ -683,7 +1057,140 @@
     "cargo": "Diretora de Negócios",
     "papel": "decisor"
    },
-   "pontos": 32
+   "pontos": 34
+  },
+  {
+   "id": "cnpj-23456789-socio_entrou-0",
+   "contaId": "cnpj-23456789",
+   "tipo": "socio_entrou",
+   "rotulo": "Entrada de sócio",
+   "peso": 7,
+   "porQueAgora": "Diretor novo entrou no quadro societário",
+   "fonte": "Receita Federal",
+   "data": "2026-09-16",
+   "alertaEm": "2026-09-16",
+   "url": "",
+   "exemplo": true,
+   "abordar": {
+    "nome": "Rafael Moura",
+    "cargo": "CEO",
+    "papel": "decisor"
+   },
+   "pontos": 25
+  }
+ ],
+ "fontes": [
+  {
+   "id": "cnpj",
+   "nome": "Receita Federal (CNPJ)",
+   "busca": "Mudanças no quadro de sócios e na situação cadastral",
+   "onde": "BrasilAPI, dados públicos da Receita",
+   "intervaloDias": 7,
+   "requisito": "",
+   "status": "ok",
+   "resumo": "Funcionando.",
+   "ultimaColeta": "2026-09-22T06:00",
+   "itensUltima": 10,
+   "errosUltima": 0,
+   "execucoes": 4,
+   "sinais": 0,
+   "custo": ""
+  },
+  {
+   "id": "noticias",
+   "nome": "Notícias",
+   "busca": "Troca de diretoria, fusões, novas unidades e lançamentos citando a empresa",
+   "onde": "Google Notícias",
+   "intervaloDias": 1,
+   "requisito": "",
+   "status": "ok",
+   "resumo": "Funcionando.",
+   "ultimaColeta": "2026-09-25T06:10",
+   "itensUltima": 14,
+   "errosUltima": 0,
+   "execucoes": 30,
+   "sinais": 0,
+   "custo": ""
+  },
+  {
+   "id": "vagas",
+   "nome": "Vagas",
+   "busca": "Vagas de marketing e comercial abertas pela empresa",
+   "onde": "Páginas de carreiras (Gupy e outras) e Indeed",
+   "intervaloDias": 7,
+   "requisito": "",
+   "status": "ok",
+   "resumo": "Funcionando.",
+   "ultimaColeta": "2026-09-25T06:20",
+   "itensUltima": 9,
+   "errosUltima": 0,
+   "execucoes": 4,
+   "sinais": 0,
+   "custo": ""
+  },
+  {
+   "id": "consultorias",
+   "nome": "Consultorias de recrutamento",
+   "busca": "Vagas executivas anunciadas por consultorias (Michael Page, Robert Half e outras)",
+   "onde": "Sites das consultorias",
+   "intervaloDias": 7,
+   "requisito": "",
+   "status": "atencao",
+   "resumo": "Pronto para rodar, mas ainda não rodou nesta base.",
+   "ultimaColeta": "",
+   "itensUltima": 0,
+   "errosUltima": 0,
+   "execucoes": 0,
+   "sinais": 0,
+   "custo": ""
+  },
+  {
+   "id": "apollo",
+   "nome": "Apollo (comitê de compra)",
+   "busca": "Nome e cargo das pessoas de marketing, comercial e diretoria",
+   "onde": "Apollo.io",
+   "intervaloDias": 30,
+   "requisito": "a chave do Apollo",
+   "status": "atencao",
+   "resumo": "Ainda não rodou: falta a chave do Apollo.",
+   "ultimaColeta": "",
+   "itensUltima": 0,
+   "errosUltima": 0,
+   "execucoes": 0,
+   "sinais": 0,
+   "custo": ""
+  },
+  {
+   "id": "anuncios",
+   "nome": "Bibliotecas de anúncios",
+   "busca": "Se a empresa começou, parou ou mudou anúncios no Google e na Meta",
+   "onde": "Central de Transparência do Google e Biblioteca de Anúncios da Meta",
+   "intervaloDias": 7,
+   "requisito": "a chave do SerpApi (e o token do Apify)",
+   "status": "erro",
+   "resumo": "A última coleta teve 1 erro(s). O limite gratuito do mês do SerpApi acabou; o Google ficou de fora desta vez.",
+   "ultimaColeta": "2026-09-24T06:30",
+   "itensUltima": 3,
+   "errosUltima": 1,
+   "execucoes": 2,
+   "sinais": 0,
+   "custo": "Este mês: 38 de 250 buscas grátis no SerpApi · US$ 1,20 de US$ 5,00 no Apify"
+  },
+  {
+   "id": "classificador",
+   "nome": "Classificador (IA)",
+   "busca": "Lê cada notícia e decide se é um sinal, de que tipo e por que importa agora",
+   "onde": "API do Claude",
+   "intervaloDias": 1,
+   "requisito": "a chave da API do Claude",
+   "status": "atencao",
+   "resumo": "Ainda não rodou: falta a chave da API do Claude.",
+   "ultimaColeta": "",
+   "itensUltima": 0,
+   "errosUltima": 0,
+   "execucoes": 0,
+   "sinais": 0,
+   "custo": ""
   }
  ]
 }

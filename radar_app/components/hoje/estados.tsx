@@ -22,7 +22,7 @@ export function ListaEsqueleto({ linhas = 3 }: { linhas?: number }) {
   );
 }
 
-function Aviso({ icone, titulo, children }: { icone: React.ReactNode; titulo: string; children: React.ReactNode }) {
+export function Aviso({ icone, titulo, children }: { icone: React.ReactNode; titulo: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center px-6 py-16 text-center">
       <div className="mb-4 grid size-10 place-items-center rounded-full border border-border bg-card text-text-2 shadow-1">{icone}</div>
@@ -44,9 +44,9 @@ export function CaixaVazia({ visao }: { visao: 'caixa' | 'adiados' | 'concluidos
   );
 }
 
-export function ErroCarregar({ onTentar }: { onTentar?: () => void }) {
+export function ErroCarregar({ onTentar, oque = 'os sinais' }: { onTentar?: () => void; oque?: string }) {
   return (
-    <Aviso icone={<TriangleAlert className="size-5 text-risk" strokeWidth={1.5} />} titulo="Não consegui abrir os sinais">
+    <Aviso icone={<TriangleAlert className="size-5 text-risk" strokeWidth={1.5} />} titulo={`Não consegui abrir ${oque}`}>
       <p>Pode ser uma falha passageira. Tente de novo em instantes; se continuar, avise quem cuida do Radar.</p>
       <p className="mt-1 text-xs">Detalhe técnico: a base de contas não pôde ser lida (npm run dados gera de novo).</p>
       {onTentar && (

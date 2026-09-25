@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 import random
 import sys
 from datetime import date, timedelta
@@ -107,26 +106,120 @@ def familia(segmento: str, icp: str) -> str:
     return "banco"
 
 
-def serie_90(r: random.Random, final: int, tendencia: int) -> list[int]:
-    """Curva de 90 dias, um ponto a cada 3 dias, que termina em `final` e sobe ou desce `tendencia` nas últimas 2 semanas."""
-    inicio = max(4, min(95, final - tendencia - r.randint(-6, 6)))
-    pontos, ruido = [], 0.0
-    for i in range(31):
-        t = i / 30
-        base = inicio + (final - tendencia - inicio) * min(1, t / 0.85)
-        if t > 0.85:
-            base = final - tendencia + tendencia * (t - 0.85) / 0.15
-        ruido += r.uniform(-2.2, 2.2)
-        ruido *= 0.8
-        pontos.append(round(max(0, min(100, base + ruido))))
-    pontos[-1] = final
-    return pontos
-
-
 VAZIOS = {"", "NÃO ENCONTRADO", "NAO ENCONTRADO", "-", "—"}
 
+MEIA_VIDA = 60  # dias; o mesmo decaimento do score no radar
 
-def montar(linhas: list[dict], chance_a: float = 0.55, chance_c: float = 0.22) -> dict:
+
+def pontos_em(peso: int, fato: date, dia: date) -> float:
+    """Quanto um fato vale no dia `dia`: peso x 4, caindo pela metade a cada MEIA_VIDA dias."""
+    if dia < fato:
+        return 0.0
+    return peso * 4 * 0.5 ** ((dia - fato).days / MEIA_VIDA)
+
+
+# Área do cargo no comitê de compra (para montar as vagas do comitê na tela da conta).
+def area_do_cargo(cargo: str) -> str:
+    c = cargo.lower()
+    if any(p in c for p in ("marketing", "growth", "marca", "comunica")):
+        return "marketing"
+    if any(p in c for p in ("comercial", "vendas", "negócios", "negocios", "canais")):
+        return "comercial"
+    return "executivo"
+
+
+FONTES = [
+    # id, nome, o que busca, onde, de quanto em quanto tempo (dias), o que precisa para rodar, variável de ambiente
+    ("cnpj", "Receita Federal (CNPJ)", "Mudanças no quadro de sócios e na situação cadastral", "BrasilAPI, dados públicos da Receita", 7, "", ""),
+    ("noticias", "Notícias", "Troca de diretoria, fusões, novas unidades e lançamentos citando a empresa", "Google Notícias", 1, "", ""),
+    ("vagas", "Vagas", "Vagas de marketing e comercial abertas pela empresa", "Páginas de carreiras (Gupy e outras) e Indeed", 7, "", ""),
+    ("consultorias", "Consultorias de recrutamento", "Vagas executivas anunciadas por consultorias (Michael Page, Robert Half e outras)", "Sites das consultorias", 7, "", ""),
+    ("apollo", "Apollo (comitê de compra)", "Nome e cargo das pessoas de marketing, comercial e diretoria", "Apollo.io", 30, "a chave do Apollo", "APOLLO_API_KEY"),
+    ("anuncios", "Bibliotecas de anúncios", "Se a empresa começou, parou ou mudou anúncios no Google e na Meta", "Central de Transparência do Google e Biblioteca de Anúncios da Meta", 7,
+     "a chave do SerpApi (e o token do Apify)", "SERPAPI_API_KEY"),
+    ("classificador", "Classificador (IA)", "Lê cada notícia e decide se é um sinal, de que tipo e por que importa agora", "API do Claude", 1, "a chave da API do Claude", "ANTHROPIC_API_KEY"),
+]
+
+# De qual conector vem cada rótulo de fonte mostrado nos sinais.
+FONTE_DO_ROTULO = {"Notícias": "noticias", "Vagas": "vagas", "Indeed": "vagas", "Receita Federal": "cnpj",
+                   "Bibliotecas de anúncios": "anuncios"}
+
+
+def ler_execucoes() -> dict:
+    """Execuções reais dos coletores (radar_abm/dados/radar.db), quando o banco existe nesta máquina."""
+    import sqlite3
+
+    banco = RAIZ.parent / "radar_abm" / "dados" / "radar.db"
+    if not banco.exists():
+        return {}
+    con = sqlite3.connect(banco)
+    saida = {}
+    for conector, inicio, itens, erros, detalhe in con.execute(
+            "select conector, inicio, itens, erros, detalhe from execucoes order by inicio"):
+        e = saida.setdefault(conector, {"execucoes": 0, "itens": 0, "erros": 0})
+        e["execucoes"] += 1
+        e["itens"] += itens or 0
+        e.update(ultima=inicio[:16], ultimaItens=itens or 0, ultimaErros=erros or 0, ultimoDetalhe=detalhe or "")
+    return saida
+
+
+def custo_anuncios(exemplo: bool) -> str:
+    """Uso do mês nos provedores de anúncios (tabela chamadas_provedor do radar), contra os limites gratuitos."""
+    import os
+    import sqlite3
+
+    serp_lim = int(os.environ.get("RADAR_SERPAPI_LIMITE_MES", 250))
+    apify_lim = float(os.environ.get("RADAR_APIFY_LIMITE_USD_MES", 5))
+    serp, apify = (38, 1.2) if exemplo else (0, 0.0)
+    banco = RAIZ.parent / "radar_abm" / "dados" / "radar.db"
+    if not exemplo and banco.exists():
+        con = sqlite3.connect(banco)
+        mes = HOJE.strftime("%Y-%m")
+        for prov, n, usd in con.execute("select provedor, count(*), coalesce(sum(custo_usd), 0) from chamadas_provedor "
+                                        "where substr(data, 1, 7) = ? group by provedor", (mes,)):
+            if prov == "serpapi":
+                serp = n
+            elif prov == "apify":
+                apify = usd
+    return f"Este mês: {serp} de {serp_lim} buscas grátis no SerpApi · US$ {apify:.2f} de US$ {apify_lim:.2f} no Apify".replace(".", ",")
+
+
+def montar_fontes(execucoes: dict, sinais: list[dict], exemplo: bool) -> list[dict]:
+    import os
+
+    fontes = []
+    for fid, nome, busca, onde, intervalo, requisito, chave in FONTES:
+        e = execucoes.get(fid, {})
+        falta = bool(chave) and not os.environ.get(chave)
+        n_sinais = sum(1 for s in sinais if FONTE_DO_ROTULO.get(s["fonte"]) == fid and not s["exemplo"])
+        if e.get("ultimaErros"):
+            status, resumo = "erro", f"A última coleta teve {e['ultimaErros']} erro(s). {e.get('ultimoDetalhe') or ''}".strip()
+        elif not e and falta:
+            status, resumo = "atencao", f"Ainda não rodou: falta {requisito}."
+        elif not e:
+            status, resumo = "atencao", "Pronto para rodar, mas ainda não rodou nesta base."
+        elif (HOJE - date.fromisoformat(e["ultima"][:10])).days > intervalo * 2:
+            status, resumo = "atencao", "Está atrasado: a última coleta foi há mais tempo que o normal."
+        else:
+            status, resumo = "ok", "Funcionando."
+        fontes.append({"id": fid, "nome": nome, "busca": busca, "onde": onde, "intervaloDias": intervalo,
+                       "requisito": requisito if falta else "", "status": status, "resumo": resumo,
+                       "ultimaColeta": e.get("ultima", ""), "itensUltima": e.get("ultimaItens", 0),
+                       "errosUltima": e.get("ultimaErros", 0), "execucoes": e.get("execucoes", 0), "sinais": n_sinais,
+                       "custo": custo_anuncios(exemplo) if fid == "anuncios" else ""})
+    return fontes
+
+
+EXEMPLO_EXECUCOES = {
+    "cnpj": {"execucoes": 4, "itens": 40, "erros": 0, "ultima": "2026-09-22T06:00", "ultimaItens": 10, "ultimaErros": 0},
+    "noticias": {"execucoes": 30, "itens": 412, "erros": 0, "ultima": "2026-09-25T06:10", "ultimaItens": 14, "ultimaErros": 0},
+    "vagas": {"execucoes": 4, "itens": 38, "erros": 0, "ultima": "2026-09-25T06:20", "ultimaItens": 9, "ultimaErros": 0},
+    "anuncios": {"execucoes": 2, "itens": 6, "erros": 0, "ultima": "2026-09-24T06:30", "ultimaItens": 3, "ultimaErros": 1,
+                 "ultimoDetalhe": "O limite gratuito do mês do SerpApi acabou; o Google ficou de fora desta vez."},
+}
+
+
+def montar(linhas: list[dict], chance_a: float = 0.55, chance_c: float = 0.22, exemplo: bool = False) -> dict:
     contas, sinais = [], []
     for ln in linhas:
         for campo in ("pessoa", "cargo", "uf", "cidade"):
@@ -137,27 +230,68 @@ def montar(linhas: list[dict], chance_a: float = 0.55, chance_c: float = 0.22) -
         r = semente(conta_id)
         fam = familia(ln.get("segmento") or "", ln.get("icp") or "")
         tier = (ln.get("tier") or "C")[:1]
-        # Contas A tendem a ter mais sinal; cerca de 1 em 3 contas tem sinal novo hoje.
+        estrutural = int(ln.get("estrutural") or (r.randint(70, 100) if tier == "A" else r.randint(35, 70)))
+        ativacao = int(ln.get("ativacao") or r.randint(25, 85))
+        # Sinais novos: cerca de 1 em 3 contas tem um sinal da última semana e meia; contas A tendem a ter mais.
         novos = []
         if raiz in REAIS:
             tipo, porque, fonte, data, url = REAIS[raiz]
-            novos.append(dict(tipo=tipo, porQueAgora=porque, fonte=fonte, data=data, url=url, exemplo=False))
-        chance = chance_a if tier == "A" else chance_c
-        if r.random() < chance:
+            novos.append(dict(tipo=tipo, porQueAgora=porque, fonte=fonte, data=data, url=url, exemplo=False,
+                              alertaEm=HOJE.isoformat()))
+        if r.random() < (chance_a if tier == "A" else chance_c):
             tipo, porque, fonte = r.choice(MODELOS[fam])
             dias = r.choice([0, 0, 1, 1, 2, 3, 5, 6, 9])
-            novos.append(dict(tipo=tipo, porQueAgora=porque, fonte=fonte, data=(HOJE - timedelta(days=dias)).isoformat(),
-                              url="", exemplo=True))
-        pontos_sinais = sum(round(TIPOS[s["tipo"]][1] * r.uniform(1.6, 3.2)) for s in novos)
-        final = max(6, min(96, (40 if tier == "A" else 20) + r.randint(-10, 16) + pontos_sinais))
-        tendencia = min(final - 2, pontos_sinais + r.randint(-4, 3)) if novos else r.choice([-11, -7, -4, -2, 0, 1, 2, 3])
+            fato = HOJE - timedelta(days=dias)
+            novos.append(dict(tipo=tipo, porQueAgora=porque, fonte=fonte, data=fato.isoformat(), url="", exemplo=True,
+                              alertaEm=min(HOJE, fato + timedelta(days=r.choice([0, 0, 0, 1, 1, 2]))).isoformat()))
+        # Histórico: fatos mais antigos (20 a 85 dias), já fora da caixa, que ainda somam um pouco no score.
+        historico = []
+        usados = {s["tipo"] for s in novos}
+        for _ in range(r.choice([0, 1, 1, 2, 3])):
+            tipo, porque, fonte = r.choice(MODELOS[fam])
+            if tipo in usados:
+                continue
+            usados.add(tipo)
+            historico.append(dict(tipo=tipo, rotulo=TIPOS[tipo][0], porQueAgora=porque, fonte=fonte,
+                                  data=(HOJE - timedelta(days=r.randint(20, 85))).isoformat(), url="", exemplo=True))
+        historico.sort(key=lambda h: h["data"], reverse=True)
+
+        # Score = encaixe no ICP + momento da conta + sinais (cada um perdendo metade do valor a cada 60 dias).
+        perfil, momento = round(estrutural * 0.35), round(ativacao * 0.15)
+        fatos = [(TIPOS[s["tipo"]][1], date.fromisoformat(s["data"])) for s in novos + historico]
+
+        def score_em(dia: date) -> int:
+            return min(100, round(perfil + momento + sum(pontos_em(p, f, dia) for p, f in fatos)))
+
+        score = score_em(HOJE)
+        serie = [score_em(HOJE - timedelta(days=3 * (30 - i))) for i in range(31)]
+        tendencia = score - score_em(HOJE - timedelta(days=14))
+        composicao = [
+            {"rotulo": "Encaixe no perfil ideal", "detalhe": f"Tier {tier}, {(ln.get('segmento') or '').split('·')[-1].strip().lower() or 'segmento'}", "pontos": perfil},
+            {"rotulo": "Momento da conta", "detalhe": "Porte, maturidade digital e abertura para conversa", "pontos": momento},
+        ]
+        for s in novos + historico:
+            composicao.append({"rotulo": TIPOS[s["tipo"]][0], "detalhe": s["porQueAgora"],
+                               "pontos": round(pontos_em(TIPOS[s["tipo"]][1], date.fromisoformat(s["data"]), HOJE)),
+                               "data": s["data"]})
+        excesso = sum(c["pontos"] for c in composicao) - score  # arredondamento e teto de 100
+        if excesso:
+            composicao.append({"rotulo": "Ajuste", "detalhe": "Arredondamento e teto de 100 pontos", "pontos": -excesso})
+
+        comite = []
+        if ln.get("pessoa"):
+            comite.append({"nome": ln["pessoa"], "cargo": ln.get("cargo") or "", "area": area_do_cargo(ln.get("cargo") or ""),
+                           "papel": "decisor" if area_do_cargo(ln.get("cargo") or "") == "executivo" or "diretor" in (ln.get("cargo") or "").lower() else "influenciador",
+                           "fonte": "Planilha"})
+
         contas.append({
             "id": conta_id, "nome": ln["empresa"], "razaoSocial": ln.get("razao") or "", "cnpj": ln["cnpj"],
             "dominio": ln["dominio"], "cidade": (ln.get("cidade") or "").title(), "uf": ln.get("uf") or "",
             "segmento": (ln.get("segmento") or "").split("·")[-1].strip(), "braco": ln.get("icp") or "", "tier": tier,
             "statusComercial": ln.get("status") or "",
             "decisor": {"nome": ln.get("pessoa") or "", "cargo": ln.get("cargo") or ""},
-            "score": final, "tendencia": tendencia, "serie": serie_90(r, final, tendencia),
+            "score": score, "tendencia": tendencia, "serie": serie, "composicao": composicao,
+            "comite": comite, "historico": historico,
         })
         for i, s in enumerate(novos):
             rotulo, peso, membro = TIPOS[s["tipo"]]
@@ -167,10 +301,12 @@ def montar(linhas: list[dict], chance_a: float = 0.55, chance_c: float = 0.22) -
                              "papel": membro})
             sinais.append({"id": f"{conta_id}-{s['tipo']}-{i}", "contaId": conta_id, "tipo": s["tipo"], "rotulo": rotulo,
                            "peso": peso, "porQueAgora": s["porQueAgora"], "fonte": s["fonte"], "data": s["data"],
-                           "url": s["url"], "exemplo": s["exemplo"], "abordar": abordar,
-                           "pontos": round(peso * 4 * (0.5 ** ((HOJE - date.fromisoformat(s["data"])).days / 60)))})
+                           "alertaEm": s["alertaEm"], "url": s["url"], "exemplo": s["exemplo"], "abordar": abordar,
+                           "pontos": round(pontos_em(peso, date.fromisoformat(s["data"]), HOJE))})
     sinais.sort(key=lambda s: (s["data"], s["pontos"]), reverse=True)
-    return {"geradoEm": HOJE.isoformat(), "contas": contas, "sinais": sinais}
+    execucoes = EXEMPLO_EXECUCOES if exemplo else ler_execucoes()
+    return {"geradoEm": HOJE.isoformat(), "contas": contas, "sinais": sinais,
+            "fontes": montar_fontes(execucoes, sinais, exemplo)}
 
 
 def ler_planilha(caminho: str) -> list[dict]:
@@ -191,7 +327,7 @@ def ler_planilha(caminho: str) -> list[dict]:
         saida.append({"empresa": d.get("empresa"), "razao": d.get("razao_social"), "cnpj": d.get("cnpj"), "dominio": dominio,
                       "cidade": d.get("cidade"), "uf": d.get("uf"), "segmento": d.get("subsegmento"), "icp": d.get("icp"),
                       "tier": d.get("tier"), "status": d.get("status_comercial"), "pessoa": d.get("pessoa_p1"),
-                      "cargo": d.get("cargo_p1")})
+                      "cargo": d.get("cargo_p1"), "estrutural": d.get("score_estrutural"), "ativacao": d.get("score_ativacao")})
     return saida
 
 
@@ -201,7 +337,7 @@ def main() -> None:
     else:
         campos = ["id", "empresa", "razao", "cnpj", "dominio", "cidade", "uf", "segmento", "icp", "tier", "status", "pessoa", "cargo"]
         linhas, destino = [dict(zip(campos, e)) for e in EXEMPLO], RAIZ / "data" / "contas.exemplo.json"
-    dados = montar(linhas) if destino.name == "contas.local.json" else montar(linhas, 0.95, 0.6)
+    dados = montar(linhas) if destino.name == "contas.local.json" else montar(linhas, 0.95, 0.6, exemplo=True)
     destino.write_text(json.dumps(dados, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"{destino.name}: {len(dados['contas'])} contas, {len(dados['sinais'])} sinais")
 
