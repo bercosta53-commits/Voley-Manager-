@@ -33,3 +33,7 @@ def caminho_banco() -> Path:
 
 def pasta_logs() -> Path:
     return Path(valor("RADAR_LOGS", str(RAIZ / "logs")))
+
+
+def pasta_saidas() -> Path:
+    return Path(valor("RADAR_SAIDAS", str(RAIZ / "saidas")))

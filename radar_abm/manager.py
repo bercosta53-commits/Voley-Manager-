@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
 from abm import aliases, config, db, importador, qualidade
 
@@ -87,16 +88,24 @@ def cmd_coletar(args) -> None:
     from abm.conectores.http import ClienteLocal
 
     conn = _conn()
-    nomes = [args.conector] if args.conector else list(CONECTORES)
+    # Ordem: CNPJ primeiro (completa razão social, que vira alias), depois notícias, depois Apollo.
+    nomes = [args.conector] if args.conector else [n for n in ("cnpj", "noticias", "apollo") if n in CONECTORES]
     ids = [i.strip() for i in args.contas.split(",")] if args.contas else None
     contas = selecionar_contas(conn, ids=ids, tier=args.tier, limite=args.limite)
+    resumo = []
     for nome in nomes:
         http = ClienteLocal(f"{args.fixtures}/{nome}") if args.fixtures else None
-        CONECTORES[nome](conn, http=http, dry_run=args.dry_run).executar(contas)
-    if not args.dry_run:
-        r = aliases.gerar(conn)  # razões sociais novas viram aliases
-        if r["criados"]:
-            print(f"Aliases: {r['criados']} novos a partir das razões sociais ({r['ambiguos']} ambíguos)")
+        if args.fixtures and not Path(args.fixtures, nome).is_dir():
+            print(f"== {nome}: sem respostas salvas em {args.fixtures}/{nome}; conector pulado")
+            continue
+        ex = CONECTORES[nome](conn, http=http, dry_run=args.dry_run).executar(contas)
+        resumo.append(f"{nome}: {ex.itens} novidade(s), {len(ex.erros)} erro(s)")
+        if nome == "cnpj" and not args.dry_run:
+            r = aliases.gerar(conn)  # razões sociais novas viram aliases antes da busca de notícias
+            if r["criados"]:
+                print(f"Aliases: {r['criados']} novos a partir das razões sociais ({r['ambiguos']} ambíguos)")
+        contas = selecionar_contas(conn, ids=ids, tier=args.tier, limite=args.limite)  # relê: CNPJ pode ter completado dados
+    print("\nResumo da coleta: " + " | ".join(resumo))
 
 
 def _taxonomia():
@@ -167,6 +176,47 @@ def cmd_score(args) -> None:
         print(f"{pos:>3}. {c.score:>6.2f}  {c.conta_id:<7} {c.nome[:40]:<40} tier {c.tier or '-'}")
         for p in c.parcelas[:3]:
             print(f"          {p.valor:>5.2f} = peso {p.peso} × conf {p.confianca:.2f} × meia-vida ({p.idade_dias}d de {p.meia_vida_dias}d)  {p.tipo}")
+
+
+def cmd_digest(args) -> None:
+    from datetime import date
+
+    from abm import digest
+
+    conn = _conn()
+    hoje = date.today()
+    destino = args.saida or str(config.pasta_saidas() / f"digest-{hoje.isoformat()}.html")
+    d = digest.gerar(conn, _taxonomia(), destino, hoje=hoje, top=args.top)
+    print(f"Digest em {destino}: {d['total_esquentaram']} conta(s) esquentaram, "
+          f"{sum(len(c['sinais']) for c in d['contas'])} sinal(is) novo(s), {len(d['revisar'])} para revisar")
+
+
+def cmd_feedback(args) -> None:
+    from abm.metricas import SinalNaoEncontrado, registrar_feedback
+
+    conn = _conn()
+    try:
+        status = registrar_feedback(conn, args.id, args.avaliacao, args.comentario or "")
+    except SinalNaoEncontrado as e:
+        sys.exit(str(e))
+    efeito = {"descartado": "descartado: saiu do score", "alerta": "em alerta: conta no score"}.get(status, status)
+    print(f"Feedback '{args.avaliacao}' registrado para {args.id}. Sinal {efeito}.")
+
+
+def cmd_metricas(args) -> None:
+    from abm import metricas
+
+    metricas.imprimir(metricas.calcular(_conn(), dias=args.dias))
+
+
+def cmd_semana(args) -> None:
+    """A rotina da semana num comando só: coletar, classificar, gerar o digest."""
+    cmd_coletar(args)
+    print()
+    cmd_classificar(argparse.Namespace(regras=False, contas=args.contas, limite=None, dry_run=args.dry_run))
+    if not args.dry_run:
+        print()
+        cmd_digest(argparse.Namespace(saida=None, top=15))
 
 
 def cmd_execucoes(args) -> None:
@@ -244,6 +294,30 @@ def main(argv: list[str] | None = None) -> None:
     s = sub.add_parser("score", help="contas mais quentes: soma dos sinais com decaimento")
     s.add_argument("--top", type=int, default=20)
     s.set_defaults(f=cmd_score)
+
+    s = sub.add_parser("digest", help="gera o HTML semanal com as contas que mais esquentaram")
+    s.add_argument("--saida", help="arquivo de saída (padrão: saidas/digest-AAAA-MM-DD.html)")
+    s.add_argument("--top", type=int, default=15)
+    s.set_defaults(f=cmd_digest)
+
+    s = sub.add_parser("feedback", help="avalia um sinal: util aprova, ruido descarta")
+    s.add_argument("id")
+    s.add_argument("avaliacao", choices=["util", "ruido"])
+    s.add_argument("--comentario")
+    s.set_defaults(f=cmd_feedback)
+
+    s = sub.add_parser("metricas", help="precisão, latência e volume por conector")
+    s.add_argument("--dias", type=int, default=30, help="período (0 = tudo)")
+    s.set_defaults(f=cmd_metricas)
+
+    s = sub.add_parser("semana", help="coletar + classificar + digest, em sequência")
+    s.add_argument("--conector", choices=["cnpj", "noticias", "apollo"], help=argparse.SUPPRESS)
+    s.add_argument("--contas", help="ids separados por vírgula")
+    s.add_argument("--tier")
+    s.add_argument("--limite", type=int)
+    s.add_argument("--dry-run", action="store_true")
+    s.add_argument("--fixtures", metavar="PASTA", help=argparse.SUPPRESS)
+    s.set_defaults(f=cmd_semana)
 
     s = sub.add_parser("execucoes", help="últimas execuções dos conectores")
     s.add_argument("--limite", type=int, default=20)

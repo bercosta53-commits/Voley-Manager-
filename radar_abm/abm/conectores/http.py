@@ -100,7 +100,7 @@ class ClienteLocal:
         from pathlib import Path
 
         if chave:  # ex.: notícias da conta F-003 -> F-003.xml
-            return next(Path(self.pasta).glob(f"{chave}.*"), Path(self.pasta) / f"{chave}.xml")
+            return next(Path(self.pasta).glob(f"{chave}.*"), Path(self.pasta) / f"{chave}.*")
         nome = urlparse(url).path.rstrip("/").rsplit("/", 1)[-1]
         return Path(self.pasta) / (nome if "." in nome else f"{nome}.json")
 

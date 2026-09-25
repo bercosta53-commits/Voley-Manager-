@@ -101,11 +101,15 @@ class Conector(ABC):
         ex.comecar()
         aviso = "  (DRY-RUN: nada será gravado)" if self.dry_run else ""
         self.passo(f"== {self.nome}: {len(contas)} conta(s){aviso}")
+        pulos: dict[str, int] = {}
+        detalhar_pulos = len(contas) <= 20  # com muitas contas, os pulos saem resumidos no fim
         for conta in contas:
             self.conta = conta
             motivo = self.pode_rodar(conta)
             if motivo:
-                self.passo(f"-- {conta['id']} {conta['nome_fantasia']}: pulada ({motivo})")
+                pulos[motivo] = pulos.get(motivo, 0) + 1
+                if detalhar_pulos:
+                    self.passo(f"-- {conta['id']} {conta['nome_fantasia']}: pulada ({motivo})")
                 continue
             self.passo(f"-- {conta['id']} {conta['nome_fantasia']}")
             try:
@@ -145,6 +149,8 @@ class Conector(ABC):
                 ex.erros.append(f"{conta['id']}: {e}")
                 self.passo(f"   ERRO: {e}")
         ex.terminar(self.conn)
+        if pulos and not detalhar_pulos:
+            self.passo("   puladas: " + "; ".join(f"{n} ({m})" for m, n in pulos.items()))
         self.passo(f"== fim: {ex.itens} novidade(s), {len(ex.erros)} erro(s)")
         return ex
 
