@@ -212,6 +212,72 @@ python manager.py coletar --conector noticias
   que a imprensa usa (`aliases listar <conta>`); acrescente com `aliases adicionar`.
 - O Google mudou o formato do RSS: o erro aparece no passo TRADUZ. Só esse passo precisa ser ajustado.
 
+## Vagas (Gupy e arquivo do Indeed)
+
+Arquivo: `abm/conectores/vagas.py`. Vigia quem está contratando marketing, growth, RevOps ou comercial. Time
+em formação é janela de compra.
+
+- **BUSCA**: duas fontes.
+  1. **Gupy**: a página de carreiras da conta (`https://<nome>.gupy.io`), pública e sem chave.
+     - Na primeira vez o conector descobre o endereço sozinho: tenta o nome do site (`juntoseguros.com` →
+       `juntoseguros`) e o nome da conta.
+     - Antes de aceitar a página, confere se o nome da empresa nela é o da conta.
+     - O endereço achado fica gravado na conta. Para corrigir:
+       `python manager.py vagas slug <conta> <nome>`; para não procurar: `vagas slug <conta> -`.
+     - Conta que não usa Gupy só é procurada de novo depois de 30 dias.
+  2. **Arquivo de vagas (CSV)**: vagas de outras fontes, como o **Indeed**, trazidas pela rotina do Claude
+     com o conector do Indeed (`VAGAS_ROTINA.md`). O Indeed não tem API aberta para programas como este,
+     por isso o arquivo. **LinkedIn não é usado.**
+- **TRADUZ**: de cada vaga, título, local, modo (remoto, híbrido), fonte, link e data (o Indeed informa; a
+  Gupy, na página de lista, não).
+- **COMPARA**:
+  - **empresa certa**: a vaga do arquivo com `id_conta` só entra se a empresa for a da conta; sem
+    `id_conta`, entra se o nome da empresa bater com uma única conta;
+  - **grupo**, pelas regras da seção `vagas:` do `sinais.yaml`:
+
+    | Título tem | Grupo | Peso |
+    | --- | --- | --- |
+    | área + liderança ("Head de Growth", "Diretor Comercial") | liderança de receita | 9 |
+    | área ("Especialista em Marketing", "Analista de CRM") | marketing/growth | 7 |
+    | comercial ("SDR", "Executivo de Contas") | comercial | 5 |
+
+    Banco de talentos, estágio e aprendiz não contam.
+  - **novidade**: só entram as vagas que não estavam abertas na coleta anterior. A mesma vaga na Gupy e
+    no Indeed conta uma vez.
+- **ENTREGA**: cada vaga nova vira item bruto, com o link como evidência. Cada grupo vira **um** sinal:
+  - confiança 0,9 na Gupy e no arquivo com `id_conta`; 0,7 quando a conta foi reconhecida só pelo nome;
+  - a data do fato é a do anúncio ou, sem data, o dia em que a vaga foi vista aberta;
+  - se o grupo já tem sinal nos últimos 30 dias, as vagas novas entram no mesmo evento, sem sinal novo.
+
+**Precisa para funcionar**:
+- nada de chave para a Gupy;
+- para o Indeed, o conector do Indeed numa conversa com o Claude.
+
+O conector espera 1 segundo entre páginas da Gupy. Na primeira semana, a descoberta das páginas faz até
+3 tentativas por conta (cerca de 15 minutos para 315 contas); depois, uma visita por conta.
+
+**Comandos**:
+```sh
+python manager.py coletar --conector vagas --tier A --dry-run
+python manager.py coletar --conector vagas --arquivo-vagas saidas/vagas_indeed_AAAA-MM-DD.csv
+python manager.py vagas importar saidas/vagas_indeed_AAAA-MM-DD.csv   # só o arquivo, sem visitar a Gupy
+```
+
+**Limites conhecidos**:
+- A página da Gupy mostra 10 vagas por vez. Se o conteúdo vier paginado, as seguintes podem ficar de
+  fora; o arquivo do Indeed cobre parte disso.
+- Empresas em outras plataformas de vagas (Sólides, InHire, Recrutei, sites próprios) só entram pelo
+  arquivo.
+
+**Quando quebra**:
+- Conta sem página achada, mas você sabe que ela usa Gupy: `python manager.py vagas slug <conta> <nome>`.
+- "é de '<outra empresa>', não desta conta": o endereço adivinhado é de outra empresa. Informe o certo
+  com `vagas slug`.
+- A Gupy mudou a página e nenhuma vaga aparece: o erro está no passo TRADUZ (`ler_pagina_gupy`). Só ele
+  precisa ser ajustado.
+- Vagas do arquivo "sem conta correspondente": o nome da empresa no Indeed é diferente do da conta.
+  Preencha `id_conta` no CSV ou acrescente o nome como alias (`aliases adicionar`).
+
 ## Apollo (comitê de compra)
 
 Arquivo: `abm/conectores/apollo.py`. Vigia as pessoas do comitê de compra.

@@ -29,12 +29,15 @@ mostra.
    ```sh
    python manager.py semana --dry-run
    ```
-2. **Para valer**:
+2. **Vagas do Indeed** (opcional, 10 minutos): siga o `VAGAS_ROTINA.md` para o Claude gerar
+   `saidas/vagas_indeed_AAAA-MM-DD.csv`. A Gupy o radar visita sozinho.
+3. **Para valer**:
    ```sh
-   python manager.py semana
+   python manager.py semana --arquivo-vagas saidas/vagas_indeed_AAAA-MM-DD.csv   # ou só: python manager.py semana
    ```
    Isso faz, em sequência:
-   - **coletar**: CNPJ (Receita), depois notícias (Google News), depois Apollo;
+   - **coletar**: CNPJ (Receita), depois notícias (Google News), depois vagas (Gupy e o arquivo do Indeed),
+     depois Apollo;
    - **classificar**: as notícias novas viram sinais ou ruído;
    - **digest**: gera `saidas/digest-AAAA-MM-DD.html`.
 
@@ -44,7 +47,7 @@ mostra.
    python manager.py classificar
    python manager.py digest
    ```
-3. **Conferir se a coleta correu bem**: `python manager.py execucoes`. Erro numa conta não para as outras; o
+4. **Conferir se a coleta correu bem**: `python manager.py execucoes`. Erro numa conta não para as outras; o
    que fazer em cada erro está no `CONECTORES.md`.
 
 ## Segunda, depois da coleta: ler o digest e decidir (30 a 45 minutos)

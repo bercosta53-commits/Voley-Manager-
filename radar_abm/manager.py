@@ -89,7 +89,7 @@ def cmd_coletar(args) -> None:
 
     conn = _conn()
     # Ordem: CNPJ primeiro (completa razão social, que vira alias), depois notícias, depois Apollo.
-    nomes = [args.conector] if args.conector else [n for n in ("cnpj", "noticias", "apollo") if n in CONECTORES]
+    nomes = [args.conector] if args.conector else [n for n in ("cnpj", "noticias", "vagas", "apollo") if n in CONECTORES]
     ids = [i.strip() for i in args.contas.split(",")] if args.contas else None
     contas = selecionar_contas(conn, ids=ids, tier=args.tier, limite=args.limite)
     resumo = []
@@ -98,7 +98,14 @@ def cmd_coletar(args) -> None:
         if args.fixtures and not Path(args.fixtures, nome).is_dir():
             print(f"== {nome}: sem respostas salvas em {args.fixtures}/{nome}; conector pulado")
             continue
-        ex = CONECTORES[nome](conn, http=http, dry_run=args.dry_run).executar(contas)
+        extra = {}
+        if nome == "vagas":
+            from abm.conectores.vagas import ler_arquivo
+
+            arquivo_vagas = getattr(args, "arquivo_vagas", None)
+            extra = {"arquivo": ler_arquivo(arquivo_vagas) if arquivo_vagas else None,
+                     "usar_gupy": not getattr(args, "sem_gupy", False)}
+        ex = CONECTORES[nome](conn, http=http, dry_run=args.dry_run, **extra).executar(contas)
         resumo.append(f"{nome}: {ex.itens} novidade(s), {len(ex.erros)} erro(s)")
         if nome == "cnpj" and not args.dry_run:
             r = aliases.gerar(conn)  # razões sociais novas viram aliases antes da busca de notícias
@@ -219,6 +226,30 @@ def cmd_semana(args) -> None:
         cmd_digest(argparse.Namespace(saida=None, top=15))
 
 
+def cmd_vagas(args) -> None:
+    conn = _conn()
+    if args.acao == "importar":
+        # Só as vagas do arquivo, sem visitar a Gupy.
+        cmd_coletar(argparse.Namespace(conector="vagas", contas=None, tier=None, limite=None, dry_run=args.dry_run,
+                                       fixtures=None, arquivo_vagas=args.arquivo, sem_gupy=True))
+    elif args.acao == "slug":
+        conn.execute("update contas set gupy_slug = ? where id = ?", (args.slug, args.conta))
+        conn.commit()
+        print(f"{args.conta}: " + ("Gupy desligada" if args.slug == "-" else f"página https://{args.slug}.gupy.io"))
+    elif args.acao == "contas":
+        # Lista para a rotina do Indeed (VAGAS_ROTINA.md): quem procurar e onde.
+        destino = args.saida
+        import csv as _csv
+
+        with open(destino, "w", newline="", encoding="utf-8") as f:
+            w = _csv.writer(f)
+            w.writerow(["id_conta", "empresa", "cidade", "uf", "tier"])
+            for c in conn.execute("select * from contas where (? is null or tier = ?) order by coalesce(tier, 'Z'), nome_fantasia",
+                                  (args.tier, args.tier)):
+                w.writerow([c["id"], c["nome_fantasia"], c["cidade"] or "", c["uf"] or "", c["tier"] or ""])
+        print(f"Lista de contas para a rotina de vagas em {destino}")
+
+
 def cmd_execucoes(args) -> None:
     conn = _conn()
     linhas = conn.execute("select * from execucoes order by inicio desc limit ?", (args.limite,)).fetchall()
@@ -263,7 +294,9 @@ def main(argv: list[str] | None = None) -> None:
     s.set_defaults(f=cmd_aliases)
 
     s = sub.add_parser("coletar", help="roda os conectores (todos, ou um com --conector)")
-    s.add_argument("--conector", choices=["cnpj", "noticias", "apollo"], help="só este conector")
+    s.add_argument("--conector", choices=["cnpj", "noticias", "vagas", "apollo"], help="só este conector")
+    s.add_argument("--arquivo-vagas", metavar="CSV", help="vagas trazidas de outras fontes (Indeed etc.; veja VAGAS_ROTINA.md)")
+    s.add_argument("--sem-gupy", action="store_true", help="vagas: não visitar a Gupy")
     s.add_argument("--contas", help="ids separados por vírgula (ex.: T-001,F-003)")
     s.add_argument("--tier", help="só contas deste tier (A, B ou C)")
     s.add_argument("--limite", type=int, help="no máximo N contas")
@@ -311,13 +344,28 @@ def main(argv: list[str] | None = None) -> None:
     s.set_defaults(f=cmd_metricas)
 
     s = sub.add_parser("semana", help="coletar + classificar + digest, em sequência")
-    s.add_argument("--conector", choices=["cnpj", "noticias", "apollo"], help=argparse.SUPPRESS)
+    s.add_argument("--conector", choices=["cnpj", "noticias", "vagas", "apollo"], help=argparse.SUPPRESS)
+    s.add_argument("--arquivo-vagas", metavar="CSV", help="vagas trazidas de outras fontes (Indeed etc.)")
+    s.add_argument("--sem-gupy", action="store_true", help=argparse.SUPPRESS)
     s.add_argument("--contas", help="ids separados por vírgula")
     s.add_argument("--tier")
     s.add_argument("--limite", type=int)
     s.add_argument("--dry-run", action="store_true")
     s.add_argument("--fixtures", metavar="PASTA", help=argparse.SUPPRESS)
     s.set_defaults(f=cmd_semana)
+
+    s = sub.add_parser("vagas", help="vagas: importar arquivo, definir página da Gupy, listar contas para a rotina")
+    acoes = s.add_subparsers(dest="acao", required=True)
+    r = acoes.add_parser("importar", help="importa um CSV de vagas (Indeed e outras fontes)")
+    r.add_argument("arquivo")
+    r.add_argument("--dry-run", action="store_true")
+    r = acoes.add_parser("slug", help="define a página da Gupy da conta (ou - para não procurar)")
+    r.add_argument("conta")
+    r.add_argument("slug")
+    r = acoes.add_parser("contas", help="exporta a lista de contas para a rotina do Indeed")
+    r.add_argument("--saida", default="saidas/contas_vagas.csv")
+    r.add_argument("--tier")
+    s.set_defaults(f=cmd_vagas)
 
     s = sub.add_parser("execucoes", help="últimas execuções dos conectores")
     s.add_argument("--limite", type=int, default=20)

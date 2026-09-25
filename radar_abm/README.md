@@ -4,7 +4,7 @@ Dada a lista de contas-alvo e seus comitês de compra, vigia movimentações das
 de compra B2B. Python 3.11+, banco SQLite num arquivo só (schema compatível com Postgres), sem painel.
 
 Como cada conector funciona, em português simples: [CONECTORES.md](CONECTORES.md).
-Passo a passo de uma semana completa: [SEMANA.md](SEMANA.md).
+Passo a passo de uma semana completa: [SEMANA.md](SEMANA.md). Rotina de vagas do Indeed: [VAGAS_ROTINA.md](VAGAS_ROTINA.md).
 
 ## Primeiros passos
 
@@ -22,6 +22,7 @@ python manager.py coletar --conector cnpj --tier A --limite 5 --dry-run
 python manager.py coletar --conector cnpj
 python manager.py coletar --conector noticias --tier A --limite 5 --dry-run
 python manager.py coletar --conector noticias
+python manager.py coletar --conector vagas --arquivo-vagas saidas/vagas_indeed.csv
 python manager.py coletar --conector apollo --tier A --dry-run
 python manager.py taxonomia               # confere o sinais.yaml
 python manager.py classificar             # notícias -> sinais (Claude, ou regras sem chave)
@@ -58,6 +59,7 @@ duplicar.
 | `abm/conectores/http.py` | timeout, retry com backoff e rate limit; respostas salvas para testes |
 | `abm/conectores/cnpj.py` | conector CNPJ (BrasilAPI) |
 | `abm/conectores/noticias.py` | conector Google News (RSS) |
+| `abm/conectores/vagas.py` | conector de vagas (Gupy e arquivo do Indeed) |
 | `abm/conectores/apollo.py` | conector Apollo (comitê de compra) |
 | `sinais.yaml` | taxonomia de sinais: pesos, meia-vida, membro do comitê, ângulo (editável) |
 | `abm/taxonomia.py` | leitura e validação do sinais.yaml |
@@ -73,6 +75,5 @@ duplicar.
 | Diário Oficial | Querido Diário (API aberta da Open Knowledge Brasil, diários municipais) e Imprensa Nacional (DOU, busca e dados abertos) | nomeações, licitações vencidas, contratos públicos, atos societários publicados |
 | CADE | SEI/CADE (pesquisa pública de processos) e o boletim de atos de concentração | fusões e aquisições submetidas ao CADE, muitas vezes antes da imprensa |
 | CVM | Dados abertos da CVM (dados.cvm.gov.br: documentos IPE, fatos relevantes, emissões) | fato relevante, emissão de dívida, comunicado ao mercado (companhias abertas) |
-| Vagas | Gupy (páginas públicas das empresas), Indeed (conector já conectado), Vagas.com | vagas de marketing, growth, RevOps e comercial como sinal de time em formação |
 | HubSpot ou Dynamics | APIs do HubSpot (CRM v3) e do Dataverse (Dynamics 365) | levar sinal e "por que agora" para a conta no CRM e trazer de volta o desfecho (reunião, oportunidade) para medir conversão |
 | Painel web | a pasta `radar/` do repositório (painel já publicado) lendo o mesmo banco | digest, fila de revisão e feedback com um clique, sem terminal |

@@ -3,6 +3,7 @@
 from .apollo import ConectorApollo
 from .cnpj import ConectorCNPJ
 from .noticias import ConectorNoticias
+from .vagas import ConectorVagas
 
 # Registro dos conectores disponíveis: nome -> classe. Cada fase acrescenta o seu.
-CONECTORES: dict[str, type] = {c.nome: c for c in (ConectorCNPJ, ConectorNoticias, ConectorApollo)}
+CONECTORES: dict[str, type] = {c.nome: c for c in (ConectorCNPJ, ConectorNoticias, ConectorVagas, ConectorApollo)}

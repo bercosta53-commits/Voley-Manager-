@@ -44,11 +44,20 @@ class Tipo:
 
 
 @dataclass(frozen=True)
+class RegrasVagas:
+    areas: tuple[str, ...] = ()
+    lideranca: tuple[str, ...] = ()
+    comercial: tuple[str, ...] = ()
+    ignorar: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class Taxonomia:
     versao: int
     limiar_confianca: float
     tipos: dict[str, Tipo]
     ruido: dict[str, tuple[str, ...]]
+    vagas: RegrasVagas = RegrasVagas()
 
     def tipos_para(self, braco: str | None) -> list[Tipo]:
         return [t.para(braco) for t in self.tipos.values() if t.vale_para(braco)]
@@ -103,4 +112,6 @@ def carregar(arquivo: str | Path | None = None) -> Taxonomia:
     if erros:
         raise TaxonomiaInvalida(f"{arquivo.name} tem {len(erros)} problema(s):\n  - " + "\n  - ".join(erros))
     ruido = {k: tuple(v or ()) for k, v in (dados.get("ruido") or {}).items()}
-    return Taxonomia(int(dados.get("versao", 1)), float(limiar), tipos, ruido)
+    v = dados.get("vagas") or {}
+    vagas = RegrasVagas(*(tuple(str(x) for x in (v.get(k) or ())) for k in ("areas", "lideranca", "comercial", "ignorar")))
+    return Taxonomia(int(dados.get("versao", 1)), float(limiar), tipos, ruido, vagas)

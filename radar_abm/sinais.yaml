@@ -146,14 +146,35 @@ tipos:
     angulo_sugerido: C-level novo revisa metas e fornecedores; diagnóstico de funil e plano de 90 dias.
     palavras_chave: [novo ceo, nova ceo, novo cmo, nova cmo, novo cro, novo coo, assume como, anuncia novo, contrata executivo]
 
+  # ----------------------------------------------------------------------------------------------
+  # Vagas (conector de vagas: Gupy e arquivo importado do Indeed). Valem para todos os braços.
+  # ----------------------------------------------------------------------------------------------
+  vaga_lideranca_receita:
+    rotulo: Vaga de liderança em marketing, growth ou comercial
+    braco_icp: todos
+    peso: 9
+    meia_vida_dias: 90
+    membro_comite: decisor
+    angulo_sugerido: Contratar uma liderança de receita é redesenhar a área; oferecer o diagnóstico e o plano de 90 dias que essa pessoa vai precisar apresentar.
+    palavras_chave: [contrata head, contrata diretor de marketing, novo head de marketing, vaga de head]
+
   vaga_marketing_growth:
     rotulo: Vaga de marketing, growth ou RevOps
-    braco_icp: [tecnologia]
+    braco_icp: todos
     peso: 7
     meia_vida_dias: 60
     membro_comite: influenciador
-    angulo_sugerido: Time de marketing ou RevOps em formação; apoiar a operação enquanto contratam e desenhar o processo.
-    palavras_chave: [vaga, contrata, está contratando, head de marketing, head de growth, revops, analista de marketing]
+    angulo_sugerido: Time de marketing ou RevOps em formação; apoiar a operação enquanto contratam e desenhar o processo que a pessoa nova vai rodar.
+    palavras_chave: [está contratando, abre vagas de marketing, analista de marketing, vaga de marketing, revops]
+
+  vaga_comercial:
+    rotulo: Vagas comerciais (SDR, vendas, desenvolvimento de negócios)
+    braco_icp: todos
+    peso: 5
+    meia_vida_dias: 60
+    membro_comite: influenciador
+    angulo_sugerido: Time comercial crescendo precisa de demanda qualificada e processo; ABM e cadência para o time novo não começar do zero.
+    palavras_chave: [contrata vendedores, abre vagas comerciais, vagas de sdr]
 
   # ----------------------------------------------------------------------------------------------
   # Todos os braços
@@ -253,3 +274,14 @@ ruido:
   sorteio_promocao: [sorteio, ganha prêmio, ganha r$, contemplado, campanha de prêmios, entrega prêmio, premia cooperado]
   release_generico: [dicas, saiba como, entenda, confira, veja como, artigo, opinião, alerta jurídico]
   acao_social: [doação, doa, solidária, voluntariado, apae, beneficente, dia c, ação social]
+
+# Como o conector de vagas decide se uma vaga importa (títulos comparados sem acento e sem maiúsculas):
+#   área + liderança  -> vaga_lideranca_receita   (ex.: "Head de Growth", "Gerente de Marketing", "Diretor Comercial")
+#   área              -> vaga_marketing_growth    (ex.: "Especialista em Marketing | Conteúdo", "Analista de CRM")
+#   comercial         -> vaga_comercial           (ex.: "SDR", "Executivo de Contas")
+#   ignorar           -> a vaga não conta          (ex.: "Banco de Talentos - Marketing", "Estágio em Marketing")
+vagas:
+  areas: [marketing, growth, revops, revenue operations, crm, inbound, geração de demanda, demand generation, branding, brand, mídia paga, performance marketing, marketing ops, comunicação e marketing]
+  lideranca: [head, diretor, diretora, gerente, coordenador, coordenadora, cmo, cro, vp, vice-presidente, chief, líder, lead, superintendente]
+  comercial: [sdr, bdr, pré-vendas, pre-vendas, inside sales, vendas, comercial, executivo de contas, executiva de contas, account executive, business development, desenvolvimento de negócios, key account]
+  ignorar: [banco de talentos, estágio, estagiário, estagiária, jovem aprendiz, aprendiz, trainee]
