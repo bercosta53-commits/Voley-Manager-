@@ -278,3 +278,71 @@ python manager.py coletar --conector apollo --tier A
 - "respondeu 422": o Apollo não entendeu o pedido (nome vazio, por exemplo). Confira a pessoa na planilha.
 - Créditos acabando: baixe `RADAR_APOLLO_MAX_CREDITOS` ou aumente `RADAR_APOLLO_INTERVALO_DIAS`.
 - Muitas pessoas "não encontradas": preencha o site das contas; sem domínio, homônimos confundem a busca.
+
+---
+
+## Classificador (API do Claude)
+
+Arquivo: `abm/classificador.py`. Não vigia uma fonte, mas conversa com um serviço de fora (a API do
+Claude) e segue os mesmos quatro passos. Decide se cada notícia coletada é sinal ou ruído.
+
+- **BUSCA**: manda ao Claude as notícias ainda não classificadas de uma conta, até 15 por chamada. Vão
+  junto os dados da conta (nome, aliases, braço, cidade), os tipos de sinal válidos para o braço dela e as
+  categorias de ruído do `sinais.yaml`. O modelo vem de `ANTHROPIC_MODEL` (padrão `claude-opus-5`).
+- **TRADUZ**: a resposta vem num formato fixo (JSON com esquema: o Claude só pode responder com os
+  campos e valores combinados). Para cada notícia vêm: é a empresa certa? é relevante? tipo, confiança
+  de 0 a 1, membro do comitê afetado, frase de "por que agora", trecho de evidência e, se for o mesmo
+  fato de outra notícia do lote, qual.
+- **COMPARA**: confere a resposta:
+  - o tipo tem de existir no `sinais.yaml` e valer para o braço da conta;
+  - o trecho de evidência tem de estar no texto coletado. Se não estiver, entra o título e a confiança
+    cai 0,15;
+  - notícias sobre o mesmo fato viram um só evento. Aqui entram as paráfrases que o conector de
+    notícias não juntou;
+  - abaixo de `limiar_confianca` (0,6), o sinal vai para **revisar**, não para alerta.
+- **ENTREGA**: grava um sinal por evento. A notícia mais confiável vira a evidência; peso e ângulo vêm do
+  `sinais.yaml`. Cada notícia fica marcada como sinal, revisar, ruído, outra empresa, sem tipo ou mesmo
+  evento. Notícia que o Claude não devolveu fica pendente para a próxima rodada. Evento que já tinha
+  sinal não gera outro. Também completa os sinais de CNPJ e Apollo com peso, ângulo e "por que agora".
+
+**Sem chave da API**: o classificador por regras usa as `palavras_chave` e o `ruido` do `sinais.yaml`.
+Ele separa bem o ruído (prêmio, patrocínio, sorteio), mas não entende contexto, e por isso **nunca cria
+alerta**: tudo o que acha vai para revisar, com confiança 0,5.
+
+**Precisa para funcionar**:
+- `ANTHROPIC_API_KEY` no `.env` (console.anthropic.com > API Keys);
+- opcional: `ANTHROPIC_MODEL`;
+- custo: uma chamada por conta com notícias novas, por semana. São poucas centenas de chamadas curtas
+  por mês.
+
+**Limites**:
+- **Recusa**: se o filtro de segurança do modelo recusar o pedido, a API tenta sozinha outro modelo
+  (`fallbacks: "default"`); se ainda assim recusar, as notícias ficam pendentes.
+- **Timeout e novas tentativas**: 120 segundos por chamada, até 4 novas tentativas (limite de chamadas
+  429, erro 5xx, rede).
+
+**Comandos**:
+```sh
+python manager.py classificar --dry-run        # com Claude: mostra o que enviaria, sem chamar a API
+python manager.py classificar                  # Claude se houver chave; senão, regras
+python manager.py classificar --regras         # força as regras
+python manager.py sinais --status revisar      # a fila de revisão
+python manager.py sinal <id> alerta            # aprova (ou: descartado)
+```
+
+**Quando quebra**:
+- "a API do Claude respondeu 401": chave errada. Gere outra e troque no `.env`.
+- "limite de chamadas (429)": rode mais tarde ou em partes (`--contas`, `--limite`).
+- "a resposta foi cortada (max_tokens)": lote grande demais. Rode por conta (`--contas`).
+- "o modelo recusou o pedido": as notícias ficam pendentes. Tente de novo, ou use `--regras`.
+
+## Taxonomia e score
+
+- **`sinais.yaml`**: cada tipo tem braço do ICP, peso (1 a 10), meia-vida em dias, membro do comitê que ele
+  "acorda" e ângulo sugerido. Os `ajustes` mudam valores por braço. `python manager.py taxonomia`
+  confere o arquivo e lista os tipos.
+- **Score da conta**: soma dos sinais em alerta, cada um com valor `peso × confiança × 0,5^(idade ÷ meia-vida)`.
+  Um sinal de peso 8 vale 8 no dia do fato, 4 depois de uma meia-vida e 2 depois de duas. Peso e
+  meia-vida são lidos do `sinais.yaml` na hora do cálculo: editar o arquivo muda o score. Sinais em
+  revisar não contam até você aprovar.
+- `python manager.py score` mostra o ranking e, para cada conta, a conta de cada sinal.

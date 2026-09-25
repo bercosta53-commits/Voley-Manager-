@@ -197,10 +197,10 @@ class Conector(ABC):
         sinal_id = novo_id()
         self.conn.execute(
             """insert into sinais (id, conta_id, tipo, evento_id, peso, confianca, membro_comite, angulo,
-                                   evidencia_url, evidencia_trecho, data_fato, data_alerta, status)
-               values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                                   evidencia_url, evidencia_trecho, data_fato, data_alerta, status, classificador)
+               values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (sinal_id, item.conta_id, item.tipo, evento_id, peso, confianca, membro_comite, angulo,
-             item.url, item.trecho, item.data_fato, agora(), status),
+             item.url, item.trecho, item.data_fato, agora(), status, self.nome),
         )
         return sinal_id
 

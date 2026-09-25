@@ -99,6 +99,76 @@ def cmd_coletar(args) -> None:
             print(f"Aliases: {r['criados']} novos a partir das razões sociais ({r['ambiguos']} ambíguos)")
 
 
+def _taxonomia():
+    from abm.taxonomia import TaxonomiaInvalida, carregar
+
+    try:
+        return carregar()
+    except TaxonomiaInvalida as e:
+        sys.exit(f"sinais.yaml inválido: {e}")
+
+
+def cmd_taxonomia(args) -> None:
+    config.carregar_env()
+    tax = _taxonomia()
+    print(f"sinais.yaml v{tax.versao} válido: {len(tax.tipos)} tipos, limiar de confiança {tax.limiar_confianca}")
+    for braco in ("servicos_profissionais", "servicos_financeiros", "tecnologia"):
+        print(f"\n{braco}:")
+        for t in tax.tipos_para(braco):
+            print(f"  {t.id:<24} peso {t.peso:>2}  meia-vida {t.meia_vida_dias:>3}d  acorda {t.membro_comite:<13} {t.rotulo}")
+
+
+def cmd_classificar(args) -> None:
+    from abm import classificador
+
+    conn = _conn()
+    tax = _taxonomia()
+    c = classificador.ClassificadorRegras() if args.regras else classificador.padrao()
+    ids = [i.strip() for i in args.contas.split(",")] if args.contas else None
+    classificador.classificar(conn, c, tax, dry_run=args.dry_run, contas=ids, limite=args.limite)
+
+
+def cmd_sinais(args) -> None:
+    conn = _conn()
+    sql = "select s.*, c.nome_fantasia from sinais s join contas c on c.id = s.conta_id where 1 = 1"
+    params: list = []
+    if args.status:
+        sql += " and s.status = ?"
+        params.append(args.status)
+    if args.conta:
+        sql += " and s.conta_id = ?"
+        params.append(args.conta)
+    linhas = conn.execute(sql + " order by s.data_alerta desc limit ?", (*params, args.limite)).fetchall()
+    if not linhas:
+        print("Nenhum sinal.")
+    for s in linhas:
+        print(f"{s['id']}  {s['status']:<10} {s['conta_id']:<7} {s['nome_fantasia'][:28]:<28} {s['tipo']:<24} "
+              f"conf {s['confianca'] or 0:.2f}  fato {s['data_fato'] or '-'}")
+        if s["por_que_agora"]:
+            print(f"      por que agora: {s['por_que_agora'][:150]}")
+        print(f"      evidência: {(s['evidencia_trecho'] or '')[:150]}  {s['evidencia_url'] or ''}")
+
+
+def cmd_sinal(args) -> None:
+    conn = _conn()
+    feito = conn.execute("update sinais set status = ? where id = ?", (args.status, args.id)).rowcount
+    conn.commit()
+    print(f"Sinal {args.id}: {args.status}" if feito else f"Sinal {args.id} não encontrado")
+
+
+def cmd_score(args) -> None:
+    from abm.score import pontuar
+
+    conn = _conn()
+    ranking = pontuar(conn, _taxonomia())
+    if not ranking:
+        print("Nenhuma conta com sinal em alerta ainda.")
+    for pos, c in enumerate(ranking[: args.top], 1):
+        print(f"{pos:>3}. {c.score:>6.2f}  {c.conta_id:<7} {c.nome[:40]:<40} tier {c.tier or '-'}")
+        for p in c.parcelas[:3]:
+            print(f"          {p.valor:>5.2f} = peso {p.peso} × conf {p.confianca:.2f} × meia-vida ({p.idade_dias}d de {p.meia_vida_dias}d)  {p.tipo}")
+
+
 def cmd_execucoes(args) -> None:
     conn = _conn()
     linhas = conn.execute("select * from execucoes order by inicio desc limit ?", (args.limite,)).fetchall()
@@ -150,6 +220,30 @@ def main(argv: list[str] | None = None) -> None:
     s.add_argument("--dry-run", action="store_true", help="mostra passo a passo o que faria, sem gravar")
     s.add_argument("--fixtures", metavar="PASTA", help="usa respostas salvas em PASTA/<conector>/ em vez da internet")
     s.set_defaults(f=cmd_coletar)
+
+    sub.add_parser("taxonomia", help="confere o sinais.yaml e lista os tipos por braço").set_defaults(f=cmd_taxonomia)
+
+    s = sub.add_parser("classificar", help="classifica as notícias pendentes (Claude, ou regras sem chave)")
+    s.add_argument("--contas", help="ids separados por vírgula")
+    s.add_argument("--limite", type=int, help="no máximo N notícias")
+    s.add_argument("--regras", action="store_true", help="usa o classificador por regras mesmo com chave")
+    s.add_argument("--dry-run", action="store_true", help="mostra o que faria, sem gravar (com Claude, nem chama a API)")
+    s.set_defaults(f=cmd_classificar)
+
+    s = sub.add_parser("sinais", help="lista sinais (ex.: --status revisar)")
+    s.add_argument("--status", choices=["alerta", "revisar", "descartado"])
+    s.add_argument("--conta")
+    s.add_argument("--limite", type=int, default=30)
+    s.set_defaults(f=cmd_sinais)
+
+    s = sub.add_parser("sinal", help="muda o status de um sinal (aprovar um 'revisar', por exemplo)")
+    s.add_argument("id")
+    s.add_argument("status", choices=["alerta", "revisar", "descartado"])
+    s.set_defaults(f=cmd_sinal)
+
+    s = sub.add_parser("score", help="contas mais quentes: soma dos sinais com decaimento")
+    s.add_argument("--top", type=int, default=20)
+    s.set_defaults(f=cmd_score)
 
     s = sub.add_parser("execucoes", help="últimas execuções dos conectores")
     s.add_argument("--limite", type=int, default=20)

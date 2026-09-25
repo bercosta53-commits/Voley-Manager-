@@ -22,6 +22,10 @@ python manager.py coletar --conector cnpj
 python manager.py coletar --conector noticias --tier A --limite 5 --dry-run
 python manager.py coletar --conector noticias
 python manager.py coletar --conector apollo --tier A --dry-run
+python manager.py taxonomia               # confere o sinais.yaml
+python manager.py classificar             # notícias -> sinais (Claude, ou regras sem chave)
+python manager.py sinais --status revisar
+python manager.py score
 python manager.py execucoes
 python -m pytest tests                    # testes, sem internet
 ```
@@ -50,3 +54,7 @@ duplicar.
 | `abm/conectores/cnpj.py` | conector CNPJ (BrasilAPI) |
 | `abm/conectores/noticias.py` | conector Google News (RSS) |
 | `abm/conectores/apollo.py` | conector Apollo (comitê de compra) |
+| `sinais.yaml` | taxonomia de sinais: pesos, meia-vida, membro do comitê, ângulo (editável) |
+| `abm/taxonomia.py` | leitura e validação do sinais.yaml |
+| `abm/classificador.py` | classificador (Claude, ou regras sem chave) |
+| `abm/score.py` | score da conta com decaimento |
