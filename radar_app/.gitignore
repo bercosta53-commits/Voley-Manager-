@@ -1,0 +1,8 @@
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+# Base real de contas: nunca vai para o repositório (ele é público).
+data/contas.local.json
+screenshots/
