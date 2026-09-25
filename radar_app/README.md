@@ -2,6 +2,8 @@
 
 Interface diária do radar de sinais. Next.js (App Router), Tailwind, componentes no padrão shadcn/ui, motion e lucide-react.
 
+Telas: Hoje, Conta, Contas, Fontes, Métricas, e busca/comando com ⌘K.
+
 ## Rodar
 
 ```sh
@@ -18,18 +20,40 @@ Sem a base real, o app usa `data/contas.exemplo.json` (empresas fictícias).
 | --- | --- |
 | `app/velora-radar-tokens.css` | tokens de design (única fonte de cores, raios, sombras, glass e movimento) |
 | `app/globals.css` | tema do shadcn/ui mapeado para os tokens |
-| `components/hoje/` | tela Hoje: cartão de sinal, score com tendência, abordar, estados, navegação |
+| `app/api/estados/` | endpoint que lê/grava as ações (útil, ruído, abordado…) no banco do radar |
+| `components/casca/` | navegação comum às telas (topo, inferior no celular) e a busca ⌘K |
+| `components/hoje/` | tela Hoje: cartão de sinal, score com tendência, abordar, estados |
+| `components/conta/` | tela da conta: score com decomposição, próxima ação, linha do tempo, comitê |
+| `components/contas/` | tabela de contas: filtros, filtros salvos, ordenação |
+| `components/fontes/` | um cartão por conector: o que busca, status, última coleta, custo |
+| `components/metricas/` | precisão, latência, volume por fonte, conversão em abordagem |
 | `components/ui/` | botão, atalho de teclado, esqueleto, dica, painel flutuante (modal / bottom sheet) |
+| `lib/banco.ts` | leitura/escrita em `radar_abm/dados/radar.db` (server-only) |
 | `scripts/gerar_dados.py` | lê a planilha (só contas com CNPJ e site) e monta contas, séries de score e sinais de exemplo |
+| `scripts/exportar_estatico.sh` | gera `out/` estático (só a base fictícia) para uma prévia sem servidor |
 
 ## Revisar os estados da tela
 
-`/?estado=carregando`, `/?estado=vazio`, `/?estado=erro`, `/?estado=sem-permissao`.
+`/?estado=carregando`, `/?estado=vazio`, `/?estado=erro`, `/?estado=sem-permissao` (também em `/contas`, `/fontes`, `/metricas` e na tela de uma conta).
 
 ## Atalhos (tela Hoje)
 
-`j`/`k` navegam · `a` abordar · `u` útil · `r` ruído · `s` adiar 3 dias · `e` arquivar. No celular: deslize para a direita
-marca útil, para a esquerda arquiva; toque abre o detalhe.
+`j`/`k` navegam · `a` abordar · `u` útil · `r` ruído · `s` adiar 3 dias · `e` arquivar · `o` abre a conta do sinal em foco.
+No celular: deslize para a direita marca útil, para a esquerda arquiva; toque abre o detalhe.
 
-O que a pessoa faz com cada sinal fica, por enquanto, no navegador. Ligar no banco do radar (útil/ruído viram feedback
-e alimentam a precisão) é o próximo passo.
+## Onde fica o que a pessoa marca
+
+Rodando com `next start`/`next dev` ao lado do `radar_abm` (mesmo checkout, com `radar_abm/dados/radar.db`
+existindo), útil/ruído/abordado/adiado/arquivado vão para o banco: uma tabela própria (`app_estados`) guarda o
+estado de cada sinal, e útil/ruído também vira uma linha em `feedback` — a mesma tabela que `manager.py feedback`
+grava — para `manager.py metricas` enxergar as duas fontes juntas. Sem o banco por perto (prévia estática, ou
+antes de os coletores rodarem), a tela guarda tudo só no navegador, como antes.
+
+## Prévia estática (sem servidor)
+
+```sh
+npm run exportar   # gera radar_app/out/, só com a base fictícia, sem banco e sem os endpoints de gravação
+```
+
+A exportação estática do Next.js não roda endpoints dinâmicos nem tem acesso ao banco; o script tira
+`app/api/` e `data/contas.local.json` do caminho antes do build e devolve os dois depois.
