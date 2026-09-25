@@ -48,7 +48,7 @@ class ClienteHTTP:
                 self.dormir(falta)
         self._ultima[host] = self.relogio()
 
-    def get(self, url: str, headers: dict[str, str] | None = None) -> bytes:
+    def get(self, url: str, headers: dict[str, str] | None = None, chave: str | None = None) -> bytes:
         return self.requisitar("GET", url, headers=headers)
 
     def get_json(self, url: str, headers: dict[str, str] | None = None):
@@ -95,15 +95,17 @@ class ClienteLocal:
     pasta: str
     chamadas: int = 0
 
-    def _arquivo(self, url: str):
+    def _arquivo(self, url: str, chave: str | None):
         from pathlib import Path
 
+        if chave:  # ex.: notícias da conta F-003 -> F-003.xml
+            return next(Path(self.pasta).glob(f"{chave}.*"), Path(self.pasta) / f"{chave}.xml")
         nome = urlparse(url).path.rstrip("/").rsplit("/", 1)[-1]
         return Path(self.pasta) / (nome if "." in nome else f"{nome}.json")
 
-    def get(self, url: str, headers: dict[str, str] | None = None) -> bytes:
+    def get(self, url: str, headers: dict[str, str] | None = None, chave: str | None = None) -> bytes:
         self.chamadas += 1
-        arquivo = self._arquivo(url)
+        arquivo = self._arquivo(url, chave)
         if not arquivo.exists():
             raise ErroHTTP(f"sem resposta salva para {url} (esperava {arquivo})", 404)
         return arquivo.read_bytes()

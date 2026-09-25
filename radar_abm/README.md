@@ -19,6 +19,8 @@ python manager.py aliases revisar --saida saidas/aliases_revisar.csv
 python manager.py aliases aplicar saidas/aliases_revisar.csv
 python manager.py coletar --conector cnpj --tier A --limite 5 --dry-run
 python manager.py coletar --conector cnpj
+python manager.py coletar --conector noticias --tier A --limite 5 --dry-run
+python manager.py coletar --conector noticias
 python manager.py execucoes
 python -m pytest tests                    # testes, sem internet
 ```
@@ -45,3 +47,4 @@ duplicar.
 | `abm/conectores/base.py` | contrato único de conector (buscar, traduzir, comparar, entregar) |
 | `abm/conectores/http.py` | timeout, retry com backoff e rate limit; respostas salvas para testes |
 | `abm/conectores/cnpj.py` | conector CNPJ (BrasilAPI) |
+| `abm/conectores/noticias.py` | conector Google News (RSS) |

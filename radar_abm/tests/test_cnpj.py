@@ -98,7 +98,7 @@ def test_dry_run_mostra_os_passos_e_nao_grava(conn, tmp_path):
     ex, tela = rodar(conn, PASTA, date(2024, 12, 1), dry_run=True)
     texto = "\n".join(tela)
     assert "1. BUSCA    GET https://brasilapi.com.br/api/cnpj/v1/91586982000109" in texto
-    assert "2. TRADUZ" in texto and "3. COMPARA  primeira coleta" in texto
+    assert "2. TRADUZ   QSA com 3 pessoa(s)" in texto and "3. COMPARA  primeira coleta" in texto
     assert "socio_entrou: FABIO ANDRE SCHMOEKEL (Diretor) entrou" in texto
     assert "completaria na conta: razao_social = COOPERATIVA" in texto
     for tabela in ("sinais", "itens_brutos", "snapshots", "execucoes"):

@@ -150,14 +150,67 @@ Sem internet, `--fixtures PASTA` usa respostas salvas em `PASTA/cnpj/<cnpj>.json
   (ReceitaWS, CNPJá, publica.cnpj.ws). Só muda o passo BUSCA; os outros três ficam iguais.
 - Um erro numa conta não para as outras: ele aparece na tela, em `execucoes` e em `logs/radar.log`.
 
-## Google News (RSS): fase 3, a construir
+## Google News (RSS)
 
-- **BUSCA**: `https://news.google.com/rss/search?q={consulta}&hl=pt-BR&gl=BR&ceid=BR:pt-419`, com a consulta
-  montada pelos aliases ligados e pelos termos negativos.
-- **TRADUZ**: título, veículo, link, data, trecho.
-- **COMPARA**: descarta o que já foi visto (hash do link + título) e junta a mesma notícia de vários veículos
-  num único evento.
-- **ENTREGA**: itens brutos para o classificador (fase 5).
+Arquivo: `abm/conectores/noticias.py`. Vigia o que a imprensa publica sobre cada conta.
+
+- **BUSCA**: monta uma consulta com os aliases **ligados** da conta (até 5) e pede ao Google News as
+  notícias dos últimos 30 dias em RSS. RSS é uma lista padronizada de notícias em texto, feita para
+  programas lerem. O endereço é
+  `https://news.google.com/rss/search?q={consulta}&hl=pt-BR&gl=BR&ceid=BR:pt-419`.
+
+  Exemplos de consulta:
+  - `"Junto Seguros" when:30d`: "Junto" sozinho é ambíguo e está desligado, por isso fica de fora.
+  - `"Pinheiro Guimarães" (advogados OR advocacia OR escritório OR sócio OR sócia OR auditoria) when:30d`:
+    escritórios têm nome de sobrenome, então a consulta exige uma palavra de contexto.
+  - `("Cresol Confederação" OR "Cresol") (cooperativa OR ... OR banco) -"futsal" when:30d`: um alias
+    ambíguo que você aprovou também ganha contexto; os termos negativos entram com sinal de menos.
+- **TRADUZ**: de cada notícia guarda o título (sem o " - Veículo" e o "| Nome do Site" do fim), o veículo,
+  o link, a data e o trecho. O RSS do Google só traz a manchete, então o trecho costuma ser a própria
+  manchete.
+- **COMPARA**: joga fora, e mostra na tela quantas e quais:
+  - **não cita a empresa**: o Google às vezes traz notícias em que o nome só aparece no corpo, ou nem
+    isso. Buscando "Junto Seguros", vieram notícias da Porto Seguro e da Susep;
+  - **termo negativo**: tem uma das palavras que você marcou como "outra empresa";
+  - **já vista**: mesmo link ou mesmo título normalizado (sem acento, pontuação e maiúsculas);
+  - **fora da janela**: mais velha que 30 dias.
+
+  Depois **agrupa**: a mesma notícia publicada por vários veículos vira um único **evento**. A regra: os
+  títulos têm ao menos 2 palavras-chave em comum, cobrindo metade das palavras-chave do título menor, e
+  saíram com até 3 dias de diferença. Uma notícia que chega dias depois entra no evento que já existe.
+- **ENTREGA**: grava cada notícia nova em `itens_brutos`, com o evento e o veículo. **Ainda não vira
+  sinal**: quem decide se é sinal ou ruído (patrocínio, prêmio, sorteio) é o classificador da fase 5.
+
+**Precisa para funcionar**:
+- aliases ligados (revise os ambíguos com `aliases revisar`);
+- nenhuma chave de API;
+- o RSS do Google News é gratuito, mas não tem limite publicado nem garantia. Uma consulta por conta
+  por semana, com 1 segundo entre chamadas, fica bem abaixo do que costuma ser bloqueado. Para 315
+  contas, conte com 5 a 8 minutos.
+
+**Opção no `.env`**: `RADAR_NOTICIAS_JANELA_DIAS` (padrão 30).
+
+**Comandos**:
+```sh
+python manager.py coletar --conector noticias --tier A --limite 5 --dry-run
+python manager.py coletar --conector noticias
+```
+
+**Limites conhecidos**:
+- Manchetes que não citam a empresa são descartadas, mesmo quando o texto cita (ex.: matéria da CNN
+  sobre IA no comércio exterior que talvez entreviste alguém da Logcomex). É o preço de não encher a
+  base de ruído.
+- Paráfrases do mesmo fato ("lança IA para corretores emitirem apólices" x "lança agentes de IA para
+  emissão de apólices") podem ficar em eventos separados. O classificador junta.
+- Homônimos (pessoa, rua ou filme com o nome do escritório) passam se citarem o nome. A saída é pôr
+  termos negativos no alias (ex.: `Pequenas Criaturas; consultora; Galeria`).
+
+**Quando quebra**:
+- "respondeu 503" ou "429" repetidos: o Google está limitando as chamadas. Rode de novo mais tarde ou em
+  lotes menores (`--limite 50`). As notícias já gravadas não se repetem.
+- Muitas contas com 0 novidades e "não cita a empresa" alto: confira se os aliases ligados são os nomes
+  que a imprensa usa (`aliases listar <conta>`); acrescente com `aliases adicionar`.
+- O Google mudou o formato do RSS: o erro aparece no passo TRADUZ. Só esse passo precisa ser ajustado.
 
 ## Apollo (comitê de compra): fase 4, a construir
 

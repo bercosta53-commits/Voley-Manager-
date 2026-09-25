@@ -43,7 +43,9 @@ class Item:
 
     def resumo(self) -> str:
         data = f" [{self.data_fato}]" if self.data_fato else ""
-        return f"{self.tipo}: {self.titulo}{data}"
+        veiculo = f" ({self.extra['veiculo']})" if self.extra.get("veiculo") else ""
+        grupo = "  ↳ mesmo evento de outra notícia" if self.extra.get("novo_evento") is False else ""
+        return f"{self.tipo}: {self.titulo}{veiculo}{data}{grupo}"
 
 
 class Conector(ABC):
@@ -81,6 +83,10 @@ class Conector(ABC):
     def descrever_busca(self, conta) -> str:
         return "consultando a fonte"
 
+    def conteudo_snapshot(self, novo: dict) -> dict:
+        """O que vale guardar como foto. Padrão: a tradução inteira."""
+        return novo
+
     def completar_conta(self, novo: dict) -> dict:
         """Campos da conta que a fonte sabe preencher (ex.: razão social). Só entram os que estão vazios."""
         return {}
@@ -108,9 +114,11 @@ class Conector(ABC):
                 novo = self.traduzir(bruto)
                 self.passo(f"   2. TRADUZ   {self.resumir(novo)}")
                 anterior = self.snapshot_anterior(conta["id"])
+                base = "primeira coleta, sem foto anterior" if anterior is None else "comparando com a foto anterior"
+                self.passo(f"   3. COMPARA  {base}")
                 itens = self.comparar(novo, anterior)
-                base = "primeira coleta, sem foto anterior" if anterior is None else "comparado com a foto anterior"
-                self.passo(f"   3. COMPARA  {base}: {len(itens)} novidade(s)")
+                foto = self.conteudo_snapshot(novo)
+                self.passo(f"               {len(itens)} novidade(s)")
                 for item in itens:
                     self.passo(f"               - {item.resumo()}")
                 completar = {k: v for k, v in self.completar_conta(novo).items() if v and not conta[k]}
@@ -121,7 +129,7 @@ class Conector(ABC):
                 else:
                     # Itens e foto nova entram juntos: se algo falhar, nada desta conta fica gravado pela metade.
                     gravados = self.entregar(itens)
-                    self.salvar_snapshot(conta["id"], novo, anterior)
+                    self.salvar_snapshot(conta["id"], foto, anterior)
                     if completar:
                         self.conn.execute(
                             f"update contas set {', '.join(f'{k} = ?' for k in completar)}, atualizada_em = ? where id = ?",
@@ -171,13 +179,16 @@ class Conector(ABC):
     def impressao_digital(*partes: str) -> str:
         return hashlib.sha256("|".join(p or "" for p in partes).encode("utf-8")).hexdigest()[:32]
 
-    def gravar_item_bruto(self, item: Item, hash_: str | None = None) -> bool:
+    def gravar_item_bruto(self, item: Item, hash_: str | None = None, evento_id: str | None = None,
+                          veiculo: str | None = None) -> bool:
         """Grava o item em itens_brutos. Devolve False se ele já tinha sido visto (mesmo hash)."""
         hash_ = hash_ or self.impressao_digital(self.nome, item.conta_id, item.tipo, item.url or "", item.titulo)
         feito = self.conn.execute(
-            """insert into itens_brutos (id, conector, conta_id, url, titulo, trecho, data_publicacao, data_coleta, hash)
-               values (?, ?, ?, ?, ?, ?, ?, ?, ?) on conflict (hash) do nothing""",
-            (novo_id(), self.nome, item.conta_id, item.url, item.titulo, item.trecho, item.data_fato, agora(), hash_),
+            """insert into itens_brutos (id, conector, conta_id, url, titulo, trecho, data_publicacao, data_coleta, hash,
+                                         evento_id, veiculo)
+               values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) on conflict (hash) do nothing""",
+            (novo_id(), self.nome, item.conta_id, item.url, item.titulo, item.trecho, item.data_fato, agora(), hash_,
+             evento_id, veiculo),
         ).rowcount
         return bool(feito)
 
