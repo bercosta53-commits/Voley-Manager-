@@ -51,6 +51,13 @@ MAPA = {
     "capital_mudou": None,
     "situacao_mudou": None,
     "sede_mudou": None,
+    "anuncio_comecou": "comecou_anuncios",
+    "anuncio_canal_novo": "comecou_anuncios",
+    "anuncio_parou": "pausou_anuncios",
+    "anuncio_destino_novo": "nova_landing",
+    "anuncio_mensagem_nova": None,
+    "anuncio_volume": None,
+    "infraestrutura_sem_operacao": None,
 }
 TIPOS_DE_PESSOA = {"troca_diretoria", "troca_c_level", "administracao_mudou", "pessoa_nova_cargo_alvo", "membro_mudou_de_cargo"}
 TIPOS_DE_VAGA = {"vaga_lideranca_receita", "vaga_marketing_growth", "vaga_comercial"}
@@ -76,7 +83,7 @@ REGRAS_EXPANSAO = [
     (r"\b(crescimento|cresce|cresceu|lucro|resultado|recorde|faturamento)\b", "resultado_crescimento"),
     (r"\b(lanca|lancamento|novo produto|nova linha|nova solucao)\b", "lancamento_produto"),
 ]
-FONTES = {"cnpj": "Receita Federal (BrasilAPI)", "noticias": "Google News", "vagas": "Vagas", "apollo": "Apollo",
+FONTES = {"anuncios": "Bibliotecas de anúncios", "cnpj": "Receita Federal (BrasilAPI)", "noticias": "Google News", "vagas": "Vagas", "apollo": "Apollo",
           "consultorias": "Consultoria de recrutamento", "regras": "Google News"}
 
 

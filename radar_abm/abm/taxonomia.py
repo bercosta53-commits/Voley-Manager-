@@ -28,6 +28,8 @@ class Tipo:
     angulo_sugerido: str
     palavras_chave: tuple[str, ...]
     ajustes: dict
+    # Tipo que só um conector gera (ex.: anúncios). O classificador de notícias não usa esses tipos.
+    fonte_exclusiva: str | None = None
 
     def vale_para(self, braco: str | None) -> bool:
         return not self.bracos or braco in self.bracos
@@ -40,7 +42,7 @@ class Tipo:
         return Tipo(self.id, self.rotulo, self.bracos, int(ajuste.get("peso", self.peso)),
                     int(ajuste.get("meia_vida_dias", self.meia_vida_dias)),
                     ajuste.get("membro_comite", self.membro_comite), ajuste.get("angulo_sugerido", self.angulo_sugerido),
-                    self.palavras_chave, self.ajustes)
+                    self.palavras_chave, self.ajustes, self.fonte_exclusiva)
 
 
 @dataclass(frozen=True)
@@ -62,6 +64,10 @@ class Taxonomia:
 
     def tipos_para(self, braco: str | None) -> list[Tipo]:
         return [t.para(braco) for t in self.tipos.values() if t.vale_para(braco)]
+
+    def tipos_para_noticias(self, braco: str | None) -> list[Tipo]:
+        """Os tipos que o classificador de notícias pode usar (sem os exclusivos de um conector)."""
+        return [t for t in self.tipos_para(braco) if not t.fonte_exclusiva]
 
     def tipo(self, tipo_id: str, braco: str | None) -> Tipo | None:
         t = self.tipos.get(tipo_id)
@@ -104,7 +110,8 @@ def carregar(arquivo: str | Path | None = None) -> Taxonomia:
                 erros.append(f"{onde}: ajuste de peso em {b} deve ser de 1 a 10")
         tipos[tid] = Tipo(tid, t.get("rotulo") or tid, bracos, peso if isinstance(peso, int) else 1,
                           meia if isinstance(meia, int) and meia > 0 else 1, t.get("membro_comite") or "decisor",
-                          t.get("angulo_sugerido") or "", tuple(t.get("palavras_chave") or ()), t.get("ajustes") or {})
+                          t.get("angulo_sugerido") or "", tuple(t.get("palavras_chave") or ()), t.get("ajustes") or {},
+                          t.get("fonte_exclusiva"))
     limiar = dados.get("limiar_confianca", 0.6)
     if not isinstance(limiar, (int, float)) or not 0 < limiar <= 1:
         erros.append(f"limiar_confianca deve ficar entre 0 e 1 (está {limiar!r})")

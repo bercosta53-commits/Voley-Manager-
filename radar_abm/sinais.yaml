@@ -267,6 +267,75 @@ tipos:
     membro_comite: influenciador
     angulo_sugerido: Executivo recém-chegado monta plano e escolhe fornecedores nos primeiros 90 dias; abordar cedo.
 
+  # ----------------------------------------------------------------------------------------------
+  # Bibliotecas de anúncios (Google Ads Transparency Center e Meta Ad Library). Só o conector de
+  # anúncios gera estes tipos (fonte_exclusiva): o classificador de notícias não os usa.
+  # Checagem semanal; meia-vida de 45 dias.
+  # ----------------------------------------------------------------------------------------------
+  anuncio_comecou:
+    rotulo: Começou a anunciar
+    braco_icp: todos
+    peso: 8
+    meia_vida_dias: 45
+    membro_comite: decisor
+    fonte_exclusiva: anuncios
+    angulo_sugerido: Está estruturando aquisição agora; chegar com o raio-x de mídia e um plano para a mídia paga virar pipeline, não só clique.
+
+  anuncio_parou:
+    rotulo: Parou de anunciar
+    braco_icp: todos
+    peso: 7
+    meia_vida_dias: 45
+    membro_comite: decisor
+    fonte_exclusiva: anuncios
+    angulo_sugerido: Corte, troca de agência ou problema de resultado; janela para rever fornecedor com um diagnóstico do que rodava antes.
+
+  anuncio_canal_novo:
+    rotulo: Entrou num canal novo de anúncios
+    braco_icp: todos
+    peso: 5
+    meia_vida_dias: 45
+    membro_comite: influenciador
+    fonte_exclusiva: anuncios
+    angulo_sugerido: Expandindo canais; mostrar como integrar a mensagem e medir cada canal pelo pipeline que gera.
+
+  anuncio_mensagem_nova:
+    rotulo: Mudou a mensagem dos anúncios
+    braco_icp: todos
+    peso: 5
+    meia_vida_dias: 45
+    membro_comite: influenciador
+    fonte_exclusiva: anuncios
+    angulo_sugerido: Produto, vertical ou público novo; ajudar a posicionar a oferta nova para as contas certas.
+
+  anuncio_destino_novo:
+    rotulo: Anúncios levam a um destino novo
+    braco_icp: todos
+    peso: 5
+    meia_vida_dias: 45
+    membro_comite: influenciador
+    fonte_exclusiva: anuncios
+    angulo_sugerido: Landing page dedicada ou ferramenta de LP nova é sinal de estruturação; oferecer o funil que falta depois da página.
+
+  anuncio_volume:
+    rotulo: Variação brusca de criativos
+    braco_icp: todos
+    peso: 3
+    meia_vida_dias: 45
+    membro_comite: influenciador
+    fonte_exclusiva: anuncios
+    angulo_sugerido: Aumento ou corte forte de criativos; entender o que mudou na meta ou no orçamento.
+
+  infraestrutura_sem_operacao:
+    rotulo: Infraestrutura de mídia sem operação
+    braco_icp: todos
+    peso: 5
+    meia_vida_dias: 45
+    membro_comite: decisor
+    fonte_exclusiva: anuncios
+    angulo_sugerido: Tem pixel e tag instalados, mas nenhum anúncio rodando; tem a ferramenta, não tem o motor.
+
+
 # Ruído: notícias que citam a empresa mas não abrem janela de compra. O classificador descarta.
 ruido:
   premio_ranking: [prêmio, premiação, ranking, reconhecida, reconhecido, eleita, eleito, melhor empresa, gptw, great place, homenagem, destaque do ano]

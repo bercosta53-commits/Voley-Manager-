@@ -71,6 +71,9 @@ duplicar.
 | `abm/score.py` | score da conta com decaimento |
 | `abm/digest.py` | digest semanal em HTML |
 | `abm/metricas.py` | feedback e métricas (precisão, latência, volume) |
+| `abm/conectores/anuncios.py` | conector de bibliotecas de anúncios (Google e Meta, via SearchAPI) |
+| `abm/anunciantes.py` | descoberta e confirmação dos anunciantes de cada conta |
+| `abm/raiox_midia.py` | raio-x de mídia da conta |
 | `abm/painel.py` | leva os sinais à caixa "Captados pela IA" do painel publicado |
 
 ## Próximas fases (fora do escopo agora)

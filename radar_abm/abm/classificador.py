@@ -61,7 +61,7 @@ def _norm(texto: str) -> str:
 
 def validar(item: dict, bruto: dict, taxonomia: Taxonomia, braco: str | None, ids_lote: set[str], classificador: str) -> Decisao:
     """Confere o que o modelo respondeu contra a taxonomia e contra o texto coletado."""
-    permitidos = {t.id for t in taxonomia.tipos_para(braco)}
+    permitidos = {t.id for t in taxonomia.tipos_para_noticias(braco)}
     empresa_certa = bool(bruto.get("empresa_certa", True))
     relevante = bool(bruto.get("relevante")) and empresa_certa
     tipo = bruto.get("tipo") if bruto.get("tipo") not in (None, "", "nenhum") else None
@@ -135,7 +135,7 @@ def esquema(tipos: list[str], ruido: list[str]) -> dict:
 
 
 def montar_pedido(conta: dict, itens: list[dict], taxonomia: Taxonomia) -> str:
-    tipos = "\n".join(f"- {t.id}: {t.rotulo}" for t in taxonomia.tipos_para(conta.get("braco_icp"))
+    tipos = "\n".join(f"- {t.id}: {t.rotulo}" for t in taxonomia.tipos_para_noticias(conta.get("braco_icp"))
                       if t.palavras_chave or t.id == "expansao_negocio")  # os tipos de conector não vêm de notícia
     ruido = ", ".join(taxonomia.ruido)
     dados_conta = {k: conta.get(k) for k in ("nome_fantasia", "razao_social", "braco_icp", "subsegmento", "cidade", "uf", "dominio")}
@@ -175,7 +175,7 @@ class ClassificadorClaude:
     def _chamar(self, conta: dict, lote: list[dict], taxonomia: Taxonomia) -> list[dict]:
         import anthropic
 
-        tipos = [t.id for t in taxonomia.tipos_para(conta.get("braco_icp"))]
+        tipos = [t.id for t in taxonomia.tipos_para_noticias(conta.get("braco_icp"))]
         params = dict(
             model=self.modelo,
             max_tokens=16000,
@@ -215,7 +215,7 @@ class ClassificadorRegras:
 
     def classificar(self, conta: dict, itens: list[dict], taxonomia: Taxonomia) -> list[Decisao]:
         decisoes = []
-        tipos = [t for t in taxonomia.tipos_para(conta.get("braco_icp")) if t.palavras_chave]
+        tipos = [t for t in taxonomia.tipos_para_noticias(conta.get("braco_icp")) if t.palavras_chave]
         for it in itens:
             texto = _norm(f"{it['titulo']} {it.get('trecho') or ''}")
             ruido = next((cat for cat, termos in taxonomia.ruido.items() if any(_cita(texto, t) for t in termos)), None)

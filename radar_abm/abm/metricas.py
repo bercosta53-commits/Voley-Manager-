@@ -96,8 +96,14 @@ def calcular(conn, dias: int = 30, hoje: date | None = None) -> dict:
     execucoes = conn.execute(
         """select conector, count(*) as rodadas, sum(itens) as itens, sum(erros) as erros from execucoes
            where substr(inicio, 1, 10) >= ? group by conector order by conector""", (desde,)).fetchall()
+    try:
+        custos = [dict(r) for r in conn.execute(
+            """select provedor, count(*) as chamadas, round(sum(custo_usd), 2) as custo_usd from chamadas_provedor
+               where substr(data, 1, 10) >= ? group by provedor order by provedor""", (desde,))]
+    except Exception:  # banco antigo, sem a tabela de chamadas pagas
+        custos = []
     return {"dias": dias, "linhas": sorted(linhas.values(), key=lambda l: l.conector), "total": total,
-            "noticias": noticias, "execucoes": execucoes}
+            "noticias": noticias, "execucoes": execucoes, "custos": custos}
 
 
 def _pct(x: float | None) -> str:
@@ -125,6 +131,10 @@ def imprimir(m: dict, saida=print) -> None:
     if m["noticias"]:
         saida("")
         saida("  Notícias coletadas por classificação: " + ", ".join(f"{k} {v}" for k, v in sorted(m["noticias"].items())))
+    if m.get("custos"):
+        saida("")
+        saida("  Custo por provedor: " + "; ".join(f"{c['provedor']} {c['chamadas']} busca(s), cerca de US$ {c['custo_usd']:.2f}"
+                                                 for c in m["custos"]))
     if m["execucoes"]:
         saida("")
         saida("  Execuções: " + "; ".join(f"{e['conector']} {e['rodadas']} rodada(s), {e['itens'] or 0} itens, "

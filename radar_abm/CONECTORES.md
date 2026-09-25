@@ -505,6 +505,123 @@ Depois, peça ao Claude: "grave no painel os lotes de saidas/painel_caixa_velora
 
 ---
 
+## Bibliotecas de anúncios (Google e Meta)
+
+Arquivos: `abm/conectores/anuncios.py` (o conector), `abm/conectores/provedor_anuncios.py` (o provedor),
+`abm/anunciantes.py` (quem é o anunciante de cada conta) e `abm/raiox_midia.py` (o raio-x). Checagem **semanal**:
+anúncio não muda de hora em hora.
+
+**De onde vêm os dados, e por quê** (pesquisa de 25/09/2026):
+
+| Fonte | Opção | Serve? | Custo |
+| --- | --- | --- | --- |
+| Google Ads Transparency Center | Dataset público no BigQuery | **Não.** Só traz anunciantes que veicularam na Europa ou na Turquia | grátis até 1 TB/mês |
+| Google | SerpApi | Sim, só Google | 250 buscas/mês grátis; US$ 25 por 1.000 (Starter) |
+| Google e Meta | **SearchAPI (escolhido)** | Sim, os dois com a mesma chave | 100 buscas grátis; US$ 40/mês por 10.000 (US$ 0,004 cada) |
+| Meta Ad Library | API oficial da Meta | **Não.** No Brasil só entrega anúncios políticos | grátis |
+| Meta | Apify (atores da comunidade) | Sim, só Meta | US$ 0,75 a 5,80 por 1.000 anúncios, mais o custo de cada rodada |
+| LinkedIn Ad Library | nenhuma | **Não coletar** (regra de não raspar o LinkedIn) | link para consulta manual no raio-x |
+
+- **BUSCA**: para cada conta com anunciante **confirmado**, pede ao SearchAPI os anúncios mostrados no Brasil:
+  - uma busca por anunciante do Google (`contas.google_advertiser_ids`);
+  - uma busca por página do Meta (`contas.meta_page_ids`).
+
+  No Google, o texto e o destino de cada anúncio saem de uma segunda busca. Ela só é feita para anúncio que o radar
+  ainda não viu, até `RADAR_ANUNCIOS_MAX_DETALHES` (padrão 5) por conta e por semana. Conta sem ID confirmado é pulada.
+  Conta coletada há menos de 7 dias também.
+- **TRADUZ**: cada anúncio vira plataforma, data de início, status (ativo ou não), texto, chamada para ação, URL de
+  destino e formato. Guarda texto e link; **imagem e vídeo nunca são baixados**. No Google, "ativo" é visto nos
+  últimos 7 dias; no Meta, o status vem da própria biblioteca.
+- **COMPARA**: com a foto da semana anterior, que carrega 12 semanas de histórico, por plataforma:
+
+  | Sinal | Quando | Peso |
+  | --- | --- | --- |
+  | Começou a anunciar | nenhum anúncio ativo em nenhuma plataforma, e agora tem | ALTO (8) |
+  | Parou de anunciar | zero anúncios ativos há 30 dias ou mais, depois de ter anunciado; avisa uma vez | MÉDIO-ALTO (7) |
+  | Entrou num canal novo | anunciava num canal e passou a anunciar também no outro | MÉDIO (5) |
+  | Mudou a mensagem | produto, vertical ou público novo | MÉDIO (5) |
+  | Destino novo | landing page dedicada, subdomínio, ferramenta de LP (HubSpot, RD Station, Unbounce...) | MÉDIO (5) |
+  | Variação de criativos | ±50% em 4 semanas, com pelo menos 4 criativos num dos lados | BAIXO (3) |
+  | Infraestrutura sem operação | o site tem pixel do Meta, tag do Google Ads ou LinkedIn Insight, e nenhum anúncio ativo | MÉDIO (5) |
+
+  Meia-vida de 45 dias para todos.
+  - **Mensagem**: o Claude compara os temas desta semana com os das 8 anteriores e responde em esquema JSON. Sem a
+    chave da API, uma regra procura público empresarial novo ("empresa", "PJ", "CNPJ") e palavras novas que se
+    repetem. A regra tem confiança baixa: o sinal vai para "revisar".
+  - **Infraestrutura sem operação**: lê a tabela `site_tecnologias`, que será preenchida pelo **conector de site**,
+    ainda a construir.
+  - Na primeira coleta de cada plataforma, a foto vira só a linha de base.
+- **ENTREGA**: cada mudança vira sinal com um "por que agora" que **interpreta** o movimento. Por exemplo: "Parou de
+  anunciar no Google há 5 semanas depois de 14 meses contínuos: provável corte, troca de agência ou problema de
+  resultado."
+  - O texto termina com quem abordar: o CMO ou head de marketing; sem essa pessoa, o diretor comercial ou o CEO
+    (da tabela `pessoas`).
+  - Os anúncios ficam na tabela `anuncios`.
+  - O **raio-x de mídia** da conta é refeito.
+
+**Identidade do anunciante** (`python manager.py anuncios descobrir`): nunca associa sozinho.
+- **Google**: o nome verificado do anunciante costuma ser a razão social. Nome igual à razão social pontua mais;
+  igual ao nome fantasia, menos. Uma palavra em comum não basta. A biblioteca do Google **não mostra o CNPJ**: confira
+  a razão social e a sede na página do anunciante.
+- **Meta**: nome da página mais o domínio dos links dos anúncios da página. Só é conferida (busca paga) a página
+  com nome parecido de verdade.
+- **Domínio compartilhado** (Sicredi, Sicoob, Cresol, Unicred, Ailos, ou o mesmo domínio em mais de uma conta): o
+  domínio não pontua. O candidato vem marcado "COMPARTILHADO: confira se a página é desta central".
+- Os candidatos vão para `saidas/anunciantes_candidatos.csv`. Marque `sim` ou `nao` e rode
+  `anuncios confirmar <csv>`. Só então os IDs entram na conta. Um ID achado à mão entra com
+  `anuncios confirmar --conta F-003 --plataforma meta --id 123`.
+
+**Raio-x de mídia** (`python manager.py anuncios raiox <conta>`): canais ativos e há quanto tempo, volume de criativos
+e variação em 4 semanas, temas e chamadas que se repetem, para onde os anúncios levam (home, página dedicada,
+formulário, WhatsApp) e observações de maturidade. Exemplos: "todos os anúncios levam para a home", "um único criativo
+há 5 meses", "sem anúncio para público empresarial", "só anuncia no Meta". Termina com o link da biblioteca do
+LinkedIn, para consulta manual. É o gancho da abordagem: a Velora chega com o diagnóstico pronto.
+
+**Precisa para funcionar**:
+- `SEARCHAPI_API_KEY` no `.env`: conta em searchapi.io; as 100 primeiras buscas são grátis, sem cartão.
+- IDs confirmados: `anuncios descobrir`, depois `anuncios confirmar`.
+- Opcional: `ANTHROPIC_API_KEY`, para a comparação de mensagem pelo Claude.
+
+**Quanto custa** (70 contas, estimativa):
+- Descoberta, uma vez: até 4 buscas por conta. São 88 nas 22 contas A, dentro das 100 grátis.
+- Coleta semanal: 1 busca por anunciante do Google, mais até 5 de detalhe (só anúncio novo), mais 1 por página do Meta.
+  Com uns 40 anunciantes, dá algo como 500 a 900 buscas por mês.
+- No plano Developer do SearchAPI (US$ 40/mês, 10 mil buscas), sobra muito.
+- `python manager.py anuncios custos` e `python manager.py metricas` mostram buscas e custo por provedor nos últimos
+  30 dias. A precisão desta fonte aparece separada na linha `anuncios` das métricas.
+
+**Termos de uso**:
+- O SearchAPI coleta páginas públicas e assume a responsabilidade legal pela própria coleta (lei dos EUA). A
+  "Legal Protection Guarantee", de até US$ 2 milhões, só vem nos planos **Production (US$ 100/mês) e acima**; o
+  Developer (US$ 40/mês) não tem.
+- A Meta proíbe coleta automatizada sem permissão (Automated Data Collection Terms). Usar um provedor tira a coleta
+  das nossas mãos, mas não zera o risco. Por isso o conector só busca anunciantes confirmados, uma vez por semana, e
+  guarda só texto e link.
+
+**Comandos**:
+```sh
+python manager.py anuncios descobrir --tier A --dry-run   # quantas buscas e quanto custaria
+python manager.py anuncios descobrir --tier A             # candidatos em saidas/anunciantes_candidatos.csv
+python manager.py anuncios confirmar saidas/anunciantes_candidatos.csv
+python manager.py coletar --conector anuncios --dry-run   # plano e custo, sem nenhuma busca paga
+python manager.py coletar --conector anuncios             # semanal (--forcar coleta antes dos 7 dias)
+python manager.py anuncios raiox F-003
+python manager.py anuncios custos
+```
+
+**Quando quebra**:
+- "falta SEARCHAPI_API_KEY": crie a conta em searchapi.io e ponha a chave no `.env`.
+- "SearchAPI: ..." com limite de uso: o plano acabou. Veja `anuncios custos` e troque de plano ou espere o mês virar.
+- Conta sempre "sem anunciante confirmado": rode `anuncios descobrir` para ela, ou confirme o ID à mão (na
+  Transparency Center, o ID começa com AR; na Meta Ad Library, é o `view_all_page_id` do endereço).
+- Anúncio do Google sem texto: a busca de detalhe falhou ou passou do limite semanal. Tenta de novo na semana
+  seguinte. O formato da resposta de detalhe não tinha exemplo completo na documentação do SearchAPI: confira na
+  primeira coleta real.
+- Muitos sinais de "mensagem nova" errados: sem a chave do Claude, a regra é simples. Marque ruído (`feedback`), e
+  eles caem na precisão da fonte.
+
+---
+
 ## Classificador (API do Claude)
 
 Arquivo: `abm/classificador.py`. Não vigia uma fonte, mas conversa com um serviço de fora (a API do

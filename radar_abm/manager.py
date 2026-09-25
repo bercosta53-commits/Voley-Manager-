@@ -90,7 +90,7 @@ def cmd_coletar(args) -> None:
 
     conn = _conn()
     # Ordem: CNPJ primeiro (completa razão social, que vira alias), depois notícias, depois Apollo.
-    nomes = [args.conector] if args.conector else [n for n in ("cnpj", "noticias", "vagas", "apollo") if n in CONECTORES]
+    nomes = [args.conector] if args.conector else [n for n in ("cnpj", "noticias", "vagas", "apollo", "anuncios") if n in CONECTORES]
     ids = [i.strip() for i in args.contas.split(",")] if args.contas else None
     contas = selecionar_contas(conn, ids=ids, tier=args.tier, limite=args.limite)
     resumo = []
@@ -106,6 +106,8 @@ def cmd_coletar(args) -> None:
             arquivo_vagas = getattr(args, "arquivo_vagas", None)
             extra = {"arquivo": ler_arquivo(arquivo_vagas) if arquivo_vagas else None,
                      "usar_paginas": not getattr(args, "sem_paginas", False)}
+        if nome == "anuncios":
+            extra = {"forcar": getattr(args, "forcar", False)}
         ex = CONECTORES[nome](conn, http=http, dry_run=args.dry_run, **extra).executar(contas)
         resumo.append(f"{nome}: {ex.itens} novidade(s), {len(ex.erros)} erro(s)")
         if nome == "cnpj" and not args.dry_run:
@@ -330,6 +332,59 @@ def cmd_execucoes(args) -> None:
                 print(f"    {linha}")
 
 
+def cmd_anuncios(args) -> None:
+    from datetime import date, timedelta
+
+    from abm import anunciantes
+    from abm.conectores.base import selecionar_contas
+    from abm.conectores.http import ClienteHTTP, ClienteLocal
+    from abm.conectores.provedor_anuncios import ProvedorAnuncios, custo_mensal
+    from abm.raiox_midia import gerar_raiox
+
+    conn = _conn()
+    if args.acao == "descobrir":
+        ids = [i.strip() for i in args.contas.split(",")] if args.contas else None
+        contas = selecionar_contas(conn, ids=ids, tier=args.tier, limite=args.limite)
+        prov = ProvedorAnuncios(conn, ClienteLocal(args.fixtures) if args.fixtures else ClienteHTTP())
+        if args.dry_run:
+            print(f"DRY-RUN: {len(contas)} conta(s); até {4 * len(contas)} busca(s) no SearchAPI "
+                  f"(1 Google + 1 Meta + até 2 conferências de página por conta), cerca de US$ {4 * len(contas) * prov.custo_busca:.2f}. "
+                  "Nada foi buscado nem gravado.")
+            return
+        res = anunciantes.descobrir(conn, prov, contas)
+        destino = Path(args.saida or config.pasta_saidas() / "anunciantes_candidatos.csv")
+        n = anunciantes.exportar(conn, destino)
+        print(f"\n{res.candidatos} candidato(s) em {res.contas} conta(s); {len(res.sem_candidato)} sem candidato; "
+              f"{res.chamadas} busca(s) feitas.")
+        print(f"{n} candidato(s) pendente(s) em {destino}. Marque sim ou nao na coluna confirmar e rode: "
+              f"python manager.py anuncios confirmar {destino}")
+        print("Nenhum ID foi associado a conta alguma: só entram os que você confirmar.")
+    elif args.acao == "candidatos":
+        destino = Path(args.saida or config.pasta_saidas() / "anunciantes_candidatos.csv")
+        print(f"{anunciantes.exportar(conn, destino)} candidato(s) pendente(s) em {destino}")
+    elif args.acao == "confirmar":
+        if args.arquivo:
+            r = anunciantes.confirmar_arquivo(conn, args.arquivo)
+            print(f"{r['confirmados']} confirmado(s), {r['rejeitados']} rejeitado(s), {r['em_branco']} em branco (continuam pendentes)")
+        elif args.conta and args.plataforma and args.id:
+            anunciantes.confirmar(conn, args.conta, args.plataforma, args.id, not args.rejeitar)
+            print(f"{args.conta}: {args.plataforma} {args.id} {'rejeitado' if args.rejeitar else 'confirmado'}")
+        else:
+            sys.exit("use: anuncios confirmar <csv>  ou  anuncios confirmar --conta X --plataforma google|meta --id Y")
+    elif args.acao == "raiox":
+        rx = gerar_raiox(conn, args.conta, date.today())
+        conn.commit()
+        print(rx["texto"])
+    elif args.acao == "custos":
+        desde = (date.today() - timedelta(days=30)).isoformat()
+        linhas = custo_mensal(conn, desde)
+        if not linhas:
+            print("Nenhuma busca paga nos últimos 30 dias.")
+        for l in linhas:
+            print(f"{l['provedor']}: {l['chamadas']} busca(s) nos últimos 30 dias, cerca de US$ {l['custo_usd']:.2f} "
+                  f"(plano: US$ {config.valor('RADAR_ANUNCIOS_PLANO_MENSAL_USD', '40')}/mês)")
+
+
 def cmd_painel(args) -> None:
     import json
 
@@ -387,7 +442,8 @@ def main(argv: list[str] | None = None) -> None:
     s.set_defaults(f=cmd_aliases)
 
     s = sub.add_parser("coletar", help="roda os conectores (todos, ou um com --conector)")
-    s.add_argument("--conector", choices=["cnpj", "noticias", "vagas", "apollo"], help="só este conector")
+    s.add_argument("--conector", choices=["cnpj", "noticias", "vagas", "apollo", "anuncios"], help="só este conector")
+    s.add_argument("--forcar", action="store_true", help="anúncios: coleta mesmo se a conta foi vista há menos de 7 dias")
     s.add_argument("--arquivo-vagas", metavar="CSV", help="vagas trazidas de outras fontes (Indeed etc.; veja VAGAS_ROTINA.md)")
     s.add_argument("--sem-paginas", action="store_true", help="vagas: não visitar as páginas de carreiras")
     s.add_argument("--contas", help="ids separados por vírgula (ex.: T-001,F-003)")
@@ -473,6 +529,28 @@ def main(argv: list[str] | None = None) -> None:
     r.add_argument("--saida", default="saidas/contas_vagas.csv")
     r.add_argument("--tier")
     s.set_defaults(f=cmd_vagas)
+
+    s = sub.add_parser("anuncios", help="bibliotecas de anúncios: descobrir e confirmar anunciantes, raio-x, custos")
+    acoes = s.add_subparsers(dest="acao", required=True)
+    r = acoes.add_parser("descobrir", help="procura os anunciantes candidatos de cada conta (Google e Meta) para você confirmar")
+    r.add_argument("--contas")
+    r.add_argument("--tier")
+    r.add_argument("--limite", type=int)
+    r.add_argument("--saida")
+    r.add_argument("--dry-run", action="store_true", help="mostra quantas buscas faria e o custo, sem buscar")
+    r.add_argument("--fixtures", metavar="PASTA", help="usa respostas salvas em vez do SearchAPI")
+    r = acoes.add_parser("candidatos", help="exporta os candidatos pendentes para CSV")
+    r.add_argument("--saida")
+    r = acoes.add_parser("confirmar", help="confirma anunciantes (CSV com a coluna confirmar, ou um por vez)")
+    r.add_argument("arquivo", nargs="?")
+    r.add_argument("--conta")
+    r.add_argument("--plataforma", choices=["google", "meta"])
+    r.add_argument("--id")
+    r.add_argument("--rejeitar", action="store_true")
+    r = acoes.add_parser("raiox", help="mostra o raio-x de mídia de uma conta")
+    r.add_argument("conta")
+    acoes.add_parser("custos", help="buscas pagas e custo estimado por provedor nos últimos 30 dias")
+    s.set_defaults(f=cmd_anuncios)
 
     s = sub.add_parser("painel", help="prepara os sinais para a caixa Captados pela IA do painel publicado")
     s.add_argument("--espaco", default="velora-cnpj70", help="id do espaço no painel (padrão: velora-cnpj70)")
