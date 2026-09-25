@@ -55,6 +55,7 @@ class ConectorApollo(Conector):
         self.max_creditos = int(config.valor("RADAR_APOLLO_MAX_CREDITOS", "25"))
         self.creditos = 0            # gastos (ou, no dry-run, que seriam gastos) nesta execução
         self.busca_disponivel = True  # vira False se o plano não permitir a busca de pessoas
+        self.plano_bloqueado = False  # vira True se o plano não permitir nem a atualização do comitê
         self._novo: dict | None = None
 
     def _cabecalhos(self) -> dict:
@@ -74,6 +75,8 @@ class ConectorApollo(Conector):
         return [p for p in self.pessoas(conta) if (comite.get(p["id"]) or {}).get("consultado_em", "") < limite]
 
     def pode_rodar(self, conta) -> str:
+        if self.plano_bloqueado:
+            return "o Apollo recusou a API neste plano (veja CONECTORES.md, seção Apollo)"
         if not self.chave and not hasattr(self.http, "pasta"):
             return "sem APOLLO_API_KEY no .env"
         if not self.pessoas(conta) and not conta["dominio"]:
@@ -103,11 +106,18 @@ class ConectorApollo(Conector):
         else:
             for i in range(0, len(consultar), LOTE):
                 lote = consultar[i: i + LOTE]
-                resp = self.http.post_json(
-                    f"{BASE}/people/bulk_match?reveal_personal_emails=false&reveal_phone_number=false",
-                    {"details": [self._detalhe(p, conta) for p in lote], **SEM_REVELAR},
-                    self._cabecalhos(), chave=f"{conta['id']}_match",
-                )
+                try:
+                    resp = self.http.post_json(
+                        f"{BASE}/people/bulk_match?reveal_personal_emails=false&reveal_phone_number=false",
+                        {"details": [self._detalhe(p, conta) for p in lote], **SEM_REVELAR},
+                        self._cabecalhos(), chave=f"{conta['id']}_match",
+                    )
+                except ErroHTTP as e:
+                    if e.status == 403:  # plano sem acesso à API: não adianta tentar nas outras contas
+                        self.plano_bloqueado = True
+                        raise ErroHTTP("o Apollo recusou a atualização do comitê: o plano não inclui a API "
+                                       "de enriquecimento (o Free não inclui). Nenhum crédito foi gasto.", 403) from e
+                    raise
                 achados = resp.get("matches") or []
                 achados += [None] * (len(lote) - len(achados))
                 self.creditos += int(resp.get("credits_consumed", sum(1 for m in achados if m)))

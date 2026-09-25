@@ -132,3 +132,16 @@ def test_sem_chave_nao_roda(conn, tmp_path, monkeypatch):
     tela = []
     ConectorApollo(conn, saida=tela.append).executar(selecionar_contas(conn, ids=["T-9"]))
     assert any("pulada (sem APOLLO_API_KEY no .env)" in l for l in tela)
+
+
+def test_plano_sem_api_para_na_primeira_conta(conn, tmp_path):
+    preparar(conn, tmp_path)
+    arq = tmp_path / "mais.csv"
+    arq.write_text("id_conta,empresa,site,pessoa_p1,cargo_p1\nT-8,Beta Tech,betatech.com.br,Ana Lima,CEO\n", encoding="utf-8")
+    importador.importar(conn, importador.ler(arq))
+    pasta = fonte(tmp_path / "f1", {"_status": 403})
+    (pasta / "T-8_match.json").write_text('{"_status": 403}', encoding="utf-8")
+    ex, c, http, tela = rodar(conn, pasta)
+    assert len(ex.erros) == 1 and "Nenhum crédito foi gasto" in ex.erros[0]
+    assert "pulada (o Apollo recusou a API neste plano" in tela
+    assert sum("bulk_match" in u for u, _ in http.pedidos) == 1

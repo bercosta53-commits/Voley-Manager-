@@ -255,8 +255,12 @@ em cerca de 4. Depois se repete todo mês, dentro dos 180 créditos mensais do s
 
 **Precisa para funcionar**:
 - `APOLLO_API_KEY` no `.env` (Apollo > Settings > Integrations > API);
+- **plano pago do Apollo**. Teste real de 25/09/2026: o plano Free recusou as duas APIs
+  (`people/match`, a atualização do comitê, e `mixed_people/api_search`, a busca de pessoas novas), com
+  a mensagem "not included in your Free plan". Não gastou crédito. No Free, o conector para na primeira
+  conta e avisa. Enquanto isso, o conector CNPJ cobre parte do sinal: diretor ou sócio novo no quadro da
+  Receita;
 - créditos de enriquecimento;
-- a busca de pessoas novas exige plano pago;
 - o limite de chamadas por minuto depende do plano. O conector espera 1 segundo entre chamadas e respeita
   o "espere" (código 429).
 - Com o site da conta preenchido, o Apollo acha a pessoa certa com mais frequência.
@@ -269,8 +273,8 @@ python manager.py coletar --conector apollo --tier A
 
 **Quando quebra**:
 - "respondeu 401": a chave está errada ou foi revogada. Gere outra no Apollo e troque no `.env`.
-- "respondeu 403" na atualização do comitê: o plano não permite a API de enriquecimento. Na busca de
-  cargos-alvo, 403 é esperado no plano Free: o conector segue sem ela.
+- "o Apollo recusou a atualização do comitê": o plano não inclui a API (o Free não inclui). É preciso
+  assinar um plano pago. Na busca de cargos-alvo, a recusa só desliga essa parte.
 - "respondeu 422": o Apollo não entendeu o pedido (nome vazio, por exemplo). Confira a pessoa na planilha.
 - Créditos acabando: baixe `RADAR_APOLLO_MAX_CREDITOS` ou aumente `RADAR_APOLLO_INTERVALO_DIAS`.
 - Muitas pessoas "não encontradas": preencha o site das contas; sem domínio, homônimos confundem a busca.
