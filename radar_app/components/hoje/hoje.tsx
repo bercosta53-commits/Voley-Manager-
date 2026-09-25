@@ -31,7 +31,16 @@ function useCelular() {
   return celular;
 }
 
-export function Hoje({ base, estadoTela = 'normal' }: { base: Base; estadoTela?: EstadoTela }) {
+const ESTADOS: EstadoTela[] = ['carregando', 'vazio', 'erro', 'sem-permissao'];
+
+export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?: EstadoTela }) {
+  // ?estado=... mostra cada estado obrigatório da tela, para revisão.
+  const [estadoUrl, setEstadoUrl] = useState<EstadoTela>('normal');
+  useEffect(() => {
+    const e = new URLSearchParams(location.search).get('estado') as EstadoTela | null;
+    if (e && ESTADOS.includes(e)) setEstadoUrl(e);
+  }, []);
+  const estadoTela = estadoFixo ?? estadoUrl;
   const hoje = base.geradoEm;
   const { estados, salvar, pronto } = useEstados();
   const [visao, setVisao] = useState<Visao>('caixa');
