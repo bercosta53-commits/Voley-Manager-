@@ -165,7 +165,12 @@ def html_digest(d: dict) -> str:
                       "podem ser de contas suas. Confirme a empresa para virar sinal.</p><div class='tabela'><table>"
                       "<tr><th>Pista</th><th>Vaga</th><th>Contas candidatas</th></tr>")
         for p in d["pistas"][:20]:
-            cands = "<br>".join(f"{_e(c['nome'])} <span class='mono'>({_e(c['conta_id'])}, {c['pontos']} pts)</span>" for c in p["candidatas"])
+            def _cand(c, p=p):
+                nota = f"prob. {c['prob']:.2f}" if c.get("prob") is not None else f"{c['pontos']} pts"
+                marca = " <b>← sugestão</b>" if c["conta_id"] == p.get("sugestao_conta") else ""
+                motivo = f"<br><span class='sub'>{_e(c['motivo_ia'][:160])}</span>" if c.get("motivo_ia") else ""
+                return f"{_e(c['nome'])} <span class='mono'>({_e(c['conta_id'])}, {nota})</span>{marca}{motivo}"
+            cands = "<br>".join(_cand(c) for c in p["candidatas"])
             partes.append(f"<tr><td class='mono'>{_e(p['id'])}</td><td><b>{_e(p['titulo'])}</b> · {_e(p['consultoria'])} · {_e(p['local'] or '-')}"
                           f"<br><span class='sub'>{_e((p['descricao'] or '')[:180])}</span> {_link(p['url'])}</td><td>{cands}</td></tr>")
         partes.append("</table></div><p class='sub'>Confirmar: <code>python manager.py vagas atribuir &lt;pista&gt; &lt;conta&gt;</code> · "

@@ -67,11 +67,13 @@ python manager.py vagas importar saidas/vagas_AAAA-MM-DD.csv --dry-run    # o qu
 python manager.py vagas importar saidas/vagas_AAAA-MM-DD.csv
 python manager.py vagas consultorias saidas/consultorias_AAAA-MM-DD.csv   # vagas de headhunters viram pistas
 python manager.py vagas pistas                                             # pistas com as contas candidatas
+                                                                           # (com ANTHROPIC_API_KEY, já ordenadas pelo Claude)
 python manager.py vagas atribuir <pista> <conta>                           # confirma a empresa (ou - descarta)
 ```
 
 As consultorias escondem o nome do cliente. Por isso a vaga vira uma **pista** com as contas candidatas
-(mesmo setor e mesma cidade), e só vira sinal quando você confirma qual é a empresa. As pistas abertas
+(mesmo setor e mesma cidade). O Claude ordena as candidatas pela probabilidade de serem o cliente,
+explicando cada nota, mas a vaga só vira sinal quando você confirma qual é a empresa. As pistas abertas
 também aparecem no digest.
 
 Ou junte à rotina da semana: `python manager.py semana --arquivo-vagas saidas/vagas_AAAA-MM-DD.csv`.

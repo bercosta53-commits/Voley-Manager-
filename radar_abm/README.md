@@ -62,6 +62,7 @@ duplicar.
 | `abm/conectores/vagas.py` | conector de vagas (páginas de carreiras e arquivo do Indeed/Glassdoor) |
 | `abm/conectores/plataformas.py` | leitores de Gupy, Greenhouse, Lever, Ashby e Sólides |
 | `abm/pistas.py` | vagas de consultorias de recrutamento (cliente confidencial) viram pistas com contas candidatas |
+| `abm/ordenar_pistas.py` | o Claude ordena as candidatas de cada pista, com probabilidade e motivo |
 | `abm/conectores/apollo.py` | conector Apollo (comitê de compra) |
 | `sinais.yaml` | taxonomia de sinais: pesos, meia-vida, membro do comitê, ângulo (editável) |
 | `abm/taxonomia.py` | leitura e validação do sinais.yaml |

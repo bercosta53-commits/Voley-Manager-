@@ -264,7 +264,22 @@ def cmd_vagas(args) -> None:
               f"pelo nome, {r.sem_candidata} sem conta na cidade, {r.fora_do_icp} fora do ICP); "
               f"{len(r.fora_dos_grupos)} fora dos grupos de vaga; {r.repetidas} já vista(s)")
         if r.com_candidatas and not args.dry_run:
+            if config.valor("ANTHROPIC_API_KEY") and not args.sem_claude:
+                from abm import ordenar_pistas
+
+                print()
+                ordenar_pistas.ordenar(conn, ordenar_pistas.OrdenadorClaude())
+            else:
+                print("Sem ANTHROPIC_API_KEY: as candidatas ficam na ordem por pontos (cidade, setor, tier). "
+                      "Com a chave: python manager.py vagas ordenar")
             print("Confirme a empresa de cada pista: python manager.py vagas atribuir <pista> <conta>  (ou - para descartar)")
+    elif args.acao == "ordenar":
+        from abm import ordenar_pistas
+
+        if not config.valor("ANTHROPIC_API_KEY") and not args.dry_run:
+            sys.exit("Ordenar as candidatas usa a API do Claude: preencha ANTHROPIC_API_KEY no .env (ou use --dry-run).")
+        ordenar_pistas.ordenar(conn, ordenar_pistas.OrdenadorClaude(), pista_id=args.pista, refazer=args.refazer,
+                               dry_run=args.dry_run)
     elif args.acao == "pistas":
         from abm import pistas
 
@@ -274,8 +289,11 @@ def cmd_vagas(args) -> None:
         for p in abertas:
             print(f"{p['id']}  {p['consultoria']}: {p['titulo']} ({p['local'] or '-'})  {p['url'] or ''}")
             print(f"      {(p['descricao'] or '')[:160]}")
+            if p.get("ordenado_por"):
+                print(f"      ordenadas por {p['ordenado_por']}" + (f"; sugestão: {p['sugestao_conta']}" if p.get("sugestao_conta") else ""))
             for c in p["candidatas"]:
-                print(f"      candidata {c['conta_id']:<7} {c['nome'][:35]:<35} {c['pontos']} pts: {'; '.join(c['motivos'])}")
+                prob = f"prob. {c['prob']:.2f}" if c.get("prob") is not None else f"{c['pontos']} pts"
+                print(f"      candidata {c['conta_id']:<7} {c['nome'][:35]:<35} {prob}: {c.get('motivo_ia') or '; '.join(c['motivos'])}")
     elif args.acao == "atribuir":
         from abm import pistas
 
@@ -415,6 +433,11 @@ def main(argv: list[str] | None = None) -> None:
     r.add_argument("arquivo")
     r = acoes.add_parser("consultorias", help="importa vagas de consultorias (Michael Page, Robert Half...) como pistas")
     r.add_argument("arquivo")
+    r.add_argument("--dry-run", action="store_true")
+    r.add_argument("--sem-claude", action="store_true", help="não pedir ao Claude para ordenar as candidatas")
+    r = acoes.add_parser("ordenar", help="o Claude ordena as contas candidatas das pistas abertas")
+    r.add_argument("--pista", help="só esta pista")
+    r.add_argument("--refazer", action="store_true", help="ordena de novo as que já foram ordenadas")
     r.add_argument("--dry-run", action="store_true")
     acoes.add_parser("pistas", help="lista as pistas abertas com as contas candidatas")
     r = acoes.add_parser("atribuir", help="confirma a conta de uma pista (vira sinal) ou descarta com -")

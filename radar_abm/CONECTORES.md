@@ -338,6 +338,8 @@ sinal.
 ```sh
 python manager.py vagas consultorias saidas/consultorias_AAAA-MM-DD.csv --dry-run
 python manager.py vagas consultorias saidas/consultorias_AAAA-MM-DD.csv
+python manager.py vagas ordenar --dry-run      # o que seria enviado ao Claude, sem chamar a API
+python manager.py vagas ordenar                # o Claude ordena as candidatas das pistas novas
 python manager.py vagas pistas
 python manager.py vagas atribuir <pista> <conta>
 ```
@@ -346,8 +348,32 @@ python manager.py vagas atribuir <pista> <conta>
 - Em cidades com muitas contas do mesmo setor (escritórios de advocacia em São Paulo), as candidatas
   empatam: o anúncio não traz o que distingue uma da outra. A descrição do cliente ("grande porte",
   "presença nacional", "foco em seguro garantia") ajuda você a decidir.
-- Um próximo passo possível: o classificador com Claude ordenar as candidatas lendo a descrição do cliente
-  junto com o contexto de cada conta.
+- A ordenação pelo Claude (abaixo) ajuda nesses empates, mas só quando o anúncio e o contexto das contas
+  trazem algo que as diferencie.
+
+### O Claude ordena as candidatas
+
+Arquivo: `abm/ordenar_pistas.py`. Roda sozinho ao importar as vagas de consultorias quando há
+`ANTHROPIC_API_KEY`; ou com `python manager.py vagas ordenar`.
+
+- **BUSCA**: para cada pista aberta com duas ou mais candidatas, manda ao Claude:
+  - o anúncio: título, setor, local e a descrição do cliente, que costuma dizer porte, abrangência, foco e
+    momento;
+  - o contexto de cada candidata: razão social, subsegmento, cidade, porte, portfólio, maturidade de
+    marketing, gatilho recente e os sinais dos últimos 90 dias.
+- **TRADUZ**: a resposta vem num formato fixo. Para cada candidata, a **probabilidade** (0 a 1) de ser o
+  cliente e **uma frase com o motivo**, citando o anúncio e a conta.
+- **COMPARA**:
+  - só valem as contas que já eram candidatas: o Claude não inventa conta nova;
+  - probabilidade fora de 0 a 1 é ajustada;
+  - candidata não avaliada vai para o fim;
+  - as probabilidades não precisam somar 1, porque o cliente pode não ser nenhuma delas.
+- **ENTREGA**: reordena as candidatas e guarda o motivo. Se uma se destaca (0,7 ou mais e pelo menos 0,3
+  acima da segunda), ela aparece como **sugestão** em `vagas pistas` e no digest. **A pista continua
+  aberta**: só vira sinal quando você confirma com `vagas atribuir`.
+
+Custo: uma chamada por pista nova com duas ou mais candidatas. Pista já ordenada não é enviada de novo;
+para refazer, use `vagas ordenar --refazer`. Sem chave, as candidatas ficam na ordem por pontos.
 
 **Quando quebra**:
 - Muitas vagas "fora do ICP" que deveriam entrar: acrescente as palavras do setor em
