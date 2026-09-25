@@ -511,23 +511,33 @@ Arquivos: `abm/conectores/anuncios.py` (o conector), `abm/conectores/provedor_an
 `abm/anunciantes.py` (quem é o anunciante de cada conta) e `abm/raiox_midia.py` (o raio-x). Checagem **semanal**:
 anúncio não muda de hora em hora.
 
-**De onde vêm os dados, e por quê** (pesquisa de 25/09/2026):
+**De onde vêm os dados, e por quê** (pesquisa de 25/09/2026; caminho **gratuito** escolhido):
 
 | Fonte | Opção | Serve? | Custo |
 | --- | --- | --- | --- |
 | Google Ads Transparency Center | Dataset público no BigQuery | **Não.** Só traz anunciantes que veicularam na Europa ou na Turquia | grátis até 1 TB/mês |
-| Google | SerpApi | Sim, só Google | 250 buscas/mês grátis; US$ 25 por 1.000 (Starter) |
-| Google e Meta | **SearchAPI (escolhido)** | Sim, os dois com a mesma chave | 100 buscas grátis; US$ 40/mês por 10.000 (US$ 0,004 cada) |
+| Google | **SerpApi, plano gratuito (em uso)** | Sim | 250 buscas/mês grátis (pago: US$ 25 por 1.000) |
 | Meta Ad Library | API oficial da Meta | **Não.** No Brasil só entrega anúncios políticos | grátis |
-| Meta | Apify (atores da comunidade) | Sim, só Meta | US$ 0,75 a 5,80 por 1.000 anúncios, mais o custo de cada rodada |
+| Meta | **Apify, ator curious_coder/facebook-ads-library-scraper (em uso)** | Sim | US$ 0,75 por 1.000 anúncios; o plano gratuito dá US$ 5/mês |
+| Google e Meta | SearchAPI (alternativa paga, `RADAR_ANUNCIOS_PROVEDOR=searchapi`) | Sim, uma chave | US$ 40/mês por 10.000 buscas |
 | LinkedIn Ad Library | nenhuma | **Não coletar** (regra de não raspar o LinkedIn) | link para consulta manual no raio-x |
 
-- **BUSCA**: para cada conta com anunciante **confirmado**, pede ao SearchAPI os anúncios mostrados no Brasil:
+**Trava de orçamento**: antes de cada chamada, o provedor confere o gasto do mês na tabela `chamadas_provedor`.
+- **Google**: passou de `RADAR_SERPAPI_LIMITE_MES` (250) buscas, fica fora da coleta até o mês virar.
+- **Meta**: passou de `RADAR_APIFY_LIMITE_USD_MES` (US$ 5), fica fora da coleta até o mês virar.
+
+A plataforma que ficou fora **não conta como "parou de anunciar"**: a comparação só usa o que foi coletado. Para
+caber no grátis:
+- o detalhe dos anúncios do Google (uma busca por anúncio) fica em 2 por conta por semana;
+- o Apify traz até 30 anúncios por página (`RADAR_APIFY_MAX_ANUNCIOS_PAGINA`).
+
+- **BUSCA**: para cada conta com anunciante **confirmado**, pede os anúncios mostrados no Brasil:
   - uma busca por anunciante do Google (`contas.google_advertiser_ids`);
   - uma busca por página do Meta (`contas.meta_page_ids`).
 
   No Google, o texto e o destino de cada anúncio saem de uma segunda busca. Ela só é feita para anúncio que o radar
-  ainda não viu, até `RADAR_ANUNCIOS_MAX_DETALHES` (padrão 5) por conta e por semana. Conta sem ID confirmado é pulada.
+  ainda não viu, até `RADAR_ANUNCIOS_MAX_DETALHES` (padrão 2 no caminho gratuito) por conta e por semana. Conta sem ID
+  confirmado é pulada.
   Conta coletada há menos de 7 dias também.
 - **TRADUZ**: cada anúncio vira plataforma, data de início, status (ativo ou não), texto, chamada para ação, URL de
   destino e formato. Guarda texto e link; **imagem e vídeo nunca são baixados**. No Google, "ativo" é visto nos
@@ -578,23 +588,32 @@ há 5 meses", "sem anúncio para público empresarial", "só anuncia no Meta". T
 LinkedIn, para consulta manual. É o gancho da abordagem: a Velora chega com o diagnóstico pronto.
 
 **Precisa para funcionar**:
-- `SEARCHAPI_API_KEY` no `.env`: conta em searchapi.io; as 100 primeiras buscas são grátis, sem cartão.
+- `SERPAPI_API_KEY`: conta gratuita em serpapi.com (250 buscas por mês, sem cartão).
+- `APIFY_TOKEN`: conta gratuita em apify.com (US$ 5 de crédito por mês). O token fica em Settings > Integrations.
 - IDs confirmados: `anuncios descobrir`, depois `anuncios confirmar`.
 - Opcional: `ANTHROPIC_API_KEY`, para a comparação de mensagem pelo Claude.
 
-**Quanto custa** (70 contas, estimativa):
-- Descoberta, uma vez: até 4 buscas por conta. São 88 nas 22 contas A, dentro das 100 grátis.
-- Coleta semanal: 1 busca por anunciante do Google, mais até 5 de detalhe (só anúncio novo), mais 1 por página do Meta.
-  Com uns 40 anunciantes, dá algo como 500 a 900 buscas por mês.
-- No plano Developer do SearchAPI (US$ 40/mês, 10 mil buscas), sobra muito.
+**Quanto custa no caminho gratuito** (estimativa):
+- Descoberta nas 22 contas A:
+  - Google: 22 buscas no SerpApi;
+  - Meta: 22 rodadas no Apify, até 660 anúncios, cerca de US$ 0,50.
+
+  No Apify, a busca por palavra já traz os anúncios; a conferência de domínio usa esses mesmos anúncios, sem outra
+  rodada paga.
+- Coleta semanal com uns 40 anunciantes:
+  - Google: 40 buscas, mais até 80 de detalhe na primeira semana (depois só anúncio novo), cerca de 170 a 250 por mês;
+  - Meta: até 30 anúncios por página, uns 5.000 anúncios por mês, cerca de US$ 3,90.
+
+  As duas contas ficam dentro do grátis, com a trava segurando qualquer excesso.
 - `python manager.py anuncios custos` e `python manager.py metricas` mostram buscas e custo por provedor nos últimos
   30 dias. A precisão desta fonte aparece separada na linha `anuncios` das métricas.
 
 **Termos de uso**:
-- O SearchAPI coleta páginas públicas e assume a responsabilidade legal pela própria coleta (lei dos EUA). A
-  "Legal Protection Guarantee", de até US$ 2 milhões, só vem nos planos **Production (US$ 100/mês) e acima**; o
-  Developer (US$ 40/mês) não tem.
-- A Meta proíbe coleta automatizada sem permissão (Automated Data Collection Terms). Usar um provedor tira a coleta
+- **SerpApi**: coleta páginas públicas do Google e assume a coleta. A "U.S. Legal Shield" só vem nos planos pagos a
+  partir do Production; o gratuito não tem.
+- **Apify**: o ator é de um desenvolvedor da comunidade (curious_coder), sem garantia legal. Pode quebrar quando a
+  Meta muda a página.
+- **Meta**: proíbe coleta automatizada sem permissão (Automated Data Collection Terms). Usar um provedor tira a coleta
   das nossas mãos, mas não zera o risco. Por isso o conector só busca anunciantes confirmados, uma vez por semana, e
   guarda só texto e link.
 
@@ -610,13 +629,17 @@ python manager.py anuncios custos
 ```
 
 **Quando quebra**:
-- "falta SEARCHAPI_API_KEY": crie a conta em searchapi.io e ponha a chave no `.env`.
-- "SearchAPI: ..." com limite de uso: o plano acabou. Veja `anuncios custos` e troque de plano ou espere o mês virar.
+- "falta SERPAPI_API_KEY" ou "falta APIFY_TOKEN": crie a conta gratuita e ponha a chave no `.env` (ou nas variáveis
+  do ambiente).
+- "Google fora desta coleta" ou "Meta fora desta coleta": a trava do mês disparou. Veja `anuncios custos`. Espere o mês
+  virar, aumente o limite ou mude para o SearchAPI.
+- Meta sem anúncios de uma página que anuncia: o ator do Apify pode ter quebrado com alguma mudança da Meta. Veja a
+  rodada no console do Apify; se continuar, troque de ator.
 - Conta sempre "sem anunciante confirmado": rode `anuncios descobrir` para ela, ou confirme o ID à mão (na
   Transparency Center, o ID começa com AR; na Meta Ad Library, é o `view_all_page_id` do endereço).
 - Anúncio do Google sem texto: a busca de detalhe falhou ou passou do limite semanal. Tenta de novo na semana
-  seguinte. O formato da resposta de detalhe não tinha exemplo completo na documentação do SearchAPI: confira na
-  primeira coleta real.
+  seguinte. O formato da resposta de detalhe não tinha exemplo completo na documentação: confira na primeira coleta
+  real.
 - Muitos sinais de "mensagem nova" errados: sem a chave do Claude, a regra é simples. Marque ruído (`feedback`), e
   eles caem na precisão da fonte.
 

@@ -347,9 +347,16 @@ def cmd_anuncios(args) -> None:
         contas = selecionar_contas(conn, ids=ids, tier=args.tier, limite=args.limite)
         prov = ProvedorAnuncios(conn, ClienteLocal(args.fixtures) if args.fixtures else ClienteHTTP())
         if args.dry_run:
-            print(f"DRY-RUN: {len(contas)} conta(s); até {4 * len(contas)} busca(s) no SearchAPI "
-                  f"(1 Google + 1 Meta + até 2 conferências de página por conta), cerca de US$ {4 * len(contas) * prov.custo_busca:.2f}. "
-                  "Nada foi buscado nem gravado.")
+            if prov.tipo == "searchapi":
+                plano = f"até {4 * len(contas)} busca(s) no SearchAPI, cerca de US$ {4 * len(contas) * prov.custo_busca:.2f}"
+            else:
+                usadas, _ = prov.uso_do_mes("serpapi")
+                _, gasto = prov.uso_do_mes("apify")
+                custo = len(contas) * prov.max_anuncios_pagina * prov.custo_anuncio_apify
+                plano = (f"Google: {len(contas)} busca(s) no SerpApi grátis (já usadas {usadas} de {prov.limite_serpapi} este mês); "
+                         f"Meta: {len(contas)} rodada(s) no Apify, até {len(contas) * prov.max_anuncios_pagina} anúncios, cerca de "
+                         f"US$ {custo:.2f} (já gastos US$ {gasto:.2f} de {prov.limite_apify:.2f})")
+            print(f"DRY-RUN: {len(contas)} conta(s); {plano}. Nada foi buscado nem gravado.")
             return
         res = anunciantes.descobrir(conn, prov, contas)
         destino = Path(args.saida or config.pasta_saidas() / "anunciantes_candidatos.csv")
@@ -538,7 +545,7 @@ def main(argv: list[str] | None = None) -> None:
     r.add_argument("--limite", type=int)
     r.add_argument("--saida")
     r.add_argument("--dry-run", action="store_true", help="mostra quantas buscas faria e o custo, sem buscar")
-    r.add_argument("--fixtures", metavar="PASTA", help="usa respostas salvas em vez do SearchAPI")
+    r.add_argument("--fixtures", metavar="PASTA", help="usa respostas salvas em vez dos provedores")
     r = acoes.add_parser("candidatos", help="exporta os candidatos pendentes para CSV")
     r.add_argument("--saida")
     r = acoes.add_parser("confirmar", help="confirma anunciantes (CSV com a coluna confirmar, ou um por vez)")

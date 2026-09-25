@@ -29,6 +29,12 @@ class HttpFalso:
             raise AssertionError(f"busca inesperada: {chave}")
         return self.respostas[chave]
 
+    def post_json(self, url, corpo, headers=None, chave=None):
+        self.pedidos.append((url, headers, chave, corpo))
+        if chave not in self.respostas:
+            raise AssertionError(f"busca inesperada: {chave}")
+        return self.respostas[chave]
+
 
 # ---------------------------------------------------------------- respostas no formato do SearchAPI
 
@@ -66,6 +72,7 @@ def d(n):
 @pytest.fixture
 def base(conn, tmp_path, monkeypatch):
     monkeypatch.setenv("SEARCHAPI_API_KEY", "chave-de-teste")
+    monkeypatch.setenv("RADAR_ANUNCIOS_PROVEDOR", "searchapi")  # estes testes usam o formato do SearchAPI
     arq = tmp_path / "contas.csv"
     arq.write_text(
         "id_conta,empresa,razao_social,icp,site,tier,pessoa_p1,cargo_p1,pessoa_p2,cargo_p2\n"
@@ -164,7 +171,7 @@ def test_semanas_canal_novo_destino_novo_parou_e_volume(base):
     # semana 1: linha de base (Google ativo há mais de um ano, Meta sem anúncios)
     ex, http, _ = rodar(base, semana(g_ativos, [], det), HOJE)
     assert ex.itens == 0 and not sinais(base)
-    assert all("api_key" not in url and h["Authorization"] == "Bearer chave-de-teste" for url, h, _ in http.pedidos)
+    assert all("api_key" not in p[0] and p[1]["Authorization"] == "Bearer chave-de-teste" for p in http.pedidos)
 
     # semana 2: entra no Meta com landing page dedicada (RD Station)
     meta = [m_anuncio(str(i), "900", d(5), True, "Crédito rural com taxa especial", "https://lp.rdstation.com.br/horizonte-rural")
@@ -176,7 +183,7 @@ def test_semanas_canal_novo_destino_novo_parou_e_volume(base):
     assert "Falar com Beto Reis (Head de Marketing)" in s["anuncio_canal_novo"]["por_que_agora"]
     assert "RD Station" in s["anuncio_destino_novo"]["por_que_agora"] and s["anuncio_destino_novo"]["status"] == "alerta"
     # detalhe (busca paga) só para criativo ainda sem texto: 5 na semana 1 (limite), os 3 restantes agora
-    assert sum("google_detalhe" in (ch or "") for _, _, ch in http.pedidos) == 3
+    assert sum("google_detalhe" in (p[2] or "") for p in http.pedidos) == 3
 
     # semanas 3 a 5: Google cai de 8 para 3 criativos
     for i, dias in enumerate((14, 21, 28)):
@@ -292,3 +299,97 @@ def test_painel_recebe_os_sinais_de_anuncio():
     assert painel.tipo_no_painel("anuncio_comecou", "") == "comecou_anuncios"
     assert painel.tipo_no_painel("anuncio_parou", "") == "pausou_anuncios"
     assert painel.tipo_no_painel("anuncio_destino_novo", "") == "nova_landing"
+
+
+# ---------------------------------------------------------------- caminho gratuito: SerpApi (Google) e Apify (Meta)
+
+def serp_criativo(cid, adv, nome, inicio, ultimo):
+    ts = lambda iso: int(__import__("datetime").datetime.fromisoformat(iso + "T12:00:00+00:00").timestamp())
+    return {"advertiser_id": adv, "advertiser": nome, "ad_creative_id": cid, "format": "text", "total_days_shown": 30,
+            "first_shown": ts(inicio), "last_shown": ts(ultimo),
+            "details_link": f"https://adstransparency.google.com/advertiser/{adv}/creative/{cid}?region=2076"}
+
+
+def apify_anuncio(aid, page, nome, inicio, ativo, texto, link):
+    ts = int(__import__("datetime").datetime.fromisoformat(inicio + "T12:00:00+00:00").timestamp())
+    return {"ad_archive_id": aid, "page_id": page, "page_name": nome, "is_active": ativo, "start_date": ts, "end_date": ts,
+            "snapshot": {"page_name": nome, "body": {"text": texto}, "cta_text": "Saiba mais", "link_url": link,
+                         "display_format": "IMAGE", "cards": []}}
+
+
+@pytest.fixture
+def gratuito(conn, tmp_path, monkeypatch):
+    monkeypatch.setenv("RADAR_ANUNCIOS_PROVEDOR", "gratuito")
+    monkeypatch.setenv("SERPAPI_API_KEY", "segredo-serp")
+    monkeypatch.setenv("APIFY_TOKEN", "segredo-apify")
+    arq = tmp_path / "contas.csv"
+    arq.write_text("id_conta,empresa,razao_social,icp,site,tier,pessoa_p1,cargo_p1\n"
+                   "F-1,Cooperativa Horizonte,COOPERATIVA HORIZONTE DE CREDITO LTDA,Financeiro regional,horizonte.coop.br,A,"
+                   "Beto Reis,Head de Marketing\n", encoding="utf-8")
+    importador.importar(conn, importador.ler(arq))
+    return conn
+
+
+def test_gratuito_descobre_e_coleta_no_formato_comum(gratuito):
+    respostas = {
+        "google_busca_cooperativa_horizonte_de_credito_ltda": {"ad_creatives": [
+            serp_criativo("CR1", "AR111", "COOPERATIVA HORIZONTE DE CREDITO LTDA", d(-60), d(-2)),
+            serp_criativo("CR2", "AR111", "COOPERATIVA HORIZONTE DE CREDITO LTDA", d(-30), d(-1)),
+            serp_criativo("CR9", "AR999", "Horizonte Imoveis", d(-10), d(-1))]},
+        "meta_busca_cooperativa_horizonte": [
+            apify_anuncio("5", "900", "Cooperativa Horizonte", d(-20), True, "Crédito rural", "https://horizonte.coop.br/credito"),
+            apify_anuncio("6", "901", "Horizonte Turismo", d(-3), True, "Pacotes", "https://horizonteturismo.com.br/")],
+    }
+    http = HttpFalso(respostas)
+    prov = ProvedorAnuncios(gratuito, http)
+    anunciantes.descobrir(gratuito, prov, selecionar_contas(gratuito, ids=["F-1"]), saida=lambda *_: None)
+    cand = {(r["plataforma"], r["id_externo"]): dict(r) for r in gratuito.execute("select * from anunciantes_candidatos")}
+    assert ("google", "AR111") in cand and "2 anúncio(s)" in cand[("google", "AR111")]["evidencia"]
+    assert ("google", "AR999") not in cand
+    assert "levam a horizonte.coop.br" in cand[("meta", "900")]["evidencia"]
+    assert len(http.pedidos) == 2  # 1 SerpApi + 1 Apify: a conferência de domínio usou os anúncios já trazidos
+    serp = next(p for p in http.pedidos if "serpapi" in p[0])
+    assert "region=2076" in serp[0] and serp[1] is None
+    apify = next(p for p in http.pedidos if "apify" in p[0])
+    assert apify[1] == {"Authorization": "Bearer segredo-apify"} and "segredo-apify" not in apify[0]
+    assert "view_all_page_id" not in apify[3]["urls"][0]["url"] and "country=BR" in apify[3]["urls"][0]["url"]
+
+    anunciantes.confirmar(gratuito, "F-1", "google", "AR111")
+    anunciantes.confirmar(gratuito, "F-1", "meta", "900")
+    semana1 = {"google_AR111": {"ad_creatives": respostas["google_busca_cooperativa_horizonte_de_credito_ltda"]["ad_creatives"][:2]},
+               "google_detalhe_CR1": g_detalhe("Crédito rural", "Taxa especial", "https://horizonte.coop.br/"),
+               "google_detalhe_CR2": g_detalhe("Consórcio", "Parcelas menores", "https://horizonte.coop.br/consorcio"),
+               "meta_900": [apify_anuncio("5", "900", "Cooperativa Horizonte", d(-20), True, "Crédito rural",
+                                          "https://horizonte.coop.br/credito")]}
+    ex, http, _ = rodar(gratuito, semana1, HOJE)
+    assert ex.itens == 0 and not ex.erros
+    linhas = {r["id"]: dict(r) for r in gratuito.execute("select * from anuncios")}
+    assert linhas["CR1"]["inicio"] == d(-60) and linhas["CR1"]["ativo"] == 1 and "Crédito rural" in linhas["CR1"]["texto"]
+    assert linhas["5"]["plataforma"] == "meta" and linhas["5"]["url_destino"] == "https://horizonte.coop.br/credito"
+    custos = {c["provedor"]: c for c in custo_mensal(gratuito, "2000-01-01")}
+    assert custos["serpapi"]["custo_usd"] == 0 and custos["apify"]["chamadas"] == 2
+
+
+def test_trava_de_orcamento_pula_so_a_plataforma_sem_saldo(gratuito, monkeypatch):
+    monkeypatch.setenv("RADAR_SERPAPI_LIMITE_MES", "3")
+    anunciantes.confirmar(gratuito, "F-1", "google", "AR111")
+    anunciantes.confirmar(gratuito, "F-1", "meta", "900")
+    for _ in range(3):
+        gratuito.execute("insert into chamadas_provedor values ('serpapi', 'anuncios', 'google_anuncios', datetime('now'), 0)")
+    gratuito.commit()
+    meta = [apify_anuncio("5", "900", "Cooperativa Horizonte", d(-20), True, "Crédito rural", "https://horizonte.coop.br/")]
+    ex, http, saida = rodar(gratuito, {"meta_900": meta}, HOJE)
+    assert not ex.erros and all("serpapi" not in p[0] for p in http.pedidos)
+    assert any("Google fora desta coleta" in s for s in saida)
+    foto = json.loads(gratuito.execute("select conteudo_json from snapshots").fetchone()[0])
+    assert list(foto["ativos"]) == ["meta"]  # o Google não entra como zero: não vira "parou de anunciar"
+
+
+def test_chave_do_serpapi_nunca_aparece_em_erro(gratuito):
+    class Falha:
+        def get_json(self, url, headers=None, chave=None):
+            raise RuntimeError(f"falhou ao abrir {url}")
+
+    with pytest.raises(RuntimeError) as e:
+        ProvedorAnuncios(gratuito, Falha()).google_anuncios("AR111")
+    assert "segredo-serp" not in str(e.value) and "***" in str(e.value)

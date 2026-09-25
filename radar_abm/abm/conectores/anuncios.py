@@ -1,7 +1,8 @@
 """Conector de bibliotecas de anúncios: Google Ads Transparency Center e Meta Ad Library, uma vez por semana.
 
 1. BUSCA    Para cada conta com anunciante CONFIRMADO (contas.google_advertiser_ids e contas.meta_page_ids), pede ao
-            provedor (SearchAPI, chave SEARCHAPI_API_KEY) os anúncios mostrados no Brasil: uma busca por anunciante do
+            provedor os anúncios mostrados no Brasil (Google pelo SerpApi gratuito, Meta pelo Apify; veja
+            provedor_anuncios.py): uma busca por anunciante do
             Google e uma por página do Meta. No Google, o texto e o destino de cada anúncio vêm de uma segunda busca,
             feita só para anúncios que o radar ainda não viu (até RADAR_ANUNCIOS_MAX_DETALHES por conta). Conta sem ID
             confirmado é pulada: os IDs saem de "anuncios descobrir" e só valem depois de "anuncios confirmar".
@@ -272,7 +273,8 @@ class ConectorAnuncios(Conector):
         self.forcar = forcar
         self.provedor = ProvedorAnuncios(self.conn, self.http, self.dry_run, self.nome)
         self.intervalo = int(config.valor("RADAR_ANUNCIOS_INTERVALO_DIAS", "7"))
-        self.max_detalhes = int(config.valor("RADAR_ANUNCIOS_MAX_DETALHES", "5"))
+        # No SerpApi gratuito (250 buscas/mês), o detalhe do Google (uma busca por anúncio) sai caro: 2 por conta.
+        self.max_detalhes = int(config.valor("RADAR_ANUNCIOS_MAX_DETALHES", "5" if self.provedor.tipo == "searchapi" else "2"))
         self._foto: dict | None = None
         self._anuncios: list[dict] = []
 
@@ -288,19 +290,27 @@ class ConectorAnuncios(Conector):
         ex = Execucao(self.nome, True)
         ex.comecar()
         self.passo(f"== {self.nome}: {len(contas)} conta(s)  (DRY-RUN: nenhuma busca paga é feita)")
-        total = 0
+        google = paginas = 0
         for conta in contas:
             self.conta = conta
-            motivo = self.pode_rodar(conta)
-            if motivo:
+            if self.pode_rodar(conta):
                 continue
             g, m = len(self.ids(conta, "google")), len(self.ids(conta, "meta"))
-            buscas = g * (1 + self.max_detalhes) + m
-            total += buscas
-            self.passo(f"-- {conta['id']} {conta['nome_fantasia']}: {self.descrever_busca(conta)} · até {buscas} busca(s)")
-        custo = total * self.provedor.custo_busca
-        self.passo(f"== até {total} busca(s) no SearchAPI, cerca de US$ {custo:.2f} nesta execução "
-                   f"(o detalhe do Google só é pedido para anúncio que o radar ainda não viu)")
+            google += g * (1 + self.max_detalhes)
+            paginas += m
+            self.passo(f"-- {conta['id']} {conta['nome_fantasia']}: {self.descrever_busca(conta)}")
+        p = self.provedor
+        if p.tipo == "searchapi":
+            total = google + paginas
+            self.passo(f"== até {total} busca(s) no SearchAPI, cerca de US$ {total * p.custo_busca:.2f}")
+        else:
+            usadas, _ = p.uso_do_mes("serpapi")
+            _, gasto = p.uso_do_mes("apify")
+            custo_meta = paginas * p.max_anuncios_pagina * p.custo_anuncio_apify
+            self.passo(f"== Google (SerpApi, grátis): até {google} busca(s); já usadas {usadas} de {p.limite_serpapi} este mês")
+            self.passo(f"== Meta (Apify): {paginas} página(s), até {paginas * p.max_anuncios_pagina} anúncios, cerca de "
+                       f"US$ {custo_meta:.2f}; já gastos US$ {gasto:.2f} de {p.limite_apify:.2f} este mês")
+        self.passo("   (o detalhe do Google só é pedido para anúncio que o radar ainda não viu)")
         ex.terminar(self.conn)
         return ex
 
@@ -331,30 +341,43 @@ class ConectorAnuncios(Conector):
             partes.append(f"Google: {len(g)} anunciante(s)")
         if m:
             partes.append(f"Meta: {len(m)} página(s)")
-        return "SearchAPI, anúncios mostrados no Brasil · " + "; ".join(partes)
+        return f"{self.provedor.provedor_google}/{self.provedor.provedor_meta}, anúncios mostrados no Brasil · " + "; ".join(partes)
 
     # ---- 1. BUSCA
 
     def buscar(self, conta) -> dict:
+        from .provedor_anuncios import LimiteMensal
+
         vistos = {r["id"] for r in self.conn.execute(
             "select id from anuncios where conta_id = ? and plataforma = 'google' and texto is not null and texto != ''",
             (conta["id"],))}
         bruto = {"google": [], "meta": [], "detalhes": {}, "plataformas": []}
-        for adv in self.ids(conta, "google"):
-            resp = self.provedor.google_anuncios(adv)
-            bruto["google"].append(resp)
-            novos = [c for c in resp.get("ad_creatives") or [] if c.get("id") not in vistos]
-            for c in novos[: self.max_detalhes]:
-                try:
-                    bruto["detalhes"][c["id"]] = self.provedor.google_detalhe(adv, c["id"])
-                except Exception as e:  # sem detalhe, o anúncio entra sem texto; tenta de novo na próxima semana
-                    self.passo(f"               detalhe do anúncio {c['id']} indisponível: {e}")
-        if self.ids(conta, "google"):
-            bruto["plataformas"].append("google")
-        for pagina in self.ids(conta, "meta"):
-            bruto["meta"].append(self.provedor.meta_anuncios(pagina))
-        if self.ids(conta, "meta"):
-            bruto["plataformas"].append("meta")
+        # Plataforma sem orçamento no mês fica fora desta coleta (não conta como "parou de anunciar").
+        try:
+            for adv in self.ids(conta, "google"):
+                resp = self.provedor.google_anuncios(adv)
+                bruto["google"].append(resp)
+                novos = [c for c in resp.get("ad_creatives") or [] if c.get("id") not in vistos]
+                for c in novos[: self.max_detalhes]:
+                    try:
+                        bruto["detalhes"][c["id"]] = self.provedor.google_detalhe(adv, c["id"])
+                    except LimiteMensal:
+                        raise
+                    except Exception as e:  # sem detalhe, o anúncio entra sem texto; tenta de novo na próxima semana
+                        self.passo(f"               detalhe do anúncio {c['id']} indisponível: {e}")
+            if self.ids(conta, "google"):
+                bruto["plataformas"].append("google")
+        except LimiteMensal as e:
+            bruto["google"] = []
+            self.passo(f"               Google fora desta coleta: {e}")
+        try:
+            for pagina in self.ids(conta, "meta"):
+                bruto["meta"].append(self.provedor.meta_anuncios(pagina))
+            if self.ids(conta, "meta"):
+                bruto["plataformas"].append("meta")
+        except LimiteMensal as e:
+            bruto["meta"] = []
+            self.passo(f"               Meta fora desta coleta: {e}")
         return bruto
 
     # ---- 2. TRADUZ
