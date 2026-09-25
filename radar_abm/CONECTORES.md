@@ -250,8 +250,8 @@ Arquivo: `abm/conectores/apollo.py`. Vigia as pessoas do comitê de compra.
 - `--dry-run` mostra quem seria consultado e quantos créditos **seriam** gastos, sem gastar nada.
 
 Na base de hoje são 126 pessoas (98 decisores e 28 influenciadores, todas em contas A). A primeira
-volta custa até 126 créditos. Com teto de 30 por semana, ela fecha em cerca de 4 semanas e se repete todo
-mês, dentro dos 180 créditos mensais do seu plano.
+volta custa até 126 créditos. Com o teto padrão de 25 por semana, ela fecha em cerca de 5 semanas; com 30,
+em cerca de 4. Depois se repete todo mês, dentro dos 180 créditos mensais do seu plano.
 
 **Precisa para funcionar**:
 - `APOLLO_API_KEY` no `.env` (Apollo > Settings > Integrations > API);
