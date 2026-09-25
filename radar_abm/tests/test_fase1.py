@@ -75,6 +75,17 @@ def test_cnpj_preenchido_depois_junta_contas_duplicadas(conn, tmp_path):
     assert conn.execute("select cnpj from filiais").fetchone()[0] == "11222333000262"
 
 
+def test_site_que_e_pagina_de_vagas_vira_pagina_de_carreiras(conn, tmp_path):
+    arq = tmp_path / "v.csv"
+    arq.write_text("id_conta,empresa,site\nX-1,Delta Coop,https://deltacoop.gupy.io/\nX-2,Eta Seguros,https://etaseguros.com.br\n",
+                   encoding="utf-8")
+    rel = importar(conn, arq)
+    assert conta(conn, "X-1")["dominio"] is None
+    assert conta(conn, "X-1")["vagas_url"] == "https://deltacoop.gupy.io/"
+    assert conta(conn, "X-2")["dominio"] == "etaseguros.com.br"
+    assert any("página de vagas" in a for a in rel.avisos)
+
+
 def test_dry_run_nao_grava(conn):
     rel = importar(conn, FIX / "contas_exemplo.csv", dry_run=True)
     assert rel.novas == 3

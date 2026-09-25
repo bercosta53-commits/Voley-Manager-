@@ -64,6 +64,7 @@ def cmd_aliases(args) -> None:
         r = aliases.gerar(conn)
         print(f"{r['criados']} aliases criados, {r['ambiguos']} ambíguos")
     elif args.acao == "revisar":
+        args.saida = args.saida or str(config.pasta_saidas() / "aliases_revisar.csv")
         n = aliases.exportar_revisao(conn, args.saida)
         print(f"{n} aliases ambíguos em {args.saida}.")
         print("Na coluna 'usar', escreva sim ou nao. Em 'termos_negativos', palavras que indicam outra empresa,")
@@ -349,7 +350,7 @@ def main(argv: list[str] | None = None) -> None:
     acoes = s.add_subparsers(dest="acao", required=True)
     acoes.add_parser("gerar", help="cria os aliases que faltam")
     r = acoes.add_parser("revisar", help="exporta os ambíguos para você decidir")
-    r.add_argument("--saida", default="aliases_revisar.csv")
+    r.add_argument("--saida", help="padrão: saidas/aliases_revisar.csv (fora do Git)")
     r = acoes.add_parser("aplicar", help="aplica a planilha de revisão")
     r.add_argument("arquivo")
     r = acoes.add_parser("listar", help="mostra os aliases de uma conta")

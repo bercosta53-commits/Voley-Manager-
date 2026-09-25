@@ -300,6 +300,8 @@ CAMPOS_CONTA_USADOS = {a for lista in CAMPOS_CONTA.values() for a in lista}
 
 
 def _importar_conta(conn, linha: dict[str, str], n: int, rel: Relatorio, usados: set[str]) -> None:
+    from .conectores.plataformas import reconhecer  # aqui dentro: o pacote de conectores importa este módulo
+
     v = {campo: _pegar(linha, aliases) for campo, aliases in CAMPOS_CONTA.items()}
     if not v["nome_fantasia"] and not v["cnpj"]:
         rel.avisos.append(f"linha {n}: sem nome e sem CNPJ, ignorada")
@@ -311,6 +313,13 @@ def _importar_conta(conn, linha: dict[str, str], n: int, rel: Relatorio, usados:
     dominio = normalizar_dominio(v["site"])
     if dominio and dominio_generico(dominio):
         rel.avisos.append(f"linha {n} ({v['nome_fantasia']}): site {v['site']} é genérico (rede social ou e-mail grátis), ignorado")
+        dominio = None
+    vagas_url = None
+    if v["site"] and reconhecer(v["site"]):
+        # Página de vagas (Gupy, Greenhouse...) no lugar do site: vira a página de carreiras da conta, não o domínio.
+        vagas_url = v["site"].strip()
+        rel.avisos.append(f"linha {n} ({v['nome_fantasia']}): site {vagas_url} é página de vagas; gravado como página de "
+                          "carreiras, a conta fica sem domínio")
         dominio = None
     uf = normalizar_uf(v["uf"])
     if v["uf"] and not uf:
@@ -343,6 +352,7 @@ def _importar_conta(conn, linha: dict[str, str], n: int, rel: Relatorio, usados:
         "score_ativacao": _inteiro(v["score_ativacao"]),
         "confianca_base": v["confianca_base"] or None,
         "fonte_principal": v["fonte_principal"] or None,
+        "vagas_url": vagas_url,
     }
     if conta is None:
         conta_id = v["id"] or f"C-{novo_id()[:6]}"
