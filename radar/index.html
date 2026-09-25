@@ -460,6 +460,23 @@
       .badge.plain {
         color: var(--text-mute);
       }
+      button.badge-btn {
+        font: 500 10.5px/1.6 var(--mono);
+        letter-spacing: 0.1em;
+        padding: 1px 7px;
+        border: 1px solid var(--line-strong);
+        box-shadow: none;
+        text-align: left;
+        white-space: normal;
+      }
+      button.badge-btn.bad {
+        border-color: var(--no);
+      }
+      button.badge-btn:hover {
+        border-color: var(--acid);
+        color: var(--text);
+        box-shadow: none;
+      }
       .count {
         display: inline-block;
         min-width: 18px;

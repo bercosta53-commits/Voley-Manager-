@@ -246,9 +246,12 @@ function abcBadge(ev) {
   if (!ev.account.abc) return '<span class="badge warnb" title="Sem classe ABC">ABC?</span>';
   return `<span class="badge ${esc(ev.abc)}" title="Classe ${esc(ev.abc)}${ev.promoted ? ', promovida a B pelo sinal' : ''}">${esc(ev.abc)}${ev.promoted ? ' → B' : ''}</span>`;
 }
-function actionBadge(action) {
+// Com a conta, a situação vira botão que abre a ficha (antes parecia botão e não fazia nada).
+function actionBadge(action, accountId) {
   const cls = action === 'bloqueada' || action === 'fora_icp' ? 'bad' : ACTIONS[action].contact ? '' : 'plain';
-  return `<span class="badge ${cls}">${esc(ACTIONS[action].label)}</span>`;
+  return accountId
+    ? `<button class="badge badge-btn ${cls}" data-action="open-account" data-id="${esc(accountId)}" title="Abrir a conta">${esc(ACTIONS[action].label)}</button>`
+    : `<span class="badge ${cls}">${esc(ACTIONS[action].label)}</span>`;
 }
 function signalLine(entry, { removable = false } = {}) {
   const { signal, def } = entry;
@@ -392,7 +395,7 @@ function renderWeek() {
       return `<article class="card">
         <div class="head"><span class="pos">${i + 1}</span>
           <button class="link title" data-action="open-account" data-id="${esc(id)}">${esc(ev.account.nome)}</button>
-          ${abcBadge(ev)}${actionBadge(ev.action)}</div>
+          ${abcBadge(ev)}${actionBadge(ev.action, ev.account.id)}</div>
         <div class="signals">${ev.active.map(e => signalLine(e)).join('')}</div>
         <div class="small who">${who} · ${profileLink}</div>
         <label class="field">Primeira linha da abordagem
@@ -431,8 +434,8 @@ function renderWeek() {
           <div class="muted small">${q.items.length} de ${q.capacity} contatos da semana · ordem pela matriz ABC × sinal</div></div>
         <div class="row">
           ${q.items.length ? aiButton('ai-hooks', 'Escrever abordagens com IA', '') : ''}
-          <button data-action="copy-digest" ${q.items.length ? '' : 'disabled'}>Copiar resumo</button>
-          <button data-action="export-queue" ${q.items.length ? '' : 'disabled'}>Exportar CSV</button>
+          <button data-action="copy-digest">Copiar resumo</button>
+          <button data-action="export-queue">Exportar CSV</button>
         </div>
       </div>
       <div class="bar" style="margin-top:10px" aria-hidden="true"><span style="width:${Math.min(100, Math.round((q.items.length / q.capacity) * 100))}%"></span></div>
@@ -586,7 +589,7 @@ function renderAccounts() {
           .map(v => `<option value="${v}" ${a.abc === v ? 'selected' : ''}>${v || '—'}</option>`)
           .join('')}</select></td>
         <td class="small">${a.decisor ? `${esc(a.decisor)}${a.decisorIA ? ' <span class="badge warnb" title="Sugerido pela IA; confirme no LinkedIn">IA · confirmar</span>' : ''}${a.cargo ? `<div class="muted">${esc(a.cargo)}</div>` : ''}` : `<button class="link" data-action="open-account" data-id="${esc(a.id)}" data-focus="decisor">Adicionar decisor</button>`}</td>
-        <td>${actionBadge(ev.action)}${ev.active.length ? `<div class="small muted">${esc(ev.top.def.label)}${ev.active.length > 1 ? ` +${ev.active.length - 1}` : ''}</div>` : ''}</td>
+        <td>${actionBadge(ev.action, a.id)}${ev.active.length ? `<div class="small muted">${esc(ev.top.def.label)}${ev.active.length > 1 ? ` +${ev.active.length - 1}` : ''}</div>` : ''}</td>
         <td class="small">${c ? esc(statusLabel(c.status)) : '<span class="muted">—</span>'}</td>
         <td><button data-action="new-signal" data-id="${esc(a.id)}" title="Registrar sinal para esta conta">+ Sinal</button></td>
       </tr>`;
@@ -598,7 +601,7 @@ function renderAccounts() {
         <div class="row">
           <button class="primary" data-action="import" data-kind="contas">Importar contas</button>
           <button data-action="new-account">Nova conta</button>
-          <button data-action="export-accounts" ${state.data.accounts.length ? '' : 'disabled'}>Exportar</button>
+          <button data-action="export-accounts">Exportar</button>
         </div>
       </div>
       ${state.lastReport?.kind === 'contas' ? renderImportReport() : ''}
@@ -667,8 +670,8 @@ function renderSignals() {
         <div><h2>Sinais</h2><div class="small muted">Cada sinal vale ${validDays} dias. Sinais diferentes na mesma conta somam.</div></div>
         <div class="row">
           ${aiButton('ai-signals', 'Ler material com IA', '')}
-          <button class="primary" data-action="new-signal" ${state.data.accounts.length ? '' : 'disabled'}>Registrar sinal</button>
-          <button data-action="import" data-kind="sinais" ${state.data.accounts.length ? '' : 'disabled'}>Importar em lote</button>
+          <button class="primary" data-action="new-signal">Registrar sinal</button>
+          <button data-action="import" data-kind="sinais">Importar em lote</button>
         </div>
       </div>
       ${state.lastReport?.kind === 'sinais' ? renderImportReport() : ''}
@@ -700,7 +703,7 @@ function renderInbox() {
           <div class="row between"><div><b>${esc(acc?.nome || it.conta)}</b> · ${esc(def?.label || it.type)} <span class="small muted">· ${esc(formatDate(it.date))}</span></div>
             <span class="row">
               <button class="link danger" data-action="inbox-discard" data-id="${esc(it.docId)}">Descartar</button>
-              <button class="primary" data-action="inbox-approve" data-id="${esc(it.docId)}" ${acc && def ? '' : 'disabled'}>Aprovar</button>
+              <button class="primary" data-action="inbox-approve" data-id="${esc(it.docId)}">Aprovar</button>
             </span></div>
           ${it.detail ? `<div class="small">${esc(it.detail)}</div>` : ''}
           ${it.evidence ? `<div class="small muted quote">“${esc(it.evidence)}”</div>` : ''}
@@ -1233,7 +1236,6 @@ function renderSettings() {
           .join('')
     )
     .join('');
-  const hasOverrides = Object.keys(o).length > 0;
   const where =
     store.storageKind() === 'db'
       ? 'Os dados ficam guardados neste link e são os mesmos para todos com quem você compartilhar a página.'
@@ -1256,7 +1258,7 @@ function renderSettings() {
     </section>
     <section class="panel">
       <div class="row between"><h2>Catálogo de sinais <span class="count">${p.signals.filter(s => s.enabled).length} de ${p.signals.length} ativos</span></h2>
-        <button data-action="reset-overrides" ${hasOverrides ? '' : 'disabled'}>Voltar ao padrão do perfil</button></div>
+        <button data-action="reset-overrides">Voltar ao padrão do perfil</button></div>
       <div class="table-wrap"><table><thead><tr><th>Ativo</th><th>Sinal e fonte</th><th>Peso</th><th>Peso próprio</th><th class="num">Validade</th></tr></thead><tbody>${rows}</tbody></table></div>
     </section>
     <section class="panel">
@@ -1571,6 +1573,11 @@ const actions = {
   'ai-classify-run': () => runClassify(),
   'ai-signals': () => openExtract(),
   'inbox-approve': async el => {
+    const it = inbox.items.find(x => x.docId === el.dataset.id);
+    if (it && !accountById(it.accountId))
+      return toast(`${it.conta || 'Esta conta'} não está na base deste espaço. Cadastre a conta ou descarte o sinal.`);
+    if (it && !state.profile.signalById[it.type])
+      return toast('Este tipo de sinal não existe no perfil deste espaço. Descarte ou registre com outro tipo.');
     try {
       if (await approveInbox(el.dataset.id)) {
         save();
@@ -1624,8 +1631,12 @@ const actions = {
   'close-dialog': () => dialog.close(),
   'open-account': el => openAccountForm(el.dataset.id, el.dataset.focus),
   'new-account': () => openAccountForm(null),
-  'new-signal': el => openSignalForm(el.dataset.id),
-  import: el => openImport(el.dataset.kind),
+  'new-signal': el =>
+    state.data.accounts.length ? openSignalForm(el.dataset.id) : toast('Cadastre ou importe as contas antes de registrar sinais.'),
+  import: el =>
+    el.dataset.kind === 'sinais' && !state.data.accounts.length
+      ? toast('Importe as contas antes dos sinais: cada sinal precisa de uma conta da base.')
+      : openImport(el.dataset.kind),
   'dismiss-report': () => ((state.lastReport = null), render()),
   'filter-accounts': el => {
     state.filter.group = el.dataset.group;
@@ -1693,6 +1704,7 @@ const actions = {
   },
   'copy-digest': () => {
     const q = state.queue;
+    if (!q.items.length) return toast(EMPTY_QUEUE);
     const items = q.items.map(ev => ({
       ...ev,
       hook: { ...ev.hook, text: state.data.drafts[ev.account.id] ?? ev.hook.text }
@@ -1701,6 +1713,7 @@ const actions = {
   },
   'export-queue': () => {
     const q = state.queue;
+    if (!q.items.length) return toast(EMPTY_QUEUE);
     const rows = queueRows(q).map((r, i) => ({
       ...r,
       abordagem: state.data.drafts[q.items[i].account.id] ?? r.abordagem
@@ -1775,6 +1788,7 @@ const actions = {
       )
     ),
   'export-accounts': () => {
+    if (!state.data.accounts.length) return toast('Ainda não há contas para exportar.');
     const rows = state.data.accounts.map(a => {
       const ev = evaluate(a);
       return {
@@ -1843,6 +1857,8 @@ const actions = {
     toast('Peso atualizado.');
   },
   'reset-overrides': async () => {
+    if (!Object.keys(state.data.overrides || {}).length)
+      return toast('Este espaço já usa o padrão do perfil: não há ajuste para desfazer.');
     if (!(await ask('Voltar pesos, ritmo e sinais ativos ao padrão do perfil?', 'Voltar ao padrão'))) return;
     state.data.overrides = {};
     save();
@@ -1876,6 +1892,8 @@ const actions = {
     toast('Espaço de exemplo criado. Troque de espaço no topo para voltar aos seus dados.');
   }
 };
+
+const EMPTY_QUEUE = 'A fila da semana está vazia: registre ou aprove sinais para as contas entrarem nela.';
 
 function runAction(e) {
   const el = e.target.closest('[data-action]');
