@@ -104,7 +104,7 @@ def cmd_coletar(args) -> None:
 
             arquivo_vagas = getattr(args, "arquivo_vagas", None)
             extra = {"arquivo": ler_arquivo(arquivo_vagas) if arquivo_vagas else None,
-                     "usar_gupy": not getattr(args, "sem_gupy", False)}
+                     "usar_paginas": not getattr(args, "sem_paginas", False)}
         ex = CONECTORES[nome](conn, http=http, dry_run=args.dry_run, **extra).executar(contas)
         resumo.append(f"{nome}: {ex.itens} novidade(s), {len(ex.erros)} erro(s)")
         if nome == "cnpj" and not args.dry_run:
@@ -229,13 +229,30 @@ def cmd_semana(args) -> None:
 def cmd_vagas(args) -> None:
     conn = _conn()
     if args.acao == "importar":
-        # Só as vagas do arquivo, sem visitar a Gupy.
+        # Só as vagas do arquivo, sem visitar as páginas de carreiras.
         cmd_coletar(argparse.Namespace(conector="vagas", contas=None, tier=None, limite=None, dry_run=args.dry_run,
-                                       fixtures=None, arquivo_vagas=args.arquivo, sem_gupy=True))
-    elif args.acao == "slug":
-        conn.execute("update contas set gupy_slug = ? where id = ?", (args.slug, args.conta))
+                                       fixtures=None, arquivo_vagas=args.arquivo, sem_paginas=True))
+    elif args.acao in ("pagina", "paginas"):
+        from abm.conectores.plataformas import reconhecer
+
+        if args.acao == "pagina":
+            pares = [(args.conta, args.url)]
+        else:
+            import csv as _csv
+
+            with open(args.arquivo, encoding="utf-8-sig") as f:
+                pares = [((r.get("id_conta") or "").strip(), (r.get("url") or "").strip()) for r in _csv.DictReader(f)]
+        for conta_id, url in pares:
+            if not conn.execute("select 1 from contas where id = ?", (conta_id,)).fetchone():
+                print(f"{conta_id}: conta não encontrada")
+                continue
+            if url != "-" and not reconhecer(url):
+                print(f"{conta_id}: {url} não é de uma plataforma conhecida (Gupy, Greenhouse, Lever, Ashby, Sólides); "
+                      "as vagas dessa empresa entram pelo arquivo")
+                continue
+            conn.execute("update contas set vagas_url = ? where id = ?", (url, conta_id))
+            print(f"{conta_id}: " + ("página de vagas desligada" if url == "-" else f"{reconhecer(url)[0].nome} {url}"))
         conn.commit()
-        print(f"{args.conta}: " + ("Gupy desligada" if args.slug == "-" else f"página https://{args.slug}.gupy.io"))
     elif args.acao == "contas":
         # Lista para a rotina do Indeed (VAGAS_ROTINA.md): quem procurar e onde.
         destino = args.saida
@@ -243,10 +260,11 @@ def cmd_vagas(args) -> None:
 
         with open(destino, "w", newline="", encoding="utf-8") as f:
             w = _csv.writer(f)
-            w.writerow(["id_conta", "empresa", "cidade", "uf", "tier"])
+            w.writerow(["id_conta", "empresa", "cidade", "uf", "tier", "site", "pagina_vagas"])
             for c in conn.execute("select * from contas where (? is null or tier = ?) order by coalesce(tier, 'Z'), nome_fantasia",
                                   (args.tier, args.tier)):
-                w.writerow([c["id"], c["nome_fantasia"], c["cidade"] or "", c["uf"] or "", c["tier"] or ""])
+                w.writerow([c["id"], c["nome_fantasia"], c["cidade"] or "", c["uf"] or "", c["tier"] or "",
+                            c["dominio"] or "", c["vagas_url"] or ""])
         print(f"Lista de contas para a rotina de vagas em {destino}")
 
 
@@ -296,7 +314,7 @@ def main(argv: list[str] | None = None) -> None:
     s = sub.add_parser("coletar", help="roda os conectores (todos, ou um com --conector)")
     s.add_argument("--conector", choices=["cnpj", "noticias", "vagas", "apollo"], help="só este conector")
     s.add_argument("--arquivo-vagas", metavar="CSV", help="vagas trazidas de outras fontes (Indeed etc.; veja VAGAS_ROTINA.md)")
-    s.add_argument("--sem-gupy", action="store_true", help="vagas: não visitar a Gupy")
+    s.add_argument("--sem-paginas", action="store_true", help="vagas: não visitar as páginas de carreiras")
     s.add_argument("--contas", help="ids separados por vírgula (ex.: T-001,F-003)")
     s.add_argument("--tier", help="só contas deste tier (A, B ou C)")
     s.add_argument("--limite", type=int, help="no máximo N contas")
@@ -346,7 +364,7 @@ def main(argv: list[str] | None = None) -> None:
     s = sub.add_parser("semana", help="coletar + classificar + digest, em sequência")
     s.add_argument("--conector", choices=["cnpj", "noticias", "vagas", "apollo"], help=argparse.SUPPRESS)
     s.add_argument("--arquivo-vagas", metavar="CSV", help="vagas trazidas de outras fontes (Indeed etc.)")
-    s.add_argument("--sem-gupy", action="store_true", help=argparse.SUPPRESS)
+    s.add_argument("--sem-paginas", action="store_true", help=argparse.SUPPRESS)
     s.add_argument("--contas", help="ids separados por vírgula")
     s.add_argument("--tier")
     s.add_argument("--limite", type=int)
@@ -354,14 +372,16 @@ def main(argv: list[str] | None = None) -> None:
     s.add_argument("--fixtures", metavar="PASTA", help=argparse.SUPPRESS)
     s.set_defaults(f=cmd_semana)
 
-    s = sub.add_parser("vagas", help="vagas: importar arquivo, definir página da Gupy, listar contas para a rotina")
+    s = sub.add_parser("vagas", help="vagas: importar arquivo, definir páginas de carreiras, listar contas para a rotina")
     acoes = s.add_subparsers(dest="acao", required=True)
     r = acoes.add_parser("importar", help="importa um CSV de vagas (Indeed e outras fontes)")
     r.add_argument("arquivo")
     r.add_argument("--dry-run", action="store_true")
-    r = acoes.add_parser("slug", help="define a página da Gupy da conta (ou - para não procurar)")
+    r = acoes.add_parser("pagina", help="define a página de carreiras da conta (Gupy, Greenhouse, Lever, Ashby, Sólides; - desliga)")
     r.add_argument("conta")
-    r.add_argument("slug")
+    r.add_argument("url")
+    r = acoes.add_parser("paginas", help="define páginas de carreiras em lote (CSV com id_conta,url)")
+    r.add_argument("arquivo")
     r = acoes.add_parser("contas", help="exporta a lista de contas para a rotina do Indeed")
     r.add_argument("--saida", default="saidas/contas_vagas.csv")
     r.add_argument("--tier")

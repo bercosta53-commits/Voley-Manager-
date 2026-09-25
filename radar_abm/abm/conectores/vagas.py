@@ -1,21 +1,22 @@
 """Conector de vagas: quem está contratando marketing, growth, RevOps ou comercial.
 
 1. BUSCA    Duas fontes:
-            a) Gupy: a página de carreiras da conta (https://<slug>.gupy.io), pública e sem chave. Na primeira
-               vez o conector descobre o endereço sozinho (pelo site e pelo nome da conta) e confere se a página
-               é mesmo da empresa; o endereço fica gravado na conta. Conta que não usa Gupy só é procurada de
-               novo depois de 30 dias.
-            b) Arquivo de vagas (CSV) trazido de outras fontes, como o Indeed pelo conector do Claude
-               (veja VAGAS_ROTINA.md). O Indeed não tem API aberta para programas como este, por isso o
-               arquivo. LinkedIn não é usado.
+            a) A página de carreiras da conta numa plataforma de vagas pública, sem chave: Gupy, Greenhouse,
+               Lever, Ashby ou Sólides (veja plataformas.py). O endereço fica gravado na conta (vagas_url).
+               Sem endereço, o conector tenta descobrir sozinho na Gupy e no Greenhouse (pelo site e pelo nome
+               da conta) e confere se a página é mesmo da empresa. Conta sem página achada só é procurada de
+               novo depois de 30 dias. Endereços de outras plataformas entram com `vagas pagina`/`vagas paginas`.
+            b) Arquivo de vagas (CSV) trazido de outras fontes: Indeed pelo conector do Claude e, opcionalmente,
+               anúncios do Glassdoor achados por busca na web (veja VAGAS_ROTINA.md). LinkedIn não é usado.
 2. TRADUZ   De cada vaga: título, local, modo (remoto, híbrido), fonte, link e data (quando a fonte informa).
 3. COMPARA  Mantém só vagas da empresa certa e dos grupos que interessam, pelas regras do sinais.yaml:
             liderança de receita, marketing/growth/RevOps e comercial. Descarta banco de talentos, estágio e
-            as vagas que já estavam abertas na coleta anterior. Vagas novas do mesmo grupo viram um item só.
+            as vagas que já estavam abertas na coleta anterior. A mesma vaga em duas fontes conta uma vez.
+            Vagas novas do mesmo grupo viram um item só.
 4. ENTREGA  Cada vaga nova vira item bruto (evidência com link). Cada grupo vira um sinal (confiança 0,9 na
-            Gupy e no arquivo com id da conta; 0,7 quando a conta foi reconhecida só pelo nome da empresa).
-            Se já houver sinal do mesmo grupo nos últimos 30 dias, a vaga entra no mesmo evento e não gera
-            sinal novo.
+            página da empresa e no arquivo com id da conta; 0,7 quando a conta foi reconhecida só pelo nome da
+            empresa). Se já houver sinal do mesmo grupo nos últimos 30 dias, a vaga entra no mesmo evento e não
+            gera sinal novo.
 """
 
 from __future__ import annotations
@@ -27,13 +28,14 @@ import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from .. import config
 from .. import taxonomia as taxonomia_mod
 from ..db import agora, novo_id
 from ..identidade import normalizar_dominio, normalizar_nome, sem_acentos
 from .base import Conector, Item
 from .http import ErroHTTP
+from .plataformas import PLATAFORMAS, ler_data, ler_gupy, reconhecer
 
-GUPY = "https://{slug}.gupy.io/"
 REPROCURAR_DIAS = 30
 MESMO_EVENTO_DIAS = 30
 GRUPOS = ("vaga_lideranca_receita", "vaga_marketing_growth", "vaga_comercial")
@@ -43,10 +45,10 @@ POR_QUE_AGORA = {
     "vaga_comercial": "Está ampliando o time comercial ({titulos}): mais gente vendendo precisa de demanda e processo desde já.",
 }
 
-_MESES = {m: i for i, m in enumerate(["january", "february", "march", "april", "may", "june", "july", "august",
-                                      "september", "october", "november", "december"], 1)}
-_MESES.update({m: i for i, m in enumerate(["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto",
-                                           "setembro", "outubro", "novembro", "dezembro"], 1)})
+# Palavras que podem sobrar ao comparar o nome de uma página com o nome da conta sem mudar a empresa.
+_COMPLEMENTOS = set("""ai io br com brasil group grupo tecnologia tech digital sa ltda oficial carreiras careers vagas jobs hq
+seguros seguradora advogados advocacia associados consorcios consorcio cooperativa credito sistemas software solucoes
+servicos confederacao central""".split())
 
 
 def _norm(texto: str) -> str:
@@ -74,77 +76,9 @@ def grupo_da_vaga(titulo: str, regras) -> str | None:
     return None
 
 
-def ler_data(texto: str | None) -> str | None:
-    """'2026-09-15', '15/09/2026' ou 'September 15, 2026' -> '2026-09-15'."""
-    t = (texto or "").strip()
-    if not t:
-        return None
-    for fmt in ("%Y-%m-%d", "%d/%m/%Y"):
-        try:
-            return datetime.strptime(t[:10], fmt).date().isoformat()
-        except ValueError:
-            pass
-    m = re.match(r"([A-Za-zçÇ]+)\s+(\d{1,2}),?\s+(\d{4})", sem_acentos(t))
-    if m and m.group(1).lower() in _MESES:
-        return date(int(m.group(3)), _MESES[m.group(1).lower()], int(m.group(2))).isoformat()
-    return None
-
-
-# ------------------------------------------------------------------------------------------ Gupy
-
 def ler_pagina_gupy(conteudo: str, base: str) -> dict:
-    """Nome da empresa e vagas de uma página de carreiras da Gupy.
-
-    Tenta primeiro os dados estruturados da página (bloco __NEXT_DATA__); se não houver, lê os links /jobs/<id>.
-    """
-    titulo = re.search(r"<title[^>]*>(.*?)</title>", conteudo, re.S | re.I)
-    empresa = html_lib.unescape(titulo.group(1)).strip() if titulo else ""
-    vagas: dict[str, dict] = {}
-
-    dados = re.search(r'<script[^>]+id="__NEXT_DATA__"[^>]*>(.*?)</script>', conteudo, re.S)
-    if dados:
-        try:
-            for v in _vagas_no_json(json.loads(dados.group(1))):
-                vagas[str(v["id"])] = v
-        except (json.JSONDecodeError, KeyError, TypeError):
-            pass
-    if not vagas:
-        for m in re.finditer(r'<a[^>]+href="((?:https://[a-z0-9-]+\.gupy\.io)?/jobs/(\d+)[^"]*)"[^>]*>(.*?)</a>', conteudo, re.S | re.I):
-            href, jid, dentro = m.groups()
-            cabecalho = re.search(r"<h[1-6][^>]*>(.*?)</h[1-6]>", dentro, re.S | re.I)
-            partes = [html_lib.unescape(re.sub(r"<[^>]+>", "", p)).strip() for p in re.split(r"</(?:div|span|h\d|p)>", dentro)]
-            partes = [p for p in partes if p]
-            nome = html_lib.unescape(re.sub(r"<[^>]+>", "", cabecalho.group(1))).strip() if cabecalho else (partes[0] if partes else "")
-            resto = [p for p in partes if p != nome]
-            url = href if href.startswith("http") else base.rstrip("/") + href
-            vagas[jid] = {"id": jid, "titulo": nome, "local": resto[0] if resto else "", "tipo": resto[1] if len(resto) > 1 else "",
-                          "url": url.split("?")[0], "data": None}
-    return {"empresa": empresa, "vagas": list(vagas.values())}
-
-
-def _vagas_no_json(no) -> list[dict]:
-    """Procura, em qualquer nível do JSON da página, listas de vagas (objetos com id e title/name)."""
-    achadas: list[dict] = []
-    if isinstance(no, list):
-        if no and all(isinstance(x, dict) and "id" in x and ("title" in x or "name" in x) for x in no):
-            for x in no:
-                endereco = (x.get("workplace") or {}).get("address") or {}
-                cidade = x.get("addressCity") or x.get("city") or endereco.get("city") or ""
-                uf = x.get("addressState") or x.get("state") or endereco.get("stateShortName") or endereco.get("state") or ""
-                achadas.append({
-                    "id": str(x["id"]), "titulo": (x.get("title") or x.get("name") or "").strip(),
-                    "local": " - ".join(p for p in (cidade, uf) if p),
-                    "tipo": x.get("workplaceType") or (x.get("workplace") or {}).get("workplaceType") or x.get("type") or "",
-                    "url": x.get("jobUrl") or x.get("url") or "",
-                    "data": ler_data(x.get("publishedDate") or x.get("publishedAt") or x.get("published_date")),
-                })
-            return achadas
-        for x in no:
-            achadas += _vagas_no_json(x)
-    elif isinstance(no, dict):
-        for x in no.values():
-            achadas += _vagas_no_json(x)
-    return achadas
+    """Compatibilidade: o leitor da Gupy agora mora em plataformas.py."""
+    return ler_gupy(conteudo, base)
 
 
 def candidatos_slug(conta) -> list[str]:
@@ -185,19 +119,21 @@ def ler_arquivo(caminho: str | Path) -> list[dict]:
 
 class ConectorVagas(Conector):
     nome = "vagas"
-    descricao = "Vagas de marketing, growth e comercial (Gupy e arquivo)"
+    descricao = "Vagas de marketing, growth e comercial (páginas de carreiras e arquivo)"
 
-    def __init__(self, *args, hoje: date | None = None, usar_gupy: bool = True, arquivo: list[dict] | None = None,
-                 taxonomia=None, **kw):
+    def __init__(self, *args, hoje: date | None = None, usar_paginas: bool = True, arquivo: list[dict] | None = None,
+                 taxonomia=None, usar_gupy: bool | None = None, **kw):
         super().__init__(*args, **kw)
         self.hoje = hoje or date.today()
-        self.usar_gupy = usar_gupy
+        self.usar_paginas = usar_paginas if usar_gupy is None else usar_gupy
         self.tax = taxonomia or taxonomia_mod.carregar()
+        # Onde procurar sozinho quando a conta ainda não tem página: só plataformas em que dá para conferir a empresa.
+        self.adivinhar = [p for p in config.valor("RADAR_VAGAS_ADIVINHAR", "gupy,greenhouse").split(",") if p in PLATAFORMAS]
         self.importadas: dict[str, list[dict]] = {}
         self.sem_conta: list[dict] = []
         if arquivo:
             self._distribuir(arquivo)
-        self._slug_achado: str | None = None
+        self._pagina_achada: str | None = None
         self._atual: dict | None = None
 
     def _nomes_da_conta(self, conta_id: str) -> set[str]:
@@ -211,6 +147,19 @@ class ConectorVagas(Conector):
     def _mesma_empresa(self, empresa: str, conta_id: str) -> bool:
         e = normalizar_nome(empresa)
         return bool(e) and any(n == e or n in e or e in n for n in self._nomes_da_conta(conta_id))
+
+    def _pagina_da_conta(self, empresa: str, conta_id: str) -> bool:
+        """Conferência estrita do nome de uma página de carreiras: o que sobra entre os nomes só pode ser
+        complemento genérico. 'Logcomex.ai' serve para Logcomex; 'Alfa Turismo' não serve para Alfa."""
+        pagina = set(normalizar_nome(empresa).split())
+        if not pagina:
+            return False
+        for nome in self._nomes_da_conta(conta_id):
+            conta = set(nome.split())
+            if pagina == conta or (conta < pagina and pagina - conta <= _COMPLEMENTOS) or (
+                    pagina < conta and conta - pagina <= _COMPLEMENTOS):
+                return True
+        return False
 
     def _distribuir(self, linhas: list[dict]) -> None:
         """Liga cada linha do arquivo a uma conta: pelo id_conta (conferindo a empresa) ou pelo nome da empresa."""
@@ -234,67 +183,89 @@ class ConectorVagas(Conector):
     def pode_rodar(self, conta) -> str:
         if conta["id"] in self.importadas:
             return ""
-        if not self.usar_gupy:
+        if not self.usar_paginas:
             return "sem vagas no arquivo"
-        if conta["gupy_slug"] == "-":
-            return "Gupy desligada para esta conta"
+        if conta["vagas_url"] == "-":
+            return "página de vagas desligada para esta conta"
+        if conta["vagas_url"]:
+            return "" if reconhecer(conta["vagas_url"]) else f"página {conta['vagas_url']} não é de plataforma conhecida"
         anterior = self.snapshot_anterior(conta["id"]) or {}
-        if not conta["gupy_slug"] and anterior.get("procurado_em") and not anterior.get("gupy_slug"):
+        if anterior.get("procurado_em") and not anterior.get("pagina"):
             if anterior["procurado_em"] > (self.hoje - timedelta(days=REPROCURAR_DIAS)).isoformat():
-                return "não usa Gupy (procurado há menos de 30 dias)"
+                return "sem página de vagas achada (procurada há menos de 30 dias)"
         return ""
+
+    def _tentativas(self, conta) -> list[tuple]:
+        """(plataforma, identificador, conferir?) na ordem em que serão tentados."""
+        if conta["vagas_url"]:
+            achado = reconhecer(conta["vagas_url"])
+            return [(achado[0], achado[1], False)] if achado else []
+        return [(PLATAFORMAS[p], c, True) for p in self.adivinhar for c in candidatos_slug(conta)]
 
     def descrever_busca(self, conta) -> str:
         partes = []
-        if self.usar_gupy and conta["gupy_slug"] != "-":
-            partes.append(f"Gupy {GUPY.format(slug=conta['gupy_slug'])}" if conta["gupy_slug"]
-                          else f"Gupy: procurando a página ({', '.join(candidatos_slug(conta))})")
+        if self.usar_paginas and conta["vagas_url"] != "-":
+            if conta["vagas_url"]:
+                p, x = reconhecer(conta["vagas_url"])
+                partes.append(f"{p.nome} {p.pagina.format(x=x)}")
+            else:
+                partes.append(f"procurando a página de vagas ({', '.join(self.adivinhar)}: {', '.join(candidatos_slug(conta))})")
         if conta["id"] in self.importadas:
             partes.append(f"{len(self.importadas[conta['id']])} vaga(s) do arquivo")
         return " + ".join(partes)
 
     # 1. BUSCA
     def buscar(self, conta) -> dict:
-        self._slug_achado = None
-        gupy = None
-        slug = conta["gupy_slug"]
-        if self.usar_gupy and slug != "-":
-            for tentativa in ([slug] if slug else candidatos_slug(conta)):
+        self._pagina_achada = None
+        achada, plataforma = None, None
+        if self.usar_paginas and conta["vagas_url"] != "-":
+            for p, x, conferir in self._tentativas(conta):
                 try:
-                    bruto = self.http.get(GUPY.format(slug=tentativa), chave=tentativa).decode("utf-8", errors="replace")
+                    bruto = self.http.get(p.lista.format(x=x), chave=f"{p.id}_{x}").decode("utf-8", errors="replace")
                 except ErroHTTP as e:
-                    if e.status == 404:
-                        continue
+                    if e.status == 404 and conferir:
+                        continue  # a empresa não está nesta plataforma com este nome
                     raise
-                pagina = ler_pagina_gupy(bruto, GUPY.format(slug=tentativa))
-                if slug or self._mesma_empresa(pagina["empresa"], conta["id"]):
-                    gupy, self._slug_achado = pagina, tentativa
-                    break
-                self.passo(f"               {tentativa}.gupy.io é de '{pagina['empresa']}', não desta conta: ignorada")
-        return {"gupy": gupy, "slug": self._slug_achado, "arquivo": self.importadas.get(conta["id"], [])}
+                pagina = p.ler(bruto, p.pagina.format(x=x))
+                if conferir:
+                    empresa = pagina["empresa"]
+                    if not empresa and p.nome_da_empresa:
+                        try:
+                            empresa = json.loads(self.http.get(p.nome_da_empresa.format(x=x), chave=f"{p.id}_{x}_nome")).get("name", "")
+                        except (ErroHTTP, json.JSONDecodeError):
+                            empresa = ""
+                    if not self._pagina_da_conta(empresa, conta["id"]):
+                        self.passo(f"               {p.pagina.format(x=x)} é de '{empresa or '?'}', não desta conta: ignorada")
+                        continue
+                achada, plataforma = pagina, p
+                self._pagina_achada = p.pagina.format(x=x)
+                break
+        return {"pagina": achada, "plataforma": plataforma.nome if plataforma else None, "url": self._pagina_achada,
+                "arquivo": self.importadas.get(conta["id"], [])}
 
     # 2. TRADUZ
     def traduzir(self, resposta_bruta: dict) -> dict:
         vagas = {}
-        for v in (resposta_bruta["gupy"] or {}).get("vagas", []):
-            vagas[f"gupy:{v['id']}"] = {**v, "fonte": "Gupy", "confianca": 0.9}
-        titulos_gupy = {_norm(v["titulo"]) for v in vagas.values()}
+        fonte = resposta_bruta["plataforma"]
+        for v in (resposta_bruta["pagina"] or {}).get("vagas", []):
+            vagas[f"{_norm(fonte)}:{v['id']}"] = {**v, "fonte": fonte, "confianca": 0.9}
+        titulos_pagina = {_norm(v["titulo"]) for v in vagas.values()}
         for v in resposta_bruta["arquivo"]:
-            if _norm(v["titulo"]) in titulos_gupy:
-                continue  # a mesma vaga na Gupy e no Indeed conta uma vez só (fica a da Gupy)
+            if _norm(v["titulo"]) in titulos_pagina:
+                continue  # a mesma vaga na página da empresa e no Indeed conta uma vez só (fica a da página)
             vagas[f"{_norm(v['fonte']).replace(' ', '_')}:{v['id']}"] = {**v, "fonte": v["fonte"]}
-        for chave, v in vagas.items():
+        for v in vagas.values():
             v["grupo"] = grupo_da_vaga(v["titulo"], self.tax.vagas)
-        self._atual = {"gupy_slug": resposta_bruta["slug"], "gupy_encontrada": resposta_bruta["gupy"] is not None, "vagas": vagas}
+        self._atual = {"pagina": resposta_bruta["url"], "plataforma": fonte, "vagas": vagas}
         return self._atual
 
     def resumir(self, novo: dict) -> str:
         alvo = sum(1 for v in novo["vagas"].values() if v["grupo"])
-        gupy = f"página {novo['gupy_slug']}.gupy.io" if novo["gupy_slug"] else "sem página na Gupy"
-        return f"{len(novo['vagas'])} vaga(s) aberta(s), {alvo} nos grupos que interessam; {gupy}"
+        pagina = f"página {novo['pagina']}" if novo["pagina"] else "sem página de vagas"
+        return f"{len(novo['vagas'])} vaga(s) aberta(s), {alvo} nos grupos que interessam; {pagina}"
 
     def conteudo_snapshot(self, novo: dict) -> dict:
-        return {"gupy_slug": novo["gupy_slug"], "procurado_em": self.hoje.isoformat(),
+        return {"pagina": novo["pagina"], "procurado_em": self.hoje.isoformat(),
                 "abertas": {k: {"titulo": v["titulo"], "grupo": v["grupo"]} for k, v in novo["vagas"].items()}}
 
     # 3. COMPARA
@@ -355,8 +326,8 @@ class ConectorVagas(Conector):
                  it.data_fato, agora(), status, POR_QUE_AGORA[it.tipo].format(titulos=titulos), self.nome),
             )
             gravados += 1
-        if self._slug_achado and not self.conta["gupy_slug"]:
-            self.conn.execute("update contas set gupy_slug = ? where id = ?", (self._slug_achado, self.conta["id"]))
+        if self._pagina_achada and not self.conta["vagas_url"]:
+            self.conn.execute("update contas set vagas_url = ? where id = ?", (self._pagina_achada, self.conta["id"]))
         return gravados
 
     def executar(self, contas: list):

@@ -212,24 +212,40 @@ python manager.py coletar --conector noticias
   que a imprensa usa (`aliases listar <conta>`); acrescente com `aliases adicionar`.
 - O Google mudou o formato do RSS: o erro aparece no passo TRADUZ. Só esse passo precisa ser ajustado.
 
-## Vagas (Gupy e arquivo do Indeed)
+## Vagas (páginas de carreiras e arquivo do Indeed)
 
-Arquivo: `abm/conectores/vagas.py`. Vigia quem está contratando marketing, growth, RevOps ou comercial. Time
-em formação é janela de compra.
+Arquivos: `abm/conectores/vagas.py` e `abm/conectores/plataformas.py`. Vigia quem está contratando
+marketing, growth, RevOps ou comercial. Time em formação é janela de compra.
 
 - **BUSCA**: duas fontes.
-  1. **Gupy**: a página de carreiras da conta (`https://<nome>.gupy.io`), pública e sem chave.
-     - Na primeira vez o conector descobre o endereço sozinho: tenta o nome do site (`juntoseguros.com` →
-       `juntoseguros`) e o nome da conta.
-     - Antes de aceitar a página, confere se o nome da empresa nela é o da conta.
-     - O endereço achado fica gravado na conta. Para corrigir:
-       `python manager.py vagas slug <conta> <nome>`; para não procurar: `vagas slug <conta> -`.
-     - Conta que não usa Gupy só é procurada de novo depois de 30 dias.
-  2. **Arquivo de vagas (CSV)**: vagas de outras fontes, como o **Indeed**, trazidas pela rotina do Claude
-     com o conector do Indeed (`VAGAS_ROTINA.md`). O Indeed não tem API aberta para programas como este,
-     por isso o arquivo. **LinkedIn não é usado.**
-- **TRADUZ**: de cada vaga, título, local, modo (remoto, híbrido), fonte, link e data (o Indeed informa; a
-  Gupy, na página de lista, não).
+  1. **Página de carreiras da conta** numa plataforma de vagas. Todas são públicas e sem chave: são as
+     páginas que as próprias empresas publicam.
+
+     | Plataforma | Página de carreiras | Comum em |
+     | --- | --- | --- |
+     | Gupy | `https://<empresa>.gupy.io` | a maioria das empresas brasileiras |
+     | Greenhouse | `https://boards.greenhouse.io/<empresa>` | tecnologia e fintechs |
+     | Lever | `https://jobs.lever.co/<empresa>` | tecnologia |
+     | Ashby | `https://jobs.ashbyhq.com/<empresa>` | startups |
+     | Sólides | `https://<empresa>.vagas.solides.com.br` | médias empresas, serviços |
+
+     - O endereço fica gravado na conta.
+     - Sem endereço, o conector tenta descobrir sozinho na **Gupy** e no **Greenhouse**, pelo site e pelo
+       nome da conta. São as duas em que dá para conferir o nome da empresa na página. A conferência é
+       estrita: "Logcomex.ai" serve para Logcomex; "Alfa Turismo" não serve para Alfa.
+     - Para as outras plataformas, o endereço entra por você ou pela rotina do Claude:
+       `python manager.py vagas pagina <conta> <endereço>`, ou em lote,
+       `python manager.py vagas paginas paginas.csv` (colunas `id_conta,url`).
+     - `vagas pagina <conta> -` desliga a busca para a conta.
+     - Conta sem página achada só é procurada de novo depois de 30 dias.
+  2. **Arquivo de vagas (CSV)** de outras fontes, montado pela rotina do Claude (`VAGAS_ROTINA.md`):
+     - **Indeed**, pelo conector do Indeed. O Indeed não tem API aberta para programas como este, por
+       isso o arquivo;
+     - **Glassdoor** (opcional), por busca na web: a rotina anota título e link dos anúncios que a busca
+       mostra, sem entrar no site.
+     - **LinkedIn não é usado.**
+- **TRADUZ**: de cada vaga, título, local, modo (remoto, híbrido), fonte, link e data (quando a fonte
+  informa; a lista da Gupy não informa).
 - **COMPARA**:
   - **empresa certa**: a vaga do arquivo com `id_conta` só entra se a empresa for a da conta; sem
     `id_conta`, entra se o nome da empresa bater com uma única conta;
@@ -237,45 +253,57 @@ em formação é janela de compra.
 
     | Título tem | Grupo | Peso |
     | --- | --- | --- |
-    | área + liderança ("Head de Growth", "Diretor Comercial") | liderança de receita | 9 |
-    | área ("Especialista em Marketing", "Analista de CRM") | marketing/growth | 7 |
-    | comercial ("SDR", "Executivo de Contas") | comercial | 5 |
+    | área + liderança ("Head de Growth", "Coordenador de Marketing", "Diretor Comercial") | liderança de receita | 9 |
+    | área ("Especialista em Marketing", "Analista de CRM", "RevOps Analyst") | marketing/growth | 7 |
+    | comercial ("SDR", "Account Executive") | comercial | 5 |
 
     Banco de talentos, estágio e aprendiz não contam.
-  - **novidade**: só entram as vagas que não estavam abertas na coleta anterior. A mesma vaga na Gupy e
-    no Indeed conta uma vez.
+  - **novidade**: só entram as vagas que não estavam abertas na coleta anterior. A mesma vaga na página
+    da empresa e no Indeed conta uma vez.
 - **ENTREGA**: cada vaga nova vira item bruto, com o link como evidência. Cada grupo vira **um** sinal:
-  - confiança 0,9 na Gupy e no arquivo com `id_conta`; 0,7 quando a conta foi reconhecida só pelo nome;
+  - confiança 0,9 na página da empresa e no arquivo com `id_conta`; 0,7 quando a conta foi reconhecida só
+    pelo nome;
   - a data do fato é a do anúncio ou, sem data, o dia em que a vaga foi vista aberta;
   - se o grupo já tem sinal nos últimos 30 dias, as vagas novas entram no mesmo evento, sem sinal novo.
 
+**Por que não há conector do Glassdoor**:
+- não existe conector do Glassdoor para o Claude;
+- o Glassdoor não tem API aberta e bloqueia acesso automático ao site;
+- as vagas que ele publica costumam ser anúncios das mesmas plataformas das empresas (Gupy, Greenhouse…)
+  e do Indeed.
+
+Por isso ele é coberto pelas fontes de origem e, opcionalmente, pela busca na web da rotina.
+
 **Precisa para funcionar**:
-- nada de chave para a Gupy;
+- nenhuma chave;
 - para o Indeed, o conector do Indeed numa conversa com o Claude.
 
-O conector espera 1 segundo entre páginas da Gupy. Na primeira semana, a descoberta das páginas faz até
-3 tentativas por conta (cerca de 15 minutos para 315 contas); depois, uma visita por conta.
+O conector espera 1 segundo entre chamadas ao mesmo site. Na primeira semana, a descoberta faz até 6
+tentativas por conta (Gupy e Greenhouse, até 3 nomes cada; cerca de 30 minutos para 315 contas); depois,
+uma visita por conta. Para descobrir só na Gupy: `RADAR_VAGAS_ADIVINHAR=gupy` no `.env`.
 
 **Comandos**:
 ```sh
 python manager.py coletar --conector vagas --tier A --dry-run
 python manager.py coletar --conector vagas --arquivo-vagas saidas/vagas_indeed_AAAA-MM-DD.csv
-python manager.py vagas importar saidas/vagas_indeed_AAAA-MM-DD.csv   # só o arquivo, sem visitar a Gupy
+python manager.py vagas importar saidas/vagas_indeed_AAAA-MM-DD.csv   # só o arquivo, sem visitar páginas
+python manager.py vagas paginas saidas/paginas_vagas.csv              # endereços achados pela rotina
 ```
 
 **Limites conhecidos**:
 - A página da Gupy mostra 10 vagas por vez. Se o conteúdo vier paginado, as seguintes podem ficar de
-  fora; o arquivo do Indeed cobre parte disso.
-- Empresas em outras plataformas de vagas (Sólides, InHire, Recrutei, sites próprios) só entram pelo
-  arquivo.
+  fora; o Indeed cobre parte disso.
+- Empresas com vagas só no site próprio, ou em outras plataformas (InHire, Recrutei, Workable), entram
+  pelo arquivo.
 
 **Quando quebra**:
-- Conta sem página achada, mas você sabe que ela usa Gupy: `python manager.py vagas slug <conta> <nome>`.
-- "é de '<outra empresa>', não desta conta": o endereço adivinhado é de outra empresa. Informe o certo
-  com `vagas slug`.
-- A Gupy mudou a página e nenhuma vaga aparece: o erro está no passo TRADUZ (`ler_pagina_gupy`). Só ele
-  precisa ser ajustado.
-- Vagas do arquivo "sem conta correspondente": o nome da empresa no Indeed é diferente do da conta.
+- Conta sem página achada, mas você sabe onde ela anuncia: `python manager.py vagas pagina <conta> <endereço>`.
+- "é de '<outra empresa>', não desta conta": o endereço adivinhado é de outra empresa. Informe o certo.
+- "não é de uma plataforma conhecida": o endereço não é de uma das 5 plataformas. As vagas dessa
+  empresa entram pelo arquivo.
+- Uma plataforma mudou o formato e nenhuma vaga aparece: o erro está no leitor dela (`plataformas.py`).
+  Só ele precisa ser ajustado.
+- Vagas do arquivo "sem conta correspondente": o nome da empresa na fonte é diferente do da conta.
   Preencha `id_conta` no CSV ou acrescente o nome como alias (`aliases adicionar`).
 
 ## Apollo (comitê de compra)

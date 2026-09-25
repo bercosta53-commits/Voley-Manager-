@@ -29,14 +29,15 @@ mostra.
    ```sh
    python manager.py semana --dry-run
    ```
-2. **Vagas do Indeed** (opcional, 10 minutos): siga o `VAGAS_ROTINA.md` para o Claude gerar
-   `saidas/vagas_indeed_AAAA-MM-DD.csv`. A Gupy o radar visita sozinho.
+2. **Vagas do Indeed e do Glassdoor** (opcional, 10 minutos): siga o `VAGAS_ROTINA.md` para o Claude
+   gerar `saidas/vagas_AAAA-MM-DD.csv`. As páginas de carreiras (Gupy, Greenhouse, Lever, Ashby, Sólides)
+   o radar visita sozinho.
 3. **Para valer**:
    ```sh
-   python manager.py semana --arquivo-vagas saidas/vagas_indeed_AAAA-MM-DD.csv   # ou só: python manager.py semana
+   python manager.py semana --arquivo-vagas saidas/vagas_AAAA-MM-DD.csv   # ou só: python manager.py semana
    ```
    Isso faz, em sequência:
-   - **coletar**: CNPJ (Receita), depois notícias (Google News), depois vagas (Gupy e o arquivo do Indeed),
+   - **coletar**: CNPJ (Receita), depois notícias (Google News), depois vagas (páginas de carreiras e o arquivo),
      depois Apollo;
    - **classificar**: as notícias novas viram sinais ou ruído;
    - **digest**: gera `saidas/digest-AAAA-MM-DD.html`.
