@@ -81,6 +81,10 @@ class Conector(ABC):
     def descrever_busca(self, conta) -> str:
         return "consultando a fonte"
 
+    def completar_conta(self, novo: dict) -> dict:
+        """Campos da conta que a fonte sabe preencher (ex.: razão social). Só entram os que estão vazios."""
+        return {}
+
     # --- orquestração comum ---------------------------------------------------------------------
 
     def passo(self, texto: str) -> None:
@@ -102,21 +106,31 @@ class Conector(ABC):
                 self.passo(f"   1. BUSCA    {self.descrever_busca(conta)}")
                 bruto = self.buscar(conta)
                 novo = self.traduzir(bruto)
-                self.passo(f"   2. TRADUZ   {self._resumo_traducao(novo)}")
+                self.passo(f"   2. TRADUZ   {self.resumir(novo)}")
                 anterior = self.snapshot_anterior(conta["id"])
                 itens = self.comparar(novo, anterior)
                 base = "primeira coleta, sem foto anterior" if anterior is None else "comparado com a foto anterior"
                 self.passo(f"   3. COMPARA  {base}: {len(itens)} novidade(s)")
                 for item in itens:
                     self.passo(f"               - {item.resumo()}")
+                completar = {k: v for k, v in self.completar_conta(novo).items() if v and not conta[k]}
                 if self.dry_run:
                     self.passo(f"   4. ENTREGA  (simulado) gravaria {len(itens)} item(ns) e a foto nova")
+                    if completar:
+                        self.passo(f"               completaria na conta: {self._campos(completar)}")
                 else:
                     # Itens e foto nova entram juntos: se algo falhar, nada desta conta fica gravado pela metade.
                     gravados = self.entregar(itens)
                     self.salvar_snapshot(conta["id"], novo, anterior)
+                    if completar:
+                        self.conn.execute(
+                            f"update contas set {', '.join(f'{k} = ?' for k in completar)}, atualizada_em = ? where id = ?",
+                            (*completar.values(), agora(), conta["id"]),
+                        )
                     self.conn.commit()
-                    self.passo(f"   4. ENTREGA  {gravados} item(ns) gravado(s)")
+                    self.passo(f"   4. ENTREGA  {gravados} item(ns) novo(s) gravado(s)")
+                    if completar:
+                        self.passo(f"               completado na conta: {self._campos(completar)}")
                 ex.itens += len(itens)
             except Exception as e:  # um erro numa conta não derruba a coleta das outras
                 self.conn.rollback()
@@ -126,7 +140,12 @@ class Conector(ABC):
         self.passo(f"== fim: {ex.itens} novidade(s), {len(ex.erros)} erro(s)")
         return ex
 
-    def _resumo_traducao(self, novo: dict) -> str:
+    @staticmethod
+    def _campos(campos: dict) -> str:
+        return ", ".join(f"{k} = {v}" for k, v in campos.items())
+
+    def resumir(self, novo: dict) -> str:
+        """Uma linha dizendo o que a tradução trouxe. Cada conector pode dar a sua versão."""
         partes = [f"{k}: {len(v)}" if isinstance(v, (list, dict)) else f"{k}: {v}" for k, v in list(novo.items())[:6]]
         return ", ".join(partes) or "(vazio)"
 
@@ -161,6 +180,18 @@ class Conector(ABC):
             (novo_id(), self.nome, item.conta_id, item.url, item.titulo, item.trecho, item.data_fato, agora(), hash_),
         ).rowcount
         return bool(feito)
+
+    def gravar_sinal(self, item: Item, evento_id: str, confianca: float, status: str,
+                     membro_comite: str | None = None, peso: int | None = None, angulo: str | None = None) -> str:
+        sinal_id = novo_id()
+        self.conn.execute(
+            """insert into sinais (id, conta_id, tipo, evento_id, peso, confianca, membro_comite, angulo,
+                                   evidencia_url, evidencia_trecho, data_fato, data_alerta, status)
+               values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (sinal_id, item.conta_id, item.tipo, evento_id, peso, confianca, membro_comite, angulo,
+             item.url, item.trecho, item.data_fato, agora(), status),
+        )
+        return sinal_id
 
 
 def selecionar_contas(conn: sqlite3.Connection, ids: list[str] | None = None, tier: str | None = None,

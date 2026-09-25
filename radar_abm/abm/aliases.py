@@ -101,9 +101,12 @@ def _nomes_antigos(nome: str) -> list[Candidato]:
 def candidatos(nome_fantasia: str, razao_social: str | None, braco_icp: str | None = None) -> list[Candidato]:
     """Siglas por iniciais só para serviços profissionais, onde escritórios costumam usá-las (ex.: "PMKA")."""
     lista = [Candidato(nome_fantasia.strip(), "fantasia")]
+    if razao_social and " - " in razao_social:
+        # "CONFEDERACAO NACIONAL ... - CRESOL CONFEDERACAO": o nome curto vem depois do hífen.
+        razao_social = razao_social.rsplit(" - ", 1)[1]
     for nome in filter(None, [nome_fantasia, razao_social]):
         var = _variacao(nome)
-        if var:
+        if var and len(var.split()) <= 5:  # nome longo demais não aparece assim em notícia
             lista.append(Candidato(var, "variacao"))
     lista += _siglas(nome_fantasia, braco_icp == "servicos_profissionais") + _nomes_antigos(nome_fantasia)
     vistos, unicos = set(), []

@@ -81,6 +81,24 @@ def cmd_aliases(args) -> None:
         print(f"Alias '{args.termo}' ligado para {args.conta}")
 
 
+def cmd_coletar(args) -> None:
+    from abm.conectores import CONECTORES
+    from abm.conectores.base import selecionar_contas
+    from abm.conectores.http import ClienteLocal
+
+    conn = _conn()
+    nomes = [args.conector] if args.conector else list(CONECTORES)
+    ids = [i.strip() for i in args.contas.split(",")] if args.contas else None
+    contas = selecionar_contas(conn, ids=ids, tier=args.tier, limite=args.limite)
+    for nome in nomes:
+        http = ClienteLocal(f"{args.fixtures}/{nome}") if args.fixtures else None
+        CONECTORES[nome](conn, http=http, dry_run=args.dry_run).executar(contas)
+    if not args.dry_run:
+        r = aliases.gerar(conn)  # razões sociais novas viram aliases
+        if r["criados"]:
+            print(f"Aliases: {r['criados']} novos a partir das razões sociais ({r['ambiguos']} ambíguos)")
+
+
 def cmd_execucoes(args) -> None:
     conn = _conn()
     linhas = conn.execute("select * from execucoes order by inicio desc limit ?", (args.limite,)).fetchall()
@@ -123,6 +141,15 @@ def main(argv: list[str] | None = None) -> None:
     r.add_argument("termo")
     r.add_argument("--negativos", help="termos negativos separados por ;")
     s.set_defaults(f=cmd_aliases)
+
+    s = sub.add_parser("coletar", help="roda os conectores (todos, ou um com --conector)")
+    s.add_argument("--conector", choices=["cnpj"], help="só este conector")
+    s.add_argument("--contas", help="ids separados por vírgula (ex.: T-001,F-003)")
+    s.add_argument("--tier", help="só contas deste tier (A, B ou C)")
+    s.add_argument("--limite", type=int, help="no máximo N contas")
+    s.add_argument("--dry-run", action="store_true", help="mostra passo a passo o que faria, sem gravar")
+    s.add_argument("--fixtures", metavar="PASTA", help="usa respostas salvas em PASTA/<conector>/ em vez da internet")
+    s.set_defaults(f=cmd_coletar)
 
     s = sub.add_parser("execucoes", help="últimas execuções dos conectores")
     s.add_argument("--limite", type=int, default=20)

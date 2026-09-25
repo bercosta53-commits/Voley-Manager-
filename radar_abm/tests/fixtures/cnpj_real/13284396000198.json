@@ -1,0 +1,36 @@
+{
+ "descricao_identificador_matriz_filial": "MATRIZ",
+ "complemento": "",
+ "cnpj": "13284396000198",
+ "razao_social": "VMS SOLUCOES LTDA",
+ "nome_fantasia": "VIASOFT",
+ "descricao_situacao_cadastral": "ATIVA",
+ "data_situacao_cadastral": "2011-02-18",
+ "capital_social": 20000,
+ "cnae_fiscal": 6203100,
+ "cnae_fiscal_descricao": "Desenvolvimento e licenciamento de programas de computador não-customizáveis",
+ "descricao_tipo_de_logradouro": "RUA",
+ "logradouro": "AFONSO PENA",
+ "numero": "1710",
+ "bairro": "SAMBUGARO",
+ "municipio": "PATO BRANCO",
+ "uf": "PR",
+ "cep": "85501530",
+ "qsa": [
+  {
+   "nome_socio": "FABIO SCABENI",
+   "qualificacao_socio": "Sócio-Administrador",
+   "data_entrada_sociedade": "2020-08-05"
+  },
+  {
+   "nome_socio": "ITAMIR VIOLA",
+   "qualificacao_socio": "Sócio-Administrador",
+   "data_entrada_sociedade": "2011-02-18"
+  },
+  {
+   "nome_socio": "ROBERTO ELIAS DA SILVA",
+   "qualificacao_socio": "Sócio-Administrador",
+   "data_entrada_sociedade": "2011-02-18"
+  }
+ ]
+}

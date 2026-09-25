@@ -89,12 +89,66 @@ Não é um conector de fonte externa, mas segue a mesma lógica e é por onde tu
 
 ---
 
-## CNPJ (BrasilAPI): fase 2, a construir
+## CNPJ (BrasilAPI)
 
-- **BUSCA**: `https://brasilapi.com.br/api/cnpj/v1/{cnpj}`, uma chamada por conta com CNPJ.
-- **TRADUZ**: quadro de sócios e administradores (QSA), capital social, situação cadastral, CNAE, endereço.
-- **COMPARA**: entrou ou saiu sócio ou administrador, capital mudou, situação ou endereço da sede mudou.
-- **ENTREGA**: sinais com a evidência (o dado antes e depois).
+Arquivo: `abm/conectores/cnpj.py`. Vigia o cadastro oficial da empresa na Receita Federal.
+
+- **BUSCA**: vai até `https://brasilapi.com.br/api/cnpj/v1/{cnpj}` e pede o cadastro do CNPJ da matriz.
+  É uma chamada por conta. A BrasilAPI é gratuita e repassa os dados públicos da Receita. Contas sem
+  CNPJ são puladas (a tela diz "pulada (sem CNPJ)").
+- **TRADUZ**: da resposta, guarda só o que usamos:
+  - QSA (quadro de sócios e administradores): nome, qualificação (Sócio, Diretor, Presidente,
+    Administrador...) e data de entrada;
+  - capital social;
+  - situação cadastral (ATIVA, SUSPENSA, BAIXADA...);
+  - CNAE principal (o código da atividade da empresa);
+  - endereço da sede.
+
+  Joga fora o CPF mascarado, a faixa etária e os telefones: não guardamos dado pessoal sensível.
+- **COMPARA**: põe a foto nova ao lado da foto da coleta anterior e procura:
+  - pessoa que entrou ou saiu do QSA;
+  - pessoa que mudou de qualificação (ex.: de Diretor para Presidente);
+  - capital social que mudou (com o percentual);
+  - situação cadastral que mudou;
+  - endereço da sede que mudou (logradouro, número, cidade, UF ou CEP; mudar só o andar não conta).
+
+  Na **primeira coleta** não existe foto anterior. Aí só vira novidade quem entrou no QSA nos últimos
+  **180 dias** (executivo recém-chegado costuma rever fornecedores) e empresa que não está ATIVA.
+- **ENTREGA**: cada novidade vira:
+  - um **item bruto**: a evidência, com o link da consulta e o trecho ("QSA na Receita: EDUARDO CRUCI
+    (Diretor), entrada em 2026-04-06");
+  - um **sinal** com confiança 1,0 (dado oficial), status `alerta` e o membro do comitê que ele
+    "acorda" (mudança de sócio, administração, capital ou situação acorda o decisor; mudança de sede,
+    o influenciador).
+
+  A mesma novidade nunca entra duas vezes: cada uma tem uma impressão digital (hash). Também grava a
+  foto nova e **completa a conta** com razão social, UF e cidade quando estavam vazias. As razões
+  sociais novas viram aliases.
+
+**Precisa para funcionar**:
+- o CNPJ da conta (coluna `cnpj` na planilha);
+- nenhuma chave de API;
+- a BrasilAPI não publica um limite fixo de chamadas. O conector espera 1 segundo entre chamadas e
+  respeita o "espere" (código 429) quando ele vem. Para 315 contas, conte com 6 a 10 minutos.
+
+**Opção no `.env`**: `RADAR_CNPJ_JANELA_DIAS` (padrão 180), a janela da primeira coleta.
+
+**Comandos**:
+```sh
+python manager.py coletar --conector cnpj --tier A --limite 5 --dry-run   # ensaio com 5 contas A
+python manager.py coletar --conector cnpj                                 # todas as contas com CNPJ
+python manager.py execucoes                                               # como foram as últimas rodadas
+```
+Sem internet, `--fixtures PASTA` usa respostas salvas em `PASTA/cnpj/<cnpj>.json`.
+
+**Quando quebra**:
+- "respondeu 404": o CNPJ não existe na Receita. Confira o número na planilha (`qualidade` mostra os inválidos).
+- "respondeu 429" ou "falhou: timeout" repetidos: a BrasilAPI está sobrecarregada. O conector já tenta 4
+  vezes com espera crescente; se ainda falhar, rode de novo mais tarde. As contas que deram certo não
+  são repetidas, porque a foto delas já foi gravada.
+- A BrasilAPI fora do ar por muito tempo: dá para trocar a fonte por outra que devolve o mesmo cadastro
+  (ReceitaWS, CNPJá, publica.cnpj.ws). Só muda o passo BUSCA; os outros três ficam iguais.
+- Um erro numa conta não para as outras: ele aparece na tela, em `execucoes` e em `logs/radar.log`.
 
 ## Google News (RSS): fase 3, a construir
 

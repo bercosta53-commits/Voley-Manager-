@@ -168,3 +168,12 @@ def test_relatorio_de_qualidade_e_pendencias(conn, tmp_path):
     importar(conn, pend)
     junto = conta(conn, "F-001")
     assert (junto["cnpj"], junto["braco_icp"], junto["status"]) == ("33000167000101", "servicos_financeiros", "ATIVAR")
+
+
+def test_alias_da_razao_social_usa_o_nome_curto():
+    termos = [c.termo for c in aliases.candidatos(
+        "Cresol Confederação",
+        "CONFEDERACAO NACIONAL DAS COOPERATIVAS CENTRAIS DE CREDITO E ECONOMIA FAMILIAR E SOLIDARIA - CRESOL CONFEDERACAO")]
+    assert termos == ["Cresol Confederação", "Cresol"]
+    termos = [c.termo for c in aliases.candidatos("Viasoft", "VMS SOLUCOES LTDA")]
+    assert termos == ["Viasoft", "VMS"]

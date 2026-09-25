@@ -12,13 +12,18 @@ from .db import agora, novo_id
 
 def logger() -> logging.Logger:
     log = logging.getLogger("radar")
-    if not log.handlers:
-        pasta = config.pasta_logs()
-        pasta.mkdir(parents=True, exist_ok=True)
-        arquivo = logging.FileHandler(pasta / "radar.log", encoding="utf-8")
-        arquivo.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
-        log.addHandler(arquivo)
-        log.setLevel(logging.INFO)
+    destino = (config.pasta_logs() / "radar.log").resolve()
+    atuais = [h for h in log.handlers if isinstance(h, logging.FileHandler)]
+    if atuais and atuais[0].baseFilename == str(destino):
+        return log
+    for h in atuais:  # a pasta de logs mudou (outro .env, outro teste): troca o arquivo
+        log.removeHandler(h)
+        h.close()
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    arquivo = logging.FileHandler(destino, encoding="utf-8")
+    arquivo.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    log.addHandler(arquivo)
+    log.setLevel(logging.INFO)
     return log
 
 

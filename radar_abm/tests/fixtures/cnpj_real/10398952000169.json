@@ -1,0 +1,51 @@
+{
+ "descricao_identificador_matriz_filial": "MATRIZ",
+ "complemento": "",
+ "cnpj": "10398952000169",
+ "razao_social": "CONFEDERACAO NACIONAL DAS COOPERATIVAS CENTRAIS DE CREDITO E ECONOMIA FAMILIAR E SOLIDARIA - CRESOL CONFEDERACAO",
+ "nome_fantasia": "CRESOL CONFEDERACAO",
+ "descricao_situacao_cadastral": "ATIVA",
+ "data_situacao_cadastral": "2008-09-09",
+ "capital_social": 163553380,
+ "cnae_fiscal": 6424702,
+ "cnae_fiscal_descricao": "Cooperativas centrais de crédito",
+ "descricao_tipo_de_logradouro": "RUA",
+ "logradouro": "JOSE GUIDI DUARTE",
+ "numero": "170",
+ "bairro": "INDUSTRIAL",
+ "municipio": "FRANCISCO BELTRAO",
+ "uf": "PR",
+ "cep": "85601659",
+ "qsa": [
+  {
+   "nome_socio": "CLEDIR ASSISIO MAGRI",
+   "qualificacao_socio": "Presidente",
+   "data_entrada_sociedade": "2022-05-20"
+  },
+  {
+   "nome_socio": "JONAS ALBERTO KLEIN",
+   "qualificacao_socio": "Diretor",
+   "data_entrada_sociedade": "2025-02-21"
+  },
+  {
+   "nome_socio": "KAROLINE BUSS GESSER",
+   "qualificacao_socio": "Diretor",
+   "data_entrada_sociedade": "2025-12-18"
+  },
+  {
+   "nome_socio": "MAICON ALVES SIQUEIRA",
+   "qualificacao_socio": "Diretor",
+   "data_entrada_sociedade": "2024-11-14"
+  },
+  {
+   "nome_socio": "MARCIO ANDRE FALCAO",
+   "qualificacao_socio": "Diretor",
+   "data_entrada_sociedade": "2022-08-03"
+  },
+  {
+   "nome_socio": "PABLO JOSE GUANCINO",
+   "qualificacao_socio": "Diretor",
+   "data_entrada_sociedade": "2023-08-29"
+  }
+ ]
+}

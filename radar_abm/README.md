@@ -17,6 +17,9 @@ python manager.py importar lista.csv      # CSV, XLSX ou a ABM_Outbound_Final.xl
 python manager.py qualidade --pendencias saidas/pendencias.csv
 python manager.py aliases revisar --saida saidas/aliases_revisar.csv
 python manager.py aliases aplicar saidas/aliases_revisar.csv
+python manager.py coletar --conector cnpj --tier A --limite 5 --dry-run
+python manager.py coletar --conector cnpj
+python manager.py execucoes
 python -m pytest tests                    # testes, sem internet
 ```
 
@@ -40,4 +43,5 @@ duplicar.
 | `abm/aliases.py` | nomes usados nas buscas e os ambíguos |
 | `abm/qualidade.py` | relatório do que falta |
 | `abm/conectores/base.py` | contrato único de conector (buscar, traduzir, comparar, entregar) |
-| `abm/conectores/http.py` | timeout, retry com backoff e rate limit |
+| `abm/conectores/http.py` | timeout, retry com backoff e rate limit; respostas salvas para testes |
+| `abm/conectores/cnpj.py` | conector CNPJ (BrasilAPI) |

@@ -83,3 +83,30 @@ class ClienteHTTP:
                 self.dormir(espera)
                 espera *= 2
         raise ErroHTTP(f"{ultimo_erro} (depois de {self.tentativas} tentativas)", ultimo_erro.status if ultimo_erro else None)
+
+
+@dataclass
+class ClienteLocal:
+    """Lê respostas salvas numa pasta em vez de ir à internet (testes e ensaios sem rede).
+
+    A resposta de https://.../cnpj/v1/91586982000109 é o arquivo <pasta>/91586982000109.json.
+    """
+
+    pasta: str
+    chamadas: int = 0
+
+    def _arquivo(self, url: str):
+        from pathlib import Path
+
+        nome = urlparse(url).path.rstrip("/").rsplit("/", 1)[-1]
+        return Path(self.pasta) / (nome if "." in nome else f"{nome}.json")
+
+    def get(self, url: str, headers: dict[str, str] | None = None) -> bytes:
+        self.chamadas += 1
+        arquivo = self._arquivo(url)
+        if not arquivo.exists():
+            raise ErroHTTP(f"sem resposta salva para {url} (esperava {arquivo})", 404)
+        return arquivo.read_bytes()
+
+    def get_json(self, url: str, headers: dict[str, str] | None = None):
+        return json.loads(self.get(url, headers).decode("utf-8"))
