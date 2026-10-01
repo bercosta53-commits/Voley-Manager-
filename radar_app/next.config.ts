@@ -1,17 +1,15 @@
 import type { NextConfig } from 'next';
 
-// EXPORTAR=1 gera a versão estática (pasta out/), para publicar como página.
-// EXPORTAR_BASE, quando definido, é o caminho onde essa página vai ficar publicada
-// (ex.: /artifact/abc123); sem ele, os links internos ficam absolutos a partir da
-// raiz do domínio e quebram fora de um deploy na raiz (como uma prévia de artifact).
+// EXPORTAR=1 gera a versão estática (pasta out/), com caminhos relativos, para publicar como página.
+// Caminhos relativos (em vez de basePath) são o que funciona numa prévia publicada em claude.ai: o
+// endereço real do arquivo lá não segue um padrão previsível, então um basePath fixo quebra o CSS e os
+// scripts (o navegador tenta buscá-los num endereço que não existe). Relativo, o navegador resolve a
+// partir de onde a página realmente está, sempre certo no carregamento inicial de cada tela.
 const exportar = !!process.env.EXPORTAR;
-const base = process.env.EXPORTAR_BASE || '';
 
 const config: NextConfig = {
   reactStrictMode: true,
-  ...(exportar
-    ? { output: 'export', basePath: base, images: { unoptimized: true } }
-    : {}),
+  ...(exportar ? { output: 'export', assetPrefix: '.', images: { unoptimized: true } } : {}),
 };
 
 export default config;
