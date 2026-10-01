@@ -57,3 +57,8 @@ npm run exportar   # gera radar_app/out/, só com a base fictícia, sem banco e 
 
 A exportação estática do Next.js não roda endpoints dinâmicos nem tem acesso ao banco; o script tira
 `app/api/` e `data/contas.local.json` do caminho antes do build e devolve os dois depois.
+
+Para publicar essa pasta fora da raiz do domínio (ex.: como página do claude.ai, em `/artifact/<id>`),
+defina `EXPORTAR_BASE` com esse caminho antes de rodar o script: `EXPORTAR_BASE=/artifact/abc123 npm run
+exportar`. Sem isso, os links internos (`/contas`, `/fontes`...) ficam absolutos a partir da raiz do
+domínio e quebram fora de um deploy na raiz.
