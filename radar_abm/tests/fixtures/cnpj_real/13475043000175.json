@@ -1,0 +1,56 @@
+{
+ "descricao_identificador_matriz_filial": "MATRIZ",
+ "complemento": "",
+ "cnpj": "13475043000175",
+ "razao_social": "LOGCOMEX LTDA.",
+ "nome_fantasia": "",
+ "descricao_situacao_cadastral": "ATIVA",
+ "data_situacao_cadastral": "2023-12-01",
+ "capital_social": 57911400,
+ "cnae_fiscal": 6209100,
+ "cnae_fiscal_descricao": "Suporte técnico, manutenção e outros serviços em tecnologia da informação",
+ "descricao_tipo_de_logradouro": "AVENIDA",
+ "logradouro": "CANDIDO DE ABREU",
+ "numero": "70",
+ "bairro": "CENTRO CIVICO",
+ "municipio": "CURITIBA",
+ "uf": "PR",
+ "cep": "80530000",
+ "qsa": [
+  {
+   "nome_socio": "ALLAN ROGERIO FLORES SCHMITT",
+   "qualificacao_socio": "Administrador",
+   "data_entrada_sociedade": "2022-07-18"
+  },
+  {
+   "nome_socio": "CARLOS HENRIQUE BASTOS FERREIRA DE SOUZA",
+   "qualificacao_socio": "Administrador",
+   "data_entrada_sociedade": "2018-05-25"
+  },
+  {
+   "nome_socio": "HELMUTH HOFSTATTER FILHO",
+   "qualificacao_socio": "Administrador",
+   "data_entrada_sociedade": "2018-05-25"
+  },
+  {
+   "nome_socio": "LOGCOMEX LLC",
+   "qualificacao_socio": "Sócio Pessoa Jurídica Domiciliado no Exterior",
+   "data_entrada_sociedade": "2021-12-16"
+  },
+  {
+   "nome_socio": "RAFAEL AUGUSTO FIRAKOWSKI CRUZ",
+   "qualificacao_socio": "Administrador",
+   "data_entrada_sociedade": "2022-12-09"
+  },
+  {
+   "nome_socio": "RAFAEL CASTELLI SILVA AGUIAR",
+   "qualificacao_socio": "Administrador",
+   "data_entrada_sociedade": "2022-05-06"
+  },
+  {
+   "nome_socio": "THIERRY JOINOVICI CADIER",
+   "qualificacao_socio": "Administrador",
+   "data_entrada_sociedade": "2024-08-07"
+  }
+ ]
+}

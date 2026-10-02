@@ -1,0 +1,14 @@
+{
+  "cnpj": "11222333000181",
+  "razao_social": "ALFA ADVOGADOS ASSOCIADOS",
+  "nome_fantasia": "ALFA ADVOGADOS",
+  "descricao_situacao_cadastral": "ATIVA",
+  "capital_social": 500000,
+  "uf": "SP",
+  "municipio": "SAO PAULO",
+  "cnae_fiscal_descricao": "Atividades jurídicas, exceto cartórios",
+  "qsa": [
+    {"identificador_de_socio": 2, "nome_socio": "ANA SOUZA", "cnpj_cpf_do_socio": "***123456**", "codigo_qualificacao_socio": 49, "qualificacao_socio": "Sócio-Administrador", "data_entrada_sociedade": "2010-03-01"},
+    {"identificador_de_socio": 2, "nome_socio": "CARLOS PEREIRA", "cnpj_cpf_do_socio": "***654321**", "codigo_qualificacao_socio": 22, "qualificacao_socio": "Sócio", "data_entrada_sociedade": "2026-08-15"}
+  ]
+}

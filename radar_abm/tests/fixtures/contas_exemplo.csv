@@ -1,0 +1,5 @@
+id_conta,empresa,icp,subsegmento,cidade,uf,cnpj,site,pessoa_p1,cargo_p1,tier,status_comercial,score_estrutural,gatilho_recente
+A-001,Alfa Advogados,Escritórios de advocacia,Full service,SÃO PAULO,SP,11.222.333/0001-81,https://www.alfa.adv.br/contato,Ana Souza,Sócia-diretora,A,ATIVAR,90,Três novos sócios em 2026
+A-002,Alfa Advogados - Filial PR,Escritórios de advocacia,Full service,CURITIBA,PR,11222333000262,,,,,,,
+F-001,Junto Seguros,Financeiro regional,Seguros,CURITIBA,PR,,juntoseguros.com,NÃO ENCONTRADO,NÃO ENCONTRADO,A,ATIVAR,100,
+T-001,WeCogno (ex-Datarisk),Tecnologia B2B,Dados,NÃO ENCONTRADO,NÃO ENCONTRADO,123,linkedin.com/company/wecogno,Bruno Lima,Head de Marketing,C,INSUFICIENTE — NÃO ABORDAR,40,

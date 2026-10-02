@@ -1,0 +1,144 @@
+/*
+ * Velora Radar · tokens de design (PROPOSTA)
+ *
+ * O arquivo oficial velora-radar-tokens.css não chegou a esta sessão. Este é uma proposta escrita a partir da
+ * direção de design e do Velora Design System v2026. Quando o oficial chegar, ele substitui este arquivo; o app só
+ * lê as variáveis --vr-* (o mapeamento para o tema fica em globals.css, num lugar só).
+ *
+ * Regras que os tokens carregam:
+ * - Claro e quente por padrão; escuro em grafite, nunca preto puro.
+ * - Ácido (#CCFF00) é sotaque: só "novo", ponto indicador, anel de foco e seleção. Nunca texto sobre claro, nunca área grande.
+ * - Raio cresce com a elevação. Sombras em camadas, baixa opacidade, sempre com borda fina.
+ * - Glass só em camadas flutuantes, sempre com fundo sólido de reserva.
+ */
+
+:root {
+  /* ---------- marca (sotaque) ---------- */
+  --vr-acid: #ccff00;
+  --vr-acid-ink: #0b0b0c; /* texto sobre ácido */
+  --vr-acid-soft: rgb(204 255 0 / 0.22); /* seleção de texto e fundo do selo "novo" no escuro */
+
+  /* ---------- superfícies (claro, quente) ---------- */
+  --vr-bg: #f5f2ec; /* fundo do app: off-white quente, derivado do Bone */
+  --vr-surface: #fffdf9; /* cartões e tabelas */
+  --vr-surface-2: #f9f6f1; /* áreas rebaixadas dentro do cartão, hover de linha */
+  --vr-surface-3: #efeae2; /* controles neutros (chips, botões secundários pressionados) */
+  --vr-border: #e6e0d6; /* borda fina padrão */
+  --vr-border-strong: #d6cec1; /* inputs, divisores fortes */
+
+  /* ---------- texto (AA sobre --vr-bg e --vr-surface) ---------- */
+  --vr-text: #1a1917;
+  --vr-text-2: #57534c; /* secundário */
+  --vr-text-3: #686359; /* terciário, metadados (5,1:1 sobre --vr-bg; 4,7:1 sobre --vr-surface-3) */
+  --vr-text-inverse: #fffdf9;
+
+  /* ---------- significado ---------- */
+  --vr-warm: #a8520a; /* âmbar: esquentando (texto e ícone) */
+  --vr-warm-bg: #fbeedd;
+  --vr-cool: #435a78; /* azul-ardósia: esfriando */
+  --vr-cool-bg: #e8edf3;
+  --vr-risk: #a8392f; /* vermelho fosco: risco */
+  --vr-risk-bg: #f8e6e3;
+  --vr-ok: #2d6e47; /* verde: ok */
+  --vr-ok-bg: #e3f0e7;
+
+  /* ---------- ação primária ---------- */
+  --vr-primary: #1a1917; /* botão primário: tinta; o ácido não é cor de botão aqui */
+  --vr-primary-ink: #fffdf9;
+
+  /* ---------- foco: ácido com contorno de tinta para ter contraste 3:1 sobre claro ---------- */
+  --vr-focus-ring: 0 0 0 2px var(--vr-acid), 0 0 0 3.5px var(--vr-text);
+
+  /* ---------- tipografia ---------- */
+  --vr-font-display: 'Space Grotesk Variable', 'Space Grotesk', system-ui, sans-serif; /* só título de página e score */
+  --vr-font-ui: 'Manrope Variable', 'Manrope', system-ui, sans-serif;
+  --vr-font-data: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace; /* CNPJ, datas, pontos */
+  --vr-text-xs: 12px;
+  --vr-text-sm: 13px;
+  --vr-text-base: 14px;
+  --vr-text-md: 15px;
+  --vr-text-lg: 17px;
+  --vr-text-xl: 22px;
+  --vr-text-2xl: 28px;
+  --vr-text-score: 40px;
+  --vr-leading: 1.45;
+
+  /* ---------- grade de 8px ---------- */
+  --vr-space: 8px;
+
+  /* ---------- raio: cresce com a elevação ---------- */
+  --vr-radius-chip: 6px;
+  --vr-radius-control: 10px;
+  --vr-radius-card: 14px;
+  --vr-radius-overlay: 20px;
+  --vr-radius-full: 9999px;
+
+  /* ---------- elevação: sombras em camadas + borda fina ---------- */
+  --vr-shadow-1: 0 1px 2px rgb(38 30 18 / 0.04), 0 1px 1px rgb(38 30 18 / 0.03);
+  --vr-shadow-2: 0 1px 2px rgb(38 30 18 / 0.04), 0 4px 12px rgb(38 30 18 / 0.05);
+  --vr-shadow-3: 0 2px 4px rgb(38 30 18 / 0.04), 0 12px 32px rgb(38 30 18 / 0.08), 0 24px 64px rgb(38 30 18 / 0.06);
+  --vr-highlight: none; /* brilho de 1px no topo: só no escuro */
+
+  /* ---------- glass (só camadas flutuantes) ---------- */
+  --vr-glass-bg: rgb(255 253 249 / 0.72);
+  --vr-glass-solid: #fbf8f3; /* reserva sem backdrop-filter ou com prefers-reduced-transparency */
+  --vr-glass-border: rgb(255 255 255 / 0.7);
+  --vr-glass-blur: 18px;
+  --vr-glass-saturate: 1.6;
+
+  /* ---------- fundo ambiente: dá ao glass o que refratar, sem chamar atenção ---------- */
+  --vr-ambient:
+    radial-gradient(1100px 560px at 8% -8%, rgb(236 222 200 / 0.75), transparent 62%),
+    radial-gradient(900px 520px at 100% 0%, rgb(214 224 234 / 0.6), transparent 60%),
+    radial-gradient(700px 480px at 60% 110%, rgb(232 226 214 / 0.55), transparent 65%);
+
+  /* ---------- movimento ---------- */
+  --vr-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --vr-dur-hover: 120ms;
+  --vr-dur-enter: 200ms;
+  --vr-dur-exit: 320ms;
+}
+
+/* ---------- escuro: grafite, elevação por superfície mais clara + brilho de 1px no topo ---------- */
+:root.dark {
+  --vr-acid-soft: rgb(204 255 0 / 0.16);
+
+  --vr-bg: #16171a;
+  --vr-surface: #1d1f23;
+  --vr-surface-2: #23262b;
+  --vr-surface-3: #2b2e34;
+  --vr-border: rgb(255 255 255 / 0.08);
+  --vr-border-strong: rgb(255 255 255 / 0.14);
+
+  --vr-text: #eeeef0;
+  --vr-text-2: #b3b5bb;
+  --vr-text-3: #9a9da4;
+  --vr-text-inverse: #16171a;
+
+  --vr-warm: #f0b45e;
+  --vr-warm-bg: rgb(240 180 94 / 0.12);
+  --vr-cool: #9fb3cf;
+  --vr-cool-bg: rgb(159 179 207 / 0.12);
+  --vr-risk: #f09286;
+  --vr-risk-bg: rgb(240 146 134 / 0.12);
+  --vr-ok: #79cf9c;
+  --vr-ok-bg: rgb(121 207 156 / 0.12);
+
+  --vr-primary: #eeeef0;
+  --vr-primary-ink: #16171a;
+
+  --vr-focus-ring: 0 0 0 2px var(--vr-acid), 0 0 0 3.5px var(--vr-bg);
+
+  --vr-shadow-1: 0 1px 2px rgb(0 0 0 / 0.3);
+  --vr-shadow-2: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 16px rgb(0 0 0 / 0.22);
+  --vr-shadow-3: 0 2px 6px rgb(0 0 0 / 0.35), 0 18px 48px rgb(0 0 0 / 0.4);
+  --vr-highlight: inset 0 1px 0 rgb(255 255 255 / 0.05);
+
+  --vr-glass-bg: rgb(33 35 40 / 0.72);
+  --vr-glass-solid: #212328;
+  --vr-glass-border: rgb(255 255 255 / 0.08);
+
+  --vr-ambient:
+    radial-gradient(1100px 560px at 8% -8%, rgb(64 58 50 / 0.45), transparent 62%),
+    radial-gradient(900px 520px at 100% 0%, rgb(46 56 70 / 0.45), transparent 60%);
+}
