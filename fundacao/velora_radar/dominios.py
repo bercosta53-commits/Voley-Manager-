@@ -14,6 +14,7 @@ import psycopg
 
 from .identidade import cnpj_normalizado, cnpj_raiz, dominio_generico, e_matriz, normalizar_dominio
 from .importar import atualizar_buracos, registrar_buraco
+from .local_br import UFS
 
 
 def pendencias(conn: psycopg.Connection, limite: int = 500) -> list[dict]:
@@ -36,18 +37,28 @@ class Aplicacao:
     dominios: int = 0
     cnpjs: int = 0
     mescladas: int = 0
+    ufs: int = 0
     conflitos: list[str] = field(default_factory=list)
     ignoradas: list[str] = field(default_factory=list)
 
 
 def aplicar(conn: psycopg.Connection, resolucoes: list[dict]) -> Aplicacao:
-    """Cada resolução: {conta_id, dominio?, cnpj?, fonte, confianca?}. Confiança baixa não é gravada."""
+    """Cada resolução: {conta_id, dominio?, cnpj?, uf?, cidade?, fonte, confianca?}. Confiança baixa não é
+    gravada. UF e cidade só preenchem o que está vazio; divergência vira conflito, nunca sobrescreve."""
+    from .snov import _calcular_icp  # import tardio: snov depende de módulos que importam este
+
     res = Aplicacao()
+    tocadas: set = set()
     with conn.transaction():
         for r in resolucoes:
-            conta = conn.execute("select * from conta where id = %s", (r.get("conta_id"),)).fetchone()
+            if r.get("conta_id"):
+                conta = conn.execute("select * from conta where id = %s", (r["conta_id"],)).fetchone()
+            else:  # planilha de enriquecimento: a conta vem pelo domínio, que sobrevive a uma reimportação
+                conta = conn.execute(
+                    "select * from conta where dominio = %s", (normalizar_dominio(r.get("conta_dominio")),)
+                ).fetchone()
             if not conta:
-                res.ignoradas.append(f"{r.get('conta_id')}: conta não encontrada")
+                res.ignoradas.append(f"{r.get('conta_id') or r.get('conta_dominio')}: conta não encontrada")
                 continue
             if str(r.get("confianca", "alta")).lower() == "baixa":
                 res.ignoradas.append(f"{conta['nome']}: confiança baixa, fica para revisão")
@@ -84,8 +95,37 @@ def aplicar(conn: psycopg.Connection, resolucoes: list[dict]) -> Aplicacao:
                     conn.execute("update conta set dominio = %s, atualizado_em = now() where id = %s", (dominio, conta["id"]))
                     _anotar(conn, conta["id"], ("sem_dominio", "dominio_generico"), f"domínio por {fonte}")
                     res.dominios += 1
+
+            uf = (r.get("uf") or "").strip().upper()
+            if uf and uf not in UFS:
+                res.ignoradas.append(f"{conta['nome']}: UF inválida ({r.get('uf')})")
+            elif uf:
+                conta = conn.execute("select * from conta where id = %s", (conta["id"],)).fetchone()
+                if conta["uf"] is None:
+                    conn.execute(
+                        "update conta set uf = %s, cidade = coalesce(cidade, %s), atualizado_em = now() where id = %s",
+                        (uf, (r.get("cidade") or "").strip() or None, conta["id"]),
+                    )
+                    res.ufs += 1
+                elif conta["uf"] != uf:
+                    res.conflitos.append(f"{conta['nome']}: conta tem UF {conta['uf']}, resolução trouxe {uf} (mantida)")
+            tocadas.add(conta["id"])
+        _calcular_icp(conn, tocadas)
         atualizar_buracos(conn)
     return res
+
+
+def ler_planilha_enriquecimento(caminho) -> list[dict]:
+    """CSV com empresa, dominio, cnpj, uf, cidade, confianca, fonte: uma resolução por linha, casada pelo domínio."""
+    import csv
+
+    with open(caminho, encoding="utf-8-sig", newline="") as f:
+        return [
+            {"conta_dominio": l.get("dominio"), "cnpj": l.get("cnpj") or None, "uf": l.get("uf") or None,
+             "cidade": l.get("cidade") or None, "confianca": l.get("confianca") or "alta",
+             "fonte": "busca pública: " + (l.get("fonte") or "")}
+            for l in csv.DictReader(f)
+        ]
 
 
 def _anotar(conn, conta_id, tipos, resolucao) -> None:
