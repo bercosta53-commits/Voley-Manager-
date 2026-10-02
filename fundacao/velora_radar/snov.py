@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -30,22 +31,23 @@ from .local_br import interpretar_local
 
 # Cada chave já normalizada (normalizar_chave aplicado ao nome da coluna como o Snov costuma exportar).
 ALIASES: dict[str, list[str]] = {
-    "nome_completo": ["full_name"],
+    "nome_completo": ["full_name", "nome", "nome_completo"],
     "primeiro_nome": ["first_name"],
     "sobrenome": ["last_name"],
-    "cargo": ["position", "job_title", "title"],
-    "empresa": ["company_name", "company"],
-    "site": ["company_site", "company_url", "website", "domain"],
+    "cargo": ["position", "job_title", "title", "cargo"],
+    "empresa": ["company_name", "company", "empresa"],
+    "site": ["company_site", "company_url", "website", "domain", "site", "dominio"],
     "email": ["email", "email_address"],
     "email_status": ["email_status"],
     "linkedin": ["linkedin", "linkedin_url", "social_url"],
-    "telefone": ["phone", "phone_number"],
-    "setor": ["industry"],
-    "porte": ["company_size", "employees"],
+    "telefone": ["phone", "phone_number", "telefone"],
+    "setor": ["industry", "setor"],
+    "nicho": ["nicho"],
+    "porte": ["company_size", "employees", "porte"],
     "location": ["location"],
-    "country": ["country"],
-    "city": ["city"],
-    "state": ["state"],
+    "country": ["country", "pais"],
+    "city": ["city", "cidade"],
+    "state": ["state", "uf", "estado"],
 }
 
 
@@ -83,6 +85,8 @@ def _mapear_linha(bruta: dict[str, str], mapa: dict[str, str]) -> dict[str, str]
     nome = _pegar(bruta, mapa, "nome_completo")
     if not nome:
         nome = " ".join(p for p in (_pegar(bruta, mapa, "primeiro_nome"), _pegar(bruta, mapa, "sobrenome")) if p)
+    # Listas montadas à mão trazem setor e nicho separados; o nicho é o que diferencia as contas.
+    setor = " · ".join(p for p in (_pegar(bruta, mapa, "setor"), _pegar(bruta, mapa, "nicho")) if p)
     local = _pegar(bruta, mapa, "location")
     if not local:
         local = ", ".join(p for p in (_pegar(bruta, mapa, "city"), _pegar(bruta, mapa, "state"), _pegar(bruta, mapa, "country")) if p)
@@ -95,7 +99,7 @@ def _mapear_linha(bruta: dict[str, str], mapa: dict[str, str]) -> dict[str, str]
         "email_status": _pegar(bruta, mapa, "email_status"),
         "linkedin": _pegar(bruta, mapa, "linkedin"),
         "telefone": _pegar(bruta, mapa, "telefone"),
-        "setor": _pegar(bruta, mapa, "setor"),
+        "setor": setor,
         "porte": _pegar(bruta, mapa, "porte"),
         "local_bruto": local,
     }
@@ -120,23 +124,44 @@ def chave_da_conta(linha: dict[str, str]) -> tuple[str, str]:
 
 # ---------- 5. cargo -> nível, área, papel ----------
 
-_C_LEVEL = ["ceo", "presidente", "fundador", "founder", "socio-diretor", "socio diretor", "managing partner", "cfo", "cmo", "coo"]
+# Siglas e palavras curtas casam só como palavra inteira: "cto" não pode casar com "director", nem
+# "coo" com "coordenador"/"cooperativa", nem "cro" com "micro". Termos longos casam como trecho.
+_C_LEVEL = [
+    "ceo", "cfo", "cmo", "coo", "cro", "cco", "cgo", "cmso", "chro", "presidente", "president", "fundador", "fundadora",
+    "founder", "owner", "proprietario", "proprietaria", "dono", "dona", "socio", "socia", "partner",
+]
+_CHIEF_OFFICER = re.compile(r"\bchie\w*\b.*\bofficer\b")  # "Chief Growth Officer", e o erro de digitação "Chieff"
+_VICE = re.compile(r"\bvice[\s-]*presiden\w*")
 _VP_DIRETOR_QUALIFICA_HEAD = ["global", "regional", "executiv", "latam", "brasil", "brazil", "corporat"]
-_VP_DIRETOR = ["diretor", "diretora", "superintendente", "vice-presidente", "vice presidente", " vp ", " vp,", " vp."]
-_GERENTE_HEAD = ["gerente", "head", "lider", "líder"]
+_VP_DIRETOR = ["diretor", "diretora", "director", "superintendente", "vice-presidente", "vice presidente", "vice president", "vp"]
+_GERENTE_HEAD = ["gerente", "manager", "head", "lider", "lead"]
 
 _AREAS: list[tuple[str, list[str]]] = [
     # ordem importa: a primeira área cujo termo aparecer no cargo vence.
-    ("geral", ["ceo", "presidente", "fundador", "founder", "diretor geral", "diretora geral", "diretoria executiva", "socio", "sócio", "managing partner"]),
-    ("financeiro", ["financeiro", "finance", "cfo", "controladoria", "controller"]),
-    ("marketing", ["marketing", "cmo"]),
-    ("comercial", ["comercial", "vendas", "sales", "growth", "crescimento", "negocios", "negócios", "relacionamento", "cro"]),
-    ("compras", ["compras", "suprimentos", "procurement"]),
-    ("juridico", ["juridico", "jurídico", "compliance", "legal"]),
-    ("ti", ["tecnologia", "ti ", " ti", "cto", "sistemas", "dados", "engenharia de software"]),
-    ("operacoes", ["operacoes", "operações", "operacional", "coo", "producao", "produção", "logistica", "logística"]),
-    ("rh", ["recursos humanos", " rh ", " rh,", " rh.", "people", "gente e gestao", "gente e gestão"]),
+    ("geral", ["ceo", "presidente", "president", "fundador", "fundadora", "founder", "owner", "proprietario",
+               "proprietaria", "socio", "socia", "partner", "diretor geral", "diretora geral", "diretoria executiva",
+               "diretor executivo", "diretora executiva", "executive director", "managing director", "general manager",
+               "diretor administrativo", "diretora administrativa", "administrador", "administradora", "country manager"]),
+    ("financeiro", ["financeiro", "financeira", "finance", "financial", "cfo", "controladoria", "controller"]),
+    ("marketing", ["marketing", "cmo", "cmso", "brand"]),
+    ("comercial", ["comercial", "commercial", "vendas", "sales", "growth", "cgo", "cco", "crescimento", "negocios", "business",
+                   "relacionamento", "revenue", "cro"]),
+    ("compras", ["compras", "suprimentos", "procurement", "supply"]),
+    ("juridico", ["juridico", "compliance", "legal", "dpo", "data protection"]),
+    ("ti", ["tecnologia", "technology", "ti", "it", "cto", "cio", "sistemas", "dados", "data", "engenharia de software"]),
+    ("operacoes", ["operacoes", "operacional", "operations", "ops", "coo", "producao", "logistica"]),
+    ("rh", ["recursos humanos", "rh", "chro", "people", "gente e gestao", "human resources"]),
 ]
+
+
+def _tem(texto: str, termos: list[str]) -> bool:
+    for t in termos:
+        if len(t) <= 4 and t.isalpha():
+            if re.search(rf"\b{t}\b", texto):
+                return True
+        elif t in texto:
+            return True
+    return False
 
 
 @dataclass
@@ -150,24 +175,30 @@ def classificar_cargo(cargo: str) -> Classificacao:
     texto = f" {sem_acentos(cargo).lower().strip()} "
     if not texto.strip():
         return Classificacao(None, None, None)
+    # "vice-presidente" é diretoria, não presidência: some do texto usado para C-level e área geral.
+    sem_vice = _VICE.sub(" vp ", texto)
 
-    if any(k in texto for k in _C_LEVEL):
+    if _tem(sem_vice, _C_LEVEL) or _CHIEF_OFFICER.search(texto):
         nivel = "c_level"
-    elif any(k in texto for k in _VP_DIRETOR) or ("head" in texto and any(k in texto for k in _VP_DIRETOR_QUALIFICA_HEAD)):
+    elif _tem(sem_vice, _VP_DIRETOR) or ("head" in texto and _tem(texto, _VP_DIRETOR_QUALIFICA_HEAD)):
         nivel = "vp_diretor"
-    elif any(k in texto for k in _GERENTE_HEAD):
+    elif _tem(texto, _GERENTE_HEAD):
         nivel = "gerente_head"
     else:
         nivel = None
 
-    area = next((a for a, termos in _AREAS if any(t in texto for t in termos)), None)
+    area = next((a for a, termos in _AREAS if _tem(sem_vice, termos)), None)
+    if area is None and nivel == "vp_diretor":
+        area = "geral"  # "Diretor", "Diretora" sem área: em empresa média, é a diretoria da casa
 
-    if nivel == "c_level" or (nivel == "vp_diretor" and area in ("financeiro", "geral")):
+    if area in ("compras", "juridico", "ti") and nivel != "c_level" or (
+        nivel == "c_level" and area in ("juridico", "ti")
+    ):
+        papel = "guardiao"  # CTO, CIO e DPO vetam ou destravam, mas não pagam a conta de marketing
+    elif nivel == "c_level" or (nivel == "vp_diretor" and area in ("financeiro", "geral")):
         papel = "pagador"
     elif area in ("marketing", "comercial") and nivel in ("gerente_head", "vp_diretor"):
         papel = "dono_problema"
-    elif area in ("compras", "juridico", "ti"):
-        papel = "guardiao"
     else:
         # "demais": cargo preenchido (garantido pelo "return" no topo da função) que não bateu em nenhuma
         # regra acima — analista, coordenador, especialista... Só fica nulo (fila "a classificar") quando

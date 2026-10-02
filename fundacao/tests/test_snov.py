@@ -41,6 +41,22 @@ def test_cabecalho_tolerante_e_colunas_nao_mapeadas(tmp_path):
     assert nao_mapeadas == ["Twitter Handle"]
 
 
+def test_cabecalho_em_portugues_junta_setor_e_nicho(tmp_path):
+    arq = tmp_path / "a.csv"
+    arq.write_text(
+        "\ufeffempresa,nome,cargo,email,linkedin,setor,nicho\n"
+        "Zeta Log,Zeca Pires,Diretor Comercial,zeca@zetalog.com.br,https://www.linkedin.com/in/zecap,"
+        "Serviços B2B,Recrutamento / Search\n",
+        encoding="utf-8",
+    )
+    linhas, nao_mapeadas = snov.ler_csv(arq)
+    assert linhas[0]["nome"] == "Zeca Pires"
+    assert linhas[0]["empresa"] == "Zeta Log"
+    assert linhas[0]["cargo"] == "Diretor Comercial"
+    assert linhas[0]["setor"] == "Serviços B2B · Recrutamento / Search"
+    assert nao_mapeadas == []
+
+
 def test_nome_por_primeiro_e_ultimo_nome(tmp_path):
     arq = tmp_path / "a.csv"
     arq.write_text("First Name,Last Name,Company\nAna,Souza,Alfa\n", encoding="utf-8")
@@ -86,6 +102,27 @@ def test_classificar_cargo_papeis():
     assert snov.classificar_cargo("Head de Compras").papel_icp == "guardiao"
     assert snov.classificar_cargo("Analista Pleno").papel_icp == "influenciador"
     assert snov.classificar_cargo("").papel_icp is None
+
+
+def test_classificar_cargo_siglas_so_como_palavra_inteira():
+    # "cto" dentro de "director", "coo" dentro de "coordenador"/"cooperativa", "presidente" dentro de "vice-presidente"
+    assert snov.classificar_cargo("Commercial Director").papel_icp == "dono_problema"
+    assert snov.classificar_cargo("Business Development Director").papel_icp == "dono_problema"
+    assert snov.classificar_cargo("Coordenador Comercial").nivel is None
+    assert snov.classificar_cargo("Gerente de Cooperativa").nivel == "gerente_head"
+    assert snov.classificar_cargo("Vice-Presidente Comercial").nivel == "vp_diretor"
+    assert snov.classificar_cargo("Vice-Presidente Comercial").papel_icp == "dono_problema"
+
+
+def test_classificar_cargo_ingles_e_socios():
+    for cargo in ("Chief Executive Officer", "co-founder - chief executive officer", "Owner", "President", "Sócio",
+                  "Sócio-administrador", "Partner", "Chief Revenue Officer", "Chieff Growth Officer", "CCO",
+                  "Diretor Executivo", "Executive Director", "Diretor", "DIRETOR", "Diretora / Sócia-administradora"):
+        assert snov.classificar_cargo(cargo).papel_icp == "pagador", cargo
+    assert snov.classificar_cargo("Chief Technology Officer").papel_icp == "guardiao"
+    assert snov.classificar_cargo("Data Protection Officer (DPO)").papel_icp == "guardiao"
+    assert snov.classificar_cargo("Head of Marketing").papel_icp == "dono_problema"
+    assert snov.classificar_cargo("Diretor de RH").papel_icp == "influenciador"
 
 
 def test_mapear_email_status():
