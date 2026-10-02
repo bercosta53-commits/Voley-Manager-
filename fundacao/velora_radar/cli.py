@@ -6,7 +6,7 @@ import argparse
 import json
 import sys
 
-from . import db, dominios, importar, rubrica, visao
+from . import db, dominios, importar, rubrica, snov, visao
 from .sinais import classificador, pipeline
 
 
@@ -17,6 +17,8 @@ def main(argv: list[str] | None = None) -> int:
     imp = sub.add_parser("importar", help="migra uma planilha (CSV ou XLSX) para o banco")
     imp.add_argument("arquivo")
     imp.add_argument("--origem", default="planilha")
+    snv = sub.add_parser("snov", help="importa um export de pessoas do Snov.io (CSV, uma linha por pessoa)")
+    snv.add_argument("arquivo")
     bur = sub.add_parser("buracos", help="mostra os buracos abertos da migração")
     bur.add_argument("--detalhe", action="store_true")
     dom = sub.add_parser("dominios", help="modo DOMÍNIOS: lista de trabalho e aplicação das resoluções")
@@ -64,6 +66,8 @@ def main(argv: list[str] | None = None) -> int:
         for aviso in rel.avisos:
             print("  " + aviso)
         _imprimir_buracos(conn)
+    elif a.comando == "snov":
+        snov.imprimir_relatorio(snov.importar_snov(conn, a.arquivo))
     elif a.comando == "buracos":
         _imprimir_buracos(conn, a.detalhe)
     elif a.comando == "dominios" and a.acao == "pendencias":

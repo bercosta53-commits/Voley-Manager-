@@ -7,9 +7,15 @@ from pathlib import Path
 
 import psycopg
 
+from .identidade import mostrar_pessoa
+
 
 def linhas_planilha(conn: psycopg.Connection) -> list[dict]:
-    return conn.execute("select * from vw_planilha order by coalesce(abc, 'Z'), empresa").fetchall()
+    linhas = conn.execute("select * from vw_planilha order by coalesce(abc, 'Z'), empresa").fetchall()
+    for l in linhas:
+        if l.get("decisor"):
+            l["decisor"] = mostrar_pessoa(l["decisor"])
+    return linhas
 
 
 def exportar(conn: psycopg.Connection, caminho: str | Path) -> int:

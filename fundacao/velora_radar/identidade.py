@@ -7,6 +7,7 @@ primeiros dígitos do CNPJ (a raiz); o domínio é reduzido ao registrável (``a
 
 from __future__ import annotations
 
+import os
 import re
 import unicodedata
 
@@ -101,6 +102,32 @@ def normalizar_nome(valor: object) -> str:
     texto = _SUFIXOS_JURIDICOS.sub(" ", texto)
     texto = re.sub(r"[^a-z0-9]+", " ", texto)
     return re.sub(r"\s+", " ", texto).strip()
+
+
+def anonimizar_pessoa(nome: str) -> str:
+    """"Ana Paula Souza" -> "A. Souza": iniciais + sobrenome abreviado, para demo. Empresa e cargo ficam reais."""
+    partes = [p for p in str(nome or "").split() if p]
+    if not partes:
+        return nome
+    if len(partes) == 1:
+        return partes[0][:1].upper() + "."
+    return partes[0][:1].upper() + ". " + partes[-1]
+
+
+def mostrar_pessoa(nome: str) -> str:
+    """Aplica anonimizar_pessoa só quando DEMO_ANONIMIZAR=true (os dados no banco não mudam)."""
+    return anonimizar_pessoa(nome) if os.environ.get("DEMO_ANONIMIZAR", "").lower() == "true" else nome
+
+
+def normalizar_linkedin(valor: object) -> str | None:
+    """URL do LinkedIn comparável: sem protocolo/www, minúsculas, sem query string nem barra final."""
+    texto = str(valor or "").strip().lower()
+    if not texto:
+        return None
+    texto = re.sub(r"^[a-z][a-z0-9+.-]*://", "", texto)
+    texto = re.sub(r"^www\.", "", texto)
+    texto = texto.split("?", 1)[0].split("#", 1)[0].rstrip("/")
+    return texto or None
 
 
 def normalizar_chave(valor: object) -> str:
