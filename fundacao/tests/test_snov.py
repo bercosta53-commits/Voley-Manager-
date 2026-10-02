@@ -182,3 +182,27 @@ def test_reimportar_o_mesmo_arquivo_nao_duplica(conn):
     assert rel2.pessoas_criadas == 0 and rel2.contas_criadas == 0
     total_pessoas = conn.execute("select count(*) as n from pessoa").fetchone()["n"]
     assert total_pessoas == 12  # 13 linhas - 1 duplicada de propósito no fixture
+
+
+def test_planilha_enriquecida_curadoria_validacao_e_fit_pela_regiao_do_sourcing(conn, tmp_path):
+    arq = tmp_path / "r13.csv"
+    arq.write_text(
+        "empresa,dominio,site,tier,prioridade,setor,nicho,criterio_icp,regiao_sourcing,fonte_conta,nome,cargo,email,validacao_contato,linkedin\n"
+        "Alfa,alfa.com.br,https://alfa.com.br,A1,P0,Tecnologia,Software / TI,SaaS B2B,"
+        "Base anterior — região validada no sourcing original,Base A1/A2 validada,Ana Lima,CEO,ana@alfa.com.br,Alta,linkedin.com/in/ana-lima\n"
+        "Beta,beta.com.br,https://beta.com.br,A2,P1,Indústria,Industrial / Automação,Industrial,"
+        "Brasil / operação relevante; validar autonomia quando marcado,Clay — Work Email,Bruno Reis,Diretor Comercial,bruno@beta.com.br,"
+        "Média — validar deliverability,linkedin.com/in/bruno-reis\n",
+        encoding="utf-8",
+    )
+    rel = snov.importar_snov(conn, arq)
+    assert rel.colunas_nao_mapeadas == []
+    alfa = conn.execute("select * from conta where dominio = 'alfa.com.br'").fetchone()
+    beta = conn.execute("select * from conta where dominio = 'beta.com.br'").fetchone()
+    assert (alfa["prioridade"], alfa["lote"], alfa["regiao_validada"], alfa["fit_icp"]) == ("P0", "A1", True, True)
+    assert (beta["prioridade"], beta["regiao_validada"], beta["fit_icp"]) == ("P1", False, None)  # "Brasil" não basta
+    status = dict(conn.execute("select nome, email_status from pessoa").fetchall() and
+                  [(r["nome"], r["email_status"]) for r in conn.execute("select nome, email_status from pessoa")])
+    assert status == {"Ana Lima": "verificado", "Bruno Reis": "provavel"}
+    assert rel.distribuicao_prioridade == {"P0": 1, "P1": 1}
+    assert rel.contas_fit_por_regiao_sourcing == 1

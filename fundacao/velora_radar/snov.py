@@ -36,14 +36,21 @@ ALIASES: dict[str, list[str]] = {
     "sobrenome": ["last_name"],
     "cargo": ["position", "job_title", "title", "cargo"],
     "empresa": ["company_name", "company", "empresa"],
-    "site": ["company_site", "company_url", "website", "domain", "site", "dominio"],
+    "site": ["company_site", "company_url", "website", "site"],
+    "dominio": ["domain", "dominio"],  # reserva do site: a conta fica com o que vier preenchido
     "email": ["email", "email_address"],
-    "email_status": ["email_status"],
+    "email_status": ["email_status", "validacao_contato"],
     "linkedin": ["linkedin", "linkedin_url", "social_url"],
     "telefone": ["phone", "phone_number", "telefone"],
     "setor": ["industry", "setor"],
     "nicho": ["nicho"],
     "porte": ["company_size", "employees", "porte"],
+    # curadoria da conta (planilha enriquecida r13+)
+    "prioridade": ["prioridade"],
+    "lote": ["tier", "lote"],
+    "criterio_icp": ["criterio_icp"],
+    "regiao_sourcing": ["regiao_sourcing"],
+    "fonte_conta": ["fonte_conta"],
     "location": ["location"],
     "country": ["country", "pais"],
     "city": ["city", "cidade"],
@@ -76,6 +83,16 @@ def ler_csv(caminho: str | Path) -> tuple[list[dict[str, str]], list[str]]:
     return linhas, nao_mapeadas
 
 
+CAMPOS_CURADORIA = ("prioridade", "lote", "criterio_icp", "regiao_sourcing", "fonte_conta")
+
+
+def regiao_validada(regiao_sourcing: str) -> bool:
+    """O sourcing declarou que já filtrou a conta pelo recorte (SP/PR/SC/RS)? "Brasil / operação relevante"
+    não basta: é escopo nacional, a UF ainda decide."""
+    v = sem_acentos(regiao_sourcing or "").lower()
+    return "regiao validada" in v or "sp/pr/sc/rs" in v
+
+
 def _pegar(bruta: dict[str, str], mapa: dict[str, str], campo: str) -> str:
     coluna = mapa.get(campo)
     return (bruta.get(coluna) or "").strip() if coluna else ""
@@ -94,7 +111,7 @@ def _mapear_linha(bruta: dict[str, str], mapa: dict[str, str]) -> dict[str, str]
         "nome": nome,
         "cargo": _pegar(bruta, mapa, "cargo"),
         "empresa": _pegar(bruta, mapa, "empresa"),
-        "site": _pegar(bruta, mapa, "site"),
+        "site": _pegar(bruta, mapa, "site") or _pegar(bruta, mapa, "dominio"),
         "email": _pegar(bruta, mapa, "email"),
         "email_status": _pegar(bruta, mapa, "email_status"),
         "linkedin": _pegar(bruta, mapa, "linkedin"),
@@ -102,6 +119,7 @@ def _mapear_linha(bruta: dict[str, str], mapa: dict[str, str]) -> dict[str, str]
         "setor": setor,
         "porte": _pegar(bruta, mapa, "porte"),
         "local_bruto": local,
+        **{c: _pegar(bruta, mapa, c) for c in CAMPOS_CURADORIA},
     }
 
 
@@ -218,8 +236,12 @@ _PAPEL_COMITE_DE = {  # espelha em papel_comite (001), para vw_planilha e o cat�
 
 def mapear_email_status(bruto: str) -> str:
     v = sem_acentos(bruto).lower().strip().replace("-", "_").replace(" ", "_")
-    if v == "valid":
+    if v in ("valid", "alta"):  # "alta": validação de contato da planilha enriquecida
         return "verificado"
+    if v.startswith("media"):
+        return "provavel"
+    if v.startswith("baixa"):
+        return "invalido"
     if v in ("unknown", "catch_all", "catchall", "accept_all"):
         return "provavel"
     if v in ("invalid", "not_valid"):
@@ -248,6 +270,8 @@ class RelatorioSnov:
     fora_do_recorte: int = 0
     pct_email_verificado: float = 0.0
     contas_sem_icp: int = 0
+    contas_fit_por_regiao_sourcing: int = 0
+    distribuicao_prioridade: dict[str, int] = field(default_factory=dict)
     top_contas: list[dict] = field(default_factory=list)
 
 
@@ -284,6 +308,12 @@ def _agregar_grupo(conn, rel: "RelatorioSnov", importacao: str, tipo_chave: str,
     nome_norm = normalizar_nome(nome_empresa)
     setor = _moda([l["setor"] for l in grupo])
     porte = _moda([l["porte"] for l in grupo])
+    curadoria = {c: _moda([l.get(c, "") for l in grupo]) for c in CAMPOS_CURADORIA}
+    if curadoria["prioridade"]:
+        curadoria["prioridade"] = curadoria["prioridade"].strip().upper() or None
+        if curadoria["prioridade"] and not re.fullmatch(r"P[0-9]", curadoria["prioridade"]):
+            curadoria["prioridade"] = None
+    validada = any(regiao_validada(l.get("regiao_sourcing", "")) for l in grupo)
 
     locais = [interpretar_local(l["local_bruto"]) for l in grupo]
     no_brasil = [loc for loc in locais if loc.pais == "Brasil"]
@@ -299,14 +329,17 @@ def _agregar_grupo(conn, rel: "RelatorioSnov", importacao: str, tipo_chave: str,
 
     if existente is None:
         conta = conn.execute(
-            """insert into conta (nome, nome_normalizado, dominio, uf, cidade, setor, porte, origem, etapa, motivo_descarte)
-               values (%s, %s, %s, %s, %s, %s, %s, 'snov', %s, %s) returning *""",
-            (nome_empresa, nome_norm, dominio, uf, cidade, setor, porte, etapa, motivo),
+            """insert into conta (nome, nome_normalizado, dominio, uf, cidade, setor, porte, origem, etapa, motivo_descarte,
+                                  prioridade, lote, criterio_icp, regiao_sourcing, fonte_conta, regiao_validada)
+               values (%s, %s, %s, %s, %s, %s, %s, 'snov', %s, %s, %s, %s, %s, %s, %s, %s) returning *""",
+            (nome_empresa, nome_norm, dominio, uf, cidade, setor, porte, etapa, motivo,
+             curadoria["prioridade"], curadoria["lote"], curadoria["criterio_icp"], curadoria["regiao_sourcing"],
+             curadoria["fonte_conta"], validada),
         ).fetchone()
         return conta, True
 
     # Base-mãe: preenche o que falta, nunca sobrescreve o que já tem — divergência vira conflito.
-    propostos = {"uf": uf, "cidade": cidade, "setor": setor, "porte": porte}
+    propostos = {"uf": uf, "cidade": cidade, "setor": setor, "porte": porte, **curadoria}
     sets: dict[str, object] = {}
     for campo, valor in propostos.items():
         if not valor:
@@ -319,6 +352,8 @@ def _agregar_grupo(conn, rel: "RelatorioSnov", importacao: str, tipo_chave: str,
                 conn, rel, importacao, "campo_divergente", conta_id=existente["id"],
                 detalhe=f"{campo}: conta tem '{atual}', Snov trouxe '{valor}' (mantido o que já havia)", linha=linha_num0,
             )
+    if validada and not existente["regiao_validada"]:
+        sets["regiao_validada"] = True
     if dominio and not existente["dominio"]:
         dono = conn.execute("select id from conta where dominio = %s", (dominio,)).fetchone()
         if not dono:
@@ -402,12 +437,16 @@ def _calcular_icp(conn, conta_ids: set) -> None:
         ).fetchone()
         uf_decisor_relevante = bool(decisores_fora and decisores_fora["n"] > 0 and conta["uf"] and conta["uf"] not in regioes)
 
-        if conta["etapa"] == "descartada" or not conta["uf"]:
+        setor_norm = sem_acentos(conta["setor"] or "").lower()
+        excluido = any(k in setor_norm for k in fora) if setor_norm else False
+        if conta["etapa"] == "descartada":
             fit = None
-        else:
-            setor_norm = sem_acentos(conta["setor"] or "").lower()
-            excluido = any(k in setor_norm for k in fora) if setor_norm else False
+        elif conta["uf"]:
             fit = (conta["uf"] in regioes or uf_decisor_relevante) and not excluido
+        elif conta["regiao_validada"]:
+            fit = not excluido  # sem UF, mas o sourcing já filtrou pelo recorte
+        else:
+            fit = None
 
         cobertura = conn.execute(
             "select count(distinct papel_icp) as n from pessoa where conta_id = %s and ativo and papel_icp in ('pagador', 'dono_problema', 'guardiao')",
@@ -466,6 +505,15 @@ def importar_snov(conn: psycopg.Connection, caminho: str | Path, origem: str = "
                 "select count(*) as n from conta where id = any(%s) and etapa = 'ativa' and fit_icp = false",
                 (list(contas_tocadas),),
             ).fetchone()["n"]
+            for r in conn.execute(
+                "select coalesce(prioridade, '?') as p, count(*) as n from conta where id = any(%s) group by 1 order by 1",
+                (list(contas_tocadas),),
+            ):
+                rel.distribuicao_prioridade[r["p"]] = r["n"]
+            rel.contas_fit_por_regiao_sourcing = conn.execute(
+                "select count(*) as n from conta where id = any(%s) and uf is null and regiao_validada and fit_icp",
+                (list(contas_tocadas),),
+            ).fetchone()["n"]
             rel.contas_sem_icp = conn.execute(
                 "select count(*) as n from conta where id = any(%s) and fit_icp is null", (list(contas_tocadas),)
             ).fetchone()["n"]
@@ -504,6 +552,8 @@ def _resumo_json(rel: RelatorioSnov) -> dict:
         "conflitos": rel.conflitos,
         "distribuicao_papel": rel.distribuicao_papel,
         "distribuicao_uf": rel.distribuicao_uf,
+        "distribuicao_prioridade": rel.distribuicao_prioridade,
+        "contas_fit_por_regiao_sourcing": rel.contas_fit_por_regiao_sourcing,
         "fora_do_recorte": rel.fora_do_recorte,
         "pct_email_verificado": rel.pct_email_verificado,
         "top_contas": rel.top_contas,
@@ -520,6 +570,10 @@ def imprimir_relatorio(rel: RelatorioSnov) -> None:
     print(f"Conflitos registrados em importacao_conflito: {rel.conflitos}")
     print(f"Fora do recorte SP/PR/SC/RS (e sem decisor relevante nessas UFs): {rel.fora_do_recorte}")
     print(f"Contas sem ICP calculado (UF indefinida): {rel.contas_sem_icp}")
+    if rel.contas_fit_por_regiao_sourcing:
+        print(f"Contas no ICP pela região validada no sourcing (sem UF ainda): {rel.contas_fit_por_regiao_sourcing}")
+    if set(rel.distribuicao_prioridade) - {"?"}:
+        print("Distribuição por prioridade: " + ", ".join(f"{k}={v}" for k, v in rel.distribuicao_prioridade.items()))
     print("Distribuição por papel: " + ", ".join(f"{k}={v}" for k, v in sorted(rel.distribuicao_papel.items())))
     print("Distribuição por UF: " + ", ".join(f"{k}={v}" for k, v in sorted(rel.distribuicao_uf.items(), key=lambda kv: -kv[1])))
     if rel.colunas_nao_mapeadas:
