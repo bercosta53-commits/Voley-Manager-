@@ -1,7 +1,7 @@
 import 'server-only';
 import fs from 'node:fs';
 import path from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import type { DatabaseSync as DatabaseSyncType } from 'node:sqlite';
 import type { EstadoSinal } from './tipos';
 
 /**
@@ -10,15 +10,24 @@ import type { EstadoSinal } from './tipos';
  * `manager.py metricas` enxergar o mesmo feedback dado no app.
  *
  * Só funciona rodando com `next start`/`next dev` (servidor Node) ao lado do radar_abm, no mesmo
- * checkout. Sem o banco por perto (ex.: exportação estática, ou antes de rodar os coletores), a tela
- * guarda tudo só no navegador — ver components/hoje/estado.ts.
+ * checkout, numa versão do Node com `node:sqlite` (22.5+). Sem o banco por perto (ex.: exportação
+ * estática, antes de rodar os coletores, ou um runtime sem esse módulo) a tela guarda tudo só no
+ * navegador — ver components/hoje/estado.ts.
  */
 
 const CAMINHO_BANCO = path.join(process.cwd(), '..', 'radar_abm', 'dados', 'radar.db');
 
-function abrir() {
+async function abrir(): Promise<DatabaseSyncType | null> {
   if (!fs.existsSync(CAMINHO_BANCO)) return null;
-  // node:sqlite ainda é experimental nesta versão do Node (aviso no log, sem efeito no funcionamento).
+  let DatabaseSync: typeof DatabaseSyncType;
+  try {
+    // import() dinâmico (não require()): o Turbopack não bundla `require('node:sqlite')`, mas aceita
+    // o import dinâmico — e assim um runtime sem esse módulo (Node < 22.5) cai no catch em vez de
+    // derrubar o build ou a rota inteira.
+    ({ DatabaseSync } = await import('node:sqlite'));
+  } catch {
+    return null;
+  }
   const db = new DatabaseSync(CAMINHO_BANCO);
   db.exec(`create table if not exists app_estados (
     sinal_id  text primary key,
@@ -30,8 +39,8 @@ function abrir() {
   return db;
 }
 
-export function lerEstados(): Record<string, EstadoSinal> | null {
-  const db = abrir();
+export async function lerEstados(): Promise<Record<string, EstadoSinal> | null> {
+  const db = await abrir();
   if (!db) return null;
   try {
     const linhas = db.prepare('select sinal_id, acao, ate, avaliacao, em from app_estados').all() as Record<string, unknown>[];
@@ -50,8 +59,8 @@ export function lerEstados(): Record<string, EstadoSinal> | null {
   }
 }
 
-export function salvarEstado(sinalId: string, estado: EstadoSinal | null): boolean {
-  const db = abrir();
+export async function salvarEstado(sinalId: string, estado: EstadoSinal | null): Promise<boolean> {
+  const db = await abrir();
   if (!db) return false;
   try {
     if (!estado) {
