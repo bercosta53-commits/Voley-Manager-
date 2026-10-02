@@ -38,7 +38,7 @@ Sem a base real, o app usa `data/contas.exemplo.json` (empresas fictícias).
 
 ## Atalhos (tela Hoje)
 
-`j`/`k` navegam · `a` abordar · `u` útil · `r` ruído · `s` adiar 3 dias · `e` arquivar · `o` abre a conta do sinal em foco.
+`j`/`k` navegam · `a` abordar · `u` útil · `r` ruído · `s` adiar 3 dias · `e` arquivar · `o` abre a conta do sinal em foco · `?` abre a lista de atalhos na tela.
 No celular: deslize para a direita marca útil, para a esquerda arquiva; toque abre o detalhe.
 
 ## Onde fica o que a pessoa marca

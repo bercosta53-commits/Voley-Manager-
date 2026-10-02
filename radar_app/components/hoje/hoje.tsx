@@ -51,6 +51,7 @@ export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?
   const [foco, setFoco] = useState(0);
   const [abordarAlvo, setAbordarAlvo] = useState<Sinal | null>(null);
   const [detalhe, setDetalhe] = useState<Sinal | null>(null);
+  const [ajuda, setAjuda] = useState(false);
   const celular = useCelular();
   const router = useRouter();
   const refs = useRef<(HTMLElement | null)[]>([]);
@@ -132,6 +133,11 @@ export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?
       if (ev.metaKey || ev.ctrlKey || ev.altKey || abordarAlvo || detalhe) return;
       const alvo = ev.target as HTMLElement;
       if (alvo.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]')) return;
+      if (ev.key === '?') {
+        ev.preventDefault();
+        return setAjuda(true);
+      }
+      if (ajuda) return;
       const n = lista.length;
       if (!n) return;
       const atual = Math.min(foco, n - 1);
@@ -154,7 +160,7 @@ export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?
     }
     window.addEventListener('keydown', tecla);
     return () => window.removeEventListener('keydown', tecla);
-  }, [lista, foco, visao, agir, abordarAlvo, detalhe, router]);
+  }, [lista, foco, visao, agir, abordarAlvo, detalhe, ajuda, router]);
 
   // Quando um cartão sai, o foco fica no que subiu para o lugar dele.
   const tamanho = lista.length;
@@ -245,7 +251,11 @@ export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?
         {conteudo}
 
         {comLista && visao === 'caixa' && (
-          <p className="mt-8 hidden flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-text-3 md:flex">
+          <button
+            type="button"
+            onClick={() => setAjuda(true)}
+            className="mt-8 hidden w-full flex-wrap items-center justify-center gap-x-4 gap-y-2 rounded-control py-1 text-xs text-text-3 transition-colors duration-[var(--vr-dur-hover)] hover:text-foreground md:flex"
+          >
             <span className="flex items-center gap-1"><Kbd>j</Kbd><Kbd>k</Kbd> navegar</span>
             <span className="flex items-center gap-1"><Kbd>a</Kbd> abordar</span>
             <span className="flex items-center gap-1"><Kbd>u</Kbd> útil</span>
@@ -253,7 +263,8 @@ export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?
             <span className="flex items-center gap-1"><Kbd>s</Kbd> adiar</span>
             <span className="flex items-center gap-1"><Kbd>e</Kbd> arquivar</span>
             <span className="flex items-center gap-1"><Kbd>o</Kbd> abrir conta</span>
-          </p>
+            <span className="flex items-center gap-1"><Kbd>?</Kbd> mais atalhos</span>
+          </button>
         )}
         {celular && comLista && visao === 'caixa' && (
           <p className="mt-6 text-center text-xs text-text-3">Deslize para a direita: útil. Para a esquerda: arquivar.</p>
@@ -311,6 +322,21 @@ export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?
             Ver a conta {detalheConta.nome}
           </Link>
         )}
+      </PainelFlutuante>
+
+      <PainelFlutuante aberto={ajuda} onFechar={() => setAjuda(false)} titulo="Atalhos de teclado">
+        <ul className="flex flex-col gap-3 text-sm">
+          <li className="flex items-center justify-between gap-4"><span>Navegar entre sinais</span><span className="flex gap-1"><Kbd>j</Kbd><Kbd>k</Kbd></span></li>
+          <li className="flex items-center justify-between gap-4"><span>Abrir a conta em foco</span><span className="flex gap-1"><Kbd>o</Kbd><Kbd>↵</Kbd></span></li>
+          <li className="flex items-center justify-between gap-4"><span>Abordar</span><Kbd>a</Kbd></li>
+          <li className="flex items-center justify-between gap-4"><span>Marcar útil</span><Kbd>u</Kbd></li>
+          <li className="flex items-center justify-between gap-4"><span>Marcar ruído</span><Kbd>r</Kbd></li>
+          <li className="flex items-center justify-between gap-4"><span>Adiar {ADIAR_DIAS} dias</span><Kbd>s</Kbd></li>
+          <li className="flex items-center justify-between gap-4"><span>Arquivar</span><Kbd>e</Kbd></li>
+          <li className="flex items-center justify-between gap-4"><span>Buscar ou perguntar</span><Kbd>⌘K</Kbd></li>
+          <li className="flex items-center justify-between gap-4"><span>Esta ajuda</span><Kbd>?</Kbd></li>
+        </ul>
+        <p className="mt-4 text-xs text-text-3">No celular: deslize para a direita marca útil, para a esquerda arquiva; toque abre o detalhe.</p>
       </PainelFlutuante>
     </Casca>
   );
