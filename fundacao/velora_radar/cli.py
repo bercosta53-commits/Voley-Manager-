@@ -80,9 +80,13 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(texto)
     elif a.comando == "dominios" and a.acao == "aplicar":
-        with open(a.arquivo, encoding="utf-8") as f:
-            res = dominios.aplicar(conn, json.load(f))
-        print(f"{res.dominios} domínios e {res.cnpjs} CNPJs gravados, {res.mescladas} duplicatas mescladas.")
+        if a.arquivo.lower().endswith(".csv"):
+            resolucoes = dominios.ler_planilha_enriquecimento(a.arquivo)
+        else:
+            with open(a.arquivo, encoding="utf-8") as f:
+                resolucoes = json.load(f)
+        res = dominios.aplicar(conn, resolucoes)
+        print(f"{res.dominios} domínios, {res.cnpjs} CNPJs e {res.ufs} UFs gravados, {res.mescladas} duplicatas mescladas.")
         for linha in res.conflitos + res.ignoradas:
             print("  " + linha)
         _imprimir_buracos(conn)

@@ -206,3 +206,34 @@ def test_planilha_enriquecida_curadoria_validacao_e_fit_pela_regiao_do_sourcing(
     assert status == {"Ana Lima": "verificado", "Bruno Reis": "provavel"}
     assert rel.distribuicao_prioridade == {"P0": 1, "P1": 1}
     assert rel.contas_fit_por_regiao_sourcing == 1
+
+
+def test_dominios_aplicar_grava_uf_e_recalcula_icp(conn, tmp_path):
+    from velora_radar import dominios
+
+    arq = tmp_path / "r13.csv"
+    arq.write_text(
+        "empresa,dominio,regiao_sourcing,nome,cargo,email\n"
+        "Gama,gama.com.br,Brasil / operação relevante,Gil Souza,CEO,gil@gama.com.br\n"
+        "Delta,delta.com.br,Brasil / operação relevante,Dora Lima,CEO,dora@delta.com.br\n",
+        encoding="utf-8",
+    )
+    snov.importar_snov(conn, arq)
+    ids = {r["nome"]: str(r["id"]) for r in conn.execute("select id, nome from conta")}
+    assert conn.execute("select count(*) as n from conta where fit_icp is null").fetchone()["n"] == 2
+    res = dominios.aplicar(conn, [
+        {"conta_id": ids["Gama"], "cnpj": "33000167000101", "uf": "pr", "cidade": "Curitiba", "fonte": "busca"},
+        {"conta_id": ids["Delta"], "uf": "MG", "cidade": "Belo Horizonte", "fonte": "busca", "confianca": "media"},
+    ])
+    assert (res.cnpjs, res.ufs) == (1, 2)
+    fit = {r["nome"]: (r["uf"], r["cidade"], r["fit_icp"]) for r in conn.execute("select nome, uf, cidade, fit_icp from conta")}
+    assert fit == {"Gama": ("PR", "Curitiba", True), "Delta": ("MG", "Belo Horizonte", False)}
+    # planilha de enriquecimento: a conta vem pelo domínio
+    planilha = tmp_path / "enr.csv"
+    planilha.write_text("empresa,dominio,cnpj,uf,cidade,confianca,fonte\nDelta,delta.com.br,11222333000181,,,alta,site\n", encoding="utf-8")
+    res = dominios.aplicar(conn, dominios.ler_planilha_enriquecimento(planilha))
+    assert res.cnpjs == 1
+    assert conn.execute("select cnpj_raiz from conta where nome = 'Delta'").fetchone()["cnpj_raiz"] == "11222333"
+    # UF já preenchida não é sobrescrita
+    res = dominios.aplicar(conn, [{"conta_id": ids["Gama"], "uf": "SP", "fonte": "outra"}])
+    assert res.ufs == 0 and len(res.conflitos) == 1
