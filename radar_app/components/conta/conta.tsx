@@ -198,10 +198,13 @@ function ProximaAcao({
       titulo = `Acompanhar a abordagem de ${dataCurta(abordado.e!.em ?? hoje)}`;
       corpo = `Se não houver resposta até ${dataCurta(somarDias(abordado.e!.em ?? hoje, 5))}, faça um segundo contato curto, retomando o mesmo fato.`;
     } else if (status(conta) === 'nao_abordar') {
-      titulo = 'Completar os dados antes de abordar';
-      corpo = conta.comite.length
-        ? 'A planilha marca esta conta como insuficiente. Confira o status comercial antes de qualquer contato.'
-        : 'Ninguém do comitê de compra identificado ainda. O Apollo completa nome e cargo quando a chave estiver configurada.';
+      const semClassificacao = !conta.statusComercial.trim();
+      titulo = semClassificacao ? 'Classificar antes de abordar' : 'Completar os dados antes de abordar';
+      corpo = !conta.comite.length
+        ? 'Ninguém do comitê de compra identificado ainda. O Apollo completa nome e cargo quando a chave estiver configurada.'
+        : semClassificacao
+          ? 'Esta conta ainda não tem status comercial da planilha. Classifique antes de abordar.'
+          : 'A planilha marca esta conta como insuficiente. Confira o status comercial antes de qualquer contato.';
     } else {
       titulo = 'Esperar um motivo';
       corpo = 'Nenhum sinal aberto nesta conta. O radar avisa em Hoje quando algo mudar; abordar sem motivo gasta a primeira impressão.';
