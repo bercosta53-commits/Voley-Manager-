@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { ArrowDown, ArrowUp, BookmarkPlus, Download, Search, SearchX, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, BookmarkPlus, Download, ExternalLink, Search, SearchX, X } from 'lucide-react';
 import type { Base, Conta, Sinal } from '@/lib/tipos';
 import { FAMILIAS, STATUS, SUBSEGMENTOS_TI, familia, hrefConta, primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, status } from '@/lib/contas';
 import { SEM_FILTRO, aplicar, daUrl, temFiltro, type Filtros } from '@/lib/filtros';
@@ -314,9 +314,22 @@ export function TelaContas({ base }: { base: Base }) {
                             <div className="flex items-center gap-3">
                               <LogoConta nome={c.nome} dominio={c.dominio} tamanho={28} />
                               <div className="min-w-0">
-                                <Link href={hrefConta(c.id)} className="block truncate rounded-chip font-semibold text-foreground">
-                                  {c.nome}
-                                </Link>
+                                <span className="flex min-w-0 items-center gap-1">
+                                  <Link href={hrefConta(c.id)} className="truncate rounded-chip font-semibold text-foreground">
+                                    {c.nome}
+                                  </Link>
+                                  {c.dominio && (
+                                    <a
+                                      href={`https://${c.dominio}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      aria-label={`Site de ${c.nome}`}
+                                      className="shrink-0 rounded-chip text-text-3 hover:text-foreground"
+                                    >
+                                      <ExternalLink className="size-3" strokeWidth={1.5} />
+                                    </a>
+                                  )}
+                                </span>
                                 <span className="block truncate text-xs text-text-3">
                                   {[c.cidade && `${c.cidade}/${c.uf}`, `Tier ${c.tier}`].filter(Boolean).join(' · ')}
                                   <span className="md:hidden"> · {rotuloStatus(c)}</span>

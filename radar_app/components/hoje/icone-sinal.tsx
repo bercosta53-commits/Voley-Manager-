@@ -1,4 +1,5 @@
 import {
+  Award,
   BriefcaseBusiness,
   Building2,
   CircleDollarSign,
@@ -45,6 +46,7 @@ const ICONES: Record<string, typeof Radar> = {
   lancamento_produto: PackagePlus,
   lancamento_servico: Layers,
   parceria: Handshake,
+  premio: Award,
   layoffs: UserRoundMinus,
   noticia_setorial: Newspaper,
 };

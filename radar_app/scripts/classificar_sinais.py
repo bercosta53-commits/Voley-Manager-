@@ -50,6 +50,7 @@ TAXONOMIA: dict[str, tuple[str, int]] = {
     "lancamento_produto": ("Lançamento de produto", 6),
     "lancamento_servico": ("Lançamento de serviço", 6),
     "parceria": ("Nova parceria", 5),
+    "premio": ("Prêmio ou reconhecimento", 4),
     "layoffs": ("Corte de equipe", 5),
     "noticia_setorial": ("Notícia do setor", 3),
 }
