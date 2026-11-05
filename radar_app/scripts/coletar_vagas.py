@@ -74,7 +74,7 @@ PALAVRAS_PATH_VAGA = ("vaga", "job", "oportunidade", "posicao", "position", "ope
 NIVEL_LIDERANCA = ("head", "diretor", "diretora", "director", "vp", "vice-presidente", "vice presidente")
 AREA_ALVO = (
     "marketing", "growth", "demand gen", "geracao de demanda", "product marketing",
-    "sdr", "bdr", "account executive", "inside sales", "vendas", "comercial", "sales",
+    "sdr", "bdr", "business development", "account executive", "inside sales", "vendas", "comercial", "sales",
     "partner manager", "channel manager", "parcerias", "partnerships", "revops",
     "crm", "customer success", "expansao", "receita", "revenue",
 )
