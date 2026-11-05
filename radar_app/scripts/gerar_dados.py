@@ -130,13 +130,29 @@ def area_do_cargo(cargo: str) -> str:
 
 FONTES = [
     # id, nome, o que busca, onde, de quanto em quanto tempo (dias), o que precisa para rodar, variável de ambiente
-    ("cnpj", "Receita Federal (CNPJ)", "Mudanças no quadro de sócios e na situação cadastral", "BrasilAPI, dados públicos da Receita", 7, "", ""),
-    ("noticias", "Notícias", "Troca de diretoria, fusões, novas unidades e lançamentos citando a empresa", "Google Notícias", 1, "", ""),
-    ("vagas", "Vagas", "Vagas de marketing e comercial abertas pela empresa", "Páginas de carreiras (Gupy e outras) e Indeed", 7, "", ""),
+    # (requisito sem variável = precisa de configuração manual, não de chave; ver montar_fontes)
+    ("cnpj", "Receita Federal (CNPJ)", "CNAE de TI, porte, capital social, quadro de sócios e situação cadastral", "BrasilAPI, dados públicos da Receita", 7, "", ""),
+    ("associacoes", "Associações e parques tecnológicos", "Lista de empresas associadas ou residentes, para descobrir contas novas e confirmar o segmento",
+     "ACATE (SC), Tecnopuc e Tecnosinos (RS), Instituto Caldeira (POA) e associações estaduais de software e TI", 30,
+     "a lista de associações e parques configurada", ""),
+    ("apollo", "Apollo e Lusha (firmografia e sinais)", "Headcount, faturamento estimado, tecnologias usadas e sinais de contratação e visita ao site",
+     "Apollo.io e Lusha", 30, "a chave do Apollo (a Lusha já está disponível)", "APOLLO_API_KEY"),
+    ("vagas", "Vagas", "Vagas de marketing, vendas, growth e parcerias — só as áreas que indicam dor comercial, não engenharia",
+     "Apollo, Indeed e páginas de carreira (Gupy, Greenhouse, Lever e outras)", 7, "", ""),
+    ("noticias", "Notícias de TI", "Troca de liderança, fusões, lançamentos e rodadas de captação citando a empresa",
+     "Google Notícias e veículos de TI (Baguete, Startups.com.br, NeoFeed, IT Forum e outros)", 1, "", ""),
+    ("eventos", "Eventos e feiras", "Presença como expositora, patrocinadora ou startup em exposição nos eventos de TI do semestre",
+     "Páginas de expositores e patrocinadores (South Summit, Gramado Summit, Futurecom, AWS Summit e outros — lista configurável)", 14,
+     "a lista de eventos do semestre", ""),
+    ("palestras", "Palestras de sócios e lideranças", "Sócios e diretoria como palestrantes, convidados de podcast ou anfitriões de webinar — também vira agenda presencial",
+     "Páginas de palestrantes dos eventos, YouTube Data API e feeds de podcast", 14, "a chave do YouTube Data API", "YOUTUBE_API_KEY"),
+    ("intencao_digital", "Intenção digital", "Visitas ao site, aberturas e cliques de e-mail e downloads de material",
+     "Rastreador de visitantes (Apollo), Snov e formulários do site", 1, "a chave do Snov", "SNOV_API_KEY"),
+    ("desfecho", "CRM e transcrições", "Reunião marcada, oportunidade aberta, ganho ou perda e o que foi dito na conversa",
+     "CRM e transcrições do Tactiq", 1, "acesso ao CRM e à conta do Tactiq", ""),
     ("consultorias", "Consultorias de recrutamento", "Vagas executivas anunciadas por consultorias (Michael Page, Robert Half e outras)", "Sites das consultorias", 7, "", ""),
-    ("apollo", "Apollo (comitê de compra)", "Nome e cargo das pessoas de marketing, comercial e diretoria", "Apollo.io", 30, "a chave do Apollo", "APOLLO_API_KEY"),
-    ("anuncios", "Bibliotecas de anúncios", "Se a empresa começou, parou ou mudou anúncios no Google e na Meta", "Central de Transparência do Google e Biblioteca de Anúncios da Meta", 7,
-     "a chave do SerpApi (e o token do Apify)", "SERPAPI_API_KEY"),
+    ("anuncios", "Bibliotecas de anúncios", "Se a empresa começou, parou ou mudou anúncios no Google e na Meta (o LinkedIn, mais relevante pra TI B2B, só dá pra checar manualmente)",
+     "Central de Transparência do Google e Biblioteca de Anúncios da Meta", 7, "a chave do SerpApi (e o token do Apify)", "SERPAPI_API_KEY"),
     ("classificador", "Classificador (IA)", "Lê cada notícia e decide se é um sinal, de que tipo e por que importa agora", "API do Claude", 1, "a chave da API do Claude", "ANTHROPIC_API_KEY"),
 ]
 
@@ -190,7 +206,9 @@ def montar_fontes(execucoes: dict, sinais: list[dict], exemplo: bool) -> list[di
     fontes = []
     for fid, nome, busca, onde, intervalo, requisito, chave in FONTES:
         e = execucoes.get(fid, {})
-        falta = bool(chave) and not os.environ.get(chave)
+        # falta = tem requisito pendente: ou uma chave de ambiente que não está setada, ou (sem chave) uma
+        # configuração manual (lista de eventos, acesso a um CRM) que este script não tem como checar sozinho.
+        falta = bool(requisito) and (not chave or not os.environ.get(chave))
         n_sinais = sum(1 for s in sinais if FONTE_DO_ROTULO.get(s["fonte"]) == fid and not s["exemplo"])
         if e.get("ultimaErros"):
             status, resumo = "erro", f"A última coleta teve {e['ultimaErros']} erro(s). {e.get('ultimoDetalhe') or ''}".strip()
