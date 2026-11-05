@@ -19,6 +19,27 @@ interface UltimaVisita {
   aneis: Record<string, Anel>;
 }
 
+/** Mini alvo de 4 anéis concêntricos com o anel relevante destacado — mesma leitura visual do radar grande. */
+function IconeAnel({ anel }: { anel: Anel }) {
+  const aneisDeForaPraDentro: { id: Anel; r: number }[] = [
+    { id: 4, r: 10 },
+    { id: 3, r: 7.4 },
+    { id: 2, r: 4.8 },
+    { id: 1, r: 2.2 },
+  ];
+  return (
+    <svg viewBox="0 0 24 24" className="mt-0.5 size-5 shrink-0" aria-hidden>
+      {aneisDeForaPraDentro.map(({ id, r }) =>
+        id === anel ? (
+          <circle key={id} cx={12} cy={12} r={r} fill="var(--vr-ok-bg)" stroke="var(--vr-ok)" strokeWidth={1.3} />
+        ) : (
+          <circle key={id} cx={12} cy={12} r={r} fill="none" stroke="var(--vr-border-strong)" strokeWidth={1} />
+        ),
+      )}
+    </svg>
+  );
+}
+
 export function TelaRadar({ base, proximidade }: { base: Base; proximidade: BaseProximidade }) {
   const [bracos, setBracos] = useState<Braco[]>([]);
   const [ufs, setUfs] = useState<UF[]>([]);
@@ -150,25 +171,27 @@ export function TelaRadar({ base, proximidade }: { base: Base; proximidade: Base
             }}
           />
 
-          <div className="flex flex-row flex-wrap gap-4 lg:w-48 lg:flex-col lg:border-l lg:border-border lg:pl-5">
+          <div className="flex flex-row flex-wrap gap-4 lg:w-52 lg:flex-col lg:border-l lg:border-border lg:pl-5">
             {ANEIS.map(a => (
-              <div key={a.id} className="min-w-32 flex-1 lg:flex-none">
-                <p className="text-xs font-semibold text-foreground">
-                  {a.id}. {a.rotulo}
-                </p>
-                <p className="mt-0.5 text-xs text-text-3">{a.descricao}</p>
+              <div key={a.id} className="flex min-w-36 flex-1 items-start gap-2.5 lg:flex-none">
+                <IconeAnel anel={a.id} />
+                <div>
+                  <p className="text-xs font-semibold text-foreground">{a.rotulo}</p>
+                  <p className="mt-0.5 text-xs text-text-3">{a.descricao}</p>
+                </div>
               </div>
             ))}
-            <div className="min-w-32 flex-1 border-t border-border pt-3 lg:flex-none">
-              <p className="mb-1.5 text-xs font-semibold text-foreground">Cor do ponto</p>
-              <div className="flex items-center gap-1.5 text-xs text-text-2">
-                <span className="inline-block size-2.5 rounded-full" style={{ background: 'var(--vr-warm)' }} />
+            <div className="min-w-36 flex-1 border-t border-border pt-3 lg:flex-none">
+              <p className="mb-2 text-xs font-semibold text-foreground">Cor do ponto</p>
+              <div className="flex items-center gap-2 text-xs text-text-2">
+                <span className="inline-block size-2.5 shrink-0 rounded-full" style={{ background: 'var(--vr-warm)' }} />
                 Sinal recente
               </div>
-              <div className="mt-1 flex items-center gap-1.5 text-xs text-text-2">
-                <span className="inline-block size-2.5 rounded-full border border-dashed" style={{ borderColor: 'var(--vr-text-3)' }} />
-                Sem sinal (contorno tracejado)
+              <div className="mt-1.5 flex items-center gap-2 text-xs text-text-2">
+                <span className="inline-block size-2.5 shrink-0 rounded-full border border-dashed" style={{ borderColor: 'var(--vr-text-3)' }} />
+                Sem sinal
               </div>
+              <p className="mt-3 text-[11px] text-text-3">Scroll ou pinça pra dar zoom. Arraste pra mover.</p>
             </div>
           </div>
         </div>
