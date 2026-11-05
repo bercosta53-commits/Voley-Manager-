@@ -1,5 +1,7 @@
 export type Papel = 'decisor' | 'influenciador';
-export type Area = 'executivo' | 'marketing' | 'comercial';
+/** O Comitê de compra (3 lugares) só olha executivo/marketing/comercial; as demais áreas aparecem
+ * na lista completa de decisores, não nesses 3 lugares fixos. */
+export type Area = 'executivo' | 'marketing' | 'comercial' | 'produto' | 'financeiro' | 'compras' | 'juridico' | 'ti' | 'operacoes' | 'rh' | 'outro';
 
 export interface Pessoa {
   nome: string;
@@ -8,6 +10,8 @@ export interface Pessoa {
   papel: Papel;
   /** de onde veio o nome: planilha, Apollo… */
   fonte: string;
+  email?: string;
+  linkedin?: string;
 }
 
 /** Uma parcela do score: quanto cada coisa somou. */

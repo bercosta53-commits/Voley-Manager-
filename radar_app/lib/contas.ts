@@ -1,6 +1,6 @@
 import type { Conta } from './tipos';
 
-export type Familia = 'cooperativa' | 'consorcio' | 'seguro' | 'banco' | 'tecnologia';
+export type Familia = 'cooperativa' | 'consorcio' | 'seguro' | 'banco' | 'tecnologia' | 'outro';
 
 export const FAMILIAS: { id: Familia; rotulo: string }[] = [
   { id: 'cooperativa', rotulo: 'Cooperativas' },
@@ -8,6 +8,7 @@ export const FAMILIAS: { id: Familia; rotulo: string }[] = [
   { id: 'seguro', rotulo: 'Seguros' },
   { id: 'consorcio', rotulo: 'Consórcios' },
   { id: 'tecnologia', rotulo: 'Tecnologia' },
+  { id: 'outro', rotulo: 'Outros' },
 ];
 
 /** Agrupa os subsegmentos da planilha em poucas famílias, para filtrar. */
@@ -17,7 +18,8 @@ export function familia(c: Pick<Conta, 'segmento' | 'braco'>): Familia {
   if (s.includes('consórc') || s.includes('consorc')) return 'consorcio';
   if (s.includes('segur') || s.includes('previd')) return 'seguro';
   if (s.includes('tecnolog') || s.includes('fintech') || s.includes('pagamento')) return 'tecnologia';
-  return 'banco';
+  if (s.includes('banc') || s.includes('crédit') || s.includes('credit')) return 'banco';
+  return 'outro';
 }
 
 export type Status = 'ativar' | 'nutrir' | 'nao_abordar';
@@ -36,7 +38,9 @@ export function status(c: Pick<Conta, 'statusComercial'>): Status {
   return 'nao_abordar';
 }
 
-export const rotuloStatus = (c: Pick<Conta, 'statusComercial'>) => STATUS.find(s => s.id === status(c))!.rotulo;
+/** Sem dado de status ainda (ex.: lista recém-importada, sem planilha de classificação comercial) é
+ * diferente de "não abordar" — isso é uma decisão, aquilo é só falta de classificar. */
+export const rotuloStatus = (c: Pick<Conta, 'statusComercial'>) => (c.statusComercial.trim() ? STATUS.find(s => s.id === status(c))!.rotulo : 'A classificar');
 
 export type Sentido = 'sobe' | 'desce' | 'estavel';
 export const sentido = (tendencia: number): Sentido => (tendencia >= 3 ? 'sobe' : tendencia <= -3 ? 'desce' : 'estavel');

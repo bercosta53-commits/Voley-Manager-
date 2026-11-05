@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, Building2, Inbox, PlugZap, Search } from 'lucide-react';
+import { BarChart3, Building2, Inbox, PlugZap, Search, UsersRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/ui/kbd';
@@ -12,6 +12,7 @@ import { BotaoTema } from '@/components/hoje/tema';
 export const SECOES = [
   { href: '/', rotulo: 'Hoje', icone: Inbox },
   { href: '/contas', rotulo: 'Contas', icone: Building2 },
+  { href: '/decisores', rotulo: 'Decisores', icone: UsersRound },
   { href: '/fontes', rotulo: 'Fontes', icone: PlugZap },
   { href: '/metricas', rotulo: 'Métricas', icone: BarChart3 },
 ] as const;
