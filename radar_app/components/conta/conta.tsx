@@ -7,7 +7,7 @@ import { ArrowDownRight, ArrowUpRight, CalendarClock, Check, ChevronLeft, Copy, 
 import type { Base, Conta, EstadoSinal, Sinal } from '@/lib/tipos';
 import { primeiraMaiuscula, rotuloStatus, sentido, status } from '@/lib/contas';
 import { rascunho } from '@/lib/mensagem';
-import { cn, dataCurta, plural, somarDias } from '@/lib/utils';
+import { cn, dataComAno, dataCurta, moeda, plural, somarDias } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PainelFlutuante } from '@/components/ui/painel-flutuante';
@@ -279,7 +279,7 @@ function ProximaAcao({
 function Cadastro({ conta }: { conta: Conta }) {
   const linhas: [string, React.ReactNode][] = [
     ['Razão social', conta.razaoSocial || '—'],
-    ['CNPJ', <span key="c" className="vr-data">{conta.cnpj}</span>],
+    ['CNPJ', <span key="c" className="vr-data">{conta.cnpj || '—'}</span>],
     [
       'Domínio',
       conta.dominio ? (
@@ -295,6 +295,14 @@ function Cadastro({ conta }: { conta: Conta }) {
     ['Segmento', primeiraMaiuscula(conta.segmento) || '—'],
     ['Status comercial', primeiraMaiuscula(conta.statusComercial.toLowerCase()) || '—'],
   ];
+  if (conta.porte) linhas.push(['Porte', conta.porte]);
+  if (conta.situacaoCadastral) linhas.push(['Situação cadastral', conta.situacaoCadastral]);
+  if (conta.dataAbertura) linhas.push(['Fundação', dataComAno(conta.dataAbertura)]);
+  if (conta.capitalSocial) linhas.push(['Capital social', moeda(conta.capitalSocial)]);
+  if (conta.cnae) linhas.push(['CNAE', conta.cnae]);
+  if (conta.socios?.length) {
+    linhas.push(['Sócios', conta.socios.map(s => (s.qualificacao ? `${s.nome} (${s.qualificacao})` : s.nome)).join(', ')]);
+  }
   return (
     <section className="vr-card p-5">
       <h2 className="text-xs font-semibold text-text-3">Dados cadastrais</h2>

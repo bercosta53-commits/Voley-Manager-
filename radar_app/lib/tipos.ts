@@ -34,6 +34,13 @@ export interface Evento {
   exemplo: boolean;
 }
 
+/** Sócio da Receita Federal (QSA) — referência, não entra no comitê de compra (não dá pra casar com
+ * segurança com quem veio do Snov sem risco de duplicar a mesma pessoa sob nomes levemente diferentes). */
+export interface Socio {
+  nome: string;
+  qualificacao: string;
+}
+
 export interface Conta {
   id: string;
   nome: string;
@@ -47,6 +54,14 @@ export interface Conta {
   tier: string;
   statusComercial: string;
   decisor: { nome: string; cargo: string };
+  /** CNAE fiscal: "6202-3/00 Desenvolvimento e licenciamento de programas de computador customizáveis" */
+  cnae?: string;
+  porte?: string;
+  situacaoCadastral?: string;
+  /** data de abertura (AAAA-MM-DD) */
+  dataAbertura?: string;
+  capitalSocial?: number;
+  socios?: Socio[];
   score: number;
   /** pontos ganhos (ou perdidos) nos últimos 14 dias */
   tendencia: number;

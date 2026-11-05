@@ -17,6 +17,9 @@ export const dataCurta = (iso: string) => `${d(iso).getDate()} ${MESES[d(iso).ge
 /** "sexta, 25 de setembro" */
 export const dataLonga = (iso: string) => `${DIAS[d(iso).getDay()]}, ${d(iso).getDate()} de ${MESES_LONGOS[d(iso).getMonth()]}`;
 
+/** "17 set 1998" */
+export const dataComAno = (iso: string) => `${d(iso).getDate()} ${MESES[d(iso).getMonth()]} ${d(iso).getFullYear()}`;
+
 export const diasEntre = (de: string, ate: string) => Math.round((d(ate).getTime() - d(de).getTime()) / 86400000);
 
 export const somarDias = (iso: string, n: number) => {
@@ -44,3 +47,6 @@ export const iniciais = (nome: string) =>
     .join('') || '?';
 
 export const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
+
+const FORMATO_MOEDA = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+export const moeda = (n: number) => FORMATO_MOEDA.format(n);
