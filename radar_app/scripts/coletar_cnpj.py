@@ -61,20 +61,30 @@ def normalizar(texto: str) -> str:
     return sem_acentos(texto or "").lower().strip()
 
 
+def digito_verificador(nums: str, pesos: list[int]) -> str:
+    soma = sum(int(n) * p for n, p in zip(nums, pesos))
+    resto = soma % 11
+    return "0" if resto < 2 else str(11 - resto)
+
+
 def cnpj_valido(digitos: str) -> bool:
     """Confere os 2 dígitos verificadores do CNPJ (algoritmo oficial) — evita aceitar um número com a
     cara de CNPJ que na verdade é outra coisa (telefone, protocolo, CNPJ de exemplo no template)."""
     if len(digitos) != 14 or len(set(digitos)) == 1:
         return False
-
-    def dv(nums: str, pesos: list[int]) -> str:
-        soma = sum(int(n) * p for n, p in zip(nums, pesos))
-        resto = soma % 11
-        return "0" if resto < 2 else str(11 - resto)
-
-    d1 = dv(digitos[:12], [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
-    d2 = dv(digitos[:12] + d1, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
+    d1 = digito_verificador(digitos[:12], [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
+    d2 = digito_verificador(digitos[:12] + d1, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
     return digitos[12:] == d1 + d2
+
+
+def cnpj_matriz(cnpj: str) -> str:
+    """Troca o sufixo (filial 0002, 0003...) por 0001 e recalcula os dígitos verificadores — mesma
+    empresa, mas a matriz, que costuma ser o CNPJ usado como referência. Ver uso em main(): uma filial
+    fechada não significa que a empresa fechou (ela pode ter fechado só aquele endereço)."""
+    raiz = cnpj[:8] + "0001"
+    d1 = digito_verificador(raiz, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
+    d2 = digito_verificador(raiz + d1, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
+    return raiz + d1 + d2
 
 
 # ---------- busca do CNPJ no site da própria empresa ----------
@@ -262,6 +272,13 @@ def main() -> None:
             elif cnpj:
                 achados_site += 1
                 dados = consultar_brasilapi(cnpj)
+                if dados and dados.get("identificador_matriz_filial") == 2:
+                    # achou o CNPJ de uma filial (ex.: citado numa página regional) — prefere a matriz
+                    # quando ela existir, pra não mostrar "baixada" só porque aquele endereço fechou.
+                    cnpj_da_matriz = cnpj_matriz(cnpj)
+                    dados_matriz = consultar_brasilapi(cnpj_da_matriz)
+                    if dados_matriz and "razao_social" in dados_matriz:
+                        cnpj, dados = cnpj_da_matriz, dados_matriz
                 if dados and "razao_social" in dados:
                     aplicar_enriquecimento(conta, cnpj, dados)
                     achados_brasilapi += 1
