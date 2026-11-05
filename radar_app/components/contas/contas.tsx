@@ -4,10 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { ArrowDown, ArrowUp, BookmarkPlus, Search, SearchX, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, BookmarkPlus, Download, Search, SearchX, X } from 'lucide-react';
 import type { Base, Conta, Sinal } from '@/lib/tipos';
-import { FAMILIAS, STATUS, familia, hrefConta, primeiraMaiuscula, rotuloStatus, status } from '@/lib/contas';
+import { FAMILIAS, STATUS, SUBSEGMENTOS_TI, familia, hrefConta, primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, status } from '@/lib/contas';
 import { SEM_FILTRO, aplicar, daUrl, temFiltro, type Filtros } from '@/lib/filtros';
+import { baixarCsv } from '@/lib/exportar-csv';
 import { cn, plural, quando } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -192,12 +193,37 @@ export function TelaContas({ base }: { base: Base }) {
                 valor={filtros.tendencia ? [filtros.tendencia] : []}
                 onMudar={v => mudar({ tendencia: v[0] ?? '' })}
               />
-              {filtros.ufs.length > 0 && <Pilula onTirar={() => mudar({ ufs: [] })}>Em {filtros.ufs.join(', ')}</Pilula>}
+              <MenuFiltro
+                rotulo="Estado"
+                opcoes={[...new Set(contas.map(c => c.uf).filter(Boolean))].sort().map(uf => ({ id: uf, rotulo: uf, qtd: contar(c => c.uf === uf) }))}
+                valor={filtros.ufs}
+                onMudar={v => mudar({ ufs: v })}
+              />
+              <MenuFiltro
+                rotulo="Subsegmento TI"
+                opcoes={SUBSEGMENTOS_TI.map(s => ({ ...s, qtd: contar(c => c.subsegmentoTI === s.id) })).filter(s => s.qtd)}
+                valor={filtros.subsegmentos}
+                onMudar={v => mudar({ subsegmentos: v })}
+              />
               {filtros.comSinal && <Pilula onTirar={() => mudar({ comSinal: false })}>Com sinal na caixa</Pilula>}
               {filtros.semContato && <Pilula onTirar={() => mudar({ semContato: false })}>Sem ninguém do comitê</Pilula>}
               {filtros.scoreMin > 0 && <Pilula onTirar={() => mudar({ scoreMin: 0 })}>Score {filtros.scoreMin}+</Pilula>}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="md:ml-auto"
+                onClick={() =>
+                  baixarCsv(
+                    'contas.csv',
+                    ['Nome', 'Razão social', 'CNPJ', 'Domínio', 'Cidade', 'UF', 'Segmento', 'Subsegmento TI', 'Tier', 'Status', 'Score', 'Tendência'],
+                    linhas.map(c => [c.nome, c.razaoSocial, c.cnpj, c.dominio, c.cidade, c.uf, c.segmento, c.subsegmentoTI ? rotuloSubsegmentoTI(c.subsegmentoTI) : '', c.tier, rotuloStatus(c), c.score, c.tendencia]),
+                  )
+                }
+              >
+                <Download /> Baixar CSV
+              </Button>
               {temFiltro(filtros) && (
-                <div className="flex items-center gap-1 md:ml-auto">
+                <div className="flex items-center gap-1">
                   {!ativo &&
                     (nomeNovo === null ? (
                       <Button size="sm" variant="ghost" onClick={() => setNomeNovo('')}>
@@ -298,7 +324,7 @@ export function TelaContas({ base }: { base: Base }) {
                               </div>
                             </div>
                           </td>
-                          <td className="hidden truncate px-3 py-2.5 text-text-2 lg:table-cell">{primeiraMaiuscula(c.segmento)}</td>
+                          <td className="hidden truncate px-3 py-2.5 text-text-2 lg:table-cell">{c.subsegmentoTI ? rotuloSubsegmentoTI(c.subsegmentoTI) : primeiraMaiuscula(c.segmento)}</td>
                           <td className="hidden px-3 py-2.5 md:table-cell">
                             <StatusChip conta={c} />
                           </td>

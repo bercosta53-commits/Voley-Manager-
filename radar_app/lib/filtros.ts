@@ -8,12 +8,13 @@ export interface Filtros {
   status: Status[];
   tendencia: Sentido | '';
   ufs: string[];
+  subsegmentos: string[];
   comSinal: boolean;
   semContato: boolean;
   scoreMin: number;
 }
 
-export const SEM_FILTRO: Filtros = { texto: '', familias: [], tiers: [], status: [], tendencia: '', ufs: [], comSinal: false, semContato: false, scoreMin: 0 };
+export const SEM_FILTRO: Filtros = { texto: '', familias: [], tiers: [], status: [], tendencia: '', ufs: [], subsegmentos: [], comSinal: false, semContato: false, scoreMin: 0 };
 
 export function aplicar(contas: Conta[], filtros: Filtros, sinaisPorConta: Map<string, Sinal[]>) {
   const texto = normalizar(filtros.texto.trim());
@@ -27,6 +28,7 @@ export function aplicar(contas: Conta[], filtros: Filtros, sinaisPorConta: Map<s
     if (filtros.status.length && !filtros.status.includes(status(c))) return false;
     if (filtros.tendencia && sentido(c.tendencia) !== filtros.tendencia) return false;
     if (filtros.ufs.length && !filtros.ufs.includes(c.uf)) return false;
+    if (filtros.subsegmentos.length && !filtros.subsegmentos.includes(c.subsegmentoTI ?? '')) return false;
     if (filtros.comSinal && !sinaisPorConta.get(c.id)?.length) return false;
     if (filtros.semContato && c.comite.length) return false;
     if (filtros.scoreMin && c.score < filtros.scoreMin) return false;
@@ -56,7 +58,7 @@ const PALAVRAS_FAMILIA: [RegExp, Familia][] = [
  */
 export function interpretar(pergunta: string): { filtros: Filtros; entendido: string[]; resto: string } {
   let q = ` ${normalizar(pergunta)} `;
-  const f: Filtros = { ...SEM_FILTRO, familias: [], tiers: [], status: [], ufs: [] };
+  const f: Filtros = { ...SEM_FILTRO, familias: [], tiers: [], status: [], ufs: [], subsegmentos: [] };
   const entendido: string[] = [];
   const tirar = (re: RegExp) => (q = q.replace(re, ' '));
 

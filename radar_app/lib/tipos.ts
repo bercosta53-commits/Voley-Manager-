@@ -50,6 +50,8 @@ export interface Conta {
   cidade: string;
   uf: string;
   segmento: string;
+  /** subsegmento de TI (ver SUBSEGMENTOS_TI em lib/contas.ts) — não é todo mundo que dá pra classificar */
+  subsegmentoTI?: string;
   braco: string;
   tier: string;
   statusComercial: string;

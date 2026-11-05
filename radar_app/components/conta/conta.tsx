@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { ArrowDownRight, ArrowUpRight, CalendarClock, Check, ChevronLeft, Copy, ExternalLink, Minus, SearchX, Send } from 'lucide-react';
 import type { Base, Conta, EstadoSinal, Sinal } from '@/lib/tipos';
-import { primeiraMaiuscula, rotuloStatus, sentido, status } from '@/lib/contas';
+import { primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, sentido, status } from '@/lib/contas';
 import { rascunho } from '@/lib/mensagem';
 import { cn, dataComAno, dataCurta, moeda, plural, somarDias } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -295,6 +295,7 @@ function Cadastro({ conta }: { conta: Conta }) {
     ['Segmento', primeiraMaiuscula(conta.segmento) || '—'],
     ['Status comercial', primeiraMaiuscula(conta.statusComercial.toLowerCase()) || '—'],
   ];
+  if (conta.subsegmentoTI) linhas.push(['Subsegmento de TI', rotuloSubsegmentoTI(conta.subsegmentoTI)]);
   if (conta.porte) linhas.push(['Porte', conta.porte]);
   if (conta.situacaoCadastral) linhas.push(['Situação cadastral', conta.situacaoCadastral]);
   if (conta.dataAbertura) linhas.push(['Fundação', dataComAno(conta.dataAbertura)]);

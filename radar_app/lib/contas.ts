@@ -22,6 +22,29 @@ export function familia(c: Pick<Conta, 'segmento' | 'braco'>): Familia {
   return 'outro';
 }
 
+/** Subsegmento de TI — mistura vertical (quem a empresa atende) e modelo de negócio (o que ela vende),
+ * porque é assim que esse mercado se descreve na prática. Classificado por fonte externa (nome + CNAE +
+ * segmento + site), não derivado de um campo só — por isso fica como subsegmentoTI em Conta, não aqui. */
+export const SUBSEGMENTOS_TI: { id: string; rotulo: string }[] = [
+  { id: 'saas_horizontal', rotulo: 'SaaS horizontal' },
+  { id: 'fabrica_software', rotulo: 'Fábrica de software' },
+  { id: 'healthtech', rotulo: 'Healthtech' },
+  { id: 'edtech', rotulo: 'Edtech' },
+  { id: 'fintech', rotulo: 'Fintech' },
+  { id: 'martech', rotulo: 'Martech' },
+  { id: 'legaltech', rotulo: 'Legaltech' },
+  { id: 'hrtech', rotulo: 'HRtech' },
+  { id: 'agrotech', rotulo: 'Agrotech' },
+  { id: 'cloud_infra', rotulo: 'Cloud e infraestrutura' },
+  { id: 'seguranca', rotulo: 'Segurança da informação' },
+  { id: 'dados_ia', rotulo: 'Dados e IA' },
+  { id: 'outsourcing_ti', rotulo: 'Outsourcing de TI' },
+  { id: 'erp_gestao', rotulo: 'ERP e gestão' },
+  { id: 'ecommerce_varejo', rotulo: 'E-commerce e varejo' },
+  { id: 'outro', rotulo: 'Outro' },
+];
+export const rotuloSubsegmentoTI = (id: string) => SUBSEGMENTOS_TI.find(s => s.id === id)?.rotulo ?? id;
+
 export type Status = 'ativar' | 'nutrir' | 'nao_abordar';
 
 export const STATUS: { id: Status; rotulo: string; dica: string }[] = [

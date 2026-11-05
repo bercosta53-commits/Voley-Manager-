@@ -2,13 +2,15 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ExternalLink, Mail, Search, SearchX, UserRound } from 'lucide-react';
+import { Download, ExternalLink, Mail, Search, SearchX, UserRound } from 'lucide-react';
 import type { Area, Base, Papel } from '@/lib/tipos';
 import { hrefConta, normalizar } from '@/lib/contas';
 import { cn, plural } from '@/lib/utils';
+import { baixarCsv } from '@/lib/exportar-csv';
 import { Casca } from '@/components/casca/casca';
 import { LogoConta } from '@/components/hoje/logo-conta';
 import { Aviso } from '@/components/hoje/estados';
+import { Button } from '@/components/ui/button';
 import { MenuFiltro } from '@/components/contas/menu-filtro';
 
 const AREAS: { id: Area; rotulo: string }[] = [
@@ -93,6 +95,20 @@ export function TelaDecisores({ base }: { base: Base }) {
             onMudar={setPapeis}
           />
           <MenuFiltro rotulo="Área" opcoes={AREAS.map(a => ({ ...a, qtd: contar(p => p.area === a.id) })).filter(a => a.qtd)} valor={areas} onMudar={setAreas} />
+          <Button
+            size="sm"
+            variant="ghost"
+            className="md:ml-auto"
+            onClick={() =>
+              baixarCsv(
+                'decisores.csv',
+                ['Nome', 'Cargo', 'Área', 'Papel', 'Conta', 'Domínio da conta', 'E-mail', 'LinkedIn'],
+                linhas.map(p => [p.nome, p.cargo, AREAS.find(a => a.id === p.area)?.rotulo ?? p.area, p.papel, p.contaNome, p.contaDominio, p.email ?? '', p.linkedin ?? '']),
+              )
+            }
+          >
+            <Download /> Baixar CSV
+          </Button>
         </div>
 
         {!linhas.length ? (
