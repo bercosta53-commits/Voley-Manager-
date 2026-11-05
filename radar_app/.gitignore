@@ -6,3 +6,5 @@ next-env.d.ts
 # Base real de contas: nunca vai para o repositório (ele é público).
 data/contas.local.json
 screenshots/
+.vercel
+.env*
