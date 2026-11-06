@@ -31,7 +31,7 @@ from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
 DESTINO = RAIZ / "data" / "contas.local.json"
-VERSAO = "2.1"
+VERSAO = "2.2"
 
 # ---------------------------------------------------------------- parâmetros (spec 2.2) — editáveis
 
@@ -50,7 +50,8 @@ class Param:
 P = {
     # nível A — gatilho forte
     # meia-vida 60 d (aprovada em 2026-11-06 no lugar dos 45 d da tabela): dia 120 = 0.50, dia 150 = 0.35
-    "troca_lideranca_owner": Param("troca_lideranca", "A", 1.00, 60, 60, 150),
+    # 2.2: CRO/CMO novo é janela, não demanda — vale menos que vaga aberta de liderança de Growth/Revenue (orçamento em uso)
+    "troca_lideranca_owner": Param("troca_lideranca", "A", 0.80, 60, 60, 150),
     "captacao_a": Param("captacao", "A", 0.90, 90, 45, 180),
     "expansao_comercial": Param("expansao_comercial", "A", 0.80, 30, 45, 120),
     "vaga_lideranca_alvo": Param("vaga_lideranca_alvo", "A", 0.80, 90, 1, 90),
@@ -79,6 +80,15 @@ P = {
     "noticia_setorial": Param("noticia_setorial", "C", 0.05, 0, 21, 30),
 }
 TETO_CONTEXTO = 0.25
+# 2.2 (calibração de 2026-11-06): um gatilho sozinho não abre conversa. O mais forte vale 60% até outro gatilho
+# A/B independente (outro tipo, na janela) confirmar; com o segundo valendo 0.4 ou mais, volta a 100%.
+FATOR_ISOLADO = 0.60
+CORROBORACAO_PLENA = 0.40
+# exceção: vaga aberta de liderança de Growth/Revenue já é demanda (orçamento de aquisição sendo gasto agora),
+# não só janela — vale inteira sozinha
+DEMANDA_DIRETA = {"vaga_lideranca_growth"}
+# força exibida = timing × (0.4 + 0.6 × fit): o mesmo fato pesa menos numa conta que é pouco a cara da Velora
+PESO_FIT_FORCA = 0.60
 CONFIANCA_MINIMA = 0.6
 UFS_ALVO = {"SP", "PR", "SC", "RS"}
 LIMIAR_SINAL = 0.5
@@ -258,10 +268,31 @@ def noisy_or(valores: list[float]) -> float:
     return 1 - r
 
 
-def timing(contrs: list[Contribuicao]) -> float:
-    gatilhos = noisy_or([c.valor for c in contrs if c.nivel in ("A", "B")])
+def fator_corroboracao(contrs: list[Contribuicao]) -> float:
+    """Quanto do gatilho mais forte vale: 0.6 sozinho, 1.0 com um segundo gatilho A/B de 0.4 ou mais."""
+    gatilhos = sorted((c for c in contrs if c.nivel in ("A", "B")), key=lambda c: -c.valor)
+    if gatilhos and gatilhos[0].chave in DEMANDA_DIRETA:
+        return 1.0
+    segundo = gatilhos[1].valor if len(gatilhos) > 1 else 0.0
+    return FATOR_ISOLADO + (1 - FATOR_ISOLADO) * min(1.0, segundo / CORROBORACAO_PLENA)
+
+
+def timing(contrs: list[Contribuicao], corroborar: bool = True) -> float:
+    valores = sorted((c.valor for c in contrs if c.nivel in ("A", "B")), reverse=True)  # mesma ordem de fator_corroboracao
+    if valores and corroborar:
+        valores[0] *= fator_corroboracao(contrs)
+    gatilhos = noisy_or(valores)
     contexto = min(TETO_CONTEXTO, noisy_or([c.valor for c in contrs if c.nivel == "C"]))
     return 1 - (1 - gatilhos) * (1 - contexto)
+
+
+def fator_fit(f: float) -> float:
+    return 1 - PESO_FIT_FORCA + PESO_FIT_FORCA * f
+
+
+def forca(t: float, f: float) -> float:
+    """Score exibido (0–1): timing ajustado pelo fit."""
+    return t * fator_fit(f)
 
 
 # ---------------------------------------------------------------- fit, access, engagement (spec 4 e 7)
@@ -376,6 +407,7 @@ class Resultado:
     access: float
     engagement: float
     proximity: float
+    forca: float
     anel: int | None
     sinal_ativo: bool
     contribuicoes: list[dict]
@@ -397,7 +429,7 @@ def calcular(conta: dict, eventos: list[dict], hoje: date, interacoes: list[dict
     a = access(conta)
     tem_gatilho = any(c.nivel in ("A", "B") for c in contrs)
     limiar = LIMIAR_SAIDA_ANEL1 if (anterior or {}).get("anel") == 1 else LIMIAR_SINAL  # histerese
-    sinal_ativo = (t >= limiar and tem_gatilho) or e >= 0.5
+    sinal_ativo = (forca(t, f) >= limiar and tem_gatilho) or e >= 0.5
     com, sem = contato_ativavel(conta)
     fora, bloqueia = supressao(conta, contrs, hoje)
 
@@ -418,8 +450,8 @@ def calcular(conta: dict, eventos: list[dict], hoje: date, interacoes: list[dict
 
     return Resultado(
         versao=VERSAO, fit=f, timing=round(t, 3), access=round(a, 3), engagement=round(e, 3), proximity=round(prox, 3),
-        anel=anel, sinal_ativo=sinal_ativo,
-        contribuicoes=[{"tipo": c.tipo, "nivel": c.nivel, "peso": c.peso, "curva": c.curva, "confianca": c.confianca,
+        forca=round(forca(t, f), 3), anel=anel, sinal_ativo=sinal_ativo,
+        contribuicoes=[{"tipo": c.tipo, "demanda": c.chave in DEMANDA_DIRETA, "nivel": c.nivel, "peso": c.peso, "curva": c.curva, "confianca": c.confianca,
                         "valor": round(c.valor, 3), "data": c.data, "texto": c.texto} for c in contrs],
         frase=frase(contrs, anel, com, sem, bloqueia, fora), fora_do_radar=fora,
         janela_dupla=sum(1 for c in contrs if c.nivel == "A") >= 2, pendentes=pendentes,
@@ -529,28 +561,42 @@ def valor_evento(ev: dict, hoje: date) -> tuple[Param | None, float]:
 
 
 def exibir(base: dict, hoje: date) -> None:
-    """Troca o score exibido pelo v2.1 (aprovado em 2026-11-06): score = timing × 100, tendência = variação
+    """Troca o score exibido pelo v2 (aprovado em 2026-11-06; 2.2 no mesmo dia): score = força × 100 (timing com
+    corroboração, ajustado pelo fit), tendência = variação
     em 14 dias, série de 90 dias (um ponto a cada 3), composição = contribuição de cada gatilho, pontos de
     cada sinal = a contribuição dele. A caixa de Hoje fica ordenada por anel, nível do sinal e data."""
     sinais_por_conta: dict[str, list[dict]] = {}
+    ajuste: dict[str, tuple] = {}  # por conta: fator do fit, gatilho mais forte, fator de corroboração
     for sn in base.get("sinais", []):
         sinais_por_conta.setdefault(sn["contaId"], []).append(sn)
     for conta in base["contas"]:
         evs = eventos_da_conta(conta, sinais_por_conta.get(conta["id"], []))
 
-        def score_em(dia: date) -> int:
-            return round(100 * timing(contribuicoes(evs, dia)))
+        f = conta["v2"]["fit"]
 
-        conta["score"] = round(100 * conta["v2"]["timing"])
+        def score_em(dia: date) -> int:
+            return round(100 * forca(timing(contribuicoes(evs, dia)), f))
+
+        conta["score"] = round(100 * conta["v2"]["forca"])
         conta["tendencia"] = conta["score"] - score_em(hoje - timedelta(days=14))
         conta["serie"] = [score_em(hoje - timedelta(days=3 * (30 - i))) for i in range(31)]
         comp = [{"rotulo": f'{ROTULO_TIPO.get(c["tipo"], c["tipo"])} · {NIVEL_ROTULO[c["nivel"]]}', "detalhe": c["texto"],
                  "pontos": round(100 * c["valor"]), "data": c["data"]} for c in conta["v2"]["contribuicoes"]]
         comp = [c for c in comp if c["pontos"] > 0]
+        contrs = contribuicoes(evs, hoje)
+        cru, corroborado = timing(contrs, corroborar=False), conta["v2"]["timing"]
+        if (sem := round(100 * (cru - corroborado))) > 0:
+            comp.append({"rotulo": "Sem confirmação", "detalhe": "Um gatilho sozinho vale 60% até outro sinal forte confirmar",
+                         "pontos": -sem})
+        if (pelo_fit := round(100 * corroborado) - conta["score"]) > 0:
+            comp.append({"rotulo": "Fit da conta", "detalhe": f'Fit {round(100 * f)}%: o mesmo fato pesa menos fora do ICP',
+                         "pontos": -pelo_fit})
         excesso = sum(c["pontos"] for c in comp) - conta["score"]
         if excesso > 0:
             comp.append({"rotulo": "Combinação", "detalhe": "Cada sinal a mais soma menos (e o contexto tem teto de 25)",
                          "pontos": -excesso})
+        topo = next((c for c in contrs if c.nivel in ("A", "B")), None)
+        ajuste[conta["id"]] = (fator_fit(f), (topo.tipo, topo.data) if topo else None, fator_corroboracao(contrs))
         conta["composicao"] = comp
     # status comercial sugerido pelo anel, só onde ninguém definiu um à mão (statusComercialAuto marca o nosso)
     for conta in base["contas"]:
@@ -563,9 +609,15 @@ def exibir(base: dict, hoje: date) -> None:
     ordem_nivel = {"A": 0, "B": 1, "C": 2, None: 3}
     for sn in base.get("sinais", []):
         p, v = valor_evento(sn, hoje)
-        sn["pontos"] = round(100 * v)
+        sn["valor"] = round(v, 4)  # contribuição bruta (0–1), antes de fit e corroboração: base do bônus 1/2/3 no app
+        # pontos = o que o sinal soma de fato ao score da conta: com o fit e, no gatilho mais forte, a corroboração
+        ff, topo, fc = ajuste.get(sn["contaId"], (1.0, None, 1.0))
+        if p and topo == (p.tipo, sn["data"]):
+            v *= fc
+        sn["pontos"] = round(100 * v * ff)
         sn["nivel"] = p.nivel if p else None
-        sn["tipoSpec"] = p.tipo if p else None  # o app recalcula o score com a avaliação 1/2/3 da pessoa (lib/avaliacao.ts)
+        sn["tipoSpec"] = p.tipo if p else None
+        sn["demandaDireta"] = nivelar(sn) in DEMANDA_DIRETA  # o app recalcula o score com a avaliação 1/2/3 da pessoa (lib/avaliacao.ts)
     base["sinais"].sort(key=lambda sn: (anel.get(sn["contaId"], (9, 0)), ordem_nivel[sn["nivel"]],
                                         -date.fromisoformat(sn["data"]).toordinal()))
     base["scoreVersao"] = VERSAO
@@ -584,7 +636,9 @@ def main() -> None:
         anterior = conta.get("v2") or {}
         # histerese e suavização usam o resultado do ÚLTIMO DIA anterior; rodar duas vezes no mesmo dia
         # não pode suavizar em cima de si mesmo
-        if anterior.get("calculadoEm") == hoje.isoformat():
+        if anterior.get("versao") != VERSAO:
+            referencia = None  # calibração nova: anel e proximity antigos não seguram a conta (histerese)
+        elif anterior.get("calculadoEm") == hoje.isoformat():
             referencia = anterior.get("referencia")
         else:
             referencia = {"anel": anterior["anel"], "proximity": anterior["proximity"]} if anterior else None

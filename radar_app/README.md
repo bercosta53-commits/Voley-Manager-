@@ -29,7 +29,7 @@ python3 scripts/coletar_cnpj.py              # CNPJ no site (rodapé, páginas l
 python3 scripts/classificar_contas.py --exportar itens.json   # lê o site de cada conta para classificar
 python3 scripts/classificar_contas.py --respostas respostas.json  # ramo (28), especialização (20), modelo e UF
 python3 scripts/qualificar_icp.py            # tier A/B/C (regras em data/icp.json) e papel ABM de cada pessoa do comitê
-python3 scripts/score_v2.py --exibir         # score v2.1 (spec 06): anel, timing, composição e frase de cada conta
+python3 scripts/score_v2.py --exibir         # score v2.2 (spec 06 + calibração): anel, força, composição e frase de cada conta
 ```
 
 O classificador usa a API da Anthropic (`ANTHROPIC_API_KEY`). Sem chave, `--exportar arquivo.json` grava o que

@@ -103,7 +103,7 @@ export interface Conta {
     engagement?: number;
     sinal_ativo?: boolean;
     /** uma por tipo (a mais forte): valor 0–1 = peso × confiança × curva de tempo */
-    contribuicoes?: { tipo: string; nivel: 'A' | 'B' | 'C'; valor: number; data: string; texto: string }[];
+    contribuicoes?: { tipo: string; demanda?: boolean; nivel: 'A' | 'B' | 'C'; valor: number; data: string; texto: string }[];
   };
 }
 
@@ -125,6 +125,10 @@ export interface Sinal {
   /** nível (A/B/C) e tipo do score v2.1 a que o sinal pertence (scripts/score_v2.py --exibir) */
   nivel?: 'A' | 'B' | 'C' | null;
   tipoSpec?: string;
+  /** contribuição bruta do sinal (0–1), antes do fit e da corroboração; `pontos` é o que ele soma de fato */
+  valor?: number;
+  /** vaga de liderança de Growth/Revenue: demanda direta, vale inteira sem outro sinal confirmar */
+  demandaDireta?: boolean;
   fonte: string;
   /** data do fato */
   data: string;

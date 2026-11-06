@@ -44,7 +44,7 @@ function IconeAnel({ anel }: { anel: Anel }) {
 
 export function TelaRadar({ base, proximidade: proximidadeOriginal }: { base: Base; proximidade: BaseProximidade }) {
   const { estados } = useEstados();
-  // a avaliação de relevância (1/2/3) muda o timing da conta; cruzando 0.5 com gatilho A/B, muda de anel
+  // a avaliação de relevância (1/2/3) muda a força da conta (score/100); cruzando 0.5 com gatilho A/B, muda de anel
   const proximidade = useMemo(() => {
     const vista = aplicarAvaliacoes(base, estados);
     if (vista === base) return proximidadeOriginal;

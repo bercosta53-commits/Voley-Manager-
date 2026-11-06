@@ -1,4 +1,4 @@
-"""Testes do score v2.1 (spec 06-score-sinais.md, seção 11). Rodar: python3 -m unittest discover scripts/tests"""
+"""Testes do score v2.2 (v2.1 + calibração de 2026-11-06) (spec 06-score-sinais.md, seção 11). Rodar: python3 -m unittest discover scripts/tests"""
 
 import sys
 import unittest
@@ -46,10 +46,16 @@ class Curva(unittest.TestCase):
 
 
 class Pesos(unittest.TestCase):
-    def test_cmo_vale_10x_palestra(self):
+    def test_cmo_vale_8x_palestra(self):
+        # 2.2: CMO/CRO novo baixou de 1.0 para 0.8 — é janela, não demanda
         cmo = s.contribuicoes([ev("executivo_chegou", 10, **CMO)], HOJE)[0]
         pal = s.contribuicoes([ev("palestra_evento", 10)], HOJE)[0]
-        self.assertAlmostEqual(cmo.peso / pal.peso, 10)
+        self.assertAlmostEqual(cmo.peso / pal.peso, 8)
+
+    def test_vaga_de_lideranca_growth_vale_mais_que_cro_novo(self):
+        vaga = s.contribuicoes([ev("vaga_lideranca_alvo", 5, "Contratação de Head de Growth", focoGrowthRevenue=True)], HOJE)[0]
+        cro = s.contribuicoes([ev("executivo_chegou", 5, **CMO)], HOJE)[0]
+        self.assertGreater(vaga.peso, cro.peso)
 
     def test_cinco_vagas_de_sdr_contam_como_uma(self):
         vagas = [ev("vaga_area_alvo", i, f"Vaga SDR {i}", fonte="Página de carreiras") for i in range(5)]
@@ -69,6 +75,26 @@ class Pesos(unittest.TestCase):
 
 
 class Timing(unittest.TestCase):
+    def test_gatilho_sozinho_vale_60_por_cento(self):
+        c = s.contribuicoes([ev("executivo_chegou", 5, **CMO)], HOJE)
+        self.assertAlmostEqual(s.timing(c), 0.6 * c[0].valor, places=3)
+
+    def test_segundo_gatilho_forte_confirma_o_primeiro(self):
+        so = s.timing(s.contribuicoes([ev("executivo_chegou", 5, **CMO)], HOJE))
+        com = s.timing(s.contribuicoes([ev("executivo_chegou", 5, **CMO), ev("captacao", 5, "Série A")], HOJE))
+        self.assertLess(so, 0.5)
+        self.assertGreater(com, 0.85)
+
+    def test_vaga_de_lideranca_growth_vale_inteira_sozinha(self):
+        c = s.contribuicoes([ev("vaga_lideranca_alvo", 5, "Contratação de Head de Growth", focoGrowthRevenue=True)], HOJE)
+        self.assertAlmostEqual(s.timing(c), c[0].valor, places=3)
+        self.assertEqual(s.calcular(CONTA, [ev("vaga_lideranca_alvo", 5, "Contratação de Head de Growth",
+                                                focoGrowthRevenue=True)], HOJE).anel, 1)
+
+    def test_fit_baixo_derruba_a_forca(self):
+        self.assertAlmostEqual(s.forca(0.8, 1.0), 0.8)
+        self.assertAlmostEqual(s.forca(0.8, 0.0), 0.32)
+
     def test_tres_sinais_fortes_ficam_abaixo_de_1_e_ordenaveis(self):
         tres = s.timing(s.contribuicoes([ev("executivo_chegou", 5, **CMO), ev("captacao", 5, "Série A"),
                                          ev("fusao_aquisicao", 5)], HOJE))
@@ -107,13 +133,17 @@ class Aneis(unittest.TestCase):
             for evs in ([], [ev("executivo_chegou", 5, **CMO)], [ev("palestra_evento", 1)]):
                 self.assertIn(s.calcular(conta, evs, HOJE).anel, (1, 2, 3, 4))
 
-    def test_cmo_novo_sem_contato_mapeado_vai_pro_anel_2(self):
-        r = s.calcular(CONTA_SEM_CONTATO, [ev("executivo_chegou", 20, **CMO)], HOJE)
+    def test_cmo_novo_e_captacao_sem_contato_mapeado_vai_pro_anel_2(self):
+        r = s.calcular(CONTA_SEM_CONTATO, [ev("executivo_chegou", 20, **CMO), ev("captacao", 10, "Série A")], HOJE)
         self.assertEqual(r.anel, 2)
         self.assertIn("mapear", r.frase)
 
-    def test_cmo_novo_com_contato_vai_pro_anel_1(self):
-        self.assertEqual(s.calcular(CONTA, [ev("executivo_chegou", 20, **CMO)], HOJE).anel, 1)
+    def test_cmo_novo_e_captacao_com_contato_vai_pro_anel_1(self):
+        self.assertEqual(s.calcular(CONTA, [ev("executivo_chegou", 20, **CMO), ev("captacao", 10, "Série A")], HOJE).anel, 1)
+
+    def test_cmo_novo_sozinho_nao_vai_pro_anel_1(self):
+        # calibração 2.2 (caso Neogrid): CRO novo, sem outro fato, não abre conversa
+        self.assertNotEqual(s.calcular(CONTA, [ev("executivo_chegou", 20, **CMO)], HOJE).anel, 1)
 
     def test_cadencia_sem_resposta_bloqueia_anel_1_por_60_dias_salvo_gatilho_novo(self):
         fim = (HOJE - timedelta(days=10)).isoformat()
@@ -131,9 +161,9 @@ class Aneis(unittest.TestCase):
         self.assertEqual(s.calcular({**CONTA, "uf": "BA"}, [], HOJE).anel, 4)
 
     def test_histerese(self):
-        # timing ~0.47 (declaração com meta 0.55 × confiança 0.85): não entra no anel 1 (precisa de 0.5),
+        # força ~0.46 (meta de expansão + CMO de 130 dias, já decaindo): não entra no anel 1 (precisa de 0.5),
         # mas quem já está nele só sai abaixo de 0.4
-        evs = [ev("expansao_mercado", 3, "Meta de entrar no Chile", "Mira o Chile em 2027.")]
+        evs = [ev("expansao_mercado", 3, "Meta de entrar no Chile", "Mira o Chile em 2027."), ev("executivo_chegou", 130, **CMO)]
         fora = s.calcular(CONTA, evs, HOJE, anterior=None)
         dentro = s.calcular(CONTA, evs, HOJE, anterior={"anel": 1, "proximity": 0.5})
         self.assertNotEqual(fora.anel, 1)
