@@ -4,7 +4,7 @@ import type { Conta, Sinal } from './tipos';
 export function rascunho(sinal: Sinal, conta: Conta) {
   const nome = sinal.abordar.nome.split(' ')[0];
   const abre = nome ? `Olá, ${nome}.` : 'Olá.';
-  const fato = sinal.porQueAgora.charAt(0).toLowerCase() + sinal.porQueAgora.slice(1);
+  const fato = (sinal.porQueAgora.charAt(0).toLowerCase() + sinal.porQueAgora.slice(1)).replace(/\.+$/, '');
   const gancho: Record<string, string> = {
     vaga_marketing: 'Costuma ser o momento de desenhar metas e canais antes de a pessoa chegar.',
     vaga_comercial: 'Time comercial crescendo pede previsibilidade de pipeline desde o primeiro mês.',
