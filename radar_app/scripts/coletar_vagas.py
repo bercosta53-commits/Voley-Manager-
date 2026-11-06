@@ -73,13 +73,29 @@ ATS_HOSTS = {
 }
 
 PALAVRAS_PATH_VAGA = ("vaga", "job", "oportunidade", "posicao", "position", "opening", "opportunity")
-NIVEL_LIDERANCA = ("head", "diretor", "diretora", "director", "vp", "vice-presidente", "vice presidente")
-AREA_ALVO = (
-    "marketing", "growth", "demand gen", "geracao de demanda", "product marketing",
-    "sdr", "bdr", "business development", "account executive", "inside sales", "vendas", "comercial", "sales",
-    "partner manager", "channel manager", "parcerias", "partnerships", "revops",
-    "crm", "customer success", "expansao", "receita", "revenue",
+# "Gerente pra cima" (pedido da Velora, 2026-11-06): de gerente/manager até C-level. Coordenador e analista
+# sênior ficam como vaga de área, não de liderança.
+NIVEL_LIDERANCA = (
+    "gerente", "manager", "head", "diretor", "diretora", "director", "vp", "vice-presidente", "vice presidente",
+    "superintendente", "chief", "cro", "cmo", "cco", "cso", "lider de", "lideranca de",
 )
+AREA_ALVO = (
+    "marketing", "growth", "demand gen", "demand generation", "geracao de demanda", "product marketing",
+    "aquisicao", "aquisicao de clientes", "inbound", "outbound", "performance", "go-to-market", "gtm",
+    "sdr", "bdr", "pre-vendas", "pre vendas", "business development", "desenvolvimento de negocios", "novos negocios",
+    "account executive", "inside sales", "vendas", "comercial", "sales",
+    "partner manager", "channel manager", "canais", "parcerias", "partnerships", "alliances",
+    "revops", "revenue operations", "revenue", "receita", "crm", "customer success", "sucesso do cliente",
+    "expansao", "key account", "gerente de contas", "executivo de contas", "account manager", "gerente de negocios",
+)
+# o núcleo do que a Velora resolve: quem vai liderar crescimento e receita (sinal mais forte de todos)
+AREA_GROWTH_REVENUE = (
+    "growth", "revenue", "receita", "revops", "revenue operations", "demand gen", "demand generation",
+    "geracao de demanda", "aquisicao", "go-to-market", "gtm",
+)
+# falsos amigos de "gerente": cargo de loja, conta bancária, projeto de TI — não é liderança de aquisição
+FORA_DE_CONTEXTO = ("gerente de loja", "gerente de agencia", "gerente de projetos", "gerente de ti", "gerente de contas pj",
+                    "trade marketing", "merchandising", "estagio", "estagiario", "jovem aprendiz")
 
 
 def sem_acentos(texto: str) -> str:
@@ -100,11 +116,32 @@ def contem_palavra(texto_normalizado: str, palavras: tuple[str, ...]) -> bool:
 def classificar_vaga(titulo: str) -> tuple[str, int, str] | None:
     """None quando o cargo não é de área-alvo (inclui vaga só de engenharia — não gera sinal, ver spec)."""
     t = normalizar(titulo)
-    if not contem_palavra(t, AREA_ALVO):
+    if not contem_palavra(t, AREA_ALVO) or contem_palavra(t, FORA_DE_CONTEXTO):
         return None
-    if contem_palavra(t, NIVEL_LIDERANCA):
+    # gerente de contas / account manager / gerente de negócios é vendedor de carteira, não liderança
+    vendedor = contem_palavra(t, ("gerente de contas", "account manager", "key account", "gerente de negocios", "executivo de contas"))
+    if contem_palavra(t, NIVEL_LIDERANCA) and not (vendedor and not contem_palavra(t, ("head", "diretor", "diretora", "director", "vp"))):
+        if contem_palavra(t, AREA_GROWTH_REVENUE):
+            return "vaga_lideranca_alvo", 9, "Liderança de Growth/Revenue"
         return "vaga_lideranca_alvo", 9, "Vaga de liderança comercial"
     return "vaga_area_alvo", 5, "Vaga em área-alvo"
+
+
+def foco_growth_revenue(titulo: str) -> bool:
+    return contem_palavra(normalizar(titulo), AREA_GROWTH_REVENUE)
+
+
+def contexto_aquisicao(titulo: str) -> str:
+    """Por que essa vaga importa pra Velora, em uma frase — vai no porQueAgora e no rascunho da mensagem."""
+    if foco_growth_revenue(titulo):
+        return (f"Está contratando {titulo}: vai montar ou refazer o motor de aquisição e receita agora — "
+                f"a pessoa chega com meta e sem plano pronto.")
+    t = normalizar(titulo)
+    if contem_palavra(t, ("marketing", "demand", "performance", "inbound")):
+        return f"Está contratando {titulo}: marketing ganhando dono, com orçamento e metas novas para os próximos meses."
+    if contem_palavra(t, ("parcerias", "partnerships", "canais", "channel", "alliances")):
+        return f"Está contratando {titulo}: aposta em canal e parceiros para crescer, que pede geração de demanda junto."
+    return f"Está contratando {titulo}: time comercial crescendo, que vai precisar de pipeline previsível."
 
 
 def pontos_em(peso: int, fato: date, hoje: date) -> float:
@@ -372,8 +409,9 @@ def montar_sinais(conta: dict, vagas: list[tuple[str, str, str | None]], hoje: d
         data_fato = date.fromisoformat(data_iso) if data_iso else hoje
         sinais.append({
             "id": id_sinal(conta["id"], link), "contaId": conta["id"], "tipo": tipo, "rotulo": rotulo,
-            "peso": peso, "sinal": f"Contratação de {cargo_curto(titulo)}",
-            "porQueAgora": f"Abriu vaga de {titulo}.", "fonte": "Página de carreiras", "data": data_fato.isoformat(),
+            "peso": peso, "sinal": f"Contratação de {cargo_curto(titulo)}"[:45],
+            "porQueAgora": contexto_aquisicao(titulo), "focoGrowthRevenue": foco_growth_revenue(titulo),
+            "fonte": "Página de carreiras", "data": data_fato.isoformat(),
             "alertaEm": hoje.isoformat(), "url": link, "exemplo": False, "abordar": abordar,
             "pontos": round(pontos_em(peso, data_fato, hoje)),
         })

@@ -54,6 +54,8 @@ P = {
     "captacao_a": Param("captacao", "A", 0.90, 90, 45, 180),
     "expansao_comercial": Param("expansao_comercial", "A", 0.80, 30, 45, 120),
     "vaga_lideranca_alvo": Param("vaga_lideranca_alvo", "A", 0.80, 90, 1, 90),
+    # gerente pra cima em Growth/Revenue/RevOps: o sinal mais direto do que a Velora vende (pedido de 2026-11-06)
+    "vaga_lideranca_growth": Param("vaga_lideranca_alvo", "A", 0.90, 90, 1, 90),
     "troca_lideranca_ceo": Param("troca_lideranca", "A", 0.70, 60, 60, 150),
     "fusao_aquisicao": Param("fusao_aquisicao", "A", 0.70, 30, 60, 180),
     # nível B — gatilho médio
@@ -154,6 +156,8 @@ def nivelar(ev: dict) -> str | None:
     if tipo == "vaga_expansao_comercial":
         return "expansao_comercial"
     if tipo == "vaga_lideranca_alvo":
+        if ev.get("focoGrowthRevenue") or re.search(r"\b(growth|revenue|receita|revops|demand|aquisicao|gtm)\b", texto):
+            return "vaga_lideranca_growth"
         return "vaga_lideranca_alvo"
     if tipo == "vaga_area_alvo":
         return "vaga_area_alvo"
