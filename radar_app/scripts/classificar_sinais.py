@@ -62,7 +62,10 @@ cada item (um texto cru de manchete ou título, já associado a uma empresa), de
 linguagem, agente de IA, automação com IA etc.), classifique como "lancamento_ia", não como \
 "lancamento_produto"/"lancamento_servico" — isso tem prioridade sobre as outras categorias de lançamento.
   "executivo_chegou"/"executivo_saiu" são sobre C-level, diretoria, VPs — não gerentes ou cargos \
-operacionais. Se a notícia não se encaixa em nenhuma categoria específica, use "noticia_setorial".
+operacionais. "resultados_crescimento" é só pra resultado POSITIVO (lucro, receita ou faturamento subindo, \
+recorde) — resultado em queda, prejuízo, ação caindo ou projeção pra baixo NÃO é "resultados_crescimento" \
+(isso infla o score como se fosse boa notícia), classifique como "noticia_setorial". Se a notícia não se \
+encaixa em nenhuma categoria específica, use "noticia_setorial".
 - "porQueAgora": um resumo DIRETO do fato, em português, menor que um tweet (até 140 caracteres), sem \
 precisar abrir o link pra entender. Comece pela ação (verbo), não pelo nome da empresa (isso já aparece \
 em outro lugar na tela). Nada de linguagem de manchete de marketing ("revoluciona", "transforma", \

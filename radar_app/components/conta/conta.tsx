@@ -61,7 +61,7 @@ export function TelaConta({ base, contaId }: { base: Base; contaId: string }) {
         Ela pode ter saído da base na última importação da planilha. Procure pelo nome em Contas ou com ⌘K.
       </Aviso>
     );
-  else conteudo = <Detalhe conta={conta} sinais={sinais} estados={estados} hoje={hoje} onMudar={mudar} />;
+  else conteudo = <Detalhe conta={conta} sinais={sinais} estados={estados} hoje={hoje} onMudar={mudar} ficticia={base.ficticia} />;
 
   return (
     <Casca base={base}>
@@ -81,12 +81,14 @@ function Detalhe({
   estados,
   hoje,
   onMudar,
+  ficticia,
 }: {
   conta: Conta;
   sinais: Sinal[];
   estados: Record<string, EstadoSinal>;
   hoje: string;
   onMudar: (s: Sinal, m: EstadoSinal, aviso: string) => void;
+  ficticia?: boolean;
 }) {
   const [decompor, setDecompor] = useState(false);
   return (
@@ -126,7 +128,7 @@ function Detalhe({
         titulo={`Score ${conta.score}: de onde vem`}
         descricao="Quanto cada coisa soma hoje. Cada sinal perde metade do valor a cada 60 dias."
       >
-        <Decomposicao conta={conta} />
+        <Decomposicao conta={conta} ficticia={ficticia} />
       </PainelFlutuante>
     </>
   );

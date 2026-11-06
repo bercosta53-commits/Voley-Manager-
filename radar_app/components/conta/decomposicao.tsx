@@ -1,8 +1,10 @@
 import type { Conta } from '@/lib/tipos';
 import { dataCurta } from '@/lib/utils';
 
-/** Decomposição do score: cada parcela com a barra do quanto somou (em pontos, de 0 a 100). */
-export function Decomposicao({ conta }: { conta: Conta }) {
+/** Decomposição do score: cada parcela com a barra do quanto somou (em pontos, de 0 a 100).
+ * "Perfil" e "Momento" só existem na base de exemplo (vêm da planilha, que a base real ainda não tem
+ * padronizada) — na base real o score é só a soma dos sinais, por isso o rodapé muda conforme ficticia. */
+export function Decomposicao({ conta, ficticia }: { conta: Conta; ficticia?: boolean }) {
   const parcelas = conta.composicao.filter(p => p.pontos !== 0);
   return (
     <div>
@@ -30,7 +32,10 @@ export function Decomposicao({ conta }: { conta: Conta }) {
         <span className="text-sm font-semibold">Score de hoje</span>
         <span className="font-display text-xl font-semibold tabular-nums">{conta.score}</span>
       </div>
-      <p className="mt-2 text-xs text-text-3">Perfil e momento vêm da planilha. Sinais em âmbar: fatos recentes, que vão perdendo peso com o tempo.</p>
+      <p className="mt-2 text-xs text-text-3">
+        {ficticia && 'Perfil e momento vêm da planilha. '}
+        Sinais em âmbar: fatos recentes, que vão perdendo peso com o tempo.
+      </p>
     </div>
   );
 }
