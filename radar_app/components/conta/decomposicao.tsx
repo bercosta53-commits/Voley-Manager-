@@ -35,8 +35,9 @@ export function Decomposicao({ conta, ficticia }: { conta: Conta; ficticia?: boo
       </div>
       <p className="mt-2 text-xs text-text-3">
         {ficticia && 'Perfil e momento vêm da planilha. '}
-        Sinais em âmbar: fatos recentes. Gatilho forte (liderança nova, captação, expansão) pesa mais que contexto
-        (lançamento, evento, parceria), que tem teto de 25 pontos; cada sinal vale até o fim da janela do seu tipo.
+        Cada linha é o que o fato somou ao score: o mais forte primeiro, e cada fato a mais soma menos. O valor cai pela metade a cada
+        meia-vida da categoria; fatos de categorias diferentes em até 45 dias ganham bônus de convergência; ter sido adquirida tira
+        pontos. A conta completa está em Métricas.
       </p>
     </div>
   );

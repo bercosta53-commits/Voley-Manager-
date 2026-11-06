@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Casca } from '@/components/casca/casca';
 import { Aviso, ErroCarregar, SemPermissao } from '@/components/hoje/estados';
 import { useEstados } from '@/components/hoje/estado';
+import { ComoCalcula } from './como-calcula';
 
 type EstadoTela = 'normal' | 'carregando' | 'vazio' | 'erro' | 'sem-permissao';
 const ESTADOS: EstadoTela[] = ['carregando', 'vazio', 'erro', 'sem-permissao'];
@@ -154,9 +155,11 @@ export function TelaMetricas({ base }: { base: Base }) {
         <div className="mb-6 md:mb-8">
           <h1 className="font-display text-2xl font-semibold tracking-tight">Métricas</h1>
           <p className="mt-1 max-w-xl text-sm text-text-3">
-            Quatro perguntas sobre o radar. As respostas usam o que você marcou em Hoje (útil, ruído, abordado), guardado neste navegador.
+            Primeiro, como o score é feito. Depois, quatro perguntas sobre o radar: as respostas usam o que você marcou em Hoje (útil, ruído, abordado), guardado
+            neste navegador — por isso começam vazias em outro aparelho.
           </p>
         </div>
+        {!base.ficticia && <ComoCalcula base={base} />}
         {conteudo}
       </main>
     </Casca>

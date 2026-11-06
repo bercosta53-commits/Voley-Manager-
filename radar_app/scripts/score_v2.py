@@ -759,6 +759,8 @@ def exibir(base: dict, hoje: date) -> None:
     base["sinais"].sort(key=lambda sn: (anel.get(sn["contaId"], (9, 0)), ordem_nivel[sn["nivel"]],
                                         -date.fromisoformat(sn["data"]).toordinal()))
     base["scoreVersao"] = VERSAO
+    from registrar_fontes import registrar  # tela Fontes: o que cada coletor trouxe de fato
+    base["fontes"] = registrar(base, hoje)
 
 
 
