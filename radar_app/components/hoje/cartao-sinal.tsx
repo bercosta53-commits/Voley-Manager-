@@ -127,7 +127,15 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                 </span>
               )}
             </div>
-            <p className="truncate text-sm text-text-3">{[primeiraMaiuscula(conta.segmento), conta.uf].filter(Boolean).join(' · ')}</p>
+            <p className="truncate text-sm text-text-3">
+              {[
+                conta.v2?.anel === 1 ? (conta.v2.janela_dupla ? 'Janela dupla · pronta para ativar' : 'Pronta para ativar') : '',
+                primeiraMaiuscula(conta.segmento),
+                conta.uf,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
           </div>
           <ScoreTendencia score={conta.score} tendencia={conta.tendencia} serie={conta.serie} compacto={deslizavel} />
         </header>

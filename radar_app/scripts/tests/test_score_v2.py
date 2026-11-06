@@ -28,10 +28,9 @@ class Curva(unittest.TestCase):
         for d in (0, 20, 60):
             self.assertEqual(s.curva(p, d), 1.0)
         self.assertGreaterEqual(s.curva(p, 60), 0.5)
-        # spec 11 pede "~0.25 no dia 120", mas a tabela 2.2 (platô 60, meia-vida 45) dá 0.40 no dia 120 e
-        # 0.25 no dia 150 — divergência anotada no relatório; o teste segue a tabela.
-        self.assertAlmostEqual(s.curva(p, 120), 0.5 ** (60 / 45), places=3)
-        self.assertAlmostEqual(s.curva(p, 150), 0.25, places=3)
+        # meia-vida aprovada em 2026-11-06: 60 d (a tabela 2.2 dizia 45 e o teste do spec pedia ~0.25 no dia 120)
+        self.assertAlmostEqual(s.curva(p, 120), 0.5, places=3)
+        self.assertAlmostEqual(s.curva(p, 150), 0.5 ** 1.5, places=3)
         self.assertEqual(s.curva(p, 151), 0.0)
 
     def test_evento_futuro_vale_o_mesmo_que_no_dia_nunca_mais(self):

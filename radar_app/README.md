@@ -25,7 +25,7 @@ python3 scripts/classificar_sinais.py        # manchete -> sinal curto ("Expans�
 python3 scripts/coletar_noticias.py --so-ambiguas   # refaz a busca das contas com homônimo, usando site e comitê
 python3 scripts/classificar_sinais.py        # classifica o que a busca refeita trouxe
 python3 scripts/remover_duplicatas.py        # várias matérias do mesmo fato viram um sinal só
-python3 scripts/calcular_score.py            # score, tendência e composição de cada conta
+python3 scripts/score_v2.py --exibir         # score v2.1 (spec 06): anel, timing, composição e frase de cada conta
 ```
 
 O classificador usa a API da Anthropic (`ANTHROPIC_API_KEY`). Sem chave, `--exportar arquivo.json` grava o que

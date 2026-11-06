@@ -74,6 +74,8 @@ export interface Conta {
   composicao: Parcela[];
   comite: Pessoa[];
   historico: Evento[];
+  /** score v2.1 (scripts/score_v2.py): anel 1-4 (null = fora do radar) e a frase que explica o número */
+  v2?: { anel: number | null; frase: string; timing: number; proximity: number; janela_dupla?: boolean };
 }
 
 export interface Sinal {

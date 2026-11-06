@@ -8,6 +8,7 @@ export function Decomposicao({ conta, ficticia }: { conta: Conta; ficticia?: boo
   const parcelas = conta.composicao.filter(p => p.pontos !== 0);
   return (
     <div>
+      {conta.v2?.frase && <p className="mb-4 text-sm text-text-2">{conta.v2.frase}</p>}
       <ul className="flex flex-col gap-3">
         {parcelas.map((p, i) => (
           <li key={i} className="grid grid-cols-[minmax(0,1fr)_48px] items-start gap-x-4">
@@ -34,7 +35,8 @@ export function Decomposicao({ conta, ficticia }: { conta: Conta; ficticia?: boo
       </div>
       <p className="mt-2 text-xs text-text-3">
         {ficticia && 'Perfil e momento vêm da planilha. '}
-        Sinais em âmbar: fatos recentes, que vão perdendo peso com o tempo.
+        Sinais em âmbar: fatos recentes. Gatilho forte (liderança nova, captação, expansão) pesa mais que contexto
+        (lançamento, evento, parceria), que tem teto de 25 pontos; cada sinal vale até o fim da janela do seu tipo.
       </p>
     </div>
   );

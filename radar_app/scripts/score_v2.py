@@ -7,8 +7,9 @@ Entrada por conta: atributos (fit), eventos (sinais[] + historico[] já classifi
 interações (engagement) e supressões. Saída gravada em conta["v2"]: fit, timing, access, engagement,
 proximity, anel, contribuições, frase de explicação, itens com valor padrão pendente e a versão dos pesos.
 
-NÃO troca o score exibido (spec, seção 11: "pare depois da migração com o relatório e espere aprovação").
-O app continua mostrando conta["score"] (v1, scripts/calcular_score.py) até a aprovação.
+Com --exibir (aprovado em 2026-11-06), também grava o v2.1 como o score que o app mostra: score = timing × 100,
+série, tendência e composição; sem a opção, só grava conta["v2"] (para comparar com o v1 de
+scripts/calcular_score.py, que continua no repositório para o relatório de migração).
 
 Como os tipos do radar viram os tipos do spec — a taxonomia gravada pelos coletores é a do classificador
 (executivo_chegou, captacao, expansao_mercado...). O spec separa por nível (A gatilho forte, B médio, C
@@ -48,11 +49,12 @@ class Param:
 
 P = {
     # nível A — gatilho forte
-    "troca_lideranca_owner": Param("troca_lideranca", "A", 1.00, 60, 45, 150),
+    # meia-vida 60 d (aprovada em 2026-11-06 no lugar dos 45 d da tabela): dia 120 = 0.50, dia 150 = 0.35
+    "troca_lideranca_owner": Param("troca_lideranca", "A", 1.00, 60, 60, 150),
     "captacao_a": Param("captacao", "A", 0.90, 90, 45, 180),
     "expansao_comercial": Param("expansao_comercial", "A", 0.80, 30, 45, 120),
     "vaga_lideranca_alvo": Param("vaga_lideranca_alvo", "A", 0.80, 90, 1, 90),
-    "troca_lideranca_ceo": Param("troca_lideranca", "A", 0.70, 60, 45, 150),
+    "troca_lideranca_ceo": Param("troca_lideranca", "A", 0.70, 60, 60, 150),
     "fusao_aquisicao": Param("fusao_aquisicao", "A", 0.70, 30, 60, 180),
     # nível B — gatilho médio
     "declaracao_meta": Param("declaracao_expansao", "B", 0.55, 15, 30, 90),
@@ -494,9 +496,67 @@ def relatorio(base: dict) -> str:
     return "\n".join(linhas) + "\n"
 
 
+ROTULO_TIPO = {
+    "troca_lideranca": "Troca de liderança", "captacao": "Captação", "expansao_comercial": "Expansão comercial",
+    "vaga_lideranca_alvo": "Vaga de liderança", "fusao_aquisicao": "Fusão ou aquisição",
+    "declaracao_expansao": "Declaração de expansão", "vaga_area_alvo": "Vaga em área-alvo",
+    "lancamento_produto": "Lançamento", "nova_parceria": "Parceria", "presenca_evento": "Presença em evento",
+    "palestra_lideranca": "Palestra", "nova_filial": "Nova unidade", "reestruturacao": "Reestruturação",
+    "premio": "Prêmio", "noticia_setorial": "Notícia do setor",
+}
+NIVEL_ROTULO = {"A": "gatilho forte", "B": "gatilho médio", "C": "contexto"}
+
+
+def valor_evento(ev: dict, hoje: date) -> tuple[Param | None, float]:
+    chave = nivelar(ev)
+    if not chave:
+        return None, 0.0
+    p = P[chave]
+    conf = confianca(ev)
+    if conf < CONFIANCA_MINIMA:
+        return p, 0.0
+    return p, p.peso * conf * curva(p, (hoje - date.fromisoformat(ev["data"])).days)
+
+
+def exibir(base: dict, hoje: date) -> None:
+    """Troca o score exibido pelo v2.1 (aprovado em 2026-11-06): score = timing × 100, tendência = variação
+    em 14 dias, série de 90 dias (um ponto a cada 3), composição = contribuição de cada gatilho, pontos de
+    cada sinal = a contribuição dele. A caixa de Hoje fica ordenada por anel, nível do sinal e data."""
+    sinais_por_conta: dict[str, list[dict]] = {}
+    for sn in base.get("sinais", []):
+        sinais_por_conta.setdefault(sn["contaId"], []).append(sn)
+    for conta in base["contas"]:
+        evs = eventos_da_conta(conta, sinais_por_conta.get(conta["id"], []))
+
+        def score_em(dia: date) -> int:
+            return round(100 * timing(contribuicoes(evs, dia)))
+
+        conta["score"] = round(100 * conta["v2"]["timing"])
+        conta["tendencia"] = conta["score"] - score_em(hoje - timedelta(days=14))
+        conta["serie"] = [score_em(hoje - timedelta(days=3 * (30 - i))) for i in range(31)]
+        comp = [{"rotulo": f'{ROTULO_TIPO.get(c["tipo"], c["tipo"])} · {NIVEL_ROTULO[c["nivel"]]}', "detalhe": c["texto"],
+                 "pontos": round(100 * c["valor"]), "data": c["data"]} for c in conta["v2"]["contribuicoes"]]
+        comp = [c for c in comp if c["pontos"] > 0]
+        excesso = sum(c["pontos"] for c in comp) - conta["score"]
+        if excesso > 0:
+            comp.append({"rotulo": "Combinação", "detalhe": "Cada sinal a mais soma menos (e o contexto tem teto de 25)",
+                         "pontos": -excesso})
+        conta["composicao"] = comp
+    anel = {c["id"]: (c["v2"]["anel"] or 9, -c["v2"]["proximity"]) for c in base["contas"]}
+    ordem_nivel = {"A": 0, "B": 1, "C": 2, None: 3}
+    for sn in base.get("sinais", []):
+        p, v = valor_evento(sn, hoje)
+        sn["pontos"] = round(100 * v)
+        sn["nivel"] = p.nivel if p else None
+    base["sinais"].sort(key=lambda sn: (anel.get(sn["contaId"], (9, 0)), ordem_nivel[sn["nivel"]],
+                                        -date.fromisoformat(sn["data"]).toordinal()))
+    base["scoreVersao"] = VERSAO
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--relatorio", type=Path, help="grava o relatório de migração v1 → v2 nesse arquivo")
+    ap.add_argument("--exibir", action="store_true", help="grava o v2.1 como score exibido no app (score, série, composição)")
     args = ap.parse_args()
     if not DESTINO.exists():
         sys.exit(f"{DESTINO} não existe.")
@@ -512,6 +572,8 @@ def main() -> None:
             referencia = {"anel": anterior["anel"], "proximity": anterior["proximity"]} if anterior else None
         r = calcular(conta, eventos_da_conta(conta, base.get("sinais", [])), hoje, conta.get("interacoes"), referencia)
         conta["v2"] = r.__dict__ | {"calculadoEm": hoje.isoformat(), "referencia": referencia}
+    if args.exibir:
+        exibir(base, hoje)
     DESTINO.write_text(json.dumps(base, ensure_ascii=False, indent=1), encoding="utf-8")
     cont = {}
     for c in base["contas"]:
