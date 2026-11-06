@@ -11,6 +11,7 @@ import { Kbd } from '@/components/ui/kbd';
 import { PainelFlutuante } from '@/components/ui/painel-flutuante';
 import { Abordar } from './abordar';
 import { Agenda } from './agenda';
+import { aplicarAvaliacoes, ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
 import { CartaoSinal, type AcaoCartao } from './cartao-sinal';
 import { CaixaVazia, ErroCarregar, ListaEsqueleto, SemPermissao } from './estados';
 import { VISOES, type Visao } from './navegacao';
@@ -38,7 +39,7 @@ function useCelular() {
 
 const ESTADOS: EstadoTela[] = ['carregando', 'vazio', 'erro', 'sem-permissao'];
 
-export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?: EstadoTela }) {
+export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Base; estadoTela?: EstadoTela }) {
   // ?estado=... mostra cada estado obrigatório da tela, para revisão.
   const [estadoUrl, setEstadoUrl] = useState<EstadoTela>('normal');
   useEffect(() => {
@@ -46,8 +47,10 @@ export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?
     if (e && ESTADOS.includes(e)) setEstadoUrl(e);
   }, []);
   const estadoTela = estadoFixo ?? estadoUrl;
-  const hoje = base.geradoEm;
+  const hoje = baseOriginal.geradoEm;
   const { estados, salvar, pronto } = useEstados();
+  // a base como a pessoa a vê: score e pontos já com as avaliações de relevância (1/2/3) dela
+  const base = useMemo(() => aplicarAvaliacoes(baseOriginal, estados), [baseOriginal, estados]);
   const [visao, setVisao] = useState<Visao>('caixa');
   const [foco, setFoco] = useState(0);
   const [abordarAlvo, setAbordarAlvo] = useState<Sinal | null>(null);
@@ -131,6 +134,15 @@ export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?
     [contas, estados, hoje, mudar],
   );
 
+  const avaliar = useCallback(
+    (s: Sinal, n: Relevancia) => {
+      const conta = contas.get(s.contaId)!;
+      const ja = estados[s.id]?.relevancia === n;
+      mudar(s, { relevancia: ja ? undefined : n }, ja ? undefined : `${conta.nome}: ${ROTULO_RELEVANCIA[n].toLowerCase()}`);
+    },
+    [contas, estados, hoje, mudar],
+  );
+
   // ---------- teclado: j/k navegam, a u r s e agem no cartão em foco ----------
 
   useEffect(() => {
@@ -202,6 +214,7 @@ export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?
               naCaixa={visao === 'caixa'}
               deslizavel={celular}
               onAcao={a => agir(s, a)}
+              onAvaliar={n => avaliar(s, n)}
               onAbrir={() => setDetalhe(s)}
               onFoco={() => setFoco(i)}
             />

@@ -3,6 +3,7 @@ import { ANEIS, BRACOS, hash01, type Anel, type Braco, type ContaProximidade } f
 export interface PontoRadar {
   id: string;
   nome: string;
+  dominio: string;
   braco: Braco;
   subsegmento: string;
   anel: Anel;
@@ -17,6 +18,7 @@ export function pontoAtual(c: ContaProximidade): PontoRadar {
   return {
     id: c.id,
     nome: c.nome,
+    dominio: c.dominio,
     braco: c.braco,
     subsegmento: c.subsegmento,
     anel: c.anel,
@@ -39,6 +41,7 @@ export function pontoHistorico(c: ContaProximidade, diaOffset: number): PontoRad
   return {
     id: c.id,
     nome: c.nome,
+    dominio: c.dominio,
     braco: c.braco,
     subsegmento: c.subsegmento,
     anel: ponto.anel,
@@ -138,6 +141,7 @@ export function posicaoConta(conta: Pick<ContaProximidade, 'id' | 'braco' | 'sub
 }
 
 /** Tamanho do ponto (raio do círculo em px) pelo potencial (porte/ticket), 0–1 → 4–12px. */
-export const raioPonto = (potencial: number) => 4 + Math.min(1, Math.max(0, potencial)) * 8;
+// pontos maiores que no protótipo: dentro de cada um vai o logo da empresa (tier A maior, C menor)
+export const raioPonto = (potencial: number) => 7 + Math.min(1, Math.max(0, potencial)) * 6;
 
 export const ROTULO_ANEL = Object.fromEntries(ANEIS.map(a => [a.id, a.rotulo])) as Record<Anel, string>;

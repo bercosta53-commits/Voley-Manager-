@@ -6,24 +6,28 @@
  * Modelo e regras seguem a spec "Velora Radar — Módulo Radar de Proximidade" (Fase 1: protótipo).
  */
 
-export type Braco = 'servicos_profissionais' | 'servicos_financeiros' | 'tecnologia' | 'adjacente';
+/** Fatias do radar: as seis famílias de TI da taxonomia Velora (28 ramos), mais quem ainda não foi classificado. */
+export type Braco = string;
 
 export const BRACOS: { id: Braco; rotulo: string; rotuloCurto: string; subsegmentos: string[] }[] = [
-  { id: 'servicos_profissionais', rotulo: 'Serviços profissionais B2B', rotuloCurto: 'Profissionais', subsegmentos: ['Advocacia', 'Auditoria', 'Contábil', 'Tributário'] },
-  { id: 'servicos_financeiros', rotulo: 'Serviços financeiros', rotuloCurto: 'Financeiro', subsegmentos: ['Cooperativas', 'Seguros', 'Previdência', 'Consórcios'] },
-  { id: 'tecnologia', rotulo: 'Tecnologia B2B madura', rotuloCurto: 'Tecnologia', subsegmentos: ['SaaS vertical', 'Infraestrutura', 'Dados e IA', 'Segurança'] },
-  { id: 'adjacente', rotulo: 'Adjacente', rotuloCurto: 'Adjacente', subsegmentos: ['Outros'] },
+  { id: 'SW', rotulo: 'Software e Plataformas', rotuloCurto: 'Software', subsegmentos: ['Desenvolvimento de Software', 'Sistemas de Gestão Empresarial', 'Software Especializado', 'SaaS B2B', 'Aplicativos e Produtos Digitais', 'Tecnologia para E-commerce'] },
+  { id: 'SV', rotulo: 'Serviços e Integração', rotuloCurto: 'Serviços', subsegmentos: ['Consultoria em Tecnologia', 'Integração de Sistemas', 'Implantação de Sistemas', 'Outsourcing de Tecnologia', 'Serviços Gerenciados de TI'] },
+  { id: 'IN', rotulo: 'Infraestrutura e Conectividade', rotuloCurto: 'Infraestrutura', subsegmentos: ['Cloud Computing', 'Data Centers e Hosting', 'Infraestrutura e Redes', 'Telecomunicações B2B', 'Hardware e Equipamentos de TI'] },
+  { id: 'DA', rotulo: 'Dados, IA e Automação', rotuloCurto: 'Dados e IA', subsegmentos: ['Engenharia de Dados', 'Business Intelligence e Analytics', 'Inteligência Artificial', 'Automação de Processos'] },
+  { id: 'SE', rotulo: 'Segurança e Resiliência', rotuloCurto: 'Segurança', subsegmentos: ['Cibersegurança', 'Identidade e Controle de Acesso', 'Segurança e Privacidade de Dados', 'Backup e Continuidade de Negócios'] },
+  { id: 'EN', rotulo: 'Engenharia e Tecnologias Especializadas', rotuloCurto: 'Engenharia', subsegmentos: ['DevOps e Qualidade de Software', 'Observabilidade e Monitoramento', 'Internet das Coisas (IoT)', 'Automação Industrial'] },
+  { id: 'XX', rotulo: 'A classificar', rotuloCurto: 'A classificar', subsegmentos: ['A classificar'] },
 ];
 
-export type UF = 'SP' | 'PR' | 'SC' | 'RS';
+export type UF = string;
 export const UFS: UF[] = ['SP', 'PR', 'SC', 'RS'];
 
 export type Anel = 1 | 2 | 3 | 4;
 export const ANEIS: { id: Anel; rotulo: string; descricao: string }[] = [
-  { id: 1, rotulo: 'Pronta para ativar', descricao: 'Fit, sinal, pessoa e canal — as quatro peças no lugar.' },
-  { id: 2, rotulo: 'Ponto de contato à vista', descricao: 'Fit no ICP; falta exatamente uma peça para ativar.' },
-  { id: 3, rotulo: 'Em observação', descricao: 'Fit no ICP, mas ainda sem sinal, pessoa ou canal.' },
-  { id: 4, rotulo: 'Horizonte', descricao: 'Fora do ICP principal ou ainda não tratada.' },
+  { id: 1, rotulo: 'Pronta para ativar', descricao: 'Fit no ICP, gatilho ativo e decisor com canal verificado.' },
+  { id: 2, rotulo: 'Ponto de contato à vista', descricao: 'Fit e gatilho ativo; falta mapear o decisor ou validar o canal.' },
+  { id: 3, rotulo: 'Em observação', descricao: 'Fit no ICP, ainda sem gatilho forte ou médio.' },
+  { id: 4, rotulo: 'Horizonte', descricao: 'Fora do ICP (tier C) ou ainda não tratada.' },
 ];
 
 export interface Dimensoes {
@@ -137,6 +141,9 @@ export interface ContaProximidade {
   id: string;
   nome: string;
   dominio: string;
+  /** tier de ICP (A/B/C) e frase do score v2.1, quando a conta vem da base real */
+  tier?: string;
+  frase?: string;
   braco: Braco;
   subsegmento: string;
   uf: UF;

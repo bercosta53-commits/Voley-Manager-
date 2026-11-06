@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { ArrowDownRight, ArrowUpRight, CalendarClock, Check, ChevronLeft, Copy, ExternalLink, Minus, SearchX, Send } from 'lucide-react';
 import type { Base, Conta, EstadoSinal, Sinal } from '@/lib/tipos';
+import { aplicarAvaliacoes } from '@/lib/avaliacao';
 import { primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, sentido, status } from '@/lib/contas';
 import { rascunho } from '@/lib/mensagem';
 import { cn, dataComAno, dataCurta, moeda, plural, somarDias } from '@/lib/utils';
@@ -23,13 +24,14 @@ import { Decomposicao } from './decomposicao';
 type EstadoTela = 'normal' | 'carregando' | 'vazio' | 'erro' | 'sem-permissao';
 const ESTADOS: EstadoTela[] = ['carregando', 'vazio', 'erro', 'sem-permissao'];
 
-export function TelaConta({ base, contaId }: { base: Base; contaId: string }) {
+export function TelaConta({ base: baseOriginal, contaId }: { base: Base; contaId: string }) {
   const [estadoTela, setEstadoTela] = useState<EstadoTela>('normal');
   useEffect(() => {
     const e = new URLSearchParams(location.search).get('estado') as EstadoTela | null;
     if (e && ESTADOS.includes(e)) setEstadoTela(e);
   }, []);
   const { estados, salvar, pronto } = useEstados();
+  const base = useMemo(() => aplicarAvaliacoes(baseOriginal, estados), [baseOriginal, estados]);
   const conta = estadoTela === 'vazio' ? undefined : base.contas.find(c => c.id === contaId);
   const sinais = useMemo(() => base.sinais.filter(s => s.contaId === contaId), [base.sinais, contaId]);
   const hoje = base.geradoEm;

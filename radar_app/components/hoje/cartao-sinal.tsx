@@ -13,6 +13,41 @@ import { hrefConta, primeiraMaiuscula } from '@/lib/contas';
 import { IconeSinal } from './icone-sinal';
 import { LogoConta } from './logo-conta';
 import { ScoreTendencia } from './score';
+import { GraficoSinais, type EventoGrafico } from './grafico-sinais';
+import { COR_PAPEL, COR_TIER, NIVEL_GATILHO, rotuloPapel } from '@/lib/papeis';
+import { ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
+
+/** "Sinal de alta relevância": 1 mantém o peso, 2 soma 10%, 3 soma 15% — e o score da conta é recalculado. */
+function SeletorRelevancia({ valor, onMudar }: { valor?: Relevancia; onMudar: (n: Relevancia) => void }) {
+  return (
+    <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+      <span className="text-xs text-text-3">Sinal de alta relevância?</span>
+      <div role="radiogroup" aria-label="Relevância do sinal" className="flex rounded-control border border-border bg-card p-0.5">
+        {([1, 2, 3] as const).map(n => (
+          <button
+            key={n}
+            role="radio"
+            aria-checked={valor === n}
+            title={ROTULO_RELEVANCIA[n]}
+            onClick={() => onMudar(n)}
+            className={cn(
+              'vr-data grid h-7 w-7 place-items-center rounded-chip text-xs font-semibold transition-colors duration-[var(--vr-dur-hover)] max-md:h-9 max-md:w-9',
+              valor === n
+                ? n === 3
+                  ? 'bg-ok text-white'
+                  : n === 2
+                    ? 'bg-ok-bg text-ok'
+                    : 'bg-secondary text-foreground'
+                : 'text-text-3 hover:bg-secondary hover:text-foreground',
+            )}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export type AcaoCartao = 'abordar' | 'adiar' | 'util' | 'ruido' | 'arquivar' | 'voltar';
 
@@ -28,12 +63,14 @@ interface Props {
   naCaixa: boolean;
   deslizavel: boolean;
   onAcao: (acao: AcaoCartao) => void;
+  /** relevância que a pessoa dá ao sinal (1 mantém, 2 +10%, 3 +15%) */
+  onAvaliar?: (n: Relevancia) => void;
   onAbrir: () => void;
   onFoco: () => void;
 }
 
 export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
-  { sinal, conta, estado, hoje, naCaixa, deslizavel, onAcao, onAbrir, onFoco },
+  { sinal, conta, estado, hoje, naCaixa, deslizavel, onAcao, onAvaliar, onAbrir, onFoco },
   ref,
 ) {
   const reduzir = useReducedMotion();
@@ -48,6 +85,19 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
     if (info.offset.x > LIMITE_DESLIZE) onAcao('util');
     else if (info.offset.x < -LIMITE_DESLIZE) onAcao('arquivar');
   }
+
+  const nivel = NIVEL_GATILHO[sinal.nivel ?? 'C'];
+  const papelContato = conta.comite.find(p => p.nome === sinal.abordar.nome)?.papelAbm;
+  // eventos do gráfico: cada contribuição do score (uma por tipo, a mais forte) + o sinal deste cartão
+  const eventos: EventoGrafico[] = (conta.v2?.contribuicoes ?? []).map(c => ({
+    data: c.data,
+    pontos: Math.round(c.valor * 100),
+    rotulo: c.texto,
+    nivel: c.nivel,
+    atual: c.data === sinal.data && c.texto === (sinal.sinal ?? sinal.porQueAgora),
+  }));
+  if (!eventos.some(e => e.atual) && sinal.nivel)
+    eventos.push({ data: sinal.data, pontos: sinal.pontos, rotulo: sinal.sinal ?? sinal.porQueAgora, nivel: sinal.nivel, atual: true });
 
   const quem = sinal.abordar.nome ? (
     <>
@@ -95,16 +145,19 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
         onDragEnd={soltar}
         style={{ x }}
         className={cn(
-          'vr-card group relative flex flex-col gap-3 p-4 outline-none md:p-5',
+          'vr-card group relative flex flex-col gap-4 overflow-hidden p-4 outline-none md:p-5',
+          // faixa à esquerda pelo nível do gatilho: dá pra varrer a caixa só pela cor
+          'before:absolute before:inset-y-0 before:left-0 before:w-1',
+          sinal.nivel === 'A' ? 'before:bg-warm' : sinal.nivel === 'B' ? 'before:bg-cool' : 'before:bg-border-strong',
           'transition-[box-shadow,border-color] duration-[var(--vr-dur-hover)] ease-out hover:border-border-strong hover:shadow-2',
           deslizavel && 'cursor-pointer touch-pan-y',
         )}
       >
-        {/* conta + calor */}
+        {/* conta: logo, nome, tier colorido e anel; score grande à direita */}
         <header className="flex items-start gap-3">
-          <LogoConta nome={conta.nome} dominio={conta.dominio} tamanho={36} />
+          <LogoConta nome={conta.nome} dominio={conta.dominio} tamanho={40} />
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               {novo && (
                 <span className="size-2 shrink-0 rounded-full bg-acid ring-1 ring-foreground/25" title="Novo">
                   <span className="sr-only">Novo.</span>
@@ -121,77 +174,95 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                 </Link>
               </h2>
               {conta.tier && (
-                <span className="shrink-0 rounded-chip border border-border px-1 text-[11px] font-medium text-text-3" title={`Tier ${conta.tier}`}>
-                  <span className="sr-only">Tier </span>
-                  {conta.tier}
+                <span className={cn('shrink-0 rounded-chip px-1.5 py-0.5 text-[11px] font-semibold', COR_TIER[conta.tier] ?? COR_TIER.C)} title={(conta.icp?.motivos ?? []).join(' · ')}>
+                  Tier {conta.tier}
+                </span>
+              )}
+              {conta.v2?.anel === 1 && (
+                <span className="shrink-0 rounded-chip bg-ok px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                  {conta.v2.janela_dupla ? 'Janela dupla' : 'Pronta para ativar'}
                 </span>
               )}
             </div>
-            <p className="truncate text-sm text-text-3">
-              {[
-                conta.v2?.anel === 1 ? (conta.v2.janela_dupla ? 'Janela dupla · pronta para ativar' : 'Pronta para ativar') : '',
-                primeiraMaiuscula(conta.segmento),
-                conta.uf,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </p>
+            <p className="mt-0.5 truncate text-sm text-text-3">{[conta.ramoTI?.nome ?? primeiraMaiuscula(conta.segmento), conta.uf].filter(Boolean).join(' · ')}</p>
           </div>
-          <ScoreTendencia score={conta.score} tendencia={conta.tendencia} serie={conta.serie} compacto={deslizavel} />
+          <ScoreTendencia score={conta.score} tendencia={conta.tendencia} serie={conta.serie} compacto />
         </header>
 
-        {/* o sinal: a sinalização rápida em destaque; a manchete da fonte fica no "ver fonte" */}
-        <div className="flex items-start gap-2.5">
-          <span className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-chip bg-secondary text-text-2" title={sinal.rotulo}>
-            <IconeSinal tipo={sinal.tipo} className="size-4" />
-            <span className="sr-only">{sinal.rotulo}</span>
-          </span>
-          <div className="min-w-0">
-            <p className="text-lg font-semibold leading-snug text-foreground">{sinal.sinal ?? sinal.porQueAgora}</p>
-            <p className="text-xs text-text-3">
-              {sinal.rotulo} · <span className="vr-data">+{sinal.pontos} pts</span>
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_280px] md:gap-6">
+          {/* o sinal: nível do gatilho, a sinalização rápida e os pontos — leitura em 2 segundos */}
+          <div className="flex min-w-0 flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className={cn('inline-flex items-center gap-1 rounded-chip px-1.5 py-0.5 text-[11px] font-semibold', nivel.cor)}>
+                <IconeSinal tipo={sinal.tipo} className="size-3.5" />
+                {nivel.rotulo}
+              </span>
+              <span className="rounded-chip bg-secondary px-1.5 py-0.5 text-[11px] text-text-2">{sinal.rotulo}</span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <p className="text-xl font-semibold leading-snug tracking-tight text-foreground">{sinal.sinal ?? sinal.porQueAgora}</p>
+              <span className="vr-data shrink-0 rounded-chip bg-warm-bg px-1.5 py-0.5 text-xs font-semibold text-warm">+{sinal.pontos}</span>
+            </div>
+            {sinal.sinal && <p className="-mt-1.5 line-clamp-2 text-sm text-text-2">{sinal.porQueAgora}</p>}
+
+            <dl className="grid gap-1.5 text-sm">
+              <div className="flex flex-wrap items-center gap-x-1.5">
+                <dt className="sr-only">Evidência</dt>
+                <dd className="flex flex-wrap items-center gap-x-1.5 text-text-3">
+                  <time dateTime={sinal.data} className="vr-data text-xs text-text-2">
+                    {quando(sinal.data, hoje)}
+                  </time>
+                  ·<span>{sinal.fonte}</span>
+                  {sinal.fontes && sinal.fontes.length > 1 && (
+                    <span title={sinal.fontes.map(f => f.fonte).join(', ')}>
+                      +{sinal.fontes.length - 1} {sinal.fontes.length > 2 ? 'fontes' : 'fonte'}
+                    </span>
+                  )}
+                  {sinal.url ? (
+                    <a
+                      href={sinal.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      className="inline-flex items-center gap-1 rounded-chip text-text-2 underline decoration-border-strong underline-offset-2 hover:text-foreground"
+                    >
+                      ver fonte <ExternalLink className="size-3" strokeWidth={1.5} />
+                    </a>
+                  ) : (
+                    sinal.exemplo && <span className="rounded-chip border border-border px-1 text-[11px] text-text-3">exemplo</span>
+                  )}
+                </dd>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                <dt className="text-text-3">Falar com</dt>
+                <dd className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
+                  <span className="min-w-0">{quem}</span>
+                  {papelContato && (
+                    <span className={cn('rounded-chip px-1.5 py-0.5 text-[11px] font-medium', COR_PAPEL[papelContato])}>{rotuloPapel(papelContato)}</span>
+                  )}
+                </dd>
+              </div>
+            </dl>
+            {onAvaliar && <SeletorRelevancia valor={estado?.relevancia} onMudar={onAvaliar} />}
+          </div>
+
+          {/* o score da conta no tempo, com cada sinal marcado na data em que aconteceu */}
+          <div className="min-w-0 rounded-control border border-border bg-background/40 p-3">
+            <p className="mb-1 flex items-center justify-between text-[11px] text-text-3">
+              <span className="font-medium text-text-2">Score em 90 dias</span>
+              <span>cada ponto é um sinal</span>
+            </p>
+            <GraficoSinais serie={conta.serie} eventos={eventos} hoje={hoje} />
+            <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-text-3">
+              {(['A', 'B', 'C'] as const).map(n => (
+                <span key={n} className="inline-flex items-center gap-1">
+                  <span className="size-2 rounded-full" style={{ background: NIVEL_GATILHO[n].ponto }} />
+                  {NIVEL_GATILHO[n].rotulo}
+                </span>
+              ))}
             </p>
           </div>
         </div>
-
-        {/* evidência + quem abordar */}
-        <dl className="grid gap-1 text-sm">
-          <div className="flex flex-wrap items-center gap-x-1.5">
-            <dt className="sr-only">Evidência</dt>
-            <dd className="flex flex-wrap items-center gap-x-1.5 text-text-3">
-              <span className="text-text-2">{sinal.fonte}</span>
-              {sinal.fontes && sinal.fontes.length > 1 && (
-                <span className="text-text-3" title={sinal.fontes.map(f => f.fonte).join(', ')}>
-                  +{sinal.fontes.length - 1} {sinal.fontes.length > 2 ? 'fontes' : 'fonte'}
-                </span>
-              )}
-              ·
-              <time dateTime={sinal.data} className="vr-data text-xs">
-                {quando(sinal.data, hoje)}
-              </time>
-              {sinal.url ? (
-                <a
-                  href={sinal.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={e => e.stopPropagation()}
-                  className="inline-flex items-center gap-1 rounded-chip text-text-2 underline decoration-border-strong underline-offset-2 hover:text-foreground"
-                >
-                  ver fonte <ExternalLink className="size-3" strokeWidth={1.5} />
-                </a>
-              ) : (
-                sinal.exemplo && <span className="rounded-chip border border-border px-1 text-[11px] text-text-3">exemplo</span>
-              )}
-            </dd>
-          </div>
-          <div className="flex flex-wrap items-center gap-x-1.5">
-            <dt className="text-text-3">Falar com</dt>
-            <dd className="flex min-w-0 flex-wrap items-center gap-x-1.5">
-              <span className="min-w-0">{quem}</span>
-              <span className="rounded-chip border border-border px-1.5 text-[11px] text-text-3">{sinal.abordar.papel}</span>
-            </dd>
-          </div>
-        </dl>
 
         {/* ações */}
         {naCaixa ? (

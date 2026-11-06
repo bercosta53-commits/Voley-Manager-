@@ -11,6 +11,8 @@ import { RadarSvg } from './radar-svg';
 import { ControleReplay } from './controle-replay';
 import { PainelConta } from './painel-conta';
 import { Flame, Sparkles } from 'lucide-react';
+import { useEstados } from '@/components/hoje/estado';
+import { aplicarAvaliacoes } from '@/lib/avaliacao';
 
 const CHAVE_ULTIMA_VISITA = 'vr:radar:ultima-visita';
 
@@ -40,7 +42,27 @@ function IconeAnel({ anel }: { anel: Anel }) {
   );
 }
 
-export function TelaRadar({ base, proximidade }: { base: Base; proximidade: BaseProximidade }) {
+export function TelaRadar({ base, proximidade: proximidadeOriginal }: { base: Base; proximidade: BaseProximidade }) {
+  const { estados } = useEstados();
+  // a avaliação de relevância (1/2/3) muda o timing da conta; cruzando 0.5 com gatilho A/B, muda de anel
+  const proximidade = useMemo(() => {
+    const vista = aplicarAvaliacoes(base, estados);
+    if (vista === base) return proximidadeOriginal;
+    const porId = new Map(vista.contas.map(c => [c.id, c]));
+    const contas = proximidadeOriginal.contas.map(c => {
+      const conta = porId.get(c.id);
+      const timing = conta ? conta.score / 100 : c.dimensoes.timing;
+      if (!conta || Math.abs(timing - c.dimensoes.timing) < 0.005) return c;
+      const dimensoes = { ...c.dimensoes, timing };
+      const temGatilho = (conta.v2?.contribuicoes ?? []).some(x => x.nivel !== 'C');
+      const sinalRelevante = timing >= 0.5 && temGatilho;
+      const anel: Anel = c.anel === 4 ? 4 : sinalRelevante ? (c.acesso.canalVerificado ? 1 : 2) : 3;
+      const { pesos } = proximidadeOriginal;
+      const prox = dimensoes.fit * pesos.fit + timing * pesos.timing + dimensoes.access * pesos.access + dimensoes.engagement * pesos.engagement;
+      return { ...c, dimensoes, sinalRelevante, anel, proximity: prox };
+    });
+    return { ...proximidadeOriginal, contas };
+  }, [base, estados, proximidadeOriginal]);
   const [bracos, setBracos] = useState<Braco[]>([]);
   const [ufs, setUfs] = useState<UF[]>([]);
   const [sinais, setSinais] = useState<string[]>([]);
@@ -100,7 +122,9 @@ export function TelaRadar({ base, proximidade }: { base: Base; proximidade: Base
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl font-semibold tracking-tight">Radar de proximidade</h1>
-            <p className="mt-1 text-sm text-text-3">Distância até a primeira conversa — não um score opaco. Protótipo com base sintética (Fase 1).</p>
+            <p className="mt-1 text-sm text-text-3">
+              Distância até a primeira conversa: {plural(proximidade.contas.length, 'conta', 'contas')} da base, anel pelo score v{proximidade.versaoPesos}, fatia pela família de TI.
+            </p>
           </div>
           <div className="vr-card flex items-center gap-4 px-4 py-2.5">
             <div>
@@ -127,8 +151,20 @@ export function TelaRadar({ base, proximidade }: { base: Base; proximidade: Base
         )}
 
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <MenuFiltro rotulo="Braço" opcoes={BRACOS.map(b => ({ id: b.id, rotulo: b.rotulo, qtd: proximidade.contas.filter(c => c.braco === b.id).length }))} valor={bracos} onMudar={setBracos} />
-          <MenuFiltro rotulo="Estado" opcoes={UFS.map(uf => ({ id: uf, rotulo: uf, qtd: proximidade.contas.filter(c => c.uf === uf).length }))} valor={ufs} onMudar={setUfs} />
+          <MenuFiltro
+            rotulo="Família de TI"
+            opcoes={BRACOS.map(b => ({ id: b.id, rotulo: b.rotulo, qtd: proximidade.contas.filter(c => c.braco === b.id).length })).filter(b => b.qtd)}
+            valor={bracos}
+            onMudar={setBracos}
+          />
+          <MenuFiltro
+            rotulo="Estado"
+            opcoes={[...new Set([...UFS, ...proximidade.contas.map(c => c.uf)])]
+              .map(uf => ({ id: uf, rotulo: uf, qtd: proximidade.contas.filter(c => c.uf === uf).length }))
+              .filter(u => u.qtd)}
+            valor={ufs}
+            onMudar={setUfs}
+          />
           <MenuFiltro
             rotulo="Sinal"
             opcoes={TIPOS_SINAL.map(t => ({ id: t.id, rotulo: t.rotulo, qtd: proximidade.contas.filter(c => c.ultimoSinal?.tipo === t.id).length })).filter(t => t.qtd)}
@@ -182,15 +218,16 @@ export function TelaRadar({ base, proximidade }: { base: Base; proximidade: Base
               </div>
             ))}
             <div className="min-w-36 flex-1 border-t border-border pt-3 lg:flex-none">
-              <p className="mb-2 text-xs font-semibold text-foreground">Cor do ponto</p>
+              <p className="mb-2 text-xs font-semibold text-foreground">Contorno do logo</p>
               <div className="flex items-center gap-2 text-xs text-text-2">
-                <span className="inline-block size-2.5 shrink-0 rounded-full" style={{ background: 'var(--vr-warm)' }} />
-                Sinal recente
+                <span className="inline-block size-3 shrink-0 rounded-full border-2" style={{ borderColor: 'var(--vr-warm)' }} />
+                Gatilho ativo (quanto mais forte, mais quente)
               </div>
               <div className="mt-1.5 flex items-center gap-2 text-xs text-text-2">
-                <span className="inline-block size-2.5 shrink-0 rounded-full border border-dashed" style={{ borderColor: 'var(--vr-text-3)' }} />
-                Sem sinal
+                <span className="inline-block size-3 shrink-0 rounded-full border" style={{ borderColor: 'var(--vr-border-strong)' }} />
+                Sem gatilho ativo
               </div>
+              <p className="mt-2 text-xs text-text-2">Tamanho: tier de ICP (A maior, C menor).</p>
               <p className="mt-3 text-[11px] text-text-3">Scroll ou pinça pra dar zoom. Arraste pra mover.</p>
             </div>
           </div>

@@ -92,7 +92,19 @@ export interface Conta {
   /** papéis do comitê que ainda não têm ninguém mapeado */
   comiteFaltando?: string[];
   /** score v2.1 (scripts/score_v2.py): anel 1-4 (null = fora do radar) e a frase que explica o número */
-  v2?: { anel: number | null; frase: string; timing: number; proximity: number; janela_dupla?: boolean };
+  v2?: {
+    anel: number | null;
+    frase: string;
+    timing: number;
+    proximity: number;
+    janela_dupla?: boolean;
+    fit?: number;
+    access?: number;
+    engagement?: number;
+    sinal_ativo?: boolean;
+    /** uma por tipo (a mais forte): valor 0–1 = peso × confiança × curva de tempo */
+    contribuicoes?: { tipo: string; nivel: 'A' | 'B' | 'C'; valor: number; data: string; texto: string }[];
+  };
 }
 
 export interface Sinal {
@@ -110,6 +122,9 @@ export interface Sinal {
   fontes?: { fonte: string; url: string; data: string }[];
   /** pessoa do comitê citada na matéria (coletor de veículos) */
   pessoa?: string;
+  /** nível (A/B/C) e tipo do score v2.1 a que o sinal pertence (scripts/score_v2.py --exibir) */
+  nivel?: 'A' | 'B' | 'C' | null;
+  tipoSpec?: string;
   fonte: string;
   /** data do fato */
   data: string;
@@ -173,5 +188,7 @@ export interface EstadoSinal {
   acao?: Acao;
   ate?: string; // adiado até (AAAA-MM-DD)
   avaliacao?: Avaliacao;
+  /** relevância que a pessoa deu ao sinal: 1 mantém, 2 soma 10%, 3 soma 15% (lib/avaliacao.ts) */
+  relevancia?: 1 | 2 | 3;
   em?: string;
 }

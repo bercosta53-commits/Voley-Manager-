@@ -12,6 +12,7 @@ import { LogoConta } from '@/components/hoje/logo-conta';
 import { Aviso } from '@/components/hoje/estados';
 import { Button } from '@/components/ui/button';
 import { MenuFiltro } from '@/components/contas/menu-filtro';
+import { COR_BARRA, COR_PAPEL, PAPEIS } from '@/lib/papeis';
 
 const AREAS: { id: Area; rotulo: string }[] = [
   { id: 'executivo', rotulo: 'Executivo' },
@@ -27,31 +28,8 @@ const AREAS: { id: Area; rotulo: string }[] = [
   { id: 'outro', rotulo: 'Outro' },
 ];
 
-const PAPEIS: { id: PapelAbm; rotulo: string }[] = [
-  { id: 'assina_cheque', rotulo: 'Assina o cheque' },
-  { id: 'decisor', rotulo: 'Decisor' },
-  { id: 'dono_da_dor', rotulo: 'Dono da dor' },
-  { id: 'trava', rotulo: 'Trava' },
-  { id: 'influenciador', rotulo: 'Influenciador' },
-];
 const ORDEM_RELEVANCIA = { alta: 0, media: 1, baixa: 2 } as const;
 
-/** Uma cor por papel: verde aprova o orçamento, azul decide, âmbar sente a dor, vermelho pode travar. */
-const COR_PAPEL: Record<PapelAbm, string> = {
-  assina_cheque: 'bg-ok-bg text-ok',
-  decisor: 'bg-cool-bg text-cool',
-  dono_da_dor: 'bg-warm-bg text-warm',
-  trava: 'bg-risk-bg text-risk',
-  influenciador: 'bg-secondary text-text-2',
-};
-// classes por extenso: o Tailwind só gera o que aparece escrito no código
-const COR_BARRA: Record<PapelAbm, string> = {
-  assina_cheque: 'bg-ok',
-  decisor: 'bg-cool',
-  dono_da_dor: 'bg-warm',
-  trava: 'bg-risk',
-  influenciador: 'bg-text-3',
-};
 const NIVEL = { alta: { rotulo: 'Alta', barras: 3 }, media: { rotulo: 'Média', barras: 2 }, baixa: { rotulo: 'Baixa', barras: 1 } } as const;
 
 function TagPapel({ papel }: { papel?: PapelAbm }) {

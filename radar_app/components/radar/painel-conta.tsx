@@ -82,7 +82,7 @@ export function PainelConta({ conta, aberto, onFechar }: { conta: ContaProximida
   const braco = BRACOS.find(b => b.id === conta.braco)!;
 
   return (
-    <PainelFlutuante aberto={aberto} onFechar={onFechar} titulo={conta.nome} descricao={`${braco.rotulo} · ${conta.subsegmento} · ${conta.uf}`}>
+    <PainelFlutuante aberto={aberto} onFechar={onFechar} titulo={conta.nome} descricao={[braco.rotulo, conta.subsegmento, conta.uf, conta.tier && `Tier ${conta.tier}`].filter(Boolean).join(' · ')}>
       <div className="space-y-5">
         <div className="flex items-center gap-4">
           <Curva serie={conta.trajetoria.map(p => p.proximity)} largura={120} altura={36} classe={conta.sinalRelevante ? 'text-warm' : 'text-text-3'} />
@@ -98,6 +98,8 @@ export function PainelConta({ conta, aberto, onFechar }: { conta: ContaProximida
             <p className="mt-1 text-xs text-text-3">{anelInfo.descricao}</p>
           </div>
         </div>
+
+        {conta.frase && <p className="text-sm text-text-2">{conta.frase}</p>}
 
         <div className="grid grid-cols-2 gap-x-6 gap-y-3">
           <BarraDimensao rotulo="Fit" valor={conta.dimensoes.fit} />

@@ -27,11 +27,6 @@ function corTemperatura(t: number): string {
   return `color-mix(in oklab, var(--vr-warm) ${Math.round(op * 100)}%, var(--vr-text-3))`;
 }
 
-/** ~4 traços arredondados ao redor do círculo — um dasharray fixo faz um círculo pequeno virar serrilhado. */
-function dasharrayProporcional(r: number): string {
-  const segmento = (Math.PI * r) / 4;
-  return `${(segmento * 0.56).toFixed(1)} ${(segmento * 0.44).toFixed(1)}`;
-}
 
 export function RadarSvg({
   pontos,
@@ -69,17 +64,19 @@ export function RadarSvg({
   // por proximity (o resto some pro hover ou pro zoom — agora dá pra chegar perto). O rótulo fica numa borda
   // fixa (fora do aperto do centro) no ângulo do próprio ponto, com uma linha fina até ele.
   const RAIO_ROTULO = BANDA_ANEL[1][1] + 14;
-  const idsRotulados = useMemo(
-    () =>
-      new Set(
-        pontos
-          .filter(p => p.anel === 1 && !p.convertida)
-          .sort((a, b) => b.proximity - a.proximity)
-          .slice(0, 10)
-          .map(p => p.id),
-      ),
-    [pontos],
-  );
+  // com a base real o anel 1 aperta: rotula até 8, e só quem está a mais de 16° de um já rotulado (sem sobrepor texto)
+  const idsRotulados = useMemo(() => {
+    const escolhidos: { id: string; ang: number }[] = [];
+    for (const p of pontos.filter(p => p.anel === 1 && !p.convertida).sort((a, b) => b.proximity - a.proximity)) {
+      const pos = posicoes.get(p.id);
+      if (!pos) continue;
+      const ang = (Math.atan2(pos.y - CENTRO, pos.x - CENTRO) * 180) / Math.PI;
+      const perto = escolhidos.some(e => Math.abs(((ang - e.ang + 540) % 360) - 180) < 16);
+      if (!perto) escolhidos.push({ id: p.id, ang });
+      if (escolhidos.length >= 8) break;
+    }
+    return new Set(escolhidos.map(e => e.id));
+  }, [pontos, posicoes]);
 
   // --- zoom / pan ---------------------------------------------------------
   const paraEspacoSvg = useCallback((clientX: number, clientY: number) => {
@@ -222,17 +219,29 @@ export function RadarSvg({
                 <circle r={r + 5} fill="none" stroke="var(--vr-acid)" strokeWidth={2} vectorEffect="non-scaling-stroke" />
               </>
             )}
-            <circle
-              r={p.convertida ? r + 1 : r}
-              fill={p.convertida ? 'var(--vr-acid)' : corTemperatura(p.temperatura)}
-              stroke={p.convertida ? 'var(--vr-acid-ink)' : 'var(--vr-surface)'}
-              strokeWidth={1.25}
-              strokeLinecap="round"
-              vectorEffect="non-scaling-stroke"
-              strokeDasharray={!p.convertida && !p.sinalRelevante ? dasharrayProporcional(r) : undefined}
-              opacity={apagada ? 0.32 : 1}
-              style={{ transition: 'opacity 150ms ease-out' }}
-            />
+            {/* o anel colorido é a temperatura do sinal; dentro, o logo da empresa (favicon pelo domínio) */}
+            <g opacity={apagada ? 0.32 : 1} style={{ transition: 'opacity 150ms ease-out' }}>
+              <circle
+                r={p.convertida ? r + 1 : r}
+                fill="var(--vr-surface)"
+                stroke={p.convertida ? 'var(--vr-acid)' : p.sinalRelevante ? corTemperatura(p.temperatura) : 'var(--vr-border-strong)'}
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+                strokeWidth={p.sinalRelevante || p.convertida ? 2.25 : 1}
+              />
+              {p.dominio && (
+                <image
+                  href={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(p.dominio)}&sz=64`}
+                  x={-r * 0.62}
+                  y={-r * 0.62}
+                  width={r * 1.24}
+                  height={r * 1.24}
+                  clipPath={`circle(${r * 0.62}px)`}
+                  preserveAspectRatio="xMidYMid slice"
+                  style={{ pointerEvents: 'none' }}
+                />
+              )}
+            </g>
             {idsRotulados.has(p.id) && (
               <g opacity={apagada ? 0.32 : 1} style={{ transition: 'opacity 150ms ease-out' }}>
                 {/* a linha fica no espaço "natural" (escala com o zoom — mais zoom, mais espaço pros rótulos) */}
@@ -257,7 +266,8 @@ export function RadarSvg({
       <svg
         ref={svgRef}
         viewBox={`0 0 ${VB} ${VB}`}
-        className={cn('aspect-square w-full touch-none select-none', arrastando ? 'cursor-grabbing' : 'cursor-grab')}
+        overflow="visible"
+        className={cn('aspect-square w-full touch-none select-none overflow-visible', arrastando ? 'cursor-grabbing' : 'cursor-grab')}
         role="img"
         aria-label="Radar de proximidade das contas"
         onPointerDown={handlePointerDown}
@@ -326,9 +336,10 @@ export function RadarSvg({
           {BRACOS.map(b => {
             const rad = anguloCentralBraco(b.id);
             const dx = Math.cos(rad);
-            const baseX = CENTRO + (RAIO_MAX + 14) * dx;
-            const baseY = CENTRO + (RAIO_MAX + 14) * Math.sin(rad);
-            const anchor = dx > 0.15 ? 'start' : dx < -0.15 ? 'end' : 'middle';
+            // rótulo centrado na fatia, logo fora do anel externo (o svg deixa transbordar: overflow visible)
+            const baseX = CENTRO + (RAIO_MAX + 16) * dx;
+            const baseY = CENTRO + (RAIO_MAX + 16) * Math.sin(rad);
+            const anchor = 'middle';
             return (
               <g key={b.id} transform={`translate(${baseX} ${baseY}) scale(${contraescala})`}>
                 <text textAnchor={anchor} dominantBaseline="middle" className="fill-text-3 text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.06em' }}>

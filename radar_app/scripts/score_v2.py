@@ -561,6 +561,7 @@ def exibir(base: dict, hoje: date) -> None:
         p, v = valor_evento(sn, hoje)
         sn["pontos"] = round(100 * v)
         sn["nivel"] = p.nivel if p else None
+        sn["tipoSpec"] = p.tipo if p else None  # o app recalcula o score com a avaliação 1/2/3 da pessoa (lib/avaliacao.ts)
     base["sinais"].sort(key=lambda sn: (anel.get(sn["contaId"], (9, 0)), ordem_nivel[sn["nivel"]],
                                         -date.fromisoformat(sn["data"]).toordinal()))
     base["scoreVersao"] = VERSAO
