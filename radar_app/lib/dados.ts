@@ -12,6 +12,24 @@ import type { Base } from './tipos';
  * 3. data/contas.exemplo.json — base de exemplo fictícia, se nada mais estiver disponível.
  */
 export async function lerBase(): Promise<Base> {
+  const base = await lerBaseBruta();
+  return base.ficticia ? base : semRemovidas(base);
+}
+
+/** Tira as contas de data/contas-removidas.json (e os sinais delas), venha a base de onde vier. */
+async function semRemovidas(base: Base): Promise<Base> {
+  let dominios: Record<string, string> = {};
+  try {
+    dominios = JSON.parse(await readFile(path.join(process.cwd(), 'data', 'contas-removidas.json'), 'utf8')).dominios ?? {};
+  } catch {
+    return base;
+  }
+  const fora = new Set(base.contas.filter(c => c.dominio && c.dominio in dominios).map(c => c.id));
+  if (!fora.size) return base;
+  return { ...base, contas: base.contas.filter(c => !fora.has(c.id)), sinais: base.sinais.filter(s => !fora.has(s.contaId)) };
+}
+
+async function lerBaseBruta(): Promise<Base> {
   const pasta = path.join(process.cwd(), 'data');
   try {
     return JSON.parse(await readFile(path.join(pasta, 'contas.local.json'), 'utf8')) as Base;

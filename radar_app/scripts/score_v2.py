@@ -771,6 +771,13 @@ def main() -> None:
         sys.exit(f"{DESTINO} não existe.")
     base = json.loads(DESTINO.read_text(encoding="utf-8"))
     hoje = date.today()
+    # contas tiradas do radar a pedido (data/contas-removidas.json) não voltam quando a base é regerada
+    removidas = RAIZ / "data" / "contas-removidas.json"
+    if removidas.exists():
+        dominios = json.loads(removidas.read_text(encoding="utf-8")).get("dominios", {})
+        fora = {c["id"] for c in base["contas"] if c.get("dominio") in dominios}
+        base["contas"] = [c for c in base["contas"] if c["id"] not in fora]
+        base["sinais"] = [s for s in base.get("sinais", []) if s["contaId"] not in fora]
     for conta in base["contas"]:
         anterior = conta.get("v2") or {}
         # histerese e suavização usam o resultado do ÚLTIMO DIA anterior; rodar duas vezes no mesmo dia
