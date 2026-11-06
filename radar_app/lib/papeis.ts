@@ -27,7 +27,7 @@ export const COR_BARRA: Record<PapelAbm, string> = {
   influenciador: 'bg-text-3',
 };
 
-/** Nível do gatilho no score v2.1 (A forte, B médio, C contexto). */
+/** Nível do sinal no VSCS: score_base ≥ 75 = A, 50–74 = B, < 50 = C. */
 export const NIVEL_GATILHO = {
   A: { rotulo: 'Gatilho forte', cor: 'bg-warm-bg text-warm', ponto: 'var(--vr-warm)' },
   B: { rotulo: 'Gatilho médio', cor: 'bg-cool-bg text-cool', ponto: 'var(--vr-cool)' },

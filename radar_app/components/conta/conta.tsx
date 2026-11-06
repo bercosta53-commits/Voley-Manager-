@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { ArrowDownRight, ArrowUpRight, CalendarClock, Check, ChevronLeft, Copy, ExternalLink, Minus, SearchX, Send } from 'lucide-react';
 import type { Base, Conta, EstadoSinal, Sinal } from '@/lib/tipos';
-import { aplicarAvaliacoes } from '@/lib/avaliacao';
+import { ACOES_DE_ABORDAGEM, aplicarAvaliacoes } from '@/lib/avaliacao';
 import { primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, sentido, status } from '@/lib/contas';
 import { rascunho } from '@/lib/mensagem';
 import { cn, dataComAno, dataCurta, moeda, plural, somarDias } from '@/lib/utils';
@@ -141,7 +141,7 @@ function ScoreGrande({ conta, onAbrir }: { conta: Conta; onAbrir: () => void }) 
   const s = sentido(conta.tendencia);
   const cor = s === 'sobe' ? 'text-warm' : s === 'desce' ? 'text-cool' : 'text-text-3';
   const Seta = s === 'sobe' ? ArrowUpRight : s === 'desce' ? ArrowDownRight : Minus;
-  const texto = s === 'sobe' ? `esquentando, +${conta.tendencia} em 14 dias` : s === 'desce' ? `esfriando, −${Math.abs(conta.tendencia)} em 14 dias` : 'estável em 14 dias';
+  const texto = s === 'sobe' ? `esquentando, +${conta.tendencia} em 30 dias` : s === 'desce' ? `esfriando, −${Math.abs(conta.tendencia)} em 30 dias` : 'estável em 30 dias';
   return (
     <button
       onClick={onAbrir}
@@ -160,8 +160,14 @@ function ScoreGrande({ conta, onAbrir }: { conta: Conta; onAbrir: () => void }) 
         <span className={cn('mt-1 flex items-center gap-0.5 text-xs', cor)}>
           <Seta className="size-3.5" strokeWidth={1.5} />
           <span className="vr-data">{s === 'estavel' ? '0' : `${conta.tendencia > 0 ? '+' : '−'}${Math.abs(conta.tendencia)}`}</span>
-          <span className="ml-1 text-text-3">14 dias</span>
+          <span className="ml-1 text-text-3">30 dias</span>
         </span>
+        {conta.vscsStatus && (
+          <span className="mt-1.5 text-right text-xs text-text-2">
+            {conta.vscsStatus}
+            {conta.acaoRecomendada && <span className="block text-text-3">{conta.acaoRecomendada}</span>}
+          </span>
+        )}
         <span className="mt-1.5 text-xs font-medium text-text-2 underline decoration-border-strong underline-offset-4">de onde vem</span>
       </div>
     </button>
@@ -189,6 +195,7 @@ function ProximaAcao({
   const abordado = sinais.map(s => ({ s, e: estados[s.id] })).find(x => x.e?.acao === 'abordado');
   const [texto, setTexto] = useState('');
   const [copiado, setCopiado] = useState(false);
+  const [mesmoAssim, setMesmoAssim] = useState(false);
   useEffect(() => {
     if (alvo) setTexto(rascunho(alvo, conta));
     setCopiado(false);
@@ -218,6 +225,31 @@ function ProximaAcao({
         {cabecalho}
         <p className="mt-2 text-md font-semibold">{titulo}</p>
         <p className="mt-1 text-sm text-text-2">{corpo}</p>
+      </section>
+    );
+  }
+
+  // a matriz ICP × VSCS ainda não pede abordagem: diz o que fazer em vez de empurrar o rascunho
+  const acao = conta.acaoRecomendada;
+  if (acao && !ACOES_DE_ABORDAGEM.has(acao) && !conta.v2?.via_rapida && !mesmoAssim) {
+    const corpo: Record<string, string> = {
+      Monitorar: 'O VSCS ainda é baixo para o tier desta conta. Um fato sozinho não abre conversa: o radar avisa quando outro sinal chegar perto deste no tempo.',
+      'Ampliar pesquisa': 'Há movimento, mas falta um segundo fato. Pesquise a conta (vagas, imprensa, LinkedIn à mão) e confirme quem decide antes de abordar.',
+      'Revisar ICP da conta': 'Score alto em conta fora do ICP costuma indicar ICP mal classificado. Revise o tier antes de perseguir.',
+      Ignorar: 'Fora do ICP e sem sinais relevantes.',
+    };
+    return (
+      <section className="vr-card p-5">
+        {cabecalho}
+        <p className="mt-2 text-md font-semibold">{acao}</p>
+        <p className="mt-1 text-sm text-text-2">{corpo[acao] ?? conta.v2?.frase}</p>
+        <p className="mt-2 text-sm text-text-3">
+          VSCS {conta.score} · {conta.vscsStatus}
+          {conta.icp?.tier && ` · Tier ${conta.icp.tier}`}
+        </p>
+        <Button variant="ghost" className="mt-3" onClick={() => setMesmoAssim(true)}>
+          Ver o rascunho mesmo assim
+        </Button>
       </section>
     );
   }

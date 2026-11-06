@@ -12,7 +12,7 @@ import {
 } from './proximidade';
 
 /**
- * Radar de proximidade com a base real: anel, timing, fit e access vêm do score v2.1 (scripts/score_v2.py,
+ * Radar de proximidade com a base real: anel, timing, fit e access vêm do VSCS 3.0 (scripts/score_v2.py,
  * gravado em conta.v2); a fatia é a família do ramo de TI (scripts/classificar_contas.py). Contas fora do
  * radar (opt-out, cliente ativo, convertida) não entram.
  */

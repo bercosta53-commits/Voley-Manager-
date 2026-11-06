@@ -72,7 +72,7 @@ export interface Conta {
   capitalSocial?: number;
   socios?: Socio[];
   score: number;
-  /** pontos ganhos (ou perdidos) nos últimos 14 dias */
+  /** pontos ganhos (ou perdidos) nos últimos 30 dias (vscs_delta_30d) */
   tendencia: number;
   /** 90 dias, um ponto a cada 3 dias */
   serie: number[];
@@ -91,10 +91,21 @@ export interface Conta {
   icp?: { tier: 'A' | 'B' | 'C'; motivos: string[] };
   /** papéis do comitê que ainda não têm ninguém mapeado */
   comiteFaltando?: string[];
-  /** score v2.1 (scripts/score_v2.py): anel 1-4 (null = fora do radar) e a frase que explica o número */
+  /** VSCS 3.0 (scripts/score_v2.py): índice 0–100, status, ação da matriz ICP × VSCS, anel 1-4 (null = fora do radar) */
   v2?: {
+    versao?: string;
+    vscs?: number;
+    vscs_base?: number;
+    bonus_convergencia?: number;
+    status?: StatusVscs;
+    acao?: string;
+    tier?: 'A' | 'B' | 'C';
+    via_rapida?: boolean;
+    sinais_contados?: number;
+    categorias?: number;
     anel: number | null;
     frase: string;
+    /** VSCS / 100 */
     timing: number;
     proximity: number;
     janela_dupla?: boolean;
@@ -102,9 +113,31 @@ export interface Conta {
     access?: number;
     engagement?: number;
     sinal_ativo?: boolean;
-    /** uma por tipo (a mais forte): valor 0–1 = peso × confiança × curva de tempo */
-    contribuicoes?: { tipo: string; demanda?: boolean; nivel: 'A' | 'B' | 'C'; valor: number; data: string; texto: string }[];
+    /** um registro por acontecimento: s = base × fonte × tempo × correlação (0–100); pontos = o que somou ao VSCS */
+    contribuicoes?: ContribuicaoVscs[];
   };
+  /** status do VSCS e ação recomendada (gravados pelo score_v2.py --exibir) */
+  vscsStatus?: StatusVscs;
+  acaoRecomendada?: string;
+}
+
+export type StatusVscs = 'Monitoramento' | 'Atenção' | 'Oportunidade emergente' | 'Alta prioridade' | 'Prioridade máxima';
+
+export interface ContribuicaoVscs {
+  id: string;
+  tipo: string;
+  categoria: string;
+  nivel: 'A' | 'B' | 'C';
+  base: number;
+  fonte: number;
+  tempo: number;
+  correlacao: number;
+  s: number;
+  /** s / 100 */
+  valor: number;
+  pontos: number;
+  data: string;
+  texto: string;
 }
 
 export interface Sinal {
@@ -122,13 +155,13 @@ export interface Sinal {
   fontes?: { fonte: string; url: string; data: string }[];
   /** pessoa do comitê citada na matéria (coletor de veículos) */
   pessoa?: string;
-  /** nível (A/B/C) e tipo do score v2.1 a que o sinal pertence (scripts/score_v2.py --exibir) */
+  /** nível (A/B/C) e tipo do VSCS a que o sinal pertence (scripts/score_v2.py --exibir) */
   nivel?: 'A' | 'B' | 'C' | null;
   tipoSpec?: string;
-  /** contribuição bruta do sinal (0–1), antes do fit e da corroboração; `pontos` é o que ele soma de fato */
+  /** s / 100 do VSCS (base × fonte × tempo × correlação); `pontos` é o que o sinal soma de fato ao VSCS */
   valor?: number;
-  /** vaga de liderança de Growth/Revenue: demanda direta, vale inteira sem outro sinal confirmar */
-  demandaDireta?: boolean;
+  /** categoria do VSCS (lideranca, expansao, gtm, contratacao, estrategia, intencao, contexto) */
+  categoria?: string;
   fonte: string;
   /** data do fato */
   data: string;

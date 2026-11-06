@@ -65,7 +65,7 @@ export function Comando({ base, aberto, onAberto }: { base: Base; aberto: boolea
           id: c.id,
           grupo: 'Contas',
           titulo: c.nome,
-          detalhe: `esquentando · +${c.tendencia} em 14 dias`,
+          detalhe: `esquentando · +${c.tendencia} em 30 dias`,
           icone: <LogoConta nome={c.nome} dominio={c.dominio} tamanho={24} />,
           href: hrefConta(c.id),
         });

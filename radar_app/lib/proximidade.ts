@@ -24,10 +24,10 @@ export const UFS: UF[] = ['SP', 'PR', 'SC', 'RS'];
 
 export type Anel = 1 | 2 | 3 | 4;
 export const ANEIS: { id: Anel; rotulo: string; descricao: string }[] = [
-  { id: 1, rotulo: 'Pronta para ativar', descricao: 'Fit no ICP, gatilho ativo e decisor com canal verificado.' },
-  { id: 2, rotulo: 'Ponto de contato à vista', descricao: 'Fit e gatilho ativo; falta mapear o decisor ou validar o canal.' },
-  { id: 3, rotulo: 'Em observação', descricao: 'Fit no ICP, ainda sem gatilho forte ou médio.' },
-  { id: 4, rotulo: 'Horizonte', descricao: 'Fora do ICP (tier C) ou ainda não tratada.' },
+  { id: 1, rotulo: 'Pronta para ativar', descricao: 'A matriz ICP × VSCS pede abordagem e o decisor tem canal verificado.' },
+  { id: 2, rotulo: 'Ponto de contato à vista', descricao: 'Abordagem sem decisor ou canal validado, ou ampliar a pesquisa.' },
+  { id: 3, rotulo: 'Em observação', descricao: 'Monitorar: VSCS ainda baixo para o tier da conta.' },
+  { id: 4, rotulo: 'Horizonte', descricao: 'Fora do ICP (tier C): ignorar ou revisar o ICP da conta.' },
 ];
 
 export interface Dimensoes {
@@ -141,7 +141,7 @@ export interface ContaProximidade {
   id: string;
   nome: string;
   dominio: string;
-  /** tier de ICP (A/B/C) e frase do score v2.1, quando a conta vem da base real */
+  /** tier de ICP (A/B/C) e frase do VSCS, quando a conta vem da base real */
   tier?: string;
   frase?: string;
   braco: Braco;

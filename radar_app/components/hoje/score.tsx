@@ -17,18 +17,18 @@ export function Curva({ serie, largura, altura, classe }: { serie: number[]; lar
 }
 
 /** Calor da conta: número + seta de tendência + mini-curva de 90 dias. Cor nunca sozinha: seta e texto junto. */
-export function ScoreTendencia({ score, tendencia, serie, compacto = false }: { score: number; tendencia: number; serie: number[]; compacto?: boolean }) {
+export function ScoreTendencia({ score, tendencia, serie, status, compacto = false }: { score: number; tendencia: number; serie: number[]; status?: string; compacto?: boolean }) {
   const sentido = tendencia >= 3 ? 'sobe' : tendencia <= -3 ? 'desce' : 'estavel';
   const cor = sentido === 'sobe' ? 'text-warm' : sentido === 'desce' ? 'text-cool' : 'text-text-3';
   const Seta = sentido === 'sobe' ? ArrowUpRight : sentido === 'desce' ? ArrowDownRight : Minus;
   const rotulo =
     sentido === 'sobe'
-      ? `esquentando, mais ${tendencia} pontos em 14 dias`
+      ? `esquentando, mais ${tendencia} pontos em 30 dias`
       : sentido === 'desce'
-        ? `esfriando, menos ${Math.abs(tendencia)} pontos em 14 dias`
-        : 'estável nos últimos 14 dias';
+        ? `esfriando, menos ${Math.abs(tendencia)} pontos em 30 dias`
+        : 'estável nos últimos 30 dias';
   return (
-    <div className="flex items-center gap-3" aria-label={`Score ${score}, ${rotulo}`} role="img">
+    <div className="flex items-center gap-3" aria-label={`Score ${score}${status ? `, ${status}` : ''}, ${rotulo}`} role="img">
       {!compacto && <Curva serie={serie} largura={64} altura={22} classe={cor} />}
       <div className="flex flex-col items-end leading-none">
         <span className="font-display text-xl font-semibold tracking-tight tabular-nums">{score}</span>
@@ -36,6 +36,7 @@ export function ScoreTendencia({ score, tendencia, serie, compacto = false }: { 
           <Seta className="size-3.5" strokeWidth={1.5} />
           {sentido === 'estavel' ? '0' : `${tendencia > 0 ? '+' : '−'}${Math.abs(tendencia)}`}
         </span>
+        {status && <span className="mt-1 whitespace-nowrap text-[10px] text-text-3">{status}</span>}
       </div>
     </div>
   );

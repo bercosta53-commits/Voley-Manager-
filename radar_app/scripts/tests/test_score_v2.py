@@ -1,4 +1,4 @@
-"""Testes do score v2.2 (v2.1 + calibração de 2026-11-06) (spec 06-score-sinais.md, seção 11). Rodar: python3 -m unittest discover scripts/tests"""
+"""Testes do VSCS 3.0 (velora_radar_abm_modelo_pontuacao_v3.md). Rodar: python3 -m unittest discover -s scripts/tests"""
 
 import sys
 import unittest
@@ -16,110 +16,107 @@ def ev(tipo, dias_atras=0, sinal="", porque="", **extra):
             "porQueAgora": porque, "fonte": "Teste", "url": f"u-{tipo}-{dias_atras}-{sinal}", **extra}
 
 
-CONTA = {"id": "c", "nome": "Conta", "uf": "SC", "comite": [
-    {"nome": "Ana Souza", "cargo": "CMO", "area": "marketing", "papel": "decisor", "email": "ana@conta.com"}]}
-CONTA_SEM_CONTATO = {"id": "d", "nome": "Outra", "uf": "SP", "comite": []}
-CMO = dict(sinal="Nova CMO: Ana Souza", porque="Contratou Ana Souza como CMO.")
+def contrib(s_, categoria="expansao", dias=0):
+    return s.Contribuicao("k", "t", categoria, "A", 100, 1.0, 1.0, 1.0, s_, (HOJE - timedelta(days=dias)).isoformat(), "")
 
 
-class Curva(unittest.TestCase):
-    def test_cmo_platô_60_dias_e_decai_depois(self):
-        p = s.P["troca_lideranca_owner"]
-        for d in (0, 20, 60):
-            self.assertEqual(s.curva(p, d), 1.0)
-        self.assertGreaterEqual(s.curva(p, 60), 0.5)
-        # meia-vida aprovada em 2026-11-06: 60 d (a tabela 2.2 dizia 45 e o teste do spec pedia ~0.25 no dia 120)
-        self.assertAlmostEqual(s.curva(p, 120), 0.5, places=3)
-        self.assertAlmostEqual(s.curva(p, 150), 0.5 ** 1.5, places=3)
-        self.assertEqual(s.curva(p, 151), 0.0)
+CONTA = {"id": "c", "nome": "Conta", "uf": "SC", "icp": {"tier": "A"}, "comite": [
+    {"nome": "Ana Souza", "cargo": "CMO", "area": "marketing", "papel": "decisor", "papelAbm": "decisor", "email": "ana@conta.com"}]}
+CONTA_B = {**CONTA, "icp": {"tier": "B"}}
+CONTA_SEM_CONTATO = {"id": "d", "nome": "Outra", "uf": "SP", "icp": {"tier": "A"}, "comite": []}
+CRO = dict(sinal="Novo CRO: Ana Souza", porque="Contratou Ana Souza como CRO.")
+DIRETOR = dict(sinal="Novo diretor comercial", porque="Contratou João como diretor comercial.")
+SERIE_A = "Série A de R$ 30 milhões"
 
-    def test_evento_futuro_vale_o_mesmo_que_no_dia_nunca_mais(self):
+
+class Combinacao(unittest.TestCase):
+    """Seção 3.3: exemplos da tabela (sinais já ajustados, categorias distintas)."""
+
+    def base(self, valores):
+        cats = ["lideranca", "expansao", "gtm", "contratacao", "estrategia", "intencao"]
+        return round(s.vscs_base([contrib(v, cats[i % len(cats)]) for i, v in enumerate(valores)]), 1)
+
+    def test_um_sinal_vale_no_maximo_50(self):
+        self.assertEqual(self.base([90]), 45.0)
+        self.assertEqual(self.base([100]), 50.0)
+
+    def test_exemplos_da_tabela(self):
+        self.assertEqual(self.base([90, 85]), 68.4)
+        self.assertEqual(self.base([90, 85, 80]), 81.0)
+        self.assertEqual(self.base([90, 85, 80, 75]), 88.1)
+        self.assertEqual(self.base([90, 85, 80, 75, 70, 65]), 94.8)
+        self.assertEqual(self.base([65, 65]), 54.4)
+        self.assertEqual(self.base([50, 50, 50, 50]), 68.4)
+        self.assertEqual(self.base([100, 40]), 60.0)
+
+    def test_quinto_sinal_continua_contando(self):
+        self.assertGreater(self.base([90, 85, 80, 75, 70]), self.base([90, 85, 80, 75]))
+
+    def test_bonus_de_convergencia(self):
+        dois = [contrib(65, "lideranca"), contrib(65, "expansao", 20)]
+        self.assertEqual(s.bonus_convergencia(dois), 5)
+        self.assertEqual(s.vscs(dois), 59.44)
+        tres = dois + [contrib(65, "contratacao", 40)]
+        self.assertEqual(s.bonus_convergencia(tres), 8)
+        self.assertAlmostEqual(s.vscs(tres), 77.2, places=1)
+
+    def test_sem_bonus_fora_da_janela_mesma_categoria_ou_s_abaixo_de_40(self):
+        self.assertEqual(s.bonus_convergencia([contrib(65, "lideranca"), contrib(65, "expansao", 50)]), 0)
+        self.assertEqual(s.bonus_convergencia([contrib(65, "lideranca"), contrib(39, "expansao", 5)]), 0)
+        self.assertEqual(s.bonus_convergencia([contrib(65, "lideranca"), contrib(65, "lideranca", 5)]), 0)
+
+    def test_teto_100(self):
+        cats = ("lideranca", "expansao", "gtm", "contratacao", "estrategia")
+        self.assertEqual(s.vscs([contrib(100, c) for c in cats] * 2), 100.0)
+
+
+class Sinal(unittest.TestCase):
+    def test_meia_vida_continua_e_corte_em_3_meias_vidas(self):
+        p = s.P["troca_lideranca_owner"]  # liderança: meia-vida 60
+        self.assertEqual(s.fator_temporal(p, 0), 1.0)
+        self.assertAlmostEqual(s.fator_temporal(p, 30), 0.707, places=3)
+        self.assertAlmostEqual(s.fator_temporal(p, 60), 0.5)
+        self.assertAlmostEqual(s.fator_temporal(p, 180), 0.125)
+        self.assertEqual(s.fator_temporal(p, 181), 0.0)
+        self.assertAlmostEqual(s.fator_temporal(s.P["vaga_lideranca_growth"], 30), 0.63, places=2)
+
+    def test_evento_futuro_conta_ate_30_dias_antes(self):
         p = s.P["presenca_patrocinador"]
-        self.assertEqual(s.curva(p, -15), s.curva(p, 0))
-        self.assertLessEqual(s.curva(p, -15), 1.0)
-        self.assertEqual(s.curva(p, -31), 0.0)
+        self.assertEqual(s.fator_temporal(p, -15), 1.0)
+        self.assertEqual(s.fator_temporal(p, -31), 0.0)
 
-    def test_captacao_serie_a_platô_90_dias(self):
-        c = s.contribuicoes([ev("captacao", 80, "Série A de R$ 15 milhões")], HOJE)
-        self.assertEqual(c[0].nivel, "A")
-        self.assertEqual(c[0].curva, 1.0)
+    def test_fonte_primaria_secundaria_e_sem_classificacao(self):
+        self.assertEqual(s.fator_fonte(ev("vaga_area_alvo", fonte="Página de carreiras")), 1.0)
+        self.assertEqual(s.fator_fonte(ev("vaga_lideranca_alvo", fonte="Indeed")), 1.0)
+        self.assertEqual(s.fator_fonte(ev("captacao")), 0.85)
+        self.assertEqual(s.fator_fonte({**ev("captacao"), "sinal": ""}), 0.0)
+        self.assertEqual(s.fator_fonte(ev("captacao", match_confidence=0.7)), 0.6)
+        self.assertEqual(s.fator_fonte(ev("captacao", match_confidence=0.5)), 0.0)
 
+    def test_cro_novo_vale_95_e_diretor_85(self):
+        self.assertEqual(s.contribuicoes([ev("executivo_chegou", 0, **CRO)], HOJE)[0].base, 95)
+        self.assertEqual(s.contribuicoes([ev("executivo_chegou", 0, **DIRETOR)], HOJE)[0].base, 85)
 
-class Pesos(unittest.TestCase):
-    def test_cmo_vale_8x_palestra(self):
-        # 2.2: CMO/CRO novo baixou de 1.0 para 0.8 — é janela, não demanda
-        cmo = s.contribuicoes([ev("executivo_chegou", 10, **CMO)], HOJE)[0]
-        pal = s.contribuicoes([ev("palestra_evento", 10)], HOJE)[0]
-        self.assertAlmostEqual(cmo.peso / pal.peso, 8)
+    def test_vaga_de_lideranca_growth_vale_85(self):
+        c = s.contribuicoes([ev("vaga_lideranca_alvo", 0, "Head de Growth", fonte="Indeed", focoGrowthRevenue=True)], HOJE)[0]
+        self.assertEqual((c.base, c.s), (85, 85.0))
 
-    def test_vaga_de_lideranca_growth_vale_mais_que_cro_novo(self):
-        vaga = s.contribuicoes([ev("vaga_lideranca_alvo", 5, "Contratação de Head de Growth", focoGrowthRevenue=True)], HOJE)[0]
-        cro = s.contribuicoes([ev("executivo_chegou", 5, **CMO)], HOJE)[0]
-        self.assertGreater(vaga.peso, cro.peso)
+    def test_correlacao_tres_vagas_do_mesmo_time(self):
+        # seção 2.4: três eventos diferentes da mesma categoria valem 1.0, 0.7 e 0.5
+        cs = s.contribuicoes([ev("vaga_lideranca_alvo", 0, f"Head comercial {i}", fonte="Indeed") for i in range(3)], HOJE)
+        self.assertEqual([c.correlacao for c in cs], [1.0, 0.7, 0.5])
 
-    def test_cinco_vagas_de_sdr_contam_como_uma(self):
-        vagas = [ev("vaga_area_alvo", i, f"Vaga SDR {i}", fonte="Página de carreiras") for i in range(5)]
-        c = s.contribuicoes(vagas, HOJE)
-        self.assertEqual(len(c), 1)
+    def test_mesma_materia_no_inbox_e_no_historico_conta_uma_vez(self):
+        e = ev("captacao", 3, SERIE_A)
+        self.assertEqual(len(s.contribuicoes([e, dict(e)], HOJE)), 1)
 
-    def test_confianca_baixa_nao_pontua(self):
-        e = ev("executivo_chegou", 5, **CMO, match_confidence=0.55, classification_confidence=0.9)
-        self.assertEqual(s.contribuicoes([e], HOJE), [])
+    def test_mesmo_fato_com_urls_diferentes_conta_uma_vez(self):
+        a, b = ev("captacao", 3, SERIE_A), {**ev("captacao", 1, SERIE_A), "url": "outra"}
+        self.assertEqual(len(s.contribuicoes([a, b], HOJE)), 1)
 
-    def test_seed_e_nivel_b(self):
-        c = s.contribuicoes([ev("captacao", 5, "Rodada seed de R$ 2 milhões")], HOJE)[0]
-        self.assertEqual((c.nivel, c.peso), ("B", 0.50))
-
-    def test_cargo_operacional_nao_pontua(self):
+    def test_cargo_operacional_e_noticia_setorial_nao_pontuam(self):
         self.assertEqual(s.contribuicoes([ev("executivo_chegou", 5, "Novo analista", "Contratou analista.")], HOJE), [])
-
-
-class Timing(unittest.TestCase):
-    def test_gatilho_sozinho_vale_60_por_cento(self):
-        c = s.contribuicoes([ev("executivo_chegou", 5, **CMO)], HOJE)
-        self.assertAlmostEqual(s.timing(c), 0.6 * c[0].valor, places=3)
-
-    def test_segundo_gatilho_forte_confirma_o_primeiro(self):
-        so = s.timing(s.contribuicoes([ev("executivo_chegou", 5, **CMO)], HOJE))
-        com = s.timing(s.contribuicoes([ev("executivo_chegou", 5, **CMO), ev("captacao", 5, "Série A")], HOJE))
-        self.assertLess(so, 0.5)
-        self.assertGreater(com, 0.85)
-
-    def test_vaga_de_lideranca_growth_vale_inteira_sozinha(self):
-        c = s.contribuicoes([ev("vaga_lideranca_alvo", 5, "Contratação de Head de Growth", focoGrowthRevenue=True)], HOJE)
-        self.assertAlmostEqual(s.timing(c), c[0].valor, places=3)
-        self.assertEqual(s.calcular(CONTA, [ev("vaga_lideranca_alvo", 5, "Contratação de Head de Growth",
-                                                focoGrowthRevenue=True)], HOJE).anel, 1)
-
-    def test_fit_baixo_derruba_a_forca(self):
-        self.assertAlmostEqual(s.forca(0.8, 1.0), 0.8)
-        self.assertAlmostEqual(s.forca(0.8, 0.0), 0.32)
-
-    def test_tres_sinais_fortes_ficam_abaixo_de_1_e_ordenaveis(self):
-        tres = s.timing(s.contribuicoes([ev("executivo_chegou", 5, **CMO), ev("captacao", 5, "Série A"),
-                                         ev("fusao_aquisicao", 5)], HOJE))
-        dois = s.timing(s.contribuicoes([ev("executivo_chegou", 5, **CMO), ev("captacao", 5, "Série A")], HOJE))
-        self.assertLess(tres, 1.0)
-        self.assertGreater(tres, dois)
-
-    def test_so_contexto_fica_no_teto_e_sem_sinal_ativo(self):
-        contexto = [ev("palestra_evento", 1), ev("parceria", 1), ev("lancamento_produto", 1), ev("premio", 1),
-                    ev("presenca_evento", -10, evento={"papel": "patrocinador"})]
-        r = s.calcular(CONTA, contexto, HOJE)
-        self.assertLessEqual(r.timing, 0.25)
-        self.assertFalse(r.sinal_ativo)
-        self.assertNotEqual(r.anel, 1)
-
-
-class Declaracao(unittest.TestCase):
-    def test_generica_vale_015_e_nunca_anel_1(self):
-        r = s.calcular(CONTA, [ev("resultados_crescimento", 3, "Cresceu 30%", "Cresceu 30% no ano.")], HOJE)
-        self.assertEqual(r.contribuicoes[0]["peso"], 0.15)
-        self.assertNotEqual(r.anel, 1)
-
-    def test_plano_com_meta_vale_055(self):
-        c = s.contribuicoes([ev("expansao_mercado", 3, "Meta de entrar no México", "Mira entrar no México em 2027.")], HOJE)[0]
-        self.assertEqual((c.nivel, c.peso), ("B", 0.55))
+        self.assertEqual(s.contribuicoes([ev("noticia_setorial", 1)], HOJE), [])
 
     def test_promessa_cumprida_encerra_a_declaracao(self):
         c = s.contribuicoes([ev("expansao_mercado", 40, "Meta de entrar no México", "Mira o México em 2027."),
@@ -127,47 +124,71 @@ class Declaracao(unittest.TestCase):
         self.assertEqual([x.tipo for x in c], ["expansao_comercial"])
 
 
-class Aneis(unittest.TestCase):
-    def test_toda_conta_cai_em_um_anel(self):
-        for conta in (CONTA, CONTA_SEM_CONTATO, {**CONTA, "uf": "BA"}):
-            for evs in ([], [ev("executivo_chegou", 5, **CMO)], [ev("palestra_evento", 1)]):
-                self.assertIn(s.calcular(conta, evs, HOJE).anel, (1, 2, 3, 4))
+class Status(unittest.TestCase):
+    def test_faixas(self):
+        for v, st in ((39.9, "Monitoramento"), (40, "Atenção"), (55, "Oportunidade emergente"), (70, "Alta prioridade"),
+                      (85, "Prioridade máxima")):
+            self.assertEqual(s.status_vscs(v), st)
 
-    def test_cmo_novo_e_captacao_sem_contato_mapeado_vai_pro_anel_2(self):
-        r = s.calcular(CONTA_SEM_CONTATO, [ev("executivo_chegou", 20, **CMO), ev("captacao", 10, "Série A")], HOJE)
+    def test_cro_novo_sozinho_nao_abre_abordagem(self):
+        # caso Neogrid: CRO novo em notícia (95 × 0.85 ≈ 81) dá ~40 de VSCS — no máximo "Atenção"
+        r = s.calcular(CONTA, [ev("executivo_chegou", 2, **CRO)], HOJE)
+        self.assertLess(r.vscs, 45)
+        self.assertFalse(r.sinal_ativo)
+        self.assertNotEqual(r.anel, 1)
+
+    def test_dois_fatos_proximos_abrem_abordagem_no_icp_a(self):
+        r = s.calcular(CONTA, [ev("executivo_chegou", 10, **CRO), ev("captacao", 5, SERIE_A)], HOJE)
+        self.assertGreaterEqual(r.vscs, 55)
+        self.assertEqual(r.bonus_convergencia, 5)
+        self.assertIn(r.acao, s.ACOES_DE_ABORDAGEM)
+        self.assertEqual(r.anel, 1)
+
+    def test_icp_nao_altera_o_vscs_so_a_acao(self):
+        evs = [ev("executivo_chegou", 10, **CRO), ev("captacao", 5, SERIE_A)]
+        a, b = s.calcular(CONTA, evs, HOJE), s.calcular(CONTA_B, evs, HOJE)
+        self.assertEqual(a.vscs, b.vscs)
+        self.assertEqual(b.acao, s.MATRIZ["B"][s.faixa(b.vscs)])
+        self.assertNotEqual(a.acao, b.acao)
+
+    def test_icp_c_com_score_alto_pede_revisar_icp(self):
+        evs = [ev("executivo_chegou", 10, **CRO), ev("captacao", 5, SERIE_A),
+               ev("vaga_lideranca_alvo", 5, "Head de Growth", fonte="Indeed", focoGrowthRevenue=True)]
+        r = s.calcular({**CONTA, "icp": {"tier": "C"}}, evs, HOJE)
+        self.assertGreaterEqual(r.vscs, 70)
+        self.assertEqual(r.acao, "Revisar ICP da conta")
+        self.assertEqual(r.anel, 4)
+
+    def test_abordagem_sem_contato_vai_pro_anel_2(self):
+        r = s.calcular(CONTA_SEM_CONTATO, [ev("executivo_chegou", 10, **CRO), ev("captacao", 5, SERIE_A)], HOJE)
         self.assertEqual(r.anel, 2)
         self.assertIn("mapear", r.frase)
 
-    def test_cmo_novo_e_captacao_com_contato_vai_pro_anel_1(self):
-        self.assertEqual(s.calcular(CONTA, [ev("executivo_chegou", 20, **CMO), ev("captacao", 10, "Série A")], HOJE).anel, 1)
+    def test_via_rapida_de_intencao(self):
+        r = s.calcular(CONTA, [], HOJE, interacoes=[{"tipo": "pedido_diagnostico", "data": HOJE.isoformat()}])
+        self.assertTrue(r.via_rapida)
+        self.assertEqual(r.anel, 1)
+        self.assertIn("48h", r.frase)
+        velha = s.calcular(CONTA, [], HOJE, interacoes=[{"tipo": "pedido_diagnostico",
+                                                         "data": (HOJE - timedelta(days=31)).isoformat()}])
+        self.assertFalse(velha.via_rapida)
 
-    def test_cmo_novo_sozinho_nao_vai_pro_anel_1(self):
-        # calibração 2.2 (caso Neogrid): CRO novo, sem outro fato, não abre conversa
-        self.assertNotEqual(s.calcular(CONTA, [ev("executivo_chegou", 20, **CMO)], HOJE).anel, 1)
 
-    def test_cadencia_sem_resposta_bloqueia_anel_1_por_60_dias_salvo_gatilho_novo(self):
-        fim = (HOJE - timedelta(days=10)).isoformat()
-        conta = {**CONTA, "supressoes": {"cadencia_sem_resposta_em": fim}}
-        antigo = ev("executivo_chegou", 30, **CMO)
-        self.assertNotEqual(s.calcular(conta, [antigo], HOJE).anel, 1)
-        novo = ev("captacao", 2, "Série B de R$ 50 milhões")
-        self.assertEqual(s.calcular(conta, [antigo, novo], HOJE).anel, 1)
-
+class Supressao(unittest.TestCase):
     def test_opt_out_tira_de_tudo(self):
-        r = s.calcular({**CONTA, "supressoes": {"opt_out": True}}, [ev("executivo_chegou", 5, **CMO)], HOJE)
+        r = s.calcular({**CONTA, "supressoes": {"opt_out": True}}, [ev("executivo_chegou", 5, **CRO)], HOJE)
         self.assertIsNone(r.anel)
 
-    def test_uf_fora_da_regiao_zera_o_fit(self):
-        self.assertEqual(s.calcular({**CONTA, "uf": "BA"}, [], HOJE).anel, 4)
+    def test_cadencia_sem_resposta_bloqueia_anel_1_salvo_gatilho_novo(self):
+        fim = (HOJE - timedelta(days=10)).isoformat()
+        conta = {**CONTA, "supressoes": {"cadencia_sem_resposta_em": fim}}
+        antigos = [ev("executivo_chegou", 30, **CRO), ev("captacao", 25, SERIE_A)]
+        self.assertNotEqual(s.calcular(conta, antigos, HOJE).anel, 1)
+        novo = ev("expansao_mercado", 2, "Entrada no Paraná", "Abriu operação no Paraná.")
+        self.assertEqual(s.calcular(conta, antigos + [novo], HOJE).anel, 1)
 
-    def test_histerese(self):
-        # força ~0.46 (meta de expansão + CMO de 130 dias, já decaindo): não entra no anel 1 (precisa de 0.5),
-        # mas quem já está nele só sai abaixo de 0.4
-        evs = [ev("expansao_mercado", 3, "Meta de entrar no Chile", "Mira o Chile em 2027."), ev("executivo_chegou", 130, **CMO)]
-        fora = s.calcular(CONTA, evs, HOJE, anterior=None)
-        dentro = s.calcular(CONTA, evs, HOJE, anterior={"anel": 1, "proximity": 0.5})
-        self.assertNotEqual(fora.anel, 1)
-        self.assertEqual(dentro.anel, 1)
+    def test_uf_fora_da_regiao_vira_icp_c(self):
+        self.assertEqual(s.calcular({**CONTA, "uf": "BA"}, [], HOJE).tier, "C")
 
 
 if __name__ == "__main__":

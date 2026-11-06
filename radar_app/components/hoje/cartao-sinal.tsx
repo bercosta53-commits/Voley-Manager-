@@ -15,7 +15,7 @@ import { LogoConta } from './logo-conta';
 import { ScoreTendencia } from './score';
 import { GraficoSinais, type EventoGrafico } from './grafico-sinais';
 import { COR_PAPEL, COR_TIER, NIVEL_GATILHO, rotuloPapel } from '@/lib/papeis';
-import { ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
+import { ACOES_DE_ABORDAGEM, ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
 
 /** "Sinal de alta relevância": 1 mantém o peso, 2 soma 10%, 3 soma 15% — e o score da conta é recalculado. */
 function SeletorRelevancia({ valor, onMudar }: { valor?: Relevancia; onMudar: (n: Relevancia) => void }) {
@@ -88,13 +88,13 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
 
   const nivel = NIVEL_GATILHO[sinal.nivel ?? 'C'];
   const papelContato = conta.comite.find(p => p.nome === sinal.abordar.nome)?.papelAbm;
-  // eventos do gráfico: cada contribuição do score (uma por tipo, a mais forte) + o sinal deste cartão
+  // eventos do gráfico: cada acontecimento que conta no VSCS, com o que somou ao score + o sinal deste cartão
   const eventos: EventoGrafico[] = (conta.v2?.contribuicoes ?? []).map(c => ({
     data: c.data,
-    pontos: Math.round(c.valor * 100),
+    pontos: Math.round(c.pontos),
     rotulo: c.texto,
     nivel: c.nivel,
-    atual: c.data === sinal.data && c.texto === (sinal.sinal ?? sinal.porQueAgora),
+    atual: c.id === sinal.id || (c.data === sinal.data && c.texto === (sinal.sinal ?? sinal.porQueAgora)),
   }));
   if (!eventos.some(e => e.atual) && sinal.nivel)
     eventos.push({ data: sinal.data, pontos: sinal.pontos, rotulo: sinal.sinal ?? sinal.porQueAgora, nivel: sinal.nivel, atual: true });
@@ -178,15 +178,18 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                   Tier {conta.tier}
                 </span>
               )}
-              {conta.v2?.anel === 1 && (
-                <span className="shrink-0 rounded-chip bg-ok px-1.5 py-0.5 text-[11px] font-semibold text-white">
-                  {conta.v2.janela_dupla ? 'Janela dupla' : 'Pronta para ativar'}
-                </span>
+              {conta.v2?.via_rapida ? (
+                <span className="shrink-0 rounded-chip bg-risk px-1.5 py-0.5 text-[11px] font-semibold text-white">Via rápida · 48h</span>
+              ) : (
+                conta.acaoRecomendada &&
+                ACOES_DE_ABORDAGEM.has(conta.acaoRecomendada) && (
+                  <span className="shrink-0 rounded-chip bg-ok px-1.5 py-0.5 text-[11px] font-semibold text-white">{conta.acaoRecomendada}</span>
+                )
               )}
             </div>
             <p className="mt-0.5 truncate text-sm text-text-3">{[conta.ramoTI?.nome ?? primeiraMaiuscula(conta.segmento), conta.uf].filter(Boolean).join(' · ')}</p>
           </div>
-          <ScoreTendencia score={conta.score} tendencia={conta.tendencia} serie={conta.serie} compacto />
+          <ScoreTendencia score={conta.score} tendencia={conta.tendencia} serie={conta.serie} status={conta.vscsStatus} compacto />
         </header>
 
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_280px] md:gap-6">

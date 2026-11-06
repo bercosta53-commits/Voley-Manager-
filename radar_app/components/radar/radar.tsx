@@ -12,7 +12,7 @@ import { ControleReplay } from './controle-replay';
 import { PainelConta } from './painel-conta';
 import { Flame, Sparkles } from 'lucide-react';
 import { useEstados } from '@/components/hoje/estado';
-import { aplicarAvaliacoes } from '@/lib/avaliacao';
+import { ACOES_DE_ABORDAGEM, aplicarAvaliacoes } from '@/lib/avaliacao';
 
 const CHAVE_ULTIMA_VISITA = 'vr:radar:ultima-visita';
 
@@ -44,7 +44,7 @@ function IconeAnel({ anel }: { anel: Anel }) {
 
 export function TelaRadar({ base, proximidade: proximidadeOriginal }: { base: Base; proximidade: BaseProximidade }) {
   const { estados } = useEstados();
-  // a avaliação de relevância (1/2/3) muda a força da conta (score/100); cruzando 0.5 com gatilho A/B, muda de anel
+  // a avaliação de relevância (1/2/3) muda o VSCS da conta; se a ação da matriz ICP × VSCS muda, muda o anel
   const proximidade = useMemo(() => {
     const vista = aplicarAvaliacoes(base, estados);
     if (vista === base) return proximidadeOriginal;
@@ -54,9 +54,10 @@ export function TelaRadar({ base, proximidade: proximidadeOriginal }: { base: Ba
       const timing = conta ? conta.score / 100 : c.dimensoes.timing;
       if (!conta || Math.abs(timing - c.dimensoes.timing) < 0.005) return c;
       const dimensoes = { ...c.dimensoes, timing };
-      const temGatilho = (conta.v2?.contribuicoes ?? []).some(x => x.nivel !== 'C');
-      const sinalRelevante = timing >= 0.5 && temGatilho;
-      const anel: Anel = c.anel === 4 ? 4 : sinalRelevante ? (c.acesso.canalVerificado ? 1 : 2) : 3;
+      // mesma regra do score_v2.py: ação da matriz ICP × VSCS (ou via rápida de intenção) decide o anel
+      const acao = conta.acaoRecomendada ?? '';
+      const sinalRelevante = ACOES_DE_ABORDAGEM.has(acao) || !!conta.v2?.via_rapida;
+      const anel: Anel = c.anel === 4 ? 4 : sinalRelevante ? (c.acesso.canalVerificado ? 1 : 2) : acao === 'Ampliar pesquisa' ? 2 : 3;
       const { pesos } = proximidadeOriginal;
       const prox = dimensoes.fit * pesos.fit + timing * pesos.timing + dimensoes.access * pesos.access + dimensoes.engagement * pesos.engagement;
       return { ...c, dimensoes, sinalRelevante, anel, proximity: prox };
