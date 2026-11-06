@@ -51,7 +51,8 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
   const { estados, salvar, pronto } = useEstados();
   // a base como a pessoa a vê: score e pontos já com as avaliações de relevância (1/2/3) dela
   const base = useMemo(() => aplicarAvaliacoes(baseOriginal, estados), [baseOriginal, estados]);
-  const [visao, setVisao] = useState<Visao>('caixa');
+  // só a caixa: adiados e concluídos saíram da tela (pedido de 2026-11-06); quem foi adiado volta sozinho na data
+  const visao: Visao = 'caixa';
   const [foco, setFoco] = useState(0);
   const [abordarAlvo, setAbordarAlvo] = useState<Sinal | null>(null);
   const [detalhe, setDetalhe] = useState<Sinal | null>(null);
@@ -185,11 +186,6 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
     if (foco >= tamanho && tamanho > 0) setFoco(tamanho - 1);
   }, [foco, tamanho]);
 
-  const trocarVisao = (v: Visao) => {
-    setVisao(v);
-    setFoco(0);
-  };
-
   // ---------- tela ----------
 
   let conteudo: React.ReactNode;
@@ -245,25 +241,6 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
               )}
             </p>
           </div>
-          {!semDados && (
-            <div role="tablist" aria-label="Visões de Hoje" className="flex w-full rounded-control border border-border bg-card p-0.5 shadow-1 md:w-auto">
-              {VISOES.map(v => (
-                <button
-                  key={v.id}
-                  role="tab"
-                  aria-selected={visao === v.id}
-                  onClick={() => trocarVisao(v.id)}
-                  className={cn(
-                    'flex h-10 flex-1 items-center justify-center gap-1.5 rounded-chip px-3 text-sm font-medium md:h-8 md:flex-none text-text-3 transition-colors duration-[var(--vr-dur-hover)] hover:text-foreground',
-                    visao === v.id && 'bg-secondary text-foreground',
-                  )}
-                >
-                  {v.rotulo}
-                  {!carregando && <span className="vr-data text-xs text-text-3">{contagens[v.id]}</span>}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
         {!semDados && !carregando && visao === 'caixa' && <Agenda eventos={base.agenda ?? []} />}
