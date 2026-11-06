@@ -124,6 +124,30 @@ class Sinal(unittest.TestCase):
         self.assertEqual([x.tipo for x in c], ["expansao_comercial"])
 
 
+class FusaoAquisicao(unittest.TestCase):
+    def test_tres_tipos_de_ma(self):
+        chaves = [s.nivelar(ev("fusao_aquisicao", 1, x, y)) for x, y in (
+            ("Adquirida pela TIM", "Foi comprada pela TIM."), ("Aquisição da Signa", "Pagou R$ 42 milhões pela Signa."),
+            ("Fusão com a EliteSoft", "Anunciou fusão com a EliteSoft."), ("Comprada pela Constellation", "Passou para o controle da Constellation."),
+            ("Até R$ 1 bi reservado para aquisições", "Planeja gastar até R$ 1 bilhão em aquisições."))]
+        self.assertEqual(chaves, ["foi_adquirida", "aquisicao_feita", "fusao", "foi_adquirida", "aquisicao_planejada"])
+
+    def test_foi_adquirida_tira_pontos(self):
+        sem = s.calcular(CONTA, [ev("executivo_chegou", 5, **CRO)], HOJE)
+        com = s.calcular(CONTA, [ev("executivo_chegou", 5, **CRO), ev("fusao_aquisicao", 5, "Adquirida pela TIM", "Foi comprada pela TIM.")], HOJE)
+        self.assertLess(com.vscs, sem.vscs - 20)
+        self.assertGreater(com.penalidade, 0)
+
+    def test_aporte_da_compradora_e_o_mesmo_negocio(self):
+        cs = s.contribuicoes([ev("fusao_aquisicao", 5, "Adquirida pela TIM", "Foi comprada pela TIM."),
+                              ev("captacao", 60, "Aporte de até R$ 670 milhões da TIM", "Recebeu aporte da TIM.")], HOJE)
+        self.assertEqual([c.chave for c in cs], ["foi_adquirida"])
+
+    def test_comprar_empresa_soma(self):
+        c = s.contribuicoes([ev("fusao_aquisicao", 1, "Aquisição da Signa", "Pagou R$ 42 milhões pela Signa.")], HOJE)[0]
+        self.assertEqual((c.categoria, c.base), ("estrategia", 85))
+
+
 class Status(unittest.TestCase):
     def test_faixas(self):
         for v, st in ((39.9, "Monitoramento"), (40, "Atenção"), (55, "Oportunidade emergente"), (70, "Alta prioridade"),

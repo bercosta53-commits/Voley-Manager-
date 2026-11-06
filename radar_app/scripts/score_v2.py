@@ -51,10 +51,12 @@ class Param:
 
 # seção 2.3. "contexto" é extensão nossa: presença em evento, palestra e prêmio não estão nas seis categorias do
 # modelo, mas a base tem esses fatos — entram com score_base baixo e meia-vida curta, como contexto.
-MEIA_VIDA = {"lideranca": 60, "expansao": 90, "gtm": 60, "contratacao": 45, "estrategia": 60, "intencao": 15, "contexto": 30}
+MEIA_VIDA = {"lideranca": 60, "expansao": 90, "gtm": 60, "contratacao": 45, "estrategia": 60, "intencao": 15, "contexto": 30,
+             "negativo": 90}
 CATEGORIA_ROTULO = {"lideranca": "Mudança de liderança", "expansao": "Expansão e investimento",
                     "gtm": "Transformação comercial", "contratacao": "Contratações estratégicas",
-                    "estrategia": "Movimentos estratégicos", "intencao": "Intenção e engajamento", "contexto": "Contexto"}
+                    "estrategia": "Movimentos estratégicos", "intencao": "Intenção e engajamento", "contexto": "Contexto",
+                    "negativo": "Sinal negativo"}
 
 P = {
     # mudança de liderança (70–95): CMO/CRO ~95, diretor/head comercial ~85, gerente de marketing ~70
@@ -76,7 +78,12 @@ P = {
     "vaga_area_time": Param("vaga_area_alvo", "contratacao", 75),  # 5+ vagas na área: formação de time
     "vaga_area_alvo": Param("vaga_area_alvo", "contratacao", 65),
     # movimentos estratégicos (65–85): aquisição/reposicionamento ~85, produto em linha existente ~65
-    "fusao_aquisicao": Param("fusao_aquisicao", "estrategia", 85),
+    # M&A separado em três (pedido de 2026-11-06): comprar é movimento estratégico; ser comprada é NEGATIVO
+    # (decisão sobe para a controladora, orçamento congela na integração); fusão fica no meio
+    "aquisicao_feita": Param("aquisicao_feita", "estrategia", 85),
+    "aquisicao_planejada": Param("aquisicao_feita", "estrategia", 65),
+    "fusao": Param("fusao", "estrategia", 70),
+    "foi_adquirida": Param("foi_adquirida", "negativo", 30),  # base = pontos que tira do VSCS no dia do fato
     "lancamento_novo_vertical": Param("lancamento_produto", "estrategia", 75),
     "lancamento_comum": Param("lancamento_produto", "estrategia", 65),
     "nova_parceria": Param("nova_parceria", "estrategia", 50),
@@ -100,6 +107,8 @@ INTERACAO_CHAVE = {"pedido_diagnostico": "intencao_diagnostico", "pedido_reuniao
                    "download": "intencao_download", "visita_servicos": "intencao_servicos",
                    "conexao_linkedin": "intencao_linkedin", "visita_site": "intencao_site", "clique_email": "intencao_email"}
 
+# sinais negativos (extensão nossa): não entram no produto do VSCS; o mais forte é subtraído do resultado
+CATEGORIAS_NEGATIVAS = {"negativo"}
 K = 0.5  # seção 3.1: um sinal sozinho vale no máximo 100 × K
 CORRELACAO = (1.0, 0.7)  # 3º em diante na mesma categoria: 0.5
 CORRELACAO_RESTO = 0.5
@@ -136,6 +145,12 @@ CARGO_OWNER = re.compile(
     r"\b(cmo|cro|cco|cso|chief (revenue|marketing|commercial|sales)|head (de |of )?(marketing|vendas|growth|receita|comercial|parcerias|negocios)"
     r"|diretor[a]? (executivo )?(de )?(marketing|comercial|vendas|growth|receita|negocios|parcerias)|vp (de )?(marketing|vendas|growth|receita|comercial)"
     r"|vice-presidente (de )?(marketing|vendas|comercial|negocios)|lider(anca)?s? (de |para )?(marketing|comercial|receita|growth)|gerente (de )?marketing|marketing)\b")
+FOI_ADQUIRIDA = re.compile(r"\b(adquirida|comprada|comprado|vendida|passou a integrar|passou para o controle|entrou no grupo"
+                           r"|capital comprado|compra concluida|aquisicao concluida|acquired by)\b")
+FUSAO = re.compile(r"\b(fusao|funde|fundem|fundiu|merge|merger)\b")
+AQUISICAO_PLANEJADA = re.compile(r"\b(reservad[oa]|planeja|pretende|mira|busca)\b.{0,40}\baquisic")
+COMPRADORA = re.compile(r"(?:adquirida|comprada|vendida|controle|integrar o?|entrou no|concluida) (?:pel[ao]s?|por|para|da|do|grupo)?\s*"
+                        r"(?:italiana |canadense |grupo |fundo )?([a-z0-9][a-z0-9.&-]{1,})")
 CARGO_CXO = re.compile(r"\b(cmo|cro|cco|cso|chief (revenue|marketing|commercial|sales|growth))\b")
 CARGO_CEO = re.compile(r"\b(ceo|presidente|socio|socia|socio-diretor|socia-diretora|fundador|diretor executivo|diretora executiva)\b")
 CARGO_CLEVEL = re.compile(r"\b(cfo|cto|coo|cio|ciso|cpo|chief|vp|vice-presidente|diretor|diretora)\b")
@@ -203,7 +218,13 @@ def nivelar(ev: dict) -> str | None:
     if tipo == "vaga_area_alvo":
         return "vaga_area_time" if (ev.get("qtdVagas") or 1) >= 5 else "vaga_area_alvo"
     if tipo == "fusao_aquisicao":
-        return "fusao_aquisicao"
+        if FOI_ADQUIRIDA.search(texto):
+            return "foi_adquirida"
+        if FUSAO.search(texto):
+            return "fusao"
+        if AQUISICAO_PLANEJADA.search(texto):
+            return "aquisicao_planejada"
+        return "aquisicao_feita"
     if tipo in ("lancamento_produto", "lancamento_servico", "lancamento_ia"):
         return "lancamento_novo_vertical" if NOVO_VERTICAL.search(texto) else "lancamento_comum"
     if tipo == "parceria":
@@ -303,6 +324,9 @@ def contribuicoes(eventos: list[dict], hoje: date, interacoes: list[dict] | None
     # declaração encerrada quando o fato correspondente chega ("promessa cumprida": é o mesmo acontecimento)
     fatos = [c for c in contrs if c.categoria == "expansao" and c.tipo != "declaracao_expansao" or c.tipo == "vaga_lideranca_alvo"]
     contrs = [c for c in contrs if not (c.tipo == "declaracao_expansao" and any(f.data >= c.data for f in fatos))]
+    # aporte da própria compradora é o mesmo negócio da aquisição (V8.TECH: "adquirida pela TIM" + "aporte da TIM")
+    compradoras = {m.group(1) for c in contrs if c.chave == "foi_adquirida" for m in [COMPRADORA.search(norm(c.texto))] if m}
+    contrs = [c for c in contrs if not (c.tipo == "captacao" and any(re.search(rf"\b{re.escape(x)}\b", norm(c.texto)) for x in compradoras))]
     # seção 2.4: dentro da categoria, 1º = 1.0, 2º = 0.7, 3º em diante = 0.5
     por_cat: dict[str, list[Contribuicao]] = {}
     for c in contrs:
@@ -315,6 +339,8 @@ def contribuicoes(eventos: list[dict], hoje: date, interacoes: list[dict] | None
     contrs = sorted((c for c in contrs if c.s > 0), key=lambda c: -c.s)
     resto = 1.0
     for c in contrs:
+        if c.categoria in CATEGORIAS_NEGATIVAS:
+            continue
         c.marginal = 100 * resto * K * c.s / 100
         resto *= 1 - K * c.s / 100
     return contrs
@@ -329,12 +355,12 @@ def noisy_or(valores: list[float]) -> float:
 
 def vscs_base(contrs: list[Contribuicao]) -> float:
     """Seção 3.1: 100 × [1 − Π(1 − K·s/100)] — todos os sinais contam, cada um soma menos que o anterior."""
-    return 100 * noisy_or([K * c.s / 100 for c in contrs])
+    return 100 * noisy_or([K * c.s / 100 for c in contrs if c.categoria not in CATEGORIAS_NEGATIVAS])
 
 
 def bonus_convergencia(contrs: list[Contribuicao]) -> int:
     """Seção 3.2: categorias distintas com s ≥ 40 numa janela móvel de 45 dias."""
-    fortes = [c for c in contrs if c.s >= S_MINIMO_CONVERGENCIA]
+    fortes = [c for c in contrs if c.s >= S_MINIMO_CONVERGENCIA and c.categoria not in CATEGORIAS_NEGATIVAS]
     maximo = 0
     for ancora in fortes:
         d0 = date.fromisoformat(ancora.data)
@@ -343,8 +369,13 @@ def bonus_convergencia(contrs: list[Contribuicao]) -> int:
     return BONUS_CONVERGENCIA[3] if maximo >= 3 else BONUS_CONVERGENCIA.get(maximo, 0)
 
 
+def penalidade(contrs: list[Contribuicao]) -> float:
+    """O sinal negativo mais forte (ex.: foi adquirida) sai do VSCS: base × fonte × tempo pontos."""
+    return max((c.s for c in contrs if c.categoria in CATEGORIAS_NEGATIVAS), default=0.0)
+
+
 def vscs(contrs: list[Contribuicao]) -> float:
-    return round(min(100.0, vscs_base(contrs) + bonus_convergencia(contrs)), 2)
+    return round(max(0.0, min(100.0, vscs_base(contrs) + bonus_convergencia(contrs)) - penalidade(contrs)), 2)
 
 
 def faixa(v: float) -> int:
@@ -473,6 +504,7 @@ class Resultado:
     vscs: float
     vscs_base: float
     bonus_convergencia: int
+    penalidade: float
     status: str
     acao: str  # matriz ICP × VSCS (seção 6)
     tier: str
@@ -504,8 +536,11 @@ def calcular(conta: dict, eventos: list[dict], hoje: date, interacoes: list[dict
              anterior: dict | None = None) -> Resultado:
     pendentes: list[str] = []
     contrs = contribuicoes(eventos, hoje, interacoes)
-    base, bonus = vscs_base(contrs), bonus_convergencia(contrs)
-    v = round(min(100.0, base + bonus), 2)
+    base, bonus, menos = vscs_base(contrs), bonus_convergencia(contrs), penalidade(contrs)
+    v = round(max(0.0, min(100.0, base + bonus) - menos), 2)
+    for c in contrs:  # o negativo aparece na composição com o que tirou
+        if c.categoria in CATEGORIAS_NEGATIVAS:
+            c.marginal = -c.s if c.s == menos else 0.0
     e = engagement(interacoes or [], hoje)
     if not interacoes:
         pendentes.append("engagement.sem_fonte")
@@ -536,11 +571,11 @@ def calcular(conta: dict, eventos: list[dict], hoje: date, interacoes: list[dict
         prox = 0.7 * prox + 0.3 * anterior["proximity"]
 
     return Resultado(
-        versao=VERSAO, vscs=v, vscs_base=round(base, 2), bonus_convergencia=bonus, status=status_vscs(v), acao=acao,
-        tier=tier, via_rapida=rapida, sinais_contados=len(contrs), categorias=len({c.categoria for c in contrs}),
+        versao=VERSAO, vscs=v, vscs_base=round(base, 2), bonus_convergencia=bonus, penalidade=round(menos, 2), status=status_vscs(v), acao=acao,
+        tier=tier, via_rapida=rapida, sinais_contados=len(contrs), categorias=len({c.categoria for c in contrs if c.categoria not in CATEGORIAS_NEGATIVAS}),
         fit=f, timing=round(v / 100, 4), access=round(a, 3), engagement=round(e, 3), proximity=round(prox, 3),
         anel=anel, sinal_ativo=abordar,
-        contribuicoes=[{"id": c.id, "tipo": c.tipo, "categoria": c.categoria, "nivel": c.nivel, "base": c.base,
+        contribuicoes=[{"id": c.id, "chave": c.chave, "tipo": c.tipo, "categoria": c.categoria, "nivel": c.nivel, "base": c.base,
                         "fonte": c.fonte, "tempo": c.tempo, "correlacao": c.correlacao, "s": round(c.s, 2),
                         "valor": round(c.s / 100, 4), "pontos": round(c.marginal, 2), "data": c.data, "texto": c.texto}
                        for c in contrs],
@@ -642,6 +677,17 @@ ROTULO_TIPO = {
     "lancamento_produto": "Lançamento", "nova_parceria": "Parceria", "presenca_evento": "Presença em evento",
     "palestra_lideranca": "Palestra", "nova_filial": "Nova unidade", "reestruturacao": "Reestruturação",
     "premio": "Prêmio", "noticia_setorial": "Notícia do setor", "intencao": "Intenção direta",
+    "aquisicao_feita": "Aquisição feita", "fusao": "Fusão", "foi_adquirida": "Foi adquirida",
+}
+# rótulo do sinal por chave: o tipo do fato sempre explícito — fusão × aquisição × investimento × função de quem chegou
+ROTULO_CHAVE = {
+    "troca_lideranca_cxo": "Nova função: C-level de receita/marketing", "troca_lideranca_owner": "Nova função: liderança comercial/marketing",
+    "troca_lideranca_ceo": "Nova função: CEO", "troca_lideranca_clevel": "Nova função: C-level fora da área",
+    "captacao_a": "Investimento: rodada Série A+", "captacao_seed": "Investimento: seed/anjo",
+    "aquisicao_feita": "Aquisição: comprou empresa", "aquisicao_planejada": "Aquisição: plano de comprar",
+    "fusao": "Fusão", "foi_adquirida": "Foi adquirida · sinal negativo",
+    "vaga_lideranca_growth": "Vaga de liderança Growth/Revenue", "vaga_lideranca_alvo": "Vaga de liderança comercial",
+    "vaga_area_time": "Formação de time comercial", "vaga_area_alvo": "Vagas na área comercial",
 }
 
 
@@ -682,8 +728,8 @@ def exibir(base: dict, hoje: date) -> None:
         comp = []
         for c, pts in zip(cs, inteiros):
             contrib_por_sinal[c["id"]] = {**c, "pontosInteiros": pts}
-            if pts > 0:
-                comp.append({"rotulo": f'{ROTULO_TIPO.get(c["tipo"], c["tipo"])} · {CATEGORIA_ROTULO[c["categoria"]]}',
+            if pts != 0:
+                comp.append({"rotulo": ROTULO_CHAVE.get(c.get("chave", ""), ROTULO_TIPO.get(c["tipo"], c["tipo"])),
                              "detalhe": c["texto"], "pontos": pts, "data": c["data"]})
         if bonus:
             comp.append({"rotulo": "Convergência", "detalhe": f"Fatos de categorias diferentes em até {JANELA_CONVERGENCIA} dias",
@@ -705,6 +751,8 @@ def exibir(base: dict, hoje: date) -> None:
         sn["nivel"] = p.nivel if p else None
         sn["tipoSpec"] = p.tipo if p else None  # o app recalcula o score com a avaliação 1/2/3 da pessoa (lib/avaliacao.ts)
         sn["categoria"] = p.categoria if p else None
+        if chave in ROTULO_CHAVE:
+            sn["rotulo"] = ROTULO_CHAVE[chave]
         sn["pontos"] = c["pontosInteiros"] if c else 0  # o que o sinal soma de fato ao VSCS da conta
         sn["valor"] = c["valor"] if c else 0.0  # s / 100: força ajustada (fonte × tempo × correlação)
         sn.pop("demandaDireta", None)

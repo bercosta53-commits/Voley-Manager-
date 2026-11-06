@@ -86,7 +86,8 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
     else if (info.offset.x < -LIMITE_DESLIZE) onAcao('arquivar');
   }
 
-  const nivel = NIVEL_GATILHO[sinal.nivel ?? 'C'];
+  const negativo = sinal.categoria === 'negativo';
+  const nivel = negativo ? { ...NIVEL_GATILHO.C, rotulo: 'Sinal negativo', cor: 'bg-risk-bg text-risk' } : NIVEL_GATILHO[sinal.nivel ?? 'C'];
   const papelContato = conta.comite.find(p => p.nome === sinal.abordar.nome)?.papelAbm;
   // eventos do gráfico: cada acontecimento que conta no VSCS, com o que somou ao score + o sinal deste cartão
   const eventos: EventoGrafico[] = (conta.v2?.contribuicoes ?? []).map(c => ({
@@ -204,7 +205,14 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
             </div>
             <div className="flex items-baseline gap-2">
               <p className="text-xl font-semibold leading-snug tracking-tight text-foreground">{sinal.sinal ?? sinal.porQueAgora}</p>
-              <span className="vr-data shrink-0 rounded-chip bg-warm-bg px-1.5 py-0.5 text-xs font-semibold text-warm">+{sinal.pontos}</span>
+              <span
+                  className={cn(
+                    'vr-data shrink-0 rounded-chip px-1.5 py-0.5 text-xs font-semibold',
+                    sinal.pontos < 0 ? 'bg-risk-bg text-risk' : 'bg-warm-bg text-warm',
+                  )}
+                >
+                  {sinal.pontos < 0 ? `−${Math.abs(sinal.pontos)}` : `+${sinal.pontos}`}
+                </span>
             </div>
             {sinal.sinal && <p className="-mt-1.5 line-clamp-2 text-sm text-text-2">{sinal.porQueAgora}</p>}
 

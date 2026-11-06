@@ -42,7 +42,7 @@ export function GraficoSinais({ serie, eventos, hoje, className }: { serie: numb
   // rótulo de pontos: o sinal do cartão e os dois mais fortes; o resto fica no tooltip
   const rotulados = new Set(
     [...visiveis]
-      .sort((a, b) => Number(!!b.atual) - Number(!!a.atual) || b.pontos - a.pontos)
+      .sort((a, b) => Number(!!b.atual) - Number(!!a.atual) || Math.abs(b.pontos) - Math.abs(a.pontos))
       .slice(0, 3)
       .map(e => `${e.data}-${e.rotulo}`),
   );
@@ -74,13 +74,13 @@ export function GraficoSinais({ serie, eventos, hoje, className }: { serie: numb
         const chave = `${e.data}-${e.rotulo}`;
         return (
           <g key={chave}>
-            <title>{`${e.rotulo} · +${e.pontos} pts · ${e.data.split('-').reverse().join('/')}`}</title>
+            <title>{`${e.rotulo} · ${e.pontos < 0 ? '−' : '+'}${Math.abs(e.pontos)} pts · ${e.data.split('-').reverse().join('/')}`}</title>
             <line x1={cx} x2={cx} y1={cy} y2={M.topo + h} stroke={cor} strokeWidth={1} strokeDasharray="1.5 2" opacity={0.6} />
             {e.atual && <circle cx={cx} cy={cy} r={6.5} fill="none" stroke={cor} strokeWidth={1.25} opacity={0.5} />}
             <circle cx={cx} cy={cy} r={e.atual ? 4 : 3} fill={cor} stroke="var(--vr-surface)" strokeWidth={1.5} />
             {rotulados.has(chave) && (
               <text x={cx} y={cy - 8} textAnchor="middle" className="vr-data text-[9px] font-semibold" fill={cor}>
-                +{e.pontos}
+                {e.pontos < 0 ? `−${Math.abs(e.pontos)}` : `+${e.pontos}`}
               </text>
             )}
           </g>
