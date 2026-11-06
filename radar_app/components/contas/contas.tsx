@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { ArrowDown, ArrowUp, BookmarkPlus, Download, ExternalLink, Search, SearchX, X } from 'lucide-react';
 import type { Base, Conta, Sinal } from '@/lib/tipos';
-import { FAMILIAS, STATUS, SUBSEGMENTOS_TI, familia, hrefConta, primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, status } from '@/lib/contas';
+import { FAMILIAS, STATUS, familia, hrefConta, primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, status } from '@/lib/contas';
 import { SEM_FILTRO, aplicar, daUrl, temFiltro, type Filtros } from '@/lib/filtros';
 import { baixarCsv } from '@/lib/exportar-csv';
 import { cn, plural, quando } from '@/lib/utils';
@@ -165,7 +165,7 @@ export function TelaContas({ base }: { base: Base }) {
                 />
               </label>
               <MenuFiltro
-                rotulo="Segmento"
+                rotulo="Ramo de TI"
                 opcoes={FAMILIAS.map(f => ({ ...f, qtd: contar(c => familia(c) === f.id) })).filter(f => f.qtd)}
                 valor={filtros.familias}
                 onMudar={v => mudar({ familias: v })}
@@ -200,8 +200,10 @@ export function TelaContas({ base }: { base: Base }) {
                 onMudar={v => mudar({ ufs: v })}
               />
               <MenuFiltro
-                rotulo="Subsegmento TI"
-                opcoes={SUBSEGMENTOS_TI.map(s => ({ ...s, qtd: contar(c => c.subsegmentoTI === s.id) })).filter(s => s.qtd)}
+                rotulo="Especialização"
+                opcoes={[...new Set(contas.map(c => c.especializacao?.nome).filter((n): n is string => !!n))]
+                  .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+                  .map(n => ({ id: n, rotulo: n, qtd: contar(c => c.especializacao?.nome === n) }))}
                 valor={filtros.subsegmentos}
                 onMudar={v => mudar({ subsegmentos: v })}
               />
@@ -215,8 +217,8 @@ export function TelaContas({ base }: { base: Base }) {
                 onClick={() =>
                   baixarCsv(
                     'contas.csv',
-                    ['Nome', 'Razão social', 'CNPJ', 'Domínio', 'Cidade', 'UF', 'Segmento', 'Subsegmento TI', 'Tier', 'Status', 'Score', 'Tendência'],
-                    linhas.map(c => [c.nome, c.razaoSocial, c.cnpj, c.dominio, c.cidade, c.uf, c.segmento, c.subsegmentoTI ? rotuloSubsegmentoTI(c.subsegmentoTI) : '', c.tier, rotuloStatus(c), c.score, c.tendencia]),
+                    ['Nome', 'Razão social', 'CNPJ', 'Domínio', 'Cidade', 'UF', 'Ramo de TI', 'Especialização', 'Tier ICP', 'Motivos do tier', 'Status', 'Score', 'Tendência'],
+                    linhas.map(c => [c.nome, c.razaoSocial, c.cnpj, c.dominio, c.cidade, c.uf, c.ramoTI?.nome ?? c.segmento, c.especializacao?.nome ?? '', c.tier, (c.icp?.motivos ?? []).join('; '), rotuloStatus(c), c.score, c.tendencia]),
                   )
                 }
               >
@@ -331,13 +333,21 @@ export function TelaContas({ base }: { base: Base }) {
                                   )}
                                 </span>
                                 <span className="block truncate text-xs text-text-3">
-                                  {[c.cidade && `${c.cidade}/${c.uf}`, `Tier ${c.tier}`].filter(Boolean).join(' · ')}
+                                  {[
+                                    c.cidade ? `${c.cidade}/${c.uf}` : c.uf && (c.ufFonte === 'pesquisa' ? `${c.uf} (a validar)` : c.uf),
+                                    c.tier && `Tier ${c.tier}`,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(' · ')}
                                   <span className="md:hidden"> · {rotuloStatus(c)}</span>
                                 </span>
                               </div>
                             </div>
                           </td>
-                          <td className="hidden truncate px-3 py-2.5 text-text-2 lg:table-cell">{c.subsegmentoTI ? rotuloSubsegmentoTI(c.subsegmentoTI) : primeiraMaiuscula(c.segmento)}</td>
+                          <td className="hidden truncate px-3 py-2.5 text-text-2 lg:table-cell" title={c.oQueFaz}>
+                            {c.ramoTI ? c.ramoTI.nome : c.subsegmentoTI ? rotuloSubsegmentoTI(c.subsegmentoTI) : primeiraMaiuscula(c.segmento)}
+                            {c.especializacao && c.especializacao.codigo !== 'GEN' && <span className="text-text-3"> · {c.especializacao.nome}</span>}
+                          </td>
                           <td className="hidden px-3 py-2.5 md:table-cell">
                             <StatusChip conta={c} />
                           </td>

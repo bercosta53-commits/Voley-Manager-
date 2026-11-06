@@ -290,6 +290,8 @@ def fit(conta: dict, pendentes: list[str]) -> float:
     cnae = (conta.get("cnae") or "")[:2]
     if cnae and cnae not in ("62", "63") and not conta.get("tiConfirmadoManual"):
         valor = min(valor, 0.3)
+    if (conta.get("icp") or {}).get("tier") == "C":  # fora do ICP (qualificar_icp.py): não passa do anel 4
+        valor = min(valor, 0.5)
     return round(valor, 3)
 
 
@@ -301,8 +303,12 @@ def contato_ativavel(conta: dict) -> tuple[dict | None, dict | None]:
     """(pessoa owner/payer com canal verificado, pessoa owner/payer sem canal). E-mail vindo do Snov conta
     como canal verificado (é de onde vem a validação na base atual)."""
     com, sem = None, None
-    for p in conta.get("comite", []):
-        if p.get("papel") != "decisor" or p.get("area") not in OWNER_AREAS | PAYER_AREAS:
+    prioridade = {"decisor": 0, "assina_cheque": 1, "dono_da_dor": 2}
+    for p in sorted(conta.get("comite", []), key=lambda x: prioridade.get(x.get("papelAbm", ""), 3)):
+        if "papelAbm" in p:  # qualificar_icp.py: quem assina o cheque, decide ou é dono da dor
+            if p["papelAbm"] not in ("assina_cheque", "decisor", "dono_da_dor"):
+                continue
+        elif p.get("papel") != "decisor" or p.get("area") not in OWNER_AREAS | PAYER_AREAS:
             continue
         if p.get("email") or p.get("linkedin"):
             com = com or p
@@ -542,6 +548,13 @@ def exibir(base: dict, hoje: date) -> None:
             comp.append({"rotulo": "Combinação", "detalhe": "Cada sinal a mais soma menos (e o contexto tem teto de 25)",
                          "pontos": -excesso})
         conta["composicao"] = comp
+    # status comercial sugerido pelo anel, só onde ninguém definiu um à mão (statusComercialAuto marca o nosso)
+    for conta in base["contas"]:
+        if conta.get("statusComercial") and not conta.get("statusComercialAuto"):
+            continue
+        a = conta["v2"]["anel"]
+        conta["statusComercial"] = "ATIVAR" if a == 1 else "NUTRIR" if a in (2, 3) else "NÃO ABORDAR"
+        conta["statusComercialAuto"] = True
     anel = {c["id"]: (c["v2"]["anel"] or 9, -c["v2"]["proximity"]) for c in base["contas"]}
     ordem_nivel = {"A": 0, "B": 1, "C": 2, None: 3}
     for sn in base.get("sinais", []):

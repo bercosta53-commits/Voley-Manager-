@@ -1,4 +1,5 @@
 export type Papel = 'decisor' | 'influenciador';
+export type PapelAbm = 'assina_cheque' | 'decisor' | 'dono_da_dor' | 'trava' | 'influenciador';
 /** O Comitê de compra (3 lugares) só olha executivo/marketing/comercial; as demais áreas aparecem
  * na lista completa de decisores, não nesses 3 lugares fixos. */
 export type Area = 'executivo' | 'marketing' | 'comercial' | 'produto' | 'financeiro' | 'compras' | 'juridico' | 'ti' | 'operacoes' | 'rh' | 'outro';
@@ -10,6 +11,10 @@ export interface Pessoa {
   papel: Papel;
   /** de onde veio o nome: planilha, Apollo… */
   fonte: string;
+  /** papel no comitê de compra (scripts/qualificar_icp.py) */
+  papelAbm?: PapelAbm;
+  /** relevância da pessoa no contexto do ICP */
+  relevancia?: 'alta' | 'media' | 'baixa';
   email?: string;
   linkedin?: string;
 }
@@ -74,6 +79,18 @@ export interface Conta {
   composicao: Parcela[];
   comite: Pessoa[];
   historico: Evento[];
+  /** ramo de TI (28 ramos da planilha Radar Velora) e especialização de mercado (20 + generalista) */
+  ramoTI?: { codigo: string; nome: string; familia: string };
+  especializacao?: { codigo: string; nome: string };
+  modeloNegocio?: 'servico' | 'produto' | 'misto';
+  /** o que a empresa faz, em uma frase */
+  oQueFaz?: string;
+  /** de onde veio a UF: Receita, endereço do site ou sede conhecida a validar */
+  ufFonte?: 'receita' | 'site' | 'pesquisa';
+  /** tier de ICP (A/B/C, padrão HubSpot) com os motivos */
+  icp?: { tier: 'A' | 'B' | 'C'; motivos: string[] };
+  /** papéis do comitê que ainda não têm ninguém mapeado */
+  comiteFaltando?: string[];
   /** score v2.1 (scripts/score_v2.py): anel 1-4 (null = fora do radar) e a frase que explica o número */
   v2?: { anel: number | null; frase: string; timing: number; proximity: number; janela_dupla?: boolean };
 }

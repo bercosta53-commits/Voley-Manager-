@@ -292,11 +292,31 @@ function Cadastro({ conta }: { conta: Conta }) {
         '—'
       ),
     ],
-    ['Cidade', conta.cidade ? `${conta.cidade}/${conta.uf}` : conta.uf || '—'],
-    ['Braço do ICP', conta.braco || '—'],
-    ['Segmento', primeiraMaiuscula(conta.segmento) || '—'],
-    ['Status comercial', primeiraMaiuscula(conta.statusComercial.toLowerCase()) || '—'],
+    [
+      'Cidade',
+      <span key="uf">
+        {conta.cidade ? `${conta.cidade}/${conta.uf}` : conta.uf || '—'}
+        {conta.uf && conta.ufFonte && conta.ufFonte !== 'receita' && (
+          <span className="text-text-3"> · {conta.ufFonte === 'site' ? 'pelo endereço do site' : 'sede conhecida, validar na Receita'}</span>
+        )}
+      </span>,
+    ],
   ];
+  if (conta.icp)
+    linhas.push([
+      'ICP',
+      <span key="icp">
+        <span className="font-medium text-foreground">Tier {conta.icp.tier}</span>
+        <span className="text-text-3"> · {conta.icp.motivos.join(' · ')}</span>
+      </span>,
+    ]);
+  if (conta.ramoTI) linhas.push(['Ramo de TI', `${conta.ramoTI.nome} (${conta.ramoTI.familia})`]);
+  else linhas.push(['Segmento', primeiraMaiuscula(conta.segmento) || '—']);
+  if (conta.especializacao) linhas.push(['Especialização', conta.especializacao.nome]);
+  if (conta.modeloNegocio) linhas.push(['Modelo', { servico: 'Serviços', produto: 'Produto / software', misto: 'Produto e serviços' }[conta.modeloNegocio]]);
+  if (conta.oQueFaz) linhas.push(['O que faz', conta.oQueFaz]);
+  if (conta.braco) linhas.push(['Braço do ICP', conta.braco]);
+  linhas.push(['Status comercial', primeiraMaiuscula(conta.statusComercial.toLowerCase()) || '—']);
   if (conta.subsegmentoTI) linhas.push(['Subsegmento de TI', rotuloSubsegmentoTI(conta.subsegmentoTI)]);
   if (conta.porte) linhas.push(['Porte', conta.porte]);
   if (conta.situacaoCadastral) linhas.push(['Situação cadastral', conta.situacaoCadastral]);

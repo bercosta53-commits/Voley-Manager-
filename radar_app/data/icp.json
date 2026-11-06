@@ -1,0 +1,11 @@
+{
+  "_leia": "Regras do ICP da Velora usadas por scripts/qualificar_icp.py. Origem: planilha Radar Velora (abas 'Mestre · Regras' e 'Critérios de exclusão', 05/11/2026). Tier no padrão HubSpot: A = encaixe ideal, B = bom encaixe com uma ressalva, C = encaixe parcial ou fora. Editável sem mexer em código.",
+  "regiao": ["SP", "PR", "SC", "RS"],
+  "faturamentoAlvo": "R$ 20 a 100 milhões por ano (validar empresa a empresa; número de funcionários não vira receita)",
+  "ramosPrincipais": ["SW01", "SV07", "SV08", "SV09", "SV10", "SV11", "IN12", "IN13", "IN14", "DA17", "DA18", "DA19", "DA20", "SE21", "SE22", "SE23", "SE24", "EN25", "EN26"],
+  "ramosSecundarios": ["SW02", "SW03", "SW04", "SW06", "IN15", "IN16", "EN27", "EN28"],
+  "ramosFora": ["SW05"],
+  "especializacoesExcluidas": ["ESP16", "ESP17"],
+  "portesAbaixo": ["Micro Empresa", "Empresa De Pequeno Porte", "Me", "Epp"],
+  "decisaoPendente": "A aba 'Critérios de exclusão' (30/10) manda EXCLUIR quem vende principalmente software/SaaS; aqui SaaS e produto ficam como ramo secundário (tier B no máximo) até a Velora decidir."
+}

@@ -196,8 +196,35 @@ def achar_cnpj_no_site(nome_empresa: str, dominio: str, robots_cache: dict) -> t
                 achado2 = extrair_cnpj(corpo2, nome_empresa)
                 if achado2:
                     return achado2, None
+        # segunda chance: páginas legais nos endereços de costume (muito rodapé lista só "Política" sem link
+        # rastreável) e a home renderizada com JavaScript (site montado no navegador não traz o rodapé no HTML)
+        for caminho in CAMINHOS_LEGAIS:
+            if not permitido_por_robots(base_url, caminho, robots_cache):
+                continue
+            corpo3 = buscar_pagina(base_url + caminho)
+            achado3 = extrair_cnpj(corpo3, nome_empresa) if corpo3 else None
+            if achado3:
+                return achado3, None
+        renderizado = renderizar(base_url)
+        achado4 = extrair_cnpj(renderizado, nome_empresa) if renderizado else None
+        if achado4:
+            return achado4, None
         return None, None  # home respondeu, nada encontrado — não tenta o outro esquema (www/sem www)
     return None, "site não respondeu (https:// nem https://www.)"
+
+
+CAMINHOS_LEGAIS = ("/politica-de-privacidade", "/privacidade", "/termos-de-uso", "/termos", "/lgpd",
+                   "/privacy-policy", "/politica-de-privacidade/", "/contato", "/sobre")
+RENDERIZADOR = RAIZ / "scripts" / "renderizar_pagina.js"
+
+
+def renderizar(url: str) -> str | None:
+    import subprocess
+    try:
+        r = subprocess.run(["node", str(RENDERIZADOR), url], capture_output=True, timeout=30, cwd=RAIZ)
+        return r.stdout.decode("utf-8", errors="replace") if r.returncode == 0 and r.stdout else None
+    except (subprocess.SubprocessError, OSError):
+        return None
 
 
 # ---------- enriquecimento via BrasilAPI ----------
@@ -218,12 +245,15 @@ def titulo(texto: str) -> str:
 
 def aplicar_enriquecimento(conta: dict, cnpj: str, dados: dict) -> None:
     conta["cnpj"] = f"{cnpj[:2]}.{cnpj[2:5]}.{cnpj[5:8]}/{cnpj[8:12]}-{cnpj[12:]}"
-    if not conta.get("razaoSocial") and dados.get("razao_social"):
+    # a importação copia o nome fantasia pra razão social; a Receita manda nela, na cidade e na UF (inclusive
+    # por cima de UF que veio do endereço do site ou de pesquisa — ver classificar_contas.py)
+    if dados.get("razao_social") and (not conta.get("razaoSocial") or conta.get("razaoSocial") == conta.get("nome")):
         conta["razaoSocial"] = titulo(dados["razao_social"])
-    if not conta.get("cidade") and dados.get("municipio"):
+    if dados.get("municipio"):
         conta["cidade"] = titulo(dados["municipio"])
-    if not conta.get("uf") and dados.get("uf"):
+    if dados.get("uf"):
         conta["uf"] = dados["uf"]
+        conta["ufFonte"] = "receita"
     if not conta.get("segmento") and dados.get("cnae_fiscal_descricao"):
         conta["segmento"] = dados["cnae_fiscal_descricao"]
     if dados.get("cnae_fiscal") and dados.get("cnae_fiscal_descricao"):

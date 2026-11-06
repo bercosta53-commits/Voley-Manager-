@@ -25,6 +25,10 @@ python3 scripts/classificar_sinais.py        # manchete -> sinal curto ("Expans�
 python3 scripts/coletar_noticias.py --so-ambiguas   # refaz a busca das contas com homônimo, usando site e comitê
 python3 scripts/classificar_sinais.py        # classifica o que a busca refeita trouxe
 python3 scripts/remover_duplicatas.py        # várias matérias do mesmo fato viram um sinal só
+python3 scripts/coletar_cnpj.py              # CNPJ no site (rodapé, páginas legais, home renderizada) + Receita: UF, porte, CNAE
+python3 scripts/classificar_contas.py --exportar itens.json   # lê o site de cada conta para classificar
+python3 scripts/classificar_contas.py --respostas respostas.json  # ramo (28), especialização (20), modelo e UF
+python3 scripts/qualificar_icp.py            # tier A/B/C (regras em data/icp.json) e papel ABM de cada pessoa do comitê
 python3 scripts/score_v2.py --exibir         # score v2.1 (spec 06): anel, timing, composição e frase de cada conta
 ```
 

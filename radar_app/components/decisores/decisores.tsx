@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Download, ExternalLink, Mail, Search, SearchX, UserRound } from 'lucide-react';
-import type { Area, Base, Papel } from '@/lib/tipos';
+import type { Area, Base, Papel, PapelAbm } from '@/lib/tipos';
 import { hrefConta, normalizar } from '@/lib/contas';
 import { cn, plural } from '@/lib/utils';
 import { baixarCsv } from '@/lib/exportar-csv';
@@ -27,11 +27,23 @@ const AREAS: { id: Area; rotulo: string }[] = [
   { id: 'outro', rotulo: 'Outro' },
 ];
 
+const PAPEIS: { id: PapelAbm; rotulo: string }[] = [
+  { id: 'assina_cheque', rotulo: 'Assina o cheque' },
+  { id: 'decisor', rotulo: 'Decisor' },
+  { id: 'dono_da_dor', rotulo: 'Dono da dor' },
+  { id: 'trava', rotulo: 'Trava' },
+  { id: 'influenciador', rotulo: 'Influenciador' },
+];
+const ORDEM_RELEVANCIA = { alta: 0, media: 1, baixa: 2 } as const;
+
 interface Linha {
   nome: string;
   cargo: string;
   area: Area;
   papel: Papel;
+  papelAbm?: PapelAbm;
+  relevancia?: 'alta' | 'media' | 'baixa';
+  contaTier: string;
   email?: string;
   linkedin?: string;
   contaId: string;
@@ -43,10 +55,10 @@ interface Linha {
 export function TelaDecisores({ base }: { base: Base }) {
   const [texto, setTexto] = useState('');
   const [areas, setAreas] = useState<Area[]>([]);
-  const [papeis, setPapeis] = useState<Papel[]>([]);
+  const [papeis, setPapeis] = useState<PapelAbm[]>([]);
 
   const pessoas = useMemo<Linha[]>(
-    () => base.contas.flatMap(c => c.comite.map(p => ({ ...p, contaId: c.id, contaNome: c.nome, contaDominio: c.dominio }))),
+    () => base.contas.flatMap(c => c.comite.map(p => ({ ...p, contaId: c.id, contaNome: c.nome, contaDominio: c.dominio, contaTier: c.tier }))),
     [base.contas],
   );
 
@@ -54,9 +66,15 @@ export function TelaDecisores({ base }: { base: Base }) {
     const t = normalizar(texto.trim());
     return pessoas
       .filter(p => !areas.length || areas.includes(p.area))
-      .filter(p => !papeis.length || papeis.includes(p.papel))
+      .filter(p => !papeis.length || (p.papelAbm && papeis.includes(p.papelAbm)))
       .filter(p => !t || normalizar(`${p.nome} ${p.cargo} ${p.contaNome}`).includes(t))
-      .sort((a, b) => (a.papel === b.papel ? a.contaNome.localeCompare(b.contaNome) : a.papel === 'decisor' ? -1 : 1));
+      // relevância alta primeiro (papel ABM × ICP da conta), depois tier da conta e nome
+      .sort(
+        (a, b) =>
+          ORDEM_RELEVANCIA[a.relevancia ?? 'baixa'] - ORDEM_RELEVANCIA[b.relevancia ?? 'baixa'] ||
+          (a.contaTier || 'Z').localeCompare(b.contaTier || 'Z') ||
+          a.contaNome.localeCompare(b.contaNome),
+      );
   }, [pessoas, areas, papeis, texto]);
 
   const contar = (pred: (p: Linha) => boolean) => pessoas.filter(pred).length;
@@ -86,11 +104,8 @@ export function TelaDecisores({ base }: { base: Base }) {
             />
           </label>
           <MenuFiltro
-            rotulo="Papel"
-            opcoes={[
-              { id: 'decisor' as const, rotulo: 'Decisor', qtd: contar(p => p.papel === 'decisor') },
-              { id: 'influenciador' as const, rotulo: 'Influenciador', qtd: contar(p => p.papel === 'influenciador') },
-            ]}
+            rotulo="Papel no comitê"
+            opcoes={PAPEIS.map(x => ({ ...x, qtd: contar(p => p.papelAbm === x.id) })).filter(x => x.qtd)}
             valor={papeis}
             onMudar={setPapeis}
           />
@@ -102,8 +117,19 @@ export function TelaDecisores({ base }: { base: Base }) {
             onClick={() =>
               baixarCsv(
                 'decisores.csv',
-                ['Nome', 'Cargo', 'Área', 'Papel', 'Conta', 'Domínio da conta', 'E-mail', 'LinkedIn'],
-                linhas.map(p => [p.nome, p.cargo, AREAS.find(a => a.id === p.area)?.rotulo ?? p.area, p.papel, p.contaNome, p.contaDominio, p.email ?? '', p.linkedin ?? '']),
+                ['Nome', 'Cargo', 'Área', 'Papel no comitê', 'Relevância', 'Conta', 'Tier da conta', 'Domínio da conta', 'E-mail', 'LinkedIn'],
+                linhas.map(p => [
+                  p.nome,
+                  p.cargo,
+                  AREAS.find(a => a.id === p.area)?.rotulo ?? p.area,
+                  PAPEIS.find(x => x.id === p.papelAbm)?.rotulo ?? p.papel,
+                  p.relevancia ?? '',
+                  p.contaNome,
+                  p.contaTier,
+                  p.contaDominio,
+                  p.email ?? '',
+                  p.linkedin ?? '',
+                ]),
               )
             }
           >
@@ -122,7 +148,7 @@ export function TelaDecisores({ base }: { base: Base }) {
                 <tr className="border-b border-border text-left text-xs text-text-3">
                   <th scope="col" className="w-auto px-3 py-2.5 pl-4 font-medium md:pl-5">Pessoa</th>
                   <th scope="col" className="hidden w-[260px] px-3 py-2.5 font-medium sm:table-cell">Conta</th>
-                  <th scope="col" className="hidden w-[130px] px-3 py-2.5 font-medium md:table-cell">Área</th>
+                  <th scope="col" className="hidden w-[150px] px-3 py-2.5 font-medium md:table-cell">Papel no comitê</th>
                   <th scope="col" className="w-[104px] px-3 py-2.5 pr-4 text-right font-medium md:w-[160px] md:pr-5">Contato</th>
                 </tr>
               </thead>
@@ -153,10 +179,11 @@ export function TelaDecisores({ base }: { base: Base }) {
                       <span
                         className={cn(
                           'inline-flex items-center rounded-chip px-1.5 py-0.5 text-xs whitespace-nowrap',
-                          p.papel === 'decisor' ? 'bg-ok-bg text-ok' : 'bg-secondary text-text-2',
+                          p.relevancia === 'alta' ? 'bg-ok-bg text-ok' : 'bg-secondary text-text-2',
                         )}
+                        title={p.relevancia ? `Relevância ${p.relevancia}` : undefined}
                       >
-                        {AREAS.find(a => a.id === p.area)?.rotulo ?? p.area}
+                        {PAPEIS.find(x => x.id === p.papelAbm)?.rotulo ?? AREAS.find(a => a.id === p.area)?.rotulo ?? p.area}
                       </span>
                     </td>
                     <td className="px-3 py-2.5 pr-4 md:pr-5">

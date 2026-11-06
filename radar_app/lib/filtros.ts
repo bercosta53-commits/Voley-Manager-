@@ -28,7 +28,7 @@ export function aplicar(contas: Conta[], filtros: Filtros, sinaisPorConta: Map<s
     if (filtros.status.length && !filtros.status.includes(status(c))) return false;
     if (filtros.tendencia && sentido(c.tendencia) !== filtros.tendencia) return false;
     if (filtros.ufs.length && !filtros.ufs.includes(c.uf)) return false;
-    if (filtros.subsegmentos.length && !filtros.subsegmentos.includes(c.subsegmentoTI ?? '')) return false;
+    if (filtros.subsegmentos.length && !filtros.subsegmentos.includes(c.especializacao?.nome ?? c.subsegmentoTI ?? '')) return false;
     if (filtros.comSinal && !sinaisPorConta.get(c.id)?.length) return false;
     if (filtros.semContato && c.comite.length) return false;
     if (filtros.scoreMin && c.score < filtros.scoreMin) return false;
