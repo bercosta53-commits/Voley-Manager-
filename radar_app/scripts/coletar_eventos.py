@@ -14,8 +14,8 @@ Duas frentes (05-conectores-fontes.md, 3.5 e 3.6):
    erro: a página é revarrida na próxima rodada.
 
 2. Palestras por pessoa: busca no Google Notícias o nome completo dos decisores de cada conta junto de
-   palavras de palco ("palestra", "painel", "podcast", "webinar"...). Pega o que nenhuma lista de evento
-   traz: o podcast, o painel do meetup, o webinar do parceiro. Entra como notícia crua (peso 0) para o
+   palavras de palco ("palestra", "painel", "podcast", "webinar"...) e só aceita a matéria que cita também a
+   empresa. Pega o que nenhuma lista de evento traz: o podcast, o painel do meetup, o webinar do parceiro. Entra como notícia crua (peso 0) para o
    classificador decidir — "palestra_evento" ou "irrelevante" (homônimo de pessoa também existe).
 
 A pessoa só ganha a tag do fato (quem, onde, quando); o ponto vai para a conta, uma vez por fato.
@@ -171,8 +171,9 @@ def buscar_palestras(base: dict, config: dict, hoje: date, max_pessoas: int, dor
                 if it["link"] in conhecidos or (hoje - date.fromisoformat(it["data"])).days > JANELA_CAIXA_DIAS:
                     continue
                 texto = normalizar(re.sub(r"<[^>]+>", " ", html.unescape(f'{it["titulo"]} {it["descricao"]}')))
-                # nome completo + (empresa citada ou palavra de palco): corta o homônimo mais óbvio
-                if not padrao_nome.search(texto) or not (empresa_normal in texto or padrao_palco.search(texto)):
+                # nome da pessoa + empresa citada na mesma matéria. Só a palavra de palco não basta: no teste de
+                # 2026-11-06, 18 de 19 menções sem a empresa eram homônimos (debates eleitorais, podcasts de outros)
+                if not padrao_nome.search(texto) or empresa_normal not in texto:
                     continue
                 conhecidos.add(it["link"])
                 base["sinais"].append({

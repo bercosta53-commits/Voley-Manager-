@@ -10,8 +10,14 @@
       "uf": "RS",
       "site": "https://www.southsummit.io/e/brazil-2027",
       "paginas": [
-        { "url": "https://www.southsummit.io/e/brazil-2027/speakers", "papel": "palestrante" },
-        { "url": "https://www.southsummit.io/e/brazil-2027/partners", "papel": "patrocinador" }
+        {
+          "url": "https://www.southsummit.io/e/brazil-2027/speakers",
+          "papel": "palestrante"
+        },
+        {
+          "url": "https://www.southsummit.io/e/brazil-2027/partners",
+          "papel": "patrocinador"
+        }
       ],
       "validadoEm": "2026-11-06"
     },
@@ -24,7 +30,10 @@
       "uf": "RS",
       "site": "https://gramadosummit.com",
       "paginas": [
-        { "url": "https://gramadosummit.com", "papel": "palestrante" }
+        {
+          "url": "https://gramadosummit.com",
+          "papel": "palestrante"
+        }
       ],
       "validadoEm": "2026-11-06"
     },
@@ -37,7 +46,10 @@
       "uf": "SP",
       "site": "https://www.futurecom.com.br",
       "paginas": [
-        { "url": "https://www.futurecom.com.br/pt/expositores.html", "papel": "expositor" }
+        {
+          "url": "https://www.futurecom.com.br/pt/expositores.html",
+          "papel": "expositor"
+        }
       ],
       "validadoEm": "2026-11-06"
     },
@@ -50,10 +62,21 @@
       "uf": "SC",
       "site": "https://startupsummit.com.br",
       "paginas": [
-        { "url": "https://startupsummit.com.br", "papel": "palestrante" }
+        {
+          "url": "https://startupsummit.com.br",
+          "papel": "palestrante"
+        }
       ],
       "validadoEm": "2026-11-06"
     }
   ],
-  "palavrasPalestra": ["palestra", "palestrante", "painel", "painelista", "keynote", "podcast", "webinar", "live", "talk", "debate", "mesa-redonda"]
+  "palavrasPalestra": [
+    "palestra",
+    "palestrante",
+    "painel",
+    "painelista",
+    "keynote",
+    "podcast",
+    "webinar"
+  ]
 }

@@ -1,0 +1,145 @@
+"""Testes do score v2.1 (spec 06-score-sinais.md, seção 11). Rodar: python3 -m unittest discover scripts/tests"""
+
+import sys
+import unittest
+from datetime import date, timedelta
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import score_v2 as s  # noqa: E402
+
+HOJE = date(2026, 11, 6)
+
+
+def ev(tipo, dias_atras=0, sinal="", porque="", **extra):
+    return {"tipo": tipo, "data": (HOJE - timedelta(days=dias_atras)).isoformat(), "sinal": sinal or "x",
+            "porQueAgora": porque, "fonte": "Teste", "url": f"u-{tipo}-{dias_atras}-{sinal}", **extra}
+
+
+CONTA = {"id": "c", "nome": "Conta", "uf": "SC", "comite": [
+    {"nome": "Ana Souza", "cargo": "CMO", "area": "marketing", "papel": "decisor", "email": "ana@conta.com"}]}
+CONTA_SEM_CONTATO = {"id": "d", "nome": "Outra", "uf": "SP", "comite": []}
+CMO = dict(sinal="Nova CMO: Ana Souza", porque="Contratou Ana Souza como CMO.")
+
+
+class Curva(unittest.TestCase):
+    def test_cmo_platô_60_dias_e_decai_depois(self):
+        p = s.P["troca_lideranca_owner"]
+        for d in (0, 20, 60):
+            self.assertEqual(s.curva(p, d), 1.0)
+        self.assertGreaterEqual(s.curva(p, 60), 0.5)
+        # spec 11 pede "~0.25 no dia 120", mas a tabela 2.2 (platô 60, meia-vida 45) dá 0.40 no dia 120 e
+        # 0.25 no dia 150 — divergência anotada no relatório; o teste segue a tabela.
+        self.assertAlmostEqual(s.curva(p, 120), 0.5 ** (60 / 45), places=3)
+        self.assertAlmostEqual(s.curva(p, 150), 0.25, places=3)
+        self.assertEqual(s.curva(p, 151), 0.0)
+
+    def test_evento_futuro_vale_o_mesmo_que_no_dia_nunca_mais(self):
+        p = s.P["presenca_patrocinador"]
+        self.assertEqual(s.curva(p, -15), s.curva(p, 0))
+        self.assertLessEqual(s.curva(p, -15), 1.0)
+        self.assertEqual(s.curva(p, -31), 0.0)
+
+    def test_captacao_serie_a_platô_90_dias(self):
+        c = s.contribuicoes([ev("captacao", 80, "Série A de R$ 15 milhões")], HOJE)
+        self.assertEqual(c[0].nivel, "A")
+        self.assertEqual(c[0].curva, 1.0)
+
+
+class Pesos(unittest.TestCase):
+    def test_cmo_vale_10x_palestra(self):
+        cmo = s.contribuicoes([ev("executivo_chegou", 10, **CMO)], HOJE)[0]
+        pal = s.contribuicoes([ev("palestra_evento", 10)], HOJE)[0]
+        self.assertAlmostEqual(cmo.peso / pal.peso, 10)
+
+    def test_cinco_vagas_de_sdr_contam_como_uma(self):
+        vagas = [ev("vaga_area_alvo", i, f"Vaga SDR {i}", fonte="Página de carreiras") for i in range(5)]
+        c = s.contribuicoes(vagas, HOJE)
+        self.assertEqual(len(c), 1)
+
+    def test_confianca_baixa_nao_pontua(self):
+        e = ev("executivo_chegou", 5, **CMO, match_confidence=0.55, classification_confidence=0.9)
+        self.assertEqual(s.contribuicoes([e], HOJE), [])
+
+    def test_seed_e_nivel_b(self):
+        c = s.contribuicoes([ev("captacao", 5, "Rodada seed de R$ 2 milhões")], HOJE)[0]
+        self.assertEqual((c.nivel, c.peso), ("B", 0.50))
+
+    def test_cargo_operacional_nao_pontua(self):
+        self.assertEqual(s.contribuicoes([ev("executivo_chegou", 5, "Novo analista", "Contratou analista.")], HOJE), [])
+
+
+class Timing(unittest.TestCase):
+    def test_tres_sinais_fortes_ficam_abaixo_de_1_e_ordenaveis(self):
+        tres = s.timing(s.contribuicoes([ev("executivo_chegou", 5, **CMO), ev("captacao", 5, "Série A"),
+                                         ev("fusao_aquisicao", 5)], HOJE))
+        dois = s.timing(s.contribuicoes([ev("executivo_chegou", 5, **CMO), ev("captacao", 5, "Série A")], HOJE))
+        self.assertLess(tres, 1.0)
+        self.assertGreater(tres, dois)
+
+    def test_so_contexto_fica_no_teto_e_sem_sinal_ativo(self):
+        contexto = [ev("palestra_evento", 1), ev("parceria", 1), ev("lancamento_produto", 1), ev("premio", 1),
+                    ev("presenca_evento", -10, evento={"papel": "patrocinador"})]
+        r = s.calcular(CONTA, contexto, HOJE)
+        self.assertLessEqual(r.timing, 0.25)
+        self.assertFalse(r.sinal_ativo)
+        self.assertNotEqual(r.anel, 1)
+
+
+class Declaracao(unittest.TestCase):
+    def test_generica_vale_015_e_nunca_anel_1(self):
+        r = s.calcular(CONTA, [ev("resultados_crescimento", 3, "Cresceu 30%", "Cresceu 30% no ano.")], HOJE)
+        self.assertEqual(r.contribuicoes[0]["peso"], 0.15)
+        self.assertNotEqual(r.anel, 1)
+
+    def test_plano_com_meta_vale_055(self):
+        c = s.contribuicoes([ev("expansao_mercado", 3, "Meta de entrar no México", "Mira entrar no México em 2027.")], HOJE)[0]
+        self.assertEqual((c.nivel, c.peso), ("B", 0.55))
+
+    def test_promessa_cumprida_encerra_a_declaracao(self):
+        c = s.contribuicoes([ev("expansao_mercado", 40, "Meta de entrar no México", "Mira o México em 2027."),
+                             ev("expansao_mercado", 5, "Entrada no México", "Abriu operação no México.")], HOJE)
+        self.assertEqual([x.tipo for x in c], ["expansao_comercial"])
+
+
+class Aneis(unittest.TestCase):
+    def test_toda_conta_cai_em_um_anel(self):
+        for conta in (CONTA, CONTA_SEM_CONTATO, {**CONTA, "uf": "BA"}):
+            for evs in ([], [ev("executivo_chegou", 5, **CMO)], [ev("palestra_evento", 1)]):
+                self.assertIn(s.calcular(conta, evs, HOJE).anel, (1, 2, 3, 4))
+
+    def test_cmo_novo_sem_contato_mapeado_vai_pro_anel_2(self):
+        r = s.calcular(CONTA_SEM_CONTATO, [ev("executivo_chegou", 20, **CMO)], HOJE)
+        self.assertEqual(r.anel, 2)
+        self.assertIn("mapear", r.frase)
+
+    def test_cmo_novo_com_contato_vai_pro_anel_1(self):
+        self.assertEqual(s.calcular(CONTA, [ev("executivo_chegou", 20, **CMO)], HOJE).anel, 1)
+
+    def test_cadencia_sem_resposta_bloqueia_anel_1_por_60_dias_salvo_gatilho_novo(self):
+        fim = (HOJE - timedelta(days=10)).isoformat()
+        conta = {**CONTA, "supressoes": {"cadencia_sem_resposta_em": fim}}
+        antigo = ev("executivo_chegou", 30, **CMO)
+        self.assertNotEqual(s.calcular(conta, [antigo], HOJE).anel, 1)
+        novo = ev("captacao", 2, "Série B de R$ 50 milhões")
+        self.assertEqual(s.calcular(conta, [antigo, novo], HOJE).anel, 1)
+
+    def test_opt_out_tira_de_tudo(self):
+        r = s.calcular({**CONTA, "supressoes": {"opt_out": True}}, [ev("executivo_chegou", 5, **CMO)], HOJE)
+        self.assertIsNone(r.anel)
+
+    def test_uf_fora_da_regiao_zera_o_fit(self):
+        self.assertEqual(s.calcular({**CONTA, "uf": "BA"}, [], HOJE).anel, 4)
+
+    def test_histerese(self):
+        # timing ~0.47 (declaração com meta 0.55 × confiança 0.85): não entra no anel 1 (precisa de 0.5),
+        # mas quem já está nele só sai abaixo de 0.4
+        evs = [ev("expansao_mercado", 3, "Meta de entrar no Chile", "Mira o Chile em 2027.")]
+        fora = s.calcular(CONTA, evs, HOJE, anterior=None)
+        dentro = s.calcular(CONTA, evs, HOJE, anterior={"anel": 1, "proximity": 0.5})
+        self.assertNotEqual(fora.anel, 1)
+        self.assertEqual(dentro.anel, 1)
+
+
+if __name__ == "__main__":
+    unittest.main()
