@@ -419,7 +419,8 @@ def frase(contrs: list[Contribuicao], anel: int | None, com: dict | None, sem: d
     """Duas maiores contribuições + a peça que falta (spec 8)."""
     if fora:
         return f"Fora do radar: {fora}."
-    partes = [c.texto.rstrip(".") for c in contrs[:2] if c.texto]
+    # "citada em matéria do setor" não explica nada: a frase usa os dois maiores fatos de verdade
+    partes = [c.texto.rstrip(".") for c in contrs if c.texto and c.tipo != "noticia_setorial"][:2]
     inicio = (" e ".join(partes) + ".") if partes else "Nenhum sinal ativo."
     if anel == 4:
         falta = "Falta confirmar o encaixe no ICP."
@@ -475,6 +476,19 @@ def relatorio(base: dict) -> str:
     linhas += ["", f"## Janela dupla (dois gatilhos A): {len(dupla)}", ""]
     linhas += [f"- {c['nome']}: {c['v2']['frase']}" for c in dupla]
 
+    linhas += ["", "## Divergências e decisões para aprovar", "",
+               "- **Spec 11 × tabela 2.2:** o teste pede troca de CMO valendo ~0.25 no dia 120, mas platô 60 + meia-vida 45 "
+               "dá 0.40 no dia 120 (0.25 só no dia 150). Com meia-vida 30, os dois batem. Implementado como a tabela.",
+               "- **Sem anel 2 nem 4 hoje:** o fit usa valores neutros (0.62) até a Velora decidir subsegmentos e faixa de "
+               "porte (spec 10), e quase toda conta tem decisor com e-mail do Snov — então quem tem sinal ativo vai direto "
+               "pro anel 1.",
+               "- **Campos que o classificador ainda não grava** (cargo de quem chegou, estágio da rodada, expansão "
+               "consumada × declarada, porta-voz, tom): decididos por regra de texto em `nivelar()`. O próximo passo é o "
+               "classificador gravar esses campos.",
+               "- **Prêmio** não está na tabela 2.2: tratado como contexto (C, 0.05).",
+               "- **Confiança:** sem campos de match/classificação na base, usa 0.9 para notícia classificada, 1.0 para vaga e "
+               "evento lidos na página da própria conta, +0.05 por fonte extra.",
+               "- **Engagement:** sem fonte ligada (Snov, visitantes do site), fica 0 para todas as contas."]
     pend = sorted({p for c in contas for p in c["v2"]["pendentes"]})
     linhas += ["", "## Valores padrão em uso (default_pendente)", ""] + [f"- `{p}`" for p in pend]
     return "\n".join(linhas) + "\n"
