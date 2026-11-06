@@ -36,6 +36,50 @@ const PAPEIS: { id: PapelAbm; rotulo: string }[] = [
 ];
 const ORDEM_RELEVANCIA = { alta: 0, media: 1, baixa: 2 } as const;
 
+/** Uma cor por papel: verde aprova o orçamento, azul decide, âmbar sente a dor, vermelho pode travar. */
+const COR_PAPEL: Record<PapelAbm, string> = {
+  assina_cheque: 'bg-ok-bg text-ok',
+  decisor: 'bg-cool-bg text-cool',
+  dono_da_dor: 'bg-warm-bg text-warm',
+  trava: 'bg-risk-bg text-risk',
+  influenciador: 'bg-secondary text-text-2',
+};
+// classes por extenso: o Tailwind só gera o que aparece escrito no código
+const COR_BARRA: Record<PapelAbm, string> = {
+  assina_cheque: 'bg-ok',
+  decisor: 'bg-cool',
+  dono_da_dor: 'bg-warm',
+  trava: 'bg-risk',
+  influenciador: 'bg-text-3',
+};
+const NIVEL = { alta: { rotulo: 'Alta', barras: 3 }, media: { rotulo: 'Média', barras: 2 }, baixa: { rotulo: 'Baixa', barras: 1 } } as const;
+
+function TagPapel({ papel }: { papel?: PapelAbm }) {
+  if (!papel) return null;
+  return (
+    <span className={cn('inline-flex items-center rounded-chip px-1.5 py-0.5 text-xs font-medium whitespace-nowrap', COR_PAPEL[papel])}>
+      {PAPEIS.find(x => x.id === papel)?.rotulo}
+    </span>
+  );
+}
+
+/** Nível de influência no contexto do ICP: três barras (alta), duas (média), uma (baixa). */
+function Nivel({ nivel, papel }: { nivel?: 'alta' | 'media' | 'baixa'; papel?: PapelAbm }) {
+  if (!nivel) return <span className="text-text-3">—</span>;
+  const { rotulo, barras } = NIVEL[nivel];
+  const cor = papel ? COR_BARRA[papel] : 'bg-text-3';
+  return (
+    <span className="inline-flex items-center gap-2 text-xs text-text-2" title={`Influência ${rotulo.toLowerCase()}`}>
+      <span aria-hidden className="flex items-end gap-0.5">
+        {[1, 2, 3].map(b => (
+          <span key={b} className={cn('w-1 rounded-full', b === 1 ? 'h-1.5' : b === 2 ? 'h-2.5' : 'h-3.5', b <= barras ? cor : 'bg-border-strong')} />
+        ))}
+      </span>
+      {rotulo}
+    </span>
+  );
+}
+
 interface Linha {
   nome: string;
   cargo: string;
@@ -56,6 +100,7 @@ export function TelaDecisores({ base }: { base: Base }) {
   const [texto, setTexto] = useState('');
   const [areas, setAreas] = useState<Area[]>([]);
   const [papeis, setPapeis] = useState<PapelAbm[]>([]);
+  const [niveis, setNiveis] = useState<('alta' | 'media' | 'baixa')[]>([]);
 
   const pessoas = useMemo<Linha[]>(
     () => base.contas.flatMap(c => c.comite.map(p => ({ ...p, contaId: c.id, contaNome: c.nome, contaDominio: c.dominio, contaTier: c.tier }))),
@@ -67,6 +112,7 @@ export function TelaDecisores({ base }: { base: Base }) {
     return pessoas
       .filter(p => !areas.length || areas.includes(p.area))
       .filter(p => !papeis.length || (p.papelAbm && papeis.includes(p.papelAbm)))
+      .filter(p => !niveis.length || (p.relevancia && niveis.includes(p.relevancia)))
       .filter(p => !t || normalizar(`${p.nome} ${p.cargo} ${p.contaNome}`).includes(t))
       // relevância alta primeiro (papel ABM × ICP da conta), depois tier da conta e nome
       .sort(
@@ -75,10 +121,10 @@ export function TelaDecisores({ base }: { base: Base }) {
           (a.contaTier || 'Z').localeCompare(b.contaTier || 'Z') ||
           a.contaNome.localeCompare(b.contaNome),
       );
-  }, [pessoas, areas, papeis, texto]);
+  }, [pessoas, areas, papeis, niveis, texto]);
 
   const contar = (pred: (p: Linha) => boolean) => pessoas.filter(pred).length;
-  const semFiltro = !texto && !areas.length && !papeis.length;
+  const semFiltro = !texto && !areas.length && !papeis.length && !niveis.length;
 
   return (
     <Casca base={base}>
@@ -108,6 +154,12 @@ export function TelaDecisores({ base }: { base: Base }) {
             opcoes={PAPEIS.map(x => ({ ...x, qtd: contar(p => p.papelAbm === x.id) })).filter(x => x.qtd)}
             valor={papeis}
             onMudar={setPapeis}
+          />
+          <MenuFiltro
+            rotulo="Nível"
+            opcoes={(['alta', 'media', 'baixa'] as const).map(n => ({ id: n, rotulo: NIVEL[n].rotulo, qtd: contar(p => p.relevancia === n) }))}
+            valor={niveis}
+            onMudar={setNiveis}
           />
           <MenuFiltro rotulo="Área" opcoes={AREAS.map(a => ({ ...a, qtd: contar(p => p.area === a.id) })).filter(a => a.qtd)} valor={areas} onMudar={setAreas} />
           <Button
@@ -147,9 +199,11 @@ export function TelaDecisores({ base }: { base: Base }) {
               <thead>
                 <tr className="border-b border-border text-left text-xs text-text-3">
                   <th scope="col" className="w-auto px-3 py-2.5 pl-4 font-medium md:pl-5">Pessoa</th>
-                  <th scope="col" className="hidden w-[260px] px-3 py-2.5 font-medium sm:table-cell">Conta</th>
+                  <th scope="col" className="hidden w-[200px] px-3 py-2.5 font-medium sm:table-cell">Conta</th>
+                  <th scope="col" className="hidden w-[110px] px-3 py-2.5 font-medium lg:table-cell">Área</th>
                   <th scope="col" className="hidden w-[150px] px-3 py-2.5 font-medium md:table-cell">Papel no comitê</th>
-                  <th scope="col" className="w-[104px] px-3 py-2.5 pr-4 text-right font-medium md:w-[160px] md:pr-5">Contato</th>
+                  <th scope="col" className="hidden w-[96px] px-3 py-2.5 font-medium md:table-cell">Nível</th>
+                  <th scope="col" className="w-[84px] px-3 py-2.5 pr-4 text-right font-medium md:w-[96px] md:pr-5">Contato</th>
                 </tr>
               </thead>
               <tbody>
@@ -166,6 +220,11 @@ export function TelaDecisores({ base }: { base: Base }) {
                             {p.cargo}
                             <span className="sm:hidden"> · {p.contaNome}</span>
                           </p>
+                          {/* no celular as colunas somem: papel e nível vão para baixo do cargo */}
+                          <div className="mt-1 flex items-center gap-2 md:hidden">
+                            <TagPapel papel={p.papelAbm} />
+                            <Nivel nivel={p.relevancia} papel={p.papelAbm} />
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -175,16 +234,12 @@ export function TelaDecisores({ base }: { base: Base }) {
                         <span className="truncate text-text-2 hover:text-foreground hover:underline">{p.contaNome}</span>
                       </Link>
                     </td>
+                    <td className="hidden truncate px-3 py-2.5 text-text-2 lg:table-cell">{AREAS.find(a => a.id === p.area)?.rotulo ?? p.area}</td>
                     <td className="hidden px-3 py-2.5 md:table-cell">
-                      <span
-                        className={cn(
-                          'inline-flex items-center rounded-chip px-1.5 py-0.5 text-xs whitespace-nowrap',
-                          p.relevancia === 'alta' ? 'bg-ok-bg text-ok' : 'bg-secondary text-text-2',
-                        )}
-                        title={p.relevancia ? `Relevância ${p.relevancia}` : undefined}
-                      >
-                        {PAPEIS.find(x => x.id === p.papelAbm)?.rotulo ?? AREAS.find(a => a.id === p.area)?.rotulo ?? p.area}
-                      </span>
+                      <TagPapel papel={p.papelAbm} />
+                    </td>
+                    <td className="hidden px-3 py-2.5 md:table-cell">
+                      <Nivel nivel={p.relevancia} papel={p.papelAbm} />
                     </td>
                     <td className="px-3 py-2.5 pr-4 md:pr-5">
                       <div className="flex items-center justify-end gap-1">
