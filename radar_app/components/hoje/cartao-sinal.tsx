@@ -85,7 +85,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
       <motion.article
         ref={ref}
         tabIndex={0}
-        aria-label={`${conta.nome}: ${sinal.rotulo}. ${sinal.porQueAgora}`}
+        aria-label={`${conta.nome}: ${sinal.sinal ?? sinal.porQueAgora}.`}
         onFocus={onFoco}
         onClick={deslizavel ? onAbrir : undefined}
         drag={deslizavel && naCaixa && !reduzir ? 'x' : false}
@@ -132,13 +132,18 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
           <ScoreTendencia score={conta.score} tendencia={conta.tendencia} serie={conta.serie} compacto={deslizavel} />
         </header>
 
-        {/* o sinal: tipo e por que agora */}
-        <div className="flex flex-col gap-1.5">
-          <span className="inline-flex w-fit items-center gap-1.5 rounded-chip bg-secondary px-2 py-0.5 text-xs font-medium text-text-2">
-            <IconeSinal tipo={sinal.tipo} className="size-3.5" />
-            {sinal.rotulo}
+        {/* o sinal: a sinalização rápida em destaque; a manchete da fonte fica no "ver fonte" */}
+        <div className="flex items-start gap-2.5">
+          <span className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-chip bg-secondary text-text-2" title={sinal.rotulo}>
+            <IconeSinal tipo={sinal.tipo} className="size-4" />
+            <span className="sr-only">{sinal.rotulo}</span>
           </span>
-          <p className="text-md leading-snug text-foreground">{sinal.porQueAgora}</p>
+          <div className="min-w-0">
+            <p className="text-lg font-semibold leading-snug text-foreground">{sinal.sinal ?? sinal.porQueAgora}</p>
+            <p className="text-xs text-text-3">
+              {sinal.rotulo} · <span className="vr-data">+{sinal.pontos} pts</span>
+            </p>
+          </div>
         </div>
 
         {/* evidência + quem abordar */}
@@ -146,7 +151,13 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
           <div className="flex flex-wrap items-center gap-x-1.5">
             <dt className="sr-only">Evidência</dt>
             <dd className="flex flex-wrap items-center gap-x-1.5 text-text-3">
-              <span className="text-text-2">{sinal.fonte}</span>·
+              <span className="text-text-2">{sinal.fonte}</span>
+              {sinal.fontes && sinal.fontes.length > 1 && (
+                <span className="text-text-3" title={sinal.fontes.map(f => f.fonte).join(', ')}>
+                  +{sinal.fontes.length - 1} {sinal.fontes.length > 2 ? 'fontes' : 'fonte'}
+                </span>
+              )}
+              ·
               <time dateTime={sinal.data} className="vr-data text-xs">
                 {quando(sinal.data, hoje)}
               </time>

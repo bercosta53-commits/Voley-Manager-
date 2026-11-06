@@ -2,6 +2,7 @@ import {
   Award,
   BriefcaseBusiness,
   Building2,
+  CalendarDays,
   CircleDollarSign,
   FileSignature,
   GitMerge,
@@ -51,6 +52,9 @@ const ICONES: Record<string, typeof Radar> = {
   palestra_evento: Mic,
   layoffs: UserRoundMinus,
   noticia_setorial: Newspaper,
+  // eventos e palestras (coletar_eventos.py)
+  presenca_evento: CalendarDays,
+  palestra_lideranca: Mic,
 };
 
 export function IconeSinal({ tipo, className }: { tipo: string; className?: string }) {

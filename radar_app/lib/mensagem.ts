@@ -15,6 +15,17 @@ export function rascunho(sinal: Sinal, conta: Conta) {
     anuncios: 'Mídia paga rende mais quando a operação comercial está pronta para o volume.',
     nova_unidade: 'Expansão regional pede um plano de aquisição por praça.',
     lancamento: 'Lançamento B2B ganha tração quando marketing e vendas miram as mesmas contas.',
+    // tipos dos coletores reais
+    vaga_area_alvo: 'Time comercial crescendo pede previsibilidade de pipeline desde o primeiro mês.',
+    vaga_expansao_comercial: 'Contratar várias pessoas de uma vez pede pipeline pronto para elas desde o primeiro mês.',
+    vaga_lideranca_alvo: 'Quem chega para liderar costuma revisar canais e metas nos primeiros 90 dias.',
+    executivo_chegou: 'Nova liderança costuma revisar prioridades de crescimento nos primeiros 90 dias.',
+    fusao_aquisicao: 'Integrar marcas e bases depois de uma aquisição abre espaço para rever o funil.',
+    captacao: 'Rodada nova costuma vir com meta de crescimento mais agressiva.',
+    lancamento_produto: 'Lançamento B2B ganha tração quando marketing e vendas miram as mesmas contas.',
+    lancamento_servico: 'Lançamento B2B ganha tração quando marketing e vendas miram as mesmas contas.',
+    lancamento_ia: 'Lançamento B2B ganha tração quando marketing e vendas miram as mesmas contas.',
+    expansao_mercado: 'Expansão regional pede um plano de aquisição por praça.',
   };
   // "Contratou…", "Abriu…", "Está…" encaixam em "Vi que a X…"; frases sem verbo ("Vaga de…") entram depois de dois-pontos.
   const comVerbo = /^(\S+(ou|iu|eu)|está|passou|contratando|concluiu)(?=\s)/i.test(sinal.porQueAgora);

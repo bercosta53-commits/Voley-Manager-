@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/ui/kbd';
 import { PainelFlutuante } from '@/components/ui/painel-flutuante';
 import { Abordar } from './abordar';
+import { Agenda } from './agenda';
 import { CartaoSinal, type AcaoCartao } from './cartao-sinal';
 import { CaixaVazia, ErroCarregar, ListaEsqueleto, SemPermissao } from './estados';
 import { VISOES, type Visao } from './navegacao';
@@ -57,7 +58,11 @@ export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?
   const refs = useRef<(HTMLElement | null)[]>([]);
 
   const contas = useMemo(() => new Map(base.contas.map(c => [c.id, c])), [base.contas]);
-  const sinais = estadoTela === 'vazio' ? [] : base.sinais;
+  // notícia sem fato acionável (noticia_setorial) não é sinal: fica só na linha do tempo da conta
+  const sinais = useMemo(
+    () => (estadoTela === 'vazio' ? [] : base.sinais.filter(s => s.tipo !== 'noticia_setorial')),
+    [estadoTela, base.sinais],
+  );
 
   const naCaixa = useCallback(
     (e?: EstadoSinal) => !e?.acao || (e.acao === 'adiado' && !!e.ate && e.ate <= hoje),
@@ -247,6 +252,8 @@ export function Hoje({ base, estadoTela: estadoFixo }: { base: Base; estadoTela?
             </div>
           )}
         </div>
+
+        {!semDados && !carregando && visao === 'caixa' && <Agenda eventos={base.agenda ?? []} />}
 
         {conteudo}
 

@@ -12,7 +12,9 @@ ambiente) pra essas.
 Classifica pelo CARGO, não pelo volume (ver 05-conectores-fontes.md, categoria 3.2): só vaga de marketing,
 vendas, growth, parcerias etc. gera sinal — vaga só de engenharia não entra, é indício de crescimento, não
 de dor comercial. Vaga de liderança (Head/diretor/VP) nessas áreas pesa mais que uma vaga de área sozinha.
-Várias vagas-alvo abertas ao mesmo tempo também geram um sinal à parte (expansão comercial).
+As vagas de área viram UM sinal por conta, com a contagem ("Abertura de 12 vagas de marketing e
+vendas"), em vez de um cartão por vaga; cada vaga de liderança continua sendo um sinal próprio
+("Contratação de Head de Growth"), porque é uma pessoa nova que decide.
 
 LinkedIn Jobs fica de fora: a própria spec marca "não automatizar" (termos de uso), e repete a mesma regra
 pra qualquer coleta do LinkedIn em geral. Indeed também está na spec como fonte, mas só existe aqui via
@@ -49,7 +51,7 @@ RENDERIZADOR = RAIZ / "scripts" / "renderizar_pagina.js"
 TIMEOUT_SEGUNDOS = 8
 TIMEOUT_RENDER_SEGUNDOS = 20
 MAX_PAGINAS_CANDIDATAS = 3
-MAX_VAGAS_POR_CONTA = 5
+MAX_VAGAS_POR_CONTA = 200  # só um teto de segurança: a contagem entra no sinal
 MEIA_VIDA_DIAS = 60  # mesmo decaimento de gerar_dados.py, pra pontos_em() ficar comparável
 USER_AGENT = "Mozilla/5.0 (compatible; VeloraRadar/1.0; coletor de vagas; uso interno)"
 
@@ -314,7 +316,44 @@ def id_sinal(conta_id: str, link: str) -> str:
     return f"{conta_id}-vaga-{hashlib.sha1(link.encode()).hexdigest()[:10]}"
 
 
-def montar_sinais(conta: dict, vagas: list[tuple[str, str, str | None]], hoje: date) -> list[dict]:
+AREAS_ROTULO: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("marketing", ("marketing", "growth", "demand gen", "geracao de demanda", "product marketing", "crm")),
+    ("vendas", ("sdr", "bdr", "business development", "account executive", "inside sales", "vendas", "comercial",
+                "sales", "receita", "revenue", "revops", "expansao")),
+    ("parcerias", ("partner manager", "channel manager", "parcerias", "partnerships")),
+    ("CS", ("customer success",)),
+)
+
+
+def areas_das_vagas(titulos: list[str]) -> list[str]:
+    contagem = {rotulo: 0 for rotulo, _ in AREAS_ROTULO}
+    for t in titulos:
+        tn = normalizar(t)
+        for rotulo, palavras in AREAS_ROTULO:
+            if contem_palavra(tn, palavras):
+                contagem[rotulo] += 1
+                break
+    return [r for r, n in sorted(contagem.items(), key=lambda x: -x[1]) if n]
+
+
+def cargo_curto(titulo: str) -> str:
+    """"Head de Marketing - Remoto (São Paulo) | Pleno" -> "Head de Marketing"."""
+    curto = re.split(r"\s[-–|/]\s|\(|\|", titulo)[0].strip()
+    return curto[:32].rstrip() if len(curto) > 32 else curto
+
+
+def peso_por_volume(n: int) -> int:
+    return 9 if n >= 10 else 7 if n >= 3 else 5
+
+
+def id_vagas_abertas(conta_id: str) -> str:
+    return f"{conta_id}-vagas-abertas"
+
+
+def montar_sinais(conta: dict, vagas: list[tuple[str, str, str | None]], hoje: date, anterior: dict | None = None) -> list[dict]:
+    """Vaga de liderança: um sinal por vaga. Vagas de área: um sinal só, com a contagem. `anterior` é o
+    sinal consolidado da rodada passada: se a contagem não mudou, mantém a data (a conta não fica
+    "nova" na caixa todo dia só porque as mesmas vagas continuam abertas)."""
     comite = conta.get("comite", [])
     decisor = next((p for p in comite if p.get("papel") == "decisor"), None)
     pessoa = decisor or (comite[0] if comite else None)
@@ -324,26 +363,39 @@ def montar_sinais(conta: dict, vagas: list[tuple[str, str, str | None]], hoje: d
         else {"nome": "", "cargo": "", "papel": "influenciador"}
     )
 
-    sinais = []
+    sinais, area = [], []
     for titulo, link, data_iso in vagas:
         tipo, peso, rotulo = classificar_vaga(titulo)  # já passou pelo filtro em achar_vagas_da_conta
+        if tipo != "vaga_lideranca_alvo":
+            area.append((titulo, link))
+            continue
         data_fato = date.fromisoformat(data_iso) if data_iso else hoje
         sinais.append({
             "id": id_sinal(conta["id"], link), "contaId": conta["id"], "tipo": tipo, "rotulo": rotulo,
-            "peso": peso, "porQueAgora": titulo, "fonte": "Página de carreiras", "data": data_fato.isoformat(),
+            "peso": peso, "sinal": f"Contratação de {cargo_curto(titulo)}",
+            "porQueAgora": f"Abriu vaga de {titulo}.", "fonte": "Página de carreiras", "data": data_fato.isoformat(),
             "alertaEm": hoje.isoformat(), "url": link, "exemplo": False, "abordar": abordar,
             "pontos": round(pontos_em(peso, data_fato, hoje)),
         })
 
-    if len([s for s in sinais if s["tipo"] in ("vaga_area_alvo", "vaga_lideranca_alvo")]) >= 3:
-        cargos = ", ".join(s["porQueAgora"] for s in sinais[:3])
+    if area:
+        n = len(area)
+        areas = areas_das_vagas([t for t, _ in area])
+        de = " e ".join(areas[:2]) if areas else "área comercial"
+        peso = peso_por_volume(n)
+        mesma = anterior is not None and anterior.get("qtdVagas") == n
+        data_fato = date.fromisoformat(anterior["data"]) if mesma else hoje
+        exemplos = ", ".join(cargo_curto(t) for t, _ in area[:3]) + ("…" if n > 3 else "")
         sinais.append({
-            "id": f"{conta['id']}-vaga-expansao-{hoje.isoformat()}", "contaId": conta["id"],
-            "tipo": "vaga_expansao_comercial", "rotulo": "Expansão comercial", "peso": 7,
-            "porQueAgora": f"{len(sinais)} vagas comerciais abertas ao mesmo tempo: {cargos}...",
-            "fonte": "Página de carreiras", "data": hoje.isoformat(), "alertaEm": hoje.isoformat(),
-            "url": sinais[0]["url"], "exemplo": False, "abordar": abordar,
-            "pontos": round(pontos_em(7, hoje, hoje)),
+            "id": id_vagas_abertas(conta["id"]), "contaId": conta["id"],
+            "tipo": "vaga_expansao_comercial" if n >= 3 else "vaga_area_alvo",
+            "rotulo": "Vagas de interesse" if n >= 3 else "Vaga em área-alvo", "peso": peso,
+            "sinal": f"Abertura de {n} vaga{'s' if n > 1 else ''} de {de}",
+            "porQueAgora": f"Está contratando {n} pessoa{'s' if n > 1 else ''} pra {de}: {exemplos}",
+            "qtdVagas": n, "fonte": "Página de carreiras", "data": data_fato.isoformat(),
+            "alertaEm": anterior["alertaEm"] if mesma else hoje.isoformat(),
+            "url": area[0][1], "exemplo": False, "abordar": abordar,
+            "pontos": round(pontos_em(peso, data_fato, hoje)),
         })
     return sinais
 
@@ -362,6 +414,7 @@ def main() -> None:
     ids_conhecidos = {s["id"] for s in base.get("sinais", [])}
     for c in base["contas"]:
         ids_conhecidos |= {e.get("id") for e in c.get("historico", []) if e.get("id")}
+    descartados = set(base.get("descartados", []))
 
     contas = [c for c in base["contas"] if c.get("dominio")]
     if args.limite:
@@ -376,8 +429,20 @@ def main() -> None:
             vagas, erro = achar_vagas_da_conta(conta["nome"], conta["dominio"], robots_cache)
             if erro:
                 erros.append((conta["nome"], erro))
-            elif vagas:
-                novos = [s for s in montar_sinais(conta, vagas, hoje) if s["id"] not in ids_conhecidos]
+            else:
+                vagas = [v for v in vagas if v[1] not in descartados]
+                consolidado = id_vagas_abertas(conta["id"])
+                anterior = next((s for s in base["sinais"] if s["id"] == consolidado), None)
+                # o sinal consolidado é refeito a cada rodada (a contagem muda); o formato antigo, um
+                # cartão por vaga de área e um "expansão comercial" à parte, some junto
+                base["sinais"] = [
+                    s for s in base["sinais"]
+                    if not (s["contaId"] == conta["id"] and (
+                        s["id"] == consolidado or s["id"].startswith(f"{conta['id']}-vaga-expansao-")
+                        or (s["tipo"] == "vaga_area_alvo" and s["id"].startswith(f"{conta['id']}-vaga-"))))
+                ]
+                ids_conhecidos.discard(consolidado)
+                novos = [s for s in montar_sinais(conta, vagas, hoje, anterior) if s["id"] not in ids_conhecidos]
                 if novos:
                     base["sinais"].extend(novos)
                     ids_conhecidos |= {s["id"] for s in novos}

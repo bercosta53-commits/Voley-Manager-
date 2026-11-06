@@ -14,6 +14,24 @@ npm run build && npm start                  # http://localhost:3000
 
 Sem a base real, o app usa `data/contas.exemplo.json` (empresas fictícias).
 
+## Atualizar os sinais
+
+Na ordem, sobre `data/contas.local.json`:
+
+```sh
+python3 scripts/coletar_noticias.py          # Google Notícias: manchete crua entra com peso 0 até ser classificada
+python3 scripts/coletar_vagas.py             # vagas de marketing/vendas: 1 sinal por conta com a contagem; liderança à parte
+python3 scripts/classificar_sinais.py        # manchete -> sinal curto ("Expansão para o Paraná"); homônimo é descartado
+python3 scripts/coletar_noticias.py --so-ambiguas   # refaz a busca das contas com homônimo, usando site e comitê
+python3 scripts/classificar_sinais.py        # classifica o que a busca refeita trouxe
+python3 scripts/remover_duplicatas.py        # várias matérias do mesmo fato viram um sinal só
+python3 scripts/calcular_score.py            # score, tendência e composição de cada conta
+```
+
+O classificador usa a API da Anthropic (`ANTHROPIC_API_KEY`). Sem chave, `--exportar arquivo.json` grava o que
+falta classificar e `--respostas arquivo.json` aplica as respostas prontas pelo mesmo caminho. Notícia sem fato
+acionável (`noticia_setorial`) não entra na caixa de Hoje nem no score: fica só na linha do tempo da conta.
+
 ## Onde está cada coisa
 
 | Caminho | O quê |

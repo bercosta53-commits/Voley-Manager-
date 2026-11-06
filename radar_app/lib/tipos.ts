@@ -27,6 +27,8 @@ export interface Parcela {
 export interface Evento {
   tipo: string;
   rotulo: string;
+  /** sinalização rápida (até ~45 caracteres), escrita pelo classificador; sem ela, vale porQueAgora */
+  sinal?: string;
   porQueAgora: string;
   fonte: string;
   data: string;
@@ -80,7 +82,15 @@ export interface Sinal {
   tipo: string;
   rotulo: string;
   peso: number;
+  /** sinalização rápida, em destaque no cartão: "Expansão para o Paraná", "Abertura de 30 vagas de
+   * marketing e vendas". Vem do classificador (notícias) ou do coletor de vagas. */
+  sinal?: string;
+  /** o fato numa frase (começa por verbo): vai no "Por quê" e no rascunho da mensagem */
   porQueAgora: string;
+  /** todos os veículos que noticiaram o mesmo fato (o principal incluído), quando foi mais de um */
+  fontes?: { fonte: string; url: string; data: string }[];
+  /** pessoa do comitê citada na matéria (coletor de veículos) */
+  pessoa?: string;
   fonte: string;
   /** data do fato */
   data: string;
@@ -115,11 +125,24 @@ export interface Fonte {
   custo: string;
 }
 
+/** Evento dos próximos 60 dias com as contas que estarão lá (scripts/coletar_eventos.py). */
+export interface EventoAgenda {
+  id: string;
+  nome: string;
+  inicio: string;
+  fim: string;
+  cidade: string;
+  uf: string;
+  presencas: { contaId: string; conta: string; papel: string; pessoa: string; cargo: string; score: number }[];
+}
+
 export interface Base {
   geradoEm: string;
   contas: Conta[];
   sinais: Sinal[];
   fontes: Fonte[];
+  /** agenda presencial: eventos dos próximos 60 dias com contas da base */
+  agenda?: EventoAgenda[];
   /** true quando a base é a de exemplo (empresas fictícias) */
   ficticia?: boolean;
 }

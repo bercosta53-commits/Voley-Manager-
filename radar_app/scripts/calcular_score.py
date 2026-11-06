@@ -4,9 +4,9 @@
 uso: python3 scripts/calcular_score.py
 
 Os coletores (notícias, CNPJ, vagas) e o classificador só escrevem sinais e histórico — nenhum deles
-atualiza o score da conta. Este passo fecha o ciclo: soma o que cada sinal/evento vale hoje (mesmo
-decaimento usado em todo o resto do app, pontos_em() — peso vezes 4, caindo pela metade a cada
-MEIA_VIDA_DIAS dias) e isso vira o score.
+atualiza o score da conta. Este passo fecha o ciclo: soma o que cada sinal/evento vale hoje (pontos_em():
+peso vezes 4, caindo pela metade a cada meia janela do tipo — ver JANELAS) e isso vira o score. Sinal que
+passou da janela do tipo sai da caixa de Hoje e vai pro histórico da conta.
 
 Diferente da base de exemplo (scripts/gerar_dados.py), a base real não tem "perfil" (encaixe no ICP) nem
 "momento" vindos de planilha — essas colunas (score_estrutural/score_ativacao) não existem na importação
@@ -46,30 +46,73 @@ PESO_HISTORICO: dict[str, int] = {
     "premio": 4,
     "palestra_evento": 4,
     "layoffs": 5,
-    "noticia_setorial": 3,
+    "noticia_setorial": 0,  # notícia sem fato acionável não esquenta a conta
+    "presenca_evento": 6,
+    "palestra_lideranca": 7,
 }
 
 
-def pontos_em(peso: int, fato: date, dia: date) -> float:
-    if dia < fato:
+# Janela de cada tipo (05-conectores-fontes.md, seção 4): (dias ANTES do fato em que já conta, dias DEPOIS
+# em que ainda conta). Dentro da janela o sinal vale peso x 4 e cai pela metade a cada metade da janela;
+# fora dela vale 0, sai da caixa de Hoje e vai pro histórico. Evento e palestra com data futura abrem a
+# janela 30 dias antes: o melhor contato é na preparação e no pós-evento imediato.
+JANELAS: dict[str, tuple[int, int]] = {
+    "executivo_chegou": (0, 120),
+    "executivo_saiu": (0, 90),
+    "fusao_aquisicao": (0, 180),
+    "captacao": (0, 180),
+    "lancamento_ia": (0, 60),
+    "lancamento_produto": (0, 60),
+    "lancamento_servico": (0, 60),
+    "resultados_crescimento": (0, 90),
+    "nova_unidade": (0, 120),
+    "expansao_mercado": (0, 90),
+    "parceria": (0, 90),
+    "premio": (0, 60),
+    "palestra_evento": (0, 60),
+    "layoffs": (0, 60),
+    "noticia_setorial": (0, 30),
+    "vaga_lideranca_alvo": (0, 90),
+    "vaga_area_alvo": (0, 60),
+    "vaga_expansao_comercial": (0, 90),
+    "presenca_evento": (30, 45),
+    "palestra_lideranca": (30, 60),
+}
+JANELA_PADRAO = (0, 2 * MEIA_VIDA_DIAS)
+
+
+def janela(tipo: str) -> tuple[int, int]:
+    return JANELAS.get(tipo, JANELA_PADRAO)
+
+
+def pontos_em(peso: int, fato: date, dia: date, tipo: str = "") -> float:
+    antes, depois = janela(tipo)
+    dias = (dia - fato).days
+    if dias < -antes or dias > depois:
         return 0.0
-    return peso * 4 * 0.5 ** ((dia - fato).days / MEIA_VIDA_DIAS)
+    return peso * 4 * 0.5 ** (max(dias, 0) / (depois / 2))
 
 
-def fatos_da_conta(conta: dict, sinais_por_conta: dict[str, list[dict]]) -> list[tuple[str, int, str, date]]:
-    """(rotulo, peso, detalhe, data) de cada sinal + evento de histórico real (exemplo=False)."""
+def vencido(tipo: str, fato: date, dia: date) -> bool:
+    return (dia - fato).days > janela(tipo)[1]
+
+
+def fatos_da_conta(conta: dict, sinais_por_conta: dict[str, list[dict]]) -> list[tuple[str, int, str, date, str]]:
+    """(rotulo, peso, detalhe, data, tipo) de cada sinal + evento de histórico real (exemplo=False)."""
     fatos = []
     for s in sinais_por_conta.get(conta["id"], []):
         if s.get("exemplo"):
             continue
-        fatos.append((s["rotulo"], s["peso"], s["porQueAgora"], date.fromisoformat(s["data"])))
+        if s["peso"] <= 0:
+            continue
+        fatos.append((s["rotulo"], s["peso"], s.get("sinal") or s["porQueAgora"], date.fromisoformat(s["data"]), s["tipo"]))
     for h in conta.get("historico", []):
         if h.get("exemplo"):
             continue
         peso = PESO_HISTORICO.get(h["tipo"])
-        if peso is None:
+        if not peso:
             continue
-        fatos.append((h["rotulo"], peso, h["porQueAgora"], date.fromisoformat(h["data"])))
+        fatos.append((h["rotulo"], peso, h.get("sinal") or h["porQueAgora"], date.fromisoformat(h["data"]), h["tipo"]))
     return fatos
 
 
@@ -83,20 +126,40 @@ def main() -> None:
     for s in base.get("sinais", []):
         sinais_por_conta.setdefault(s["contaId"], []).append(s)
 
+    # sinal que passou da janela do tipo sai da caixa de Hoje e vira histórico da conta
+    contas_por_id = {c["id"]: c for c in base["contas"]}
+    vencidos = [s for s in base.get("sinais", []) if not s.get("exemplo")
+                and vencido(s["tipo"], date.fromisoformat(s["data"]), hoje) and s["contaId"] in contas_por_id]
+    for s in vencidos:
+        conta = contas_por_id[s["contaId"]]
+        if all(h["url"] != s["url"] for h in conta.get("historico", [])):
+            conta.setdefault("historico", []).append({k: s[k] for k in (
+                "tipo", "rotulo", "sinal", "porQueAgora", "fonte", "data", "url", "exemplo") if k in s})
+            conta["historico"].sort(key=lambda h: h["data"], reverse=True)
+    ids_vencidos = {s["id"] for s in vencidos}
+    base["sinais"] = [s for s in base.get("sinais", []) if s["id"] not in ids_vencidos]
+    sinais_por_conta = {}
+    for s in base["sinais"]:
+        sinais_por_conta.setdefault(s["contaId"], []).append(s)
+
+    for s in base.get("sinais", []):
+        s["pontos"] = round(pontos_em(s["peso"], date.fromisoformat(s["data"]), hoje, s["tipo"]))
+
     for conta in base["contas"]:
         fatos = fatos_da_conta(conta, sinais_por_conta)
 
         def score_em(dia: date, fatos=fatos) -> int:
-            return min(100, round(sum(pontos_em(peso, f, dia) for _, peso, _, f in fatos)))
+            return min(100, round(sum(pontos_em(peso, f, dia, tipo) for _, peso, _, f, tipo in fatos)))
 
         score = score_em(hoje)
         serie = [score_em(hoje - timedelta(days=3 * (30 - i))) for i in range(31)]
         tendencia = score - score_em(hoje - timedelta(days=14))
 
         composicao = [
-            {"rotulo": rotulo, "detalhe": detalhe, "pontos": round(pontos_em(peso, f, hoje)), "data": f.isoformat()}
-            for rotulo, peso, detalhe, f in fatos
+            {"rotulo": rotulo, "detalhe": detalhe, "pontos": round(pontos_em(peso, f, hoje, tipo)), "data": f.isoformat()}
+            for rotulo, peso, detalhe, f, tipo in sorted(fatos, key=lambda x: pontos_em(x[1], x[3], hoje, x[4]), reverse=True)
         ]
+        composicao = [c for c in composicao if c["pontos"] > 0]
         excesso = sum(c["pontos"] for c in composicao) - score  # teto de 100 ou arredondamento
         if excesso:
             composicao.append({"rotulo": "Ajuste", "detalhe": "Teto de 100 pontos", "pontos": -excesso})
@@ -108,7 +171,7 @@ def main() -> None:
 
     com_sinal = sum(1 for c in base["contas"] if c["score"] > 0)
     print(f"{len(base['contas'])} contas recalculadas · {com_sinal} com score acima de 0")
-    print(f"maior score: {max(c['score'] for c in base['contas'])}")
+    print(f"maior score: {max(c['score'] for c in base['contas'])} · {len(vencidos)} sinal(is) passaram da janela e foram pro histórico")
 
 
 if __name__ == "__main__":

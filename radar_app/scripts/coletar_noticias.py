@@ -82,7 +82,8 @@ CLASSIFICACAO: list[tuple[str, int, str, list[str]]] = [
         "parceria com", "firma parceria", "anuncia parceria", "fecha parceria",
     ]),
 ]
-PADRAO_TIPO, PADRAO_PESO, PADRAO_ROTULO = "noticia_setorial", 3, "Notícia"
+# sem palavra-chave: notícia que só cita a empresa. Peso 0 e fora da caixa até o classificador dizer o que é.
+PADRAO_TIPO, PADRAO_PESO, PADRAO_ROTULO = "noticia_setorial", 0, "Notícia"
 
 
 def classificar(titulo: str, descricao: str) -> tuple[str, int, str]:
@@ -103,8 +104,48 @@ def pontos_em(peso: int, fato: date, hoje: date) -> float:
 # ---------- busca e parsing do RSS ----------
 
 
-def buscar_rss(nome_empresa: str) -> str:
-    consulta = urllib.parse.quote(f'"{nome_empresa}"')
+# Conta cujo nome também é de pessoa, filme ou palavra comum ("Holmes" traz Elizabeth Holmes e Sherlock,
+# "Assertiva" traz "comunicação assertiva"): depois que o classificador descartar HOMONIMOS_LIMITE notícias
+# dela como "não é sobre esta empresa", a busca passa a exigir junto do nome algo que só a empresa tem —
+# o site e o nome das pessoas do comitê. Palavra genérica ("empresa", "startup") não serve: Elizabeth
+# Holmes também é empresária.
+HOMONIMOS_LIMITE = 2
+MAX_PESSOAS_NA_BUSCA = 5
+
+
+def consulta_da_conta(conta: dict) -> str:
+    nome = f'"{conta["nome"]}"'
+    if conta.get("homonimos", 0) < HOMONIMOS_LIMITE:
+        return nome
+    termos = [conta["dominio"]] if conta.get("dominio") else []
+    termos += [f'"{p["nome"]}"' for p in conta.get("comite", [])[:MAX_PESSOAS_NA_BUSCA] if p.get("nome")]
+    return f"{nome} ({' OR '.join(termos)})" if termos else nome
+
+
+SUFIXOS_NOME = {"junior", "jr", "filho", "neto", "sobrinho", "segundo", "terceiro"}
+PARTICULAS = {"de", "da", "do", "das", "dos", "e"}
+
+
+def variantes_nome(nome: str) -> list[str]:
+    """Formas como a imprensa escreve o nome de alguém do comitê: o cadastro traz "Peter Kreslins Junior" ou
+    "Eduardo Maia Machado", a matéria diz "Peter Kreslins" ou "Eduardo Machado". Devolve o nome completo e
+    primeiro nome + último sobrenome (sem partículas e sem Junior/Filho/Neto). Primeiro + segundo nome fica
+    de fora: "Luiz Fernando" sozinho casa com qualquer um."""
+    partes = [t for t in nome.split() if normalizar(t) not in PARTICULAS]
+    sem_sufixo = [t for t in partes if normalizar(t).strip(".") not in SUFIXOS_NOME]
+    variantes = [nome.strip()]
+    if len(sem_sufixo) >= 2:
+        variantes.append(f"{sem_sufixo[0]} {sem_sufixo[-1]}")
+    vistos, saida = set(), []
+    for v in variantes:
+        if normalizar(v) not in vistos:
+            vistos.add(normalizar(v))
+            saida.append(v)
+    return saida
+
+
+def buscar_rss(consulta_texto: str) -> str:
+    consulta = urllib.parse.quote(consulta_texto)
     url = f"https://news.google.com/rss/search?q={consulta}&hl=pt-BR&gl=BR&ceid=BR:pt-BR"
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=TIMEOUT_SEGUNDOS) as r:
@@ -187,12 +228,15 @@ def nome_curto_demais(nome: str) -> bool:
     return len(nome.replace(" ", "")) < MIN_LETRAS_NOME
 
 
-def coletar_conta(conta: dict, sinais_existentes: list[dict], hoje: date) -> tuple[list[dict], list[dict], int, str | None]:
+def coletar_conta(
+    conta: dict, sinais_existentes: list[dict], hoje: date, descartados: frozenset[str] = frozenset()
+) -> tuple[list[dict], list[dict], int, str | None]:
     """Retorna (novos_sinais, novos_eventos_historico, total_itens_relevantes, erro). O chamador já
-    filtrou nome_curto_demais() antes de chegar aqui."""
+    filtrou nome_curto_demais() antes de chegar aqui. `descartados` são links que o classificador já
+    marcou como "não é sobre esta empresa" (homônimo): não voltam."""
     nome = conta["nome"]
     try:
-        xml_bruto = buscar_rss(nome)
+        xml_bruto = buscar_rss(consulta_da_conta(conta))
     except (urllib.error.URLError, TimeoutError) as e:
         return [], [], 0, str(e)
 
@@ -203,6 +247,7 @@ def coletar_conta(conta: dict, sinais_existentes: list[dict], hoje: date) -> tup
 
     links_conhecidos = {s["url"] for s in conta.get("historico", [])}
     links_conhecidos |= {s["url"] for s in sinais_existentes}
+    links_conhecidos |= descartados
 
     sinais, eventos = [], []
     vistos = 0
@@ -239,6 +284,8 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--limite", type=int, default=None, help="só as N primeiras contas (pra testar rápido)")
     ap.add_argument("--dormir", type=float, default=0.4, help="segundos de espera entre buscas (padrão 0.4)")
+    ap.add_argument("--so-ambiguas", action="store_true",
+                    help="só as contas com homônimo recorrente (refaz a busca delas com site e comitê)")
     args = ap.parse_args()
 
     if not DESTINO.exists():
@@ -246,10 +293,15 @@ def main() -> None:
     base = json.loads(DESTINO.read_text(encoding="utf-8"))
     hoje = date.today()
 
-    contas = base["contas"][: args.limite] if args.limite else base["contas"]
+    contas = base["contas"]
+    if args.so_ambiguas:
+        contas = [c for c in contas if c.get("homonimos", 0) >= HOMONIMOS_LIMITE]
+    if args.limite:
+        contas = contas[: args.limite]
     sinais_por_conta: dict[str, list[dict]] = {}
     for s in base.get("sinais", []):
         sinais_por_conta.setdefault(s["contaId"], []).append(s)
+    descartados = frozenset(base.get("descartados", []))
 
     total_novos_sinais = total_novos_eventos = total_contas_com_novidade = total_buscadas = 0
     pulados: list[str] = []
@@ -259,7 +311,7 @@ def main() -> None:
             pulados.append(conta["nome"])
         else:
             existentes = sinais_por_conta.get(conta["id"], [])
-            novos_sinais, novos_eventos, vistos, erro = coletar_conta(conta, existentes, hoje)
+            novos_sinais, novos_eventos, vistos, erro = coletar_conta(conta, existentes, hoje, descartados)
             total_buscadas += 1
 
             if erro:

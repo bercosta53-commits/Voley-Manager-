@@ -1,0 +1,59 @@
+{
+  "_leia": "Lista configurável de eventos de TI B2B (05-conectores-fontes.md, 3.5 e 3.6). Cada página é varrida por scripts/coletar_eventos.py procurando o nome das contas e das pessoas do comitê. papel: expositor | patrocinador | startup | palestrante. Datas e endereços conferidos no site oficial na data de validadoEm; os diretórios de 2027 ainda não estavam publicados nessa data, por isso as páginas são revarridas a cada rodada.",
+  "eventos": [
+    {
+      "id": "south-summit-2027",
+      "nome": "South Summit Brazil 2027",
+      "inicio": "2027-04-14",
+      "fim": "2027-04-16",
+      "cidade": "Porto Alegre",
+      "uf": "RS",
+      "site": "https://www.southsummit.io/e/brazil-2027",
+      "paginas": [
+        { "url": "https://www.southsummit.io/e/brazil-2027/speakers", "papel": "palestrante" },
+        { "url": "https://www.southsummit.io/e/brazil-2027/partners", "papel": "patrocinador" }
+      ],
+      "validadoEm": "2026-11-06"
+    },
+    {
+      "id": "gramado-summit-2027",
+      "nome": "Gramado Summit 2027",
+      "inicio": "2027-05-05",
+      "fim": "2027-05-07",
+      "cidade": "Gramado",
+      "uf": "RS",
+      "site": "https://gramadosummit.com",
+      "paginas": [
+        { "url": "https://gramadosummit.com", "papel": "palestrante" }
+      ],
+      "validadoEm": "2026-11-06"
+    },
+    {
+      "id": "futurecom-2027",
+      "nome": "Futurecom 2027",
+      "inicio": "2027-10-05",
+      "fim": "2027-10-07",
+      "cidade": "São Paulo",
+      "uf": "SP",
+      "site": "https://www.futurecom.com.br",
+      "paginas": [
+        { "url": "https://www.futurecom.com.br/pt/expositores.html", "papel": "expositor" }
+      ],
+      "validadoEm": "2026-11-06"
+    },
+    {
+      "id": "startup-summit-2026",
+      "nome": "Startup Summit 2026",
+      "inicio": "2026-08-26",
+      "fim": "2026-08-28",
+      "cidade": "Florianópolis",
+      "uf": "SC",
+      "site": "https://startupsummit.com.br",
+      "paginas": [
+        { "url": "https://startupsummit.com.br", "papel": "palestrante" }
+      ],
+      "validadoEm": "2026-11-06"
+    }
+  ],
+  "palavrasPalestra": ["palestra", "palestrante", "painel", "painelista", "keynote", "podcast", "webinar", "live", "talk", "debate", "mesa-redonda"]
+}

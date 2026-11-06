@@ -23,7 +23,7 @@ export function LinhaDoTempo({ conta, sinais, estados, hoje }: { conta: Conta; s
       chave: s.id,
       data: s.data,
       icone: <IconeSinal tipo={s.tipo} className="size-4" />,
-      titulo: s.rotulo,
+      titulo: s.sinal ?? s.rotulo,
       texto: s.porQueAgora,
       novo: !e?.acao,
       meta: <Evidencia fonte={s.fonte} url={s.url} exemplo={s.exemplo} extra={!e?.acao ? 'na caixa' : undefined} />,
@@ -43,7 +43,7 @@ export function LinhaDoTempo({ conta, sinais, estados, hoje }: { conta: Conta; s
       chave: `${h.tipo}-${h.data}`,
       data: h.data,
       icone: <IconeSinal tipo={h.tipo} className="size-4" />,
-      titulo: h.rotulo,
+      titulo: h.sinal ?? h.rotulo,
       texto: h.porQueAgora,
       meta: <Evidencia fonte={h.fonte} url={h.url} exemplo={h.exemplo} />,
     });
