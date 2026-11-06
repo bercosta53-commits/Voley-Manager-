@@ -51,6 +51,7 @@ TAXONOMIA: dict[str, tuple[str, int]] = {
     "lancamento_servico": ("Lançamento de serviço", 6),
     "parceria": ("Nova parceria", 5),
     "premio": ("Prêmio ou reconhecimento", 4),
+    "palestra_evento": ("Palestra ou evento", 4),
     "layoffs": ("Corte de equipe", 5),
     "noticia_setorial": ("Notícia do setor", 3),
 }
@@ -64,7 +65,12 @@ linguagem, agente de IA, automação com IA etc.), classifique como "lancamento_
   "executivo_chegou"/"executivo_saiu" são sobre C-level, diretoria, VPs — não gerentes ou cargos \
 operacionais. "resultados_crescimento" é só pra resultado POSITIVO (lucro, receita ou faturamento subindo, \
 recorde) — resultado em queda, prejuízo, ação caindo ou projeção pra baixo NÃO é "resultados_crescimento" \
-(isso infla o score como se fosse boa notícia), classifique como "noticia_setorial". Se a notícia não se \
+(isso infla o score como se fosse boa notícia), classifique como "noticia_setorial". "palestra_evento" é \
+pra quando alguém da própria empresa participou, palestrou ou debateu em evento/congresso/painel — não \
+confundir com "premio" (a empresa sendo reconhecida/premiada/ranqueada: GPTW, "melhor empresa pra \
+trabalhar", selo, ranking de mercado). Cuidado com "premio": só conta se é a PRÓPRIA empresa sendo \
+reconhecida — se é um cliente dela que ganhou prêmio usando o produto, ou se a empresa só publica o \
+ranking (não foi ela quem ganhou), isso é "noticia_setorial", não "premio". Se a notícia não se \
 encaixa em nenhuma categoria específica, use "noticia_setorial".
 - "porQueAgora": um resumo DIRETO do fato, em português, menor que um tweet (até 140 caracteres), sem \
 precisar abrir o link pra entender. Comece pela ação (verbo), não pelo nome da empresa (isso já aparece \

@@ -44,6 +44,7 @@ PESO_HISTORICO: dict[str, int] = {
     "lancamento_servico": 6,
     "parceria": 5,
     "premio": 4,
+    "palestra_evento": 4,
     "layoffs": 5,
     "noticia_setorial": 3,
 }

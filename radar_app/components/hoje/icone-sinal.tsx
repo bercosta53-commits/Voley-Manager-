@@ -9,6 +9,7 @@ import {
   Handshake,
   Layers,
   Megaphone,
+  Mic,
   Newspaper,
   PackagePlus,
   Sparkles,
@@ -47,6 +48,7 @@ const ICONES: Record<string, typeof Radar> = {
   lancamento_servico: Layers,
   parceria: Handshake,
   premio: Award,
+  palestra_evento: Mic,
   layoffs: UserRoundMinus,
   noticia_setorial: Newspaper,
 };
