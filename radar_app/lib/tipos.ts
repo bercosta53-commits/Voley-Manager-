@@ -170,6 +170,14 @@ export interface EventoAgenda {
   presencas: { contaId: string; conta: string; papel: string; pessoa: string; cargo: string; score: number }[];
 }
 
+/** Empresa fora da base contratando liderança de Growth/Revenue (scripts/importar_vagas.py): conta nova a qualificar. */
+export interface Candidata {
+  chave: string;
+  empresa: string;
+  descobertaEm: string;
+  vagas: { titulo: string; local: string; data: string; url: string; fonte: string; focoGrowthRevenue?: boolean }[];
+}
+
 export interface Base {
   geradoEm: string;
   contas: Conta[];
@@ -177,6 +185,8 @@ export interface Base {
   fontes: Fonte[];
   /** agenda presencial: eventos dos próximos 60 dias com contas da base */
   agenda?: EventoAgenda[];
+  /** descoberta de contas novas: empresas fora da base abrindo vaga de liderança em Growth/Revenue */
+  candidatas?: Candidata[];
   /** true quando a base é a de exemplo (empresas fictícias) */
   ficticia?: boolean;
 }

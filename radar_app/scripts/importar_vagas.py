@@ -6,13 +6,15 @@ uso: python3 scripts/importar_vagas.py vagas.json
 O Indeed só existe aqui como conector (MCP, sem endpoint para script — ver coletar_vagas.py), então a
 varredura roda pelo Claude, que grava um arquivo com as vagas achadas:
   [{"empresa": "Neogrid Carreiras", "titulo": "Gerente de Growth", "local": "Joinville, SC",
-    "data": "2026-10-27", "url": "https://to.indeed.com/...", "fonte": "Indeed"}, ...]
+    "data": "2026-10-27", "url": "https://to.indeed.com/...", "fonte": "Indeed", "ti": true}, ...]
+"ti" é opcional e diz se o empregador é empresa de TI (quem varre marca; false = fora do ICP, não vira candidata).
 
 Para cada vaga: classifica pelo cargo (mesma regra de coletar_vagas.py: área-alvo, gerente pra cima é
 liderança, Growth/Revenue é o foco), casa o empregador com uma conta da base pelo nome e grava o sinal.
 Liderança vira um sinal por vaga ("Contratação de Gerente de Growth"); vaga de área entra na contagem.
-Empregador que não está na base mas contrata liderança de Growth/Revenue vai para base["candidatas"]:
-é descoberta de conta nova, para alguém qualificar antes de entrar no radar (playbook, frente 2).
+Empregador que não está na base mas contrata liderança de Growth/Revenue (ou liderança comercial/marketing,
+quando marcado como TI) vai para base["candidatas"]: é descoberta de conta nova, para alguém qualificar antes
+de entrar no radar (playbook, frente 2). Empresa marcada "ti": false nunca entra.
 Idempotente: o id do sinal sai da URL da vaga.
 """
 
@@ -64,10 +66,11 @@ def main() -> None:
         k = chave_nome(v["empresa"])
         conta = por_chave.get(k)
         if conta is None:
-            if tipo == "vaga_lideranca_alvo" and foco_growth_revenue(v["titulo"]):
+            foco = foco_growth_revenue(v["titulo"])
+            if tipo == "vaga_lideranca_alvo" and v.get("ti") is not False and (foco or v.get("ti")):
                 cand = candidatas.setdefault(k, {"chave": k, "empresa": v["empresa"], "vagas": [], "descobertaEm": hoje.isoformat()})
                 if all(x["url"] != v["url"] for x in cand["vagas"]):
-                    cand["vagas"].append({k2: v.get(k2, "") for k2 in ("titulo", "local", "data", "url", "fonte")})
+                    cand["vagas"].append({**{k2: v.get(k2, "") for k2 in ("titulo", "local", "data", "url", "fonte")}, "focoGrowthRevenue": foco})
             continue
         sid = f'{conta["id"]}-vaga-{hashlib.sha1(v["url"].encode()).hexdigest()[:10]}'
         if sid in ids:
@@ -92,7 +95,10 @@ def main() -> None:
         ids.add(sid)
         novos += 1
 
-    base["candidatas"] = sorted(candidatas.values(), key=lambda x: -len(x["vagas"]))
+    # quem vê a lista: primeiro Growth/Revenue, depois mais vagas, depois a vaga mais recente
+    fora_ti = {chave_nome(v["empresa"]) for v in vagas if v.get("ti") is False}
+    lista = sorted((c for k, c in candidatas.items() if k not in fora_ti), key=lambda c: max(x["data"] for x in c["vagas"]), reverse=True)
+    base["candidatas"] = sorted(lista, key=lambda c: (not any(x.get("focoGrowthRevenue") for x in c["vagas"]), -len(c["vagas"])))
     DESTINO.write_text(json.dumps(base, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"{len(vagas)} vagas lidas · {descartadas} fora da área-alvo · {novos} sinais novos em contas da base · "
           f"{len(base['candidatas'])} empresas fora da base contratando liderança de Growth/Revenue (candidatas)")

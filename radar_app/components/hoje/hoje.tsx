@@ -11,6 +11,7 @@ import { Kbd } from '@/components/ui/kbd';
 import { PainelFlutuante } from '@/components/ui/painel-flutuante';
 import { Abordar } from './abordar';
 import { Agenda } from './agenda';
+import { Candidatas } from './candidatas';
 import { aplicarAvaliacoes, ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
 import { CartaoSinal, type AcaoCartao } from './cartao-sinal';
 import { CaixaVazia, ErroCarregar, ListaEsqueleto, SemPermissao } from './estados';
@@ -267,6 +268,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
         </div>
 
         {!semDados && !carregando && visao === 'caixa' && <Agenda eventos={base.agenda ?? []} />}
+        {!semDados && !carregando && visao === 'caixa' && <Candidatas candidatas={base.candidatas ?? []} />}
 
         {conteudo}
 
