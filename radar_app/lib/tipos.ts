@@ -73,6 +73,11 @@ export interface Conta {
   /** número de funcionários (Apollo/Indeed/LinkedIn à mão) e de onde veio */
   funcionarios?: number;
   funcionariosFonte?: string;
+  /** faixa de funcionários (LinkedIn) e faturamento estimado, quando vêm de pesquisa (importar_chatgpt.py) */
+  funcionariosFaixa?: string;
+  faturamentoEstimado?: string;
+  /** ano de fundação quando não há CNPJ confirmado */
+  anoFundacao?: number;
   socios?: Socio[];
   score: number;
   /** pontos ganhos (ou perdidos) nos últimos 30 dias (vscs_delta_30d) */

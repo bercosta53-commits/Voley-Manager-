@@ -179,8 +179,10 @@ export function prepararContas(base: Base, regras: RegrasIcp): ContaIcp[] {
     if (ciclo >= 2) gatilhos.add(3);
     const temFundador = c.comite.some(p => FUNDADOR.test(normalizar(p.cargo)));
     if (temFundador && maxV <= 3 && maxM <= 3) gatilhos.add(4);
-    if (c.dataAbertura) {
-      if (diasEntre(c.dataAbertura, hoje) >= 3652 && !crescimento.has(c.id)) gatilhos.add(5);
+    const fundacao = c.dataAbertura ?? (c.anoFundacao ? `${c.anoFundacao}-07-01` : null);
+    if (fundacao) {
+      if (diasEntre(fundacao, hoje) >= 3652 && !crescimento.has(c.id)) gatilhos.add(5);
+      if (!c.dataAbertura) incompletos.add(5); // ano de fundação de pesquisa: medição ainda a validar
     } else incompletos.add(5);
 
     return {
