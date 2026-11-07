@@ -115,5 +115,5 @@ export function gerarBaseProximidadeReal(base: Base): BaseProximidade {
     });
   }
 
-  return { geradoEm: hoje, metaZonaAtivacao: 30, pesos: PESOS_PADRAO, versaoPesos: '2.1', contas };
+  return { geradoEm: hoje, metaZonaAtivacao: 30, pesos: PESOS_PADRAO, versaoPesos: 'vscs-3.0', contas };
 }

@@ -27,6 +27,7 @@ import argparse
 import html
 import http.client
 import json
+from datetime import date
 import re
 import sys
 import time
@@ -286,7 +287,10 @@ def main() -> None:
         sys.exit(f"{DESTINO} não existe — rode scripts/importar_decisores.py primeiro.")
     base = json.loads(DESTINO.read_text(encoding="utf-8"))
 
-    pendentes = [c for c in base["contas"] if c.get("dominio") and not c.get("cnpj")]
+    # quem já foi procurado e não tinha CNPJ publicado espera 30 dias para nova tentativa (a rodada é longa)
+    hoje = date.today()
+    pendentes = [c for c in base["contas"] if c.get("dominio") and not c.get("cnpj")
+                 and not (c.get("cnpjTentadoEm") and (hoje - date.fromisoformat(c["cnpjTentadoEm"])).days < 30)]
     if args.limite:
         pendentes = pendentes[: args.limite]
 
@@ -316,6 +320,7 @@ def main() -> None:
                     erros.append((conta["nome"], f"achou CNPJ {cnpj} no site mas a BrasilAPI não confirmou"))
             else:
                 sem_cnpj += 1
+                conta["cnpjTentadoEm"] = hoje.isoformat()
         except Exception as e:
             # um site que falha de um jeito inesperado (ex.: o lixo de template do caso acima, antes do
             # fix) não pode derrubar a rodada inteira e perder o progresso já feito nas outras contas —
@@ -324,6 +329,8 @@ def main() -> None:
 
         if i % 25 == 0 or i == len(pendentes):
             print(f"  {i}/{len(pendentes)} contas processadas...", file=sys.stderr)
+            # grava o progresso a cada 25: uma rodada interrompida não perde o que já achou
+            DESTINO.write_text(json.dumps(base, ensure_ascii=False, indent=1), encoding="utf-8")
         time.sleep(args.dormir)
 
     DESTINO.write_text(json.dumps(base, ensure_ascii=False, indent=1), encoding="utf-8")

@@ -75,8 +75,8 @@
   }
   body {
     min-height: 100dvh;
-    background: var(--vr-ambient), var(--vr-bg);
-    background-attachment: fixed;
+    /* fundo chapado: o gradiente ambiente saiu (produto de trabalho, sem vitrine) */
+    background: var(--vr-bg);
     color: var(--vr-text);
     font-family: var(--vr-font-ui);
     font-size: var(--vr-text-base);

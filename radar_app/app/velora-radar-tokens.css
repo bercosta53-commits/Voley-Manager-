@@ -67,10 +67,11 @@
   --vr-space: 8px;
 
   /* ---------- raio: cresce com a elevação ---------- */
-  --vr-radius-chip: 6px;
-  --vr-radius-control: 10px;
-  --vr-radius-card: 14px;
-  --vr-radius-overlay: 20px;
+  /* produto de trabalho, não vitrine: cantos contidos (chip 4, controle 6, cartão 8, camada flutuante 12) */
+  --vr-radius-chip: 4px;
+  --vr-radius-control: 6px;
+  --vr-radius-card: 8px;
+  --vr-radius-overlay: 12px;
   --vr-radius-full: 9999px;
 
   /* ---------- elevação: sombras em camadas + borda fina ---------- */

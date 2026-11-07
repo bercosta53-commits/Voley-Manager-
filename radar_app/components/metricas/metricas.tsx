@@ -151,7 +151,7 @@ export function TelaMetricas({ base }: { base: Base }) {
 
   return (
     <Casca base={base}>
-      <main className="mx-auto w-full max-w-[1040px] px-4 pt-2 pb-28 md:px-6 md:pt-10 md:pb-16">
+      <main className="w-full max-w-[1440px] px-4 pt-2 pb-28 md:px-8 md:pt-8 md:pb-16">
         <div className="mb-6 md:mb-8">
           <h1 className="font-display text-2xl font-semibold tracking-tight">Métricas</h1>
           <p className="mt-1 max-w-xl text-sm text-text-3">

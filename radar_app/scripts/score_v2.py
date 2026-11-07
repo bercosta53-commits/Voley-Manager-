@@ -27,7 +27,7 @@ import re
 import sys
 import unicodedata
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
@@ -759,6 +759,8 @@ def exibir(base: dict, hoje: date) -> None:
     base["sinais"].sort(key=lambda sn: (anel.get(sn["contaId"], (9, 0)), ordem_nivel[sn["nivel"]],
                                         -date.fromisoformat(sn["data"]).toordinal()))
     base["scoreVersao"] = VERSAO
+    base["geradoEm"] = hoje.isoformat()
+    base["atualizadoEm"] = datetime.now().astimezone().isoformat(timespec="minutes")
     from registrar_fontes import registrar  # tela Fontes: o que cada coletor trouxe de fato
     base["fontes"] = registrar(base, hoje)
 

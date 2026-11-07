@@ -209,6 +209,8 @@ export interface EventoAgenda {
 
 export interface Base {
   geradoEm: string;
+  /** data e hora da última atualização da base (score_v2.py --exibir) */
+  atualizadoEm?: string;
   contas: Conta[];
   sinais: Sinal[];
   fontes: Fonte[];

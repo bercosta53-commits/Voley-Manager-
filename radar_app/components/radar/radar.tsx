@@ -119,21 +119,20 @@ export function TelaRadar({ base, proximidade: proximidadeOriginal }: { base: Ba
 
   return (
     <Casca base={base}>
-      <main className="mx-auto w-full max-w-[1280px] px-4 pt-2 pb-28 md:px-6 md:pt-10 md:pb-16">
+      <main className="w-full max-w-[1440px] px-4 pt-2 pb-28 md:px-8 md:pt-8 md:pb-16">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl font-semibold tracking-tight">Radar de proximidade</h1>
             <p className="mt-1 text-sm text-text-3">
-              Distância até a primeira conversa: {plural(proximidade.contas.length, 'conta', 'contas')} da base, anel pelo score v{proximidade.versaoPesos}, fatia pela família de TI.
+              Distância até a primeira conversa: {plural(proximidade.contas.length, 'conta', 'contas')} da base. O anel vem da ação da matriz ICP × score (VSCS); a fatia é a família de TI.
             </p>
           </div>
           <div className="vr-card flex items-center gap-4 px-4 py-2.5">
             <div>
               <p className="vr-data text-xl font-semibold text-ok">
                 {naZona}
-                <span className="text-text-3">/{proximidade.metaZonaAtivacao}</span>
               </p>
-              <p className="text-xs text-text-3">na zona de ativação</p>
+              <p className="text-xs text-text-3">prontas para abordar</p>
             </div>
             {convertidas > 0 && (
               <div className="border-l border-border pl-4">

@@ -61,6 +61,8 @@ interface Props {
   hoje: string;
   /** na caixa, as ações de triagem; fora dela, só "voltar para a caixa" */
   naCaixa: boolean;
+  /** dentro do painel do celular: as ações ficam nos botões grandes do painel, não no cartão */
+  semAcoes?: boolean;
   deslizavel: boolean;
   onAcao: (acao: AcaoCartao) => void;
   /** relevância que a pessoa dá ao sinal (1 mantém, 2 +10%, 3 +15%) */
@@ -70,7 +72,7 @@ interface Props {
 }
 
 export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
-  { sinal, conta, estado, hoje, naCaixa, deslizavel, onAcao, onAvaliar, onAbrir, onFoco },
+  { sinal, conta, estado, hoje, naCaixa, semAcoes, deslizavel, onAcao, onAvaliar, onAbrir, onFoco },
   ref,
 ) {
   const reduzir = useReducedMotion();
@@ -276,7 +278,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
         </div>
 
         {/* ações */}
-        {naCaixa ? (
+        {semAcoes ? null : naCaixa ? (
           <div
             className={cn('flex flex-wrap items-center gap-1.5 border-t border-border pt-3', deslizavel && 'hidden')}
             onClick={e => e.stopPropagation()}

@@ -67,7 +67,7 @@ export function TelaConta({ base: baseOriginal, contaId }: { base: Base; contaId
 
   return (
     <Casca base={base}>
-      <main className="mx-auto w-full max-w-[1040px] px-4 pt-2 pb-28 md:px-6 md:pt-8 md:pb-16">
+      <main className="w-full max-w-[1440px] px-4 pt-2 pb-28 md:px-8 md:pt-8 md:pb-16">
         <Link href="/contas" className="mb-4 inline-flex items-center gap-1 rounded-chip text-sm text-text-3 hover:text-foreground md:mb-6">
           <ChevronLeft className="size-4" strokeWidth={1.5} /> Contas
         </Link>

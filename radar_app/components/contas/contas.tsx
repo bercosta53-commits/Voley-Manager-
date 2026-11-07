@@ -10,6 +10,7 @@ import { aplicarAvaliacoes } from '@/lib/avaliacao';
 import { FAMILIAS, STATUS, familia, hrefConta, primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, status } from '@/lib/contas';
 import { SEM_FILTRO, aplicar, daUrl, temFiltro, type Filtros } from '@/lib/filtros';
 import { baixarCsv } from '@/lib/exportar-csv';
+import { SeloVscs } from '@/components/ui/selo-vscs';
 import { cn, plural, quando } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -109,7 +110,7 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
 
   return (
     <Casca base={base}>
-      <main className="mx-auto w-full max-w-[1120px] px-4 pt-2 pb-28 md:px-6 md:pt-10 md:pb-16">
+      <main className="w-full max-w-[1440px] px-4 pt-2 pb-28 md:px-8 md:pt-8 md:pb-16">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl font-semibold tracking-tight">Contas</h1>
@@ -220,8 +221,8 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
                 onClick={() =>
                   baixarCsv(
                     'contas.csv',
-                    ['Nome', 'Razão social', 'CNPJ', 'Domínio', 'Cidade', 'UF', 'Ramo de TI', 'Especialização', 'Tier ICP', 'Motivos do tier', 'Status', 'Score', 'Tendência'],
-                    linhas.map(c => [c.nome, c.razaoSocial, c.cnpj, c.dominio, c.cidade, c.uf, c.ramoTI?.nome ?? c.segmento, c.especializacao?.nome ?? '', c.tier, (c.icp?.motivos ?? []).join('; '), rotuloStatus(c), c.score, c.tendencia]),
+                    ['Nome', 'Razão social', 'CNPJ', 'Domínio', 'Cidade', 'UF', 'Ramo de TI', 'Especialização', 'Tier ICP', 'Motivos do tier', 'Status VSCS', 'Ação', 'Status comercial', 'Score', 'Tendência'],
+                    linhas.map(c => [c.nome, c.razaoSocial, c.cnpj, c.dominio, c.cidade, c.uf, c.ramoTI?.nome ?? c.segmento, c.especializacao?.nome ?? '', c.tier, (c.icp?.motivos ?? []).join('; '), c.vscsStatus ?? '', c.acaoRecomendada ?? '', rotuloStatus(c), c.score, c.tendencia]),
                   )
                 }
               >
@@ -293,7 +294,7 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
                         Conta
                       </Cabecalho>
                       <th scope="col" className="hidden w-[200px] px-3 py-2.5 font-medium lg:table-cell">Segmento</th>
-                      <th scope="col" className="hidden w-[116px] px-3 py-2.5 font-medium md:table-cell">Status</th>
+                      <th scope="col" className="hidden w-[170px] px-3 py-2.5 font-medium md:table-cell">Status · ação</th>
                       <Cabecalho col="sinal" ordem={ordem} onOrdenar={ordenar} className="hidden w-[250px] md:table-cell">
                         Último sinal
                       </Cabecalho>
@@ -342,7 +343,7 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
                                   ]
                                     .filter(Boolean)
                                     .join(' · ')}
-                                  <span className="md:hidden"> · {rotuloStatus(c)}</span>
+                                  {c.vscsStatus && <span className="md:hidden"> · {c.vscsStatus}</span>}
                                 </span>
                               </div>
                             </div>
@@ -352,7 +353,7 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
                             {c.especializacao && c.especializacao.codigo !== 'GEN' && <span className="text-text-3"> · {c.especializacao.nome}</span>}
                           </td>
                           <td className="hidden px-3 py-2.5 md:table-cell">
-                            <StatusChip conta={c} />
+                            <SeloVscs status={c.vscsStatus} acao={c.acaoRecomendada} />
                           </td>
                           <td className="hidden px-3 py-2.5 md:table-cell">
                             {s ? (
@@ -432,20 +433,6 @@ function ScoreLinha({ conta }: { conta: Conta }) {
       </span>
       <span className="w-8 text-right font-display text-md font-semibold tabular-nums">{conta.score}</span>
     </div>
-  );
-}
-
-function StatusChip({ conta }: { conta: Conta }) {
-  const s = status(conta);
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-chip px-1.5 py-0.5 text-xs whitespace-nowrap',
-        s === 'ativar' ? 'bg-ok-bg text-ok' : s === 'nutrir' ? 'bg-secondary text-text-2' : 'text-text-3',
-      )}
-    >
-      {rotuloStatus(conta)}
-    </span>
   );
 }
 

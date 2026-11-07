@@ -106,7 +106,7 @@ export function TelaDecisores({ base }: { base: Base }) {
 
   return (
     <Casca base={base}>
-      <main className="mx-auto w-full max-w-[1120px] px-4 pt-2 pb-28 md:px-6 md:pt-10 md:pb-16">
+      <main className="w-full max-w-[1440px] px-4 pt-2 pb-28 md:px-8 md:pt-8 md:pb-16">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl font-semibold tracking-tight">Decisores</h1>

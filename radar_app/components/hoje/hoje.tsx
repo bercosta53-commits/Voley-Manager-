@@ -4,15 +4,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { Archive, CalendarClock, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
-import type { Base, EstadoSinal, Sinal } from '@/lib/tipos';
+import type { Base, EstadoSinal, Sinal, StatusVscs } from '@/lib/tipos';
 import { cn, dataCurta, dataLonga, plural, somarDias } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/ui/kbd';
 import { PainelFlutuante } from '@/components/ui/painel-flutuante';
 import { Abordar } from './abordar';
 import { Agenda } from './agenda';
-import { aplicarAvaliacoes, ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
+import { aplicarAvaliacoes, FAIXAS_VSCS, ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
+import { COR_STATUS_VSCS } from '@/components/ui/selo-vscs';
 import { CartaoSinal, type AcaoCartao } from './cartao-sinal';
+import { LinhaSinal } from './linha-sinal';
+import { Decomposicao } from '@/components/conta/decomposicao';
+import { SeloVscs } from '@/components/ui/selo-vscs';
 import { CaixaVazia, ErroCarregar, ListaEsqueleto, SemPermissao } from './estados';
 import { VISOES, type Visao } from './navegacao';
 import { Casca } from '@/components/casca/casca';
@@ -24,6 +28,19 @@ import { useEstados } from './estado';
 export type EstadoTela = 'normal' | 'carregando' | 'vazio' | 'erro' | 'sem-permissao';
 
 const ADIAR_DIAS = 3;
+
+/** Computador com espaço para lista + detalhe lado a lado. */
+function useLargo() {
+  const [largo, setLargo] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const ver = () => setLargo(mq.matches);
+    ver();
+    mq.addEventListener('change', ver);
+    return () => mq.removeEventListener('change', ver);
+  }, []);
+  return largo;
+}
 
 function useCelular() {
   const [celular, setCelular] = useState(false);
@@ -58,8 +75,10 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
   const [detalhe, setDetalhe] = useState<Sinal | null>(null);
   const [ajuda, setAjuda] = useState(false);
   const celular = useCelular();
+  const largo = useLargo();
   const router = useRouter();
   const refs = useRef<(HTMLElement | null)[]>([]);
+  const refsLinhas = useRef<(HTMLButtonElement | null)[]>([]);
 
   const contas = useMemo(() => new Map(base.contas.map(c => [c.id, c])), [base.contas]);
   // notícia sem fato acionável (noticia_setorial) não é sinal: fica só na linha do tempo da conta
@@ -87,6 +106,16 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
   const lista = listas[visao];
   const contagens = { caixa: listas.caixa.length, adiados: listas.adiados.length, concluidos: listas.concluidos.length };
   const novosHoje = listas.caixa.filter(s => s.data >= hoje).length;
+  // contas com sinal na caixa, por faixa do score: o resumo do dia antes da lista
+  const porStatus = useMemo(() => {
+    const ids = new Set(listas.caixa.map(s => s.contaId));
+    const n = new Map<StatusVscs, number>();
+    for (const id of ids) {
+      const st = contas.get(id)?.vscsStatus;
+      if (st) n.set(st, (n.get(st) ?? 0) + 1);
+    }
+    return FAIXAS_VSCS.map(([, st]) => [st, n.get(st) ?? 0] as const).filter(([, q]) => q > 0);
+  }, [listas.caixa, contas]);
 
   // ---------- ações ----------
 
@@ -160,15 +189,17 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
       if (!n) return;
       const atual = Math.min(foco, n - 1);
       const mapa: Record<string, AcaoCartao> = visao === 'caixa' ? { a: 'abordar', u: 'util', r: 'ruido', s: 'adiar', e: 'arquivar' } : {};
+      // no computador largo a navegação anda pela lista; no resto, pelos cartões
+      const alvos: (HTMLElement | null)[] = largo ? refsLinhas.current : refs.current;
       if (ev.key === 'j' || ev.key === 'k') {
         ev.preventDefault();
-        // Primeiro j (nenhum cartão em foco ainda) fica no primeiro cartão.
-        const algumFocado = refs.current.some(r => r && r === document.activeElement);
+        // Primeiro j (nada em foco ainda) fica no primeiro item; na lista larga já há um selecionado.
+        const algumFocado = largo || alvos.some(r => r && r === document.activeElement);
         const prox = !algumFocado ? atual : ev.key === 'j' ? Math.min(n - 1, atual + 1) : Math.max(0, atual - 1);
         setFoco(prox);
-        refs.current[prox]?.focus();
-        refs.current[prox]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      } else if ((ev.key === 'Enter' || ev.key === 'o') && refs.current.some(r => r && r === document.activeElement)) {
+        alvos[prox]?.focus();
+        alvos[prox]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      } else if ((ev.key === 'Enter' || ev.key === 'o') && (largo || alvos.some(r => r && r === document.activeElement))) {
         ev.preventDefault();
         router.push(hrefConta(lista[atual]!.contaId));
       } else if (mapa[ev.key]) {
@@ -178,7 +209,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
     }
     window.addEventListener('keydown', tecla);
     return () => window.removeEventListener('keydown', tecla);
-  }, [lista, foco, visao, agir, abordarAlvo, detalhe, ajuda, router]);
+  }, [lista, foco, visao, agir, abordarAlvo, detalhe, ajuda, router, largo]);
 
   // Quando um cartão sai, o foco fica no que subiu para o lugar dele.
   const tamanho = lista.length;
@@ -193,9 +224,87 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
   else if (estadoTela === 'erro') conteudo = <ErroCarregar onTentar={() => location.reload()} />;
   else if (estadoTela === 'sem-permissao') conteudo = <SemPermissao />;
   else if (!lista.length) conteudo = <CaixaVazia visao={visao} />;
+  else if (largo) {
+    const atual = lista[Math.min(foco, lista.length - 1)]!;
+    conteudo = (
+      <div className="grid grid-cols-[minmax(340px,420px)_minmax(0,1fr)] items-start gap-6">
+        <div className="vr-card sticky top-6 overflow-hidden">
+          <div className="flex items-center justify-between border-b border-border px-3.5 py-2 text-xs text-text-3">
+            <span>{plural(lista.length, 'sinal', 'sinais')} · mais forte primeiro</span>
+            <span className="flex items-center gap-1"><Kbd>j</Kbd><Kbd>k</Kbd></span>
+          </div>
+          <ul role="listbox" aria-label="Sinais na caixa" className="max-h-[calc(100dvh-180px)] divide-y divide-border overflow-y-auto">
+            {lista.map((s, i) => (
+              <LinhaSinal
+                key={s.id}
+                ref={el => {
+                  refsLinhas.current[i] = el;
+                }}
+                sinal={s}
+                conta={contas.get(s.contaId)!}
+                ativo={s.id === atual.id}
+                util={estados[s.id]?.avaliacao === 'util'}
+                onSelecionar={() => setFoco(i)}
+              />
+            ))}
+          </ul>
+        </div>
+        <div className="min-w-0">
+          <ul aria-label="Sinal selecionado">
+            <CartaoSinal
+              key={atual.id}
+              sinal={atual}
+              conta={contas.get(atual.contaId)!}
+              estado={estados[atual.id]}
+              hoje={hoje}
+              naCaixa
+              deslizavel={false}
+              onAcao={a => agir(atual, a)}
+              onAvaliar={n => avaliar(atual, n)}
+              onAbrir={() => router.push(hrefConta(atual.contaId))}
+              onFoco={() => {}}
+            />
+          </ul>
+          {/* contexto da conta ao lado do sinal: o que fazer (matriz ICP × score) e de onde vem o número */}
+          {(() => {
+            const c = contas.get(atual.contaId)!;
+            return (
+              <section aria-label={`Score de ${c.nome}`} className="vr-card mt-4 p-5">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-sm font-semibold">Por que {c.nome} está com {c.score}</h2>
+                  <SeloVscs status={c.vscsStatus} acao={c.acaoRecomendada} className="flex-row! items-center! gap-2!" />
+                </div>
+                <Decomposicao conta={c} />
+                <Link href={hrefConta(c.id)} className="mt-4 inline-block text-sm font-medium text-text-2 underline decoration-border-strong underline-offset-4 hover:text-foreground">
+                  Abrir a conta: comitê, linha do tempo e dados cadastrais
+                </Link>
+              </section>
+            );
+          })()}
+        </div>
+      </div>
+    );
+  } else if (celular)
+    // celular: a mesma lista compacta; tocar abre o cartão completo no painel de baixo
+    conteudo = (
+      <div className="vr-card overflow-hidden">
+        <ul role="listbox" aria-label="Sinais na caixa" className="divide-y divide-border">
+          {lista.map((s, i) => (
+            <LinhaSinal
+              key={s.id}
+              sinal={s}
+              conta={contas.get(s.contaId)!}
+              ativo={false}
+              util={estados[s.id]?.avaliacao === 'util'}
+              onSelecionar={() => (setFoco(i), setDetalhe(s))}
+            />
+          ))}
+        </ul>
+      </div>
+    );
   else
     conteudo = (
-      <ul className="flex flex-col gap-3" aria-label={`Sinais: ${VISOES.find(v => v.id === visao)!.rotulo}`}>
+      <ul className="flex max-w-[760px] flex-col gap-3" aria-label={`Sinais: ${VISOES.find(v => v.id === visao)!.rotulo}`}>
         <AnimatePresence initial={false} mode="popLayout">
           {lista.map((s, i) => (
             <CartaoSinal
@@ -226,7 +335,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
 
   return (
     <Casca base={base} novos={carregando || semDados ? 0 : contagens.caixa}>
-      <main className="mx-auto w-full max-w-[760px] px-4 pt-2 pb-28 md:px-6 md:pt-10 md:pb-16">
+      <main className="w-full max-w-[1440px] px-4 pt-2 pb-28 md:px-8 md:pt-8 md:pb-16">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4 md:mb-8">
           <div>
             <h1 className="font-display text-2xl font-semibold tracking-tight">Hoje</h1>
@@ -241,6 +350,16 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
               )}
             </p>
           </div>
+          {!semDados && !carregando && porStatus.length > 0 && (
+            <ul aria-label="Contas com sinal na caixa, por faixa do score" className="flex flex-wrap items-center gap-1.5">
+              {porStatus.map(([st, q]) => (
+                <li key={st} className={cn('flex items-center gap-1.5 rounded-chip px-2 py-1 text-xs', COR_STATUS_VSCS[st])}>
+                  <span className="vr-data font-semibold">{q}</span>
+                  {st}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {!semDados && !carregando && visao === 'caixa' && <Agenda eventos={base.agenda ?? []} />}
@@ -287,10 +406,21 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
       >
         {detalhe && detalheConta && (
           <div className="flex flex-col gap-4">
-            <p className="text-md leading-snug">{detalhe.porQueAgora}</p>
-            <p className="text-sm text-text-2">
-              Falar com: {detalhe.abordar.nome ? `${detalhe.abordar.nome}${detalhe.abordar.cargo ? `, ${detalhe.abordar.cargo}` : ''}` : `${detalhe.abordar.cargo} (a identificar)`}
-            </p>
+            <ul aria-label="Sinal" className="-mx-1">
+              <CartaoSinal
+                sinal={detalhe}
+                conta={detalheConta}
+                estado={estados[detalhe.id]}
+                hoje={hoje}
+                naCaixa={naCaixa(estados[detalhe.id])}
+                semAcoes
+                deslizavel={false}
+                onAcao={a => agir(detalhe, a)}
+                onAvaliar={n => avaliar(detalhe, n)}
+                onAbrir={() => {}}
+                onFoco={() => {}}
+              />
+            </ul>
             {naCaixa(estados[detalhe.id]) ? (
               <div className="grid grid-cols-2 gap-2">
                 <Button variant="primary" className="col-span-2" onClick={() => agir(detalhe, 'abordar')}>
