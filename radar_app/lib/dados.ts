@@ -4,6 +4,7 @@ import path from 'node:path';
 import { get } from '@vercel/blob';
 import type { Base } from './tipos';
 import type { DadosClima } from './clima';
+import type { RegrasIcp } from './icp';
 
 /**
  * Lê a base do app, nesta ordem:
@@ -54,4 +55,9 @@ async function lerBaseBruta(): Promise<Base> {
 /** Clima por vertical (aba Clima): data/clima.json, versionado (sem dado pessoal; o motor de clima escreve nele). */
 export async function lerClima(): Promise<DadosClima> {
   return JSON.parse(await readFile(path.join(process.cwd(), 'data', 'clima.json'), 'utf8')) as DadosClima;
+}
+
+/** Regras do ICP (data/icp.json, versionado): as mesmas que scripts/qualificar_icp.py aplica. */
+export async function lerRegrasIcp(): Promise<RegrasIcp> {
+  return JSON.parse(await readFile(path.join(process.cwd(), 'data', 'icp.json'), 'utf8')) as RegrasIcp;
 }

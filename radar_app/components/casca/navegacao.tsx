@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, Building2, CloudSun, Inbox, PlugZap, Radar, Search, UsersRound } from 'lucide-react';
+import { useState } from 'react';
+import { BarChart3, Building2, CloudSun, Crosshair, Inbox, MoreHorizontal, PlugZap, Radar, Search, UsersRound } from 'lucide-react';
+import { PainelFlutuante } from '@/components/ui/painel-flutuante';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/ui/kbd';
@@ -13,6 +15,7 @@ import type { Base } from '@/lib/tipos';
 export const SECOES = [
   { href: '/', rotulo: 'Hoje', icone: Inbox },
   { href: '/radar', rotulo: 'Radar', icone: Radar },
+  { href: '/icp', rotulo: 'ICP', icone: Crosshair },
   { href: '/contas', rotulo: 'Contas', icone: Building2 },
   { href: '/decisores', rotulo: 'Decisores', icone: UsersRound },
   { href: '/fontes', rotulo: 'Fontes', icone: PlugZap },
@@ -172,34 +175,51 @@ export function TopoCelular({ ficticia, onBuscar }: { ficticia: boolean; onBusca
   );
 }
 
-/** Navegação inferior (celular): camada flutuante com glass. Alvos de toque de 44px ou mais. */
+/** Navegação inferior (celular): cinco seções + "Mais" com o resto. Alvos de toque de 44px ou mais. */
+const NO_CELULAR = ['/', '/radar', '/icp', '/contas', '/decisores'];
+
 export function NavInferior({ novos }: { novos: number }) {
   const ativa = useSecaoAtiva();
+  const [mais, setMais] = useState(false);
+  const principais = SECOES.filter(s => NO_CELULAR.includes(s.href));
+  const resto = SECOES.filter(s => !NO_CELULAR.includes(s.href));
+  const restoAtivo = resto.some(s => ativa(s.href));
+  const item = 'flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-card text-xs font-medium text-text-3 transition-colors duration-[var(--vr-dur-hover)]';
   return (
-    <nav
-      aria-label="Seções"
-      className="vr-glass fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-30 flex h-16 items-stretch rounded-overlay p-1.5 shadow-3 md:hidden"
-    >
-      {SECOES.map(({ href, rotulo, icone: Icone }) => (
-        <Link
-          key={href}
-          href={href}
-          aria-current={ativa(href) ? 'page' : undefined}
-          className={cn(
-            'flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-card text-xs font-medium text-text-3 transition-colors duration-[var(--vr-dur-hover)]',
-            ativa(href) && 'bg-card text-foreground shadow-1',
-          )}
-        >
-          <span className="relative">
-            <Icone className="size-5" strokeWidth={1.5} />
-            {href === '/' && novos > 0 && (
-              <span aria-hidden className="absolute -top-0.5 -right-1 size-2 rounded-full bg-acid ring-2 ring-[var(--vr-glass-solid)]" />
-            )}
-          </span>
-          {rotulo}
-          {href === '/' && novos > 0 && <span className="sr-only">, {novos} na caixa</span>}
-        </Link>
-      ))}
-    </nav>
+    <>
+      <nav aria-label="Seções" className="vr-glass fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-30 flex h-16 items-stretch rounded-overlay p-1.5 shadow-3 md:hidden">
+        {principais.map(({ href, rotulo, icone: Icone }) => (
+          <Link key={href} href={href} aria-current={ativa(href) ? 'page' : undefined} className={cn(item, ativa(href) && 'bg-card text-foreground shadow-1')}>
+            <span className="relative">
+              <Icone className="size-5" strokeWidth={1.5} />
+              {href === '/' && novos > 0 && <span aria-hidden className="absolute -top-0.5 -right-1 size-2 rounded-full bg-acid ring-2 ring-[var(--vr-glass-solid)]" />}
+            </span>
+            {rotulo}
+            {href === '/' && novos > 0 && <span className="sr-only">, {novos} na caixa</span>}
+          </Link>
+        ))}
+        <button type="button" onClick={() => setMais(true)} aria-haspopup="dialog" className={cn(item, restoAtivo && 'bg-card text-foreground shadow-1')}>
+          <MoreHorizontal className="size-5" strokeWidth={1.5} />
+          Mais
+        </button>
+      </nav>
+      <PainelFlutuante aberto={mais} onFechar={() => setMais(false)} titulo="Mais seções">
+        <ul className="flex flex-col gap-1">
+          {resto.map(({ href, rotulo, icone: Icone }) => (
+            <li key={href}>
+              <Link
+                href={href}
+                onClick={() => setMais(false)}
+                aria-current={ativa(href) ? 'page' : undefined}
+                className={cn('flex min-h-12 items-center gap-3 rounded-control px-3 text-md font-medium', ativa(href) ? 'bg-[var(--vr-surface-3)] text-foreground' : 'text-text-2')}
+              >
+                <Icone className="size-5" strokeWidth={1.5} />
+                {rotulo}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </PainelFlutuante>
+    </>
   );
 }
