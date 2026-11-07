@@ -13,6 +13,7 @@ import { Aviso } from '@/components/hoje/estados';
 import { Button } from '@/components/ui/button';
 import { MenuFiltro } from '@/components/contas/menu-filtro';
 import { COR_BARRA, COR_PAPEL, PAPEIS } from '@/lib/papeis';
+import { PerfilBase } from './perfil-base';
 
 const AREAS: { id: Area; rotulo: string }[] = [
   { id: 'executivo', rotulo: 'Executivo' },
@@ -115,6 +116,8 @@ export function TelaDecisores({ base }: { base: Base }) {
             </p>
           </div>
         </div>
+
+        <PerfilBase base={base} papeisAtivos={papeis} onPapel={x => setPapeis(atual => (atual.length === 1 && atual[0] === x ? [] : [x]))} />
 
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <label className="relative flex min-w-0 flex-1 basis-full items-center md:max-w-72 md:basis-auto">
