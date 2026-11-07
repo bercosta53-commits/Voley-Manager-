@@ -2,6 +2,7 @@ import type { Barra } from '@/components/ui/perfil-compacto';
 import type { Base } from './tipos';
 import { FAIXAS_VSCS, ACOES_DE_ABORDAGEM } from './avaliacao';
 import { diasEntre } from './utils';
+import { FAIXAS_CAPITAL, FAIXAS_FUNCIONARIOS, PORTES, REGIOES, SEM_UF, faixaCapital, faixaFuncionarios, porteDe, regiaoDe } from './regioes';
 
 const pct = (n: number, d: number) => (d ? Math.round((100 * n) / d) : 0);
 
@@ -33,6 +34,12 @@ export interface PerfilContas {
   status: Barra[];
   ramos: Barra[];
   ufs: Barra[];
+  todasUfs: Barra[];
+  regioes: Barra[];
+  portes: Barra[];
+  capital: Barra[];
+  funcionarios: Barra[];
+  comFuncionarios: number;
   familias: Barra[];
   especializacoes: Barra[];
   modelos: Barra[];
@@ -57,6 +64,14 @@ export function perfilContas(base: Base): PerfilContas {
     .filter(b => b.valor);
   const ramos = contar(C, c => c.ramoTI?.nome, k => k || 'A classificar');
   const ufs = top(contar(C.filter(c => c.uf), c => c.uf), 5);
+  const todasUfs = contar(C.filter(c => c.uf), c => c.uf);
+  const ordem = <T extends string>(lista: readonly T[], f: (c: (typeof C)[number]) => string | null) =>
+    lista.map(k => ({ id: k, rotulo: k, valor: C.filter(c => f(c) === k).length })).filter(b => b.valor);
+  const regioes = ordem([...REGIOES, SEM_UF], c => regiaoDe(c.uf));
+  const portes = ordem(PORTES, porteDe);
+  const capital = ordem(FAIXAS_CAPITAL, c => faixaCapital(c.capitalSocial));
+  const funcionarios = ordem(FAIXAS_FUNCIONARIOS, c => faixaFuncionarios(c.funcionarios));
+  const comFuncionarios = C.filter(c => c.funcionarios).length;
   const familias = contar(C, c => c.ramoTI?.familia, k => k || 'A classificar');
   const especializacoes = contar(
     C.filter(c => c.especializacao && c.especializacao.codigo !== 'GEN'),
@@ -67,10 +82,16 @@ export function perfilContas(base: Base): PerfilContas {
 
   const b = tiers.find(t => t.id === 'B');
   const sp = ufs.find(u => u.id === 'SP');
+  const maiorRegiao = [...regioes].filter(r => r.id !== SEM_UF).sort((x, y) => y.valor - x.valor)[0];
   const leituras = [
     `Só ${comSinal30} contas (${pct(comSinal30, C.length)}%) tiveram sinal nos últimos 30 dias; ${atencaoOuMais} estão em Atenção ou acima e ${paraAbordar ? `${paraAbordar} pedem abordagem` : 'nenhuma pede abordagem hoje'}.`,
     b ? `${pct(b.valor, C.length)}% da base é tier B; as ${C.filter(c => c.tier === 'A').length} contas tier A são as candidatas a ABM 1:1.` : '',
-    `${sp ? `${pct(sp.valor, C.length)}% estão em SP. ` : ''}Faltam dados: ${semUf} contas sem UF e ${C.length - comCnpj} sem CNPJ confirmado na Receita.`,
+    `${maiorRegiao ? `${pct(maiorRegiao.valor, C.length)}% estão no ${maiorRegiao.rotulo}${sp ? ` (SP sozinho tem ${pct(sp.valor, C.length)}%)` : ''}. ` : ''}Faltam dados: ${semUf} contas sem UF e ${C.length - comCnpj} sem CNPJ confirmado na Receita.`,
+    (() => {
+      const grandes = portes.find(x => x.id === 'Média ou grande')?.valor ?? 0;
+      const comPorte = portes.filter(x => x.id !== 'Sem CNPJ').reduce((n, x) => n + x.valor, 0);
+      return comPorte ? `Das ${comPorte} contas com porte na Receita, ${pct(grandes, comPorte)}% são médias ou grandes; micro e pequenas são ${comPorte - grandes}.` : '';
+    })(),
   ].filter(Boolean);
 
   return {
@@ -85,6 +106,12 @@ export function perfilContas(base: Base): PerfilContas {
     status,
     ramos,
     ufs,
+    todasUfs,
+    regioes,
+    portes,
+    capital,
+    funcionarios,
+    comFuncionarios,
     familias,
     especializacoes,
     modelos,

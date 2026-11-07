@@ -70,6 +70,9 @@ export interface Conta {
   /** data de abertura (AAAA-MM-DD) */
   dataAbertura?: string;
   capitalSocial?: number;
+  /** número de funcionários (Apollo/Indeed/LinkedIn à mão) e de onde veio */
+  funcionarios?: number;
+  funcionariosFonte?: string;
   socios?: Socio[];
   score: number;
   /** pontos ganhos (ou perdidos) nos últimos 30 dias (vscs_delta_30d) */

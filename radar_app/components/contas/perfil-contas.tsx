@@ -26,6 +26,7 @@ export function PerfilContas({ base, tiersAtivos, onTier }: { base: Base; tiersA
       id="contas"
       titulo="Perfil da base de contas"
       leituras={p.leituras}
+      colunas={5}
       numeros={
         <>
           <Numero rotulo="Contas" valor={num(p.contas)} nota={`${p.tierA} tier A`} />
@@ -53,16 +54,46 @@ export function PerfilContas({ base, tiersAtivos, onTier }: { base: Base; tiersA
           <Bloco titulo="Momento (status do score)">
             <Segmentos barras={p.status} total={p.contas} estilo={b => ({ className: COR_STATUS_BARRA[b.id] })} />
           </Bloco>
+          <Bloco titulo={p.comFuncionarios ? 'Funcionários' : 'Porte (Receita)'} dica={p.comFuncionarios ? `${p.comFuncionarios} contas com dado` : 'pelo CNPJ'}>
+            {p.comFuncionarios ? (
+              <Segmentos barras={p.funcionarios} total={p.comFuncionarios} estilo={(_, i) => ({ className: 'bg-cool', style: { opacity: 0.25 + (0.75 * i) / 5 } })} />
+            ) : (
+              <Segmentos
+                barras={p.portes}
+                total={p.contas}
+                estilo={b => ({ className: b.id === 'Sem CNPJ' ? 'bg-border' : 'bg-cool', style: { opacity: { Micro: 0.35, Pequena: 0.6, 'Média ou grande': 1 }[b.id] ?? 1 } })}
+              />
+            )}
+          </Bloco>
           <Bloco titulo="Principais ramos de TI">
             <Ranking barras={p.ramos.filter(r => r.id).slice(0, 5)} total={p.contas} unidade="contas" />
           </Bloco>
-          <Bloco titulo="Onde estão">
-            <Colunas barras={p.ufs} total={p.contas} rotulo="Contas por estado" dica={b => `${num(b.valor)} contas em ${b.rotulo}`} />
+          <Bloco titulo="Região">
+            <Segmentos
+              barras={p.regioes}
+              total={p.contas}
+              estilo={b => ({ className: b.id === 'Sem UF' ? 'bg-border' : 'bg-warm', style: { opacity: { Sudeste: 1, Sul: 0.75, Nordeste: 0.55, 'Centro-Oeste': 0.4, Norte: 0.3 }[b.id] ?? 1 } })}
+            />
+            <p className="mt-1 truncate text-[11px] text-text-3">
+              {p.ufs
+                .filter(u => u.id !== '__outros')
+                .map(u => `${u.rotulo} ${num(u.valor)}`)
+                .join(' · ')}
+            </p>
           </Bloco>
         </>
       }
       detalhe={
         <>
+          <Bloco titulo="Estados" dica="contas com UF">
+            <Colunas barras={p.todasUfs.slice(0, 12)} total={p.contas} rotulo="Contas por estado" dica={b => `${num(b.valor)} contas em ${b.rotulo}`} />
+          </Bloco>
+          <Bloco titulo="Capital social" dica="proxy de porte, pela Receita">
+            <Ranking barras={p.capital} total={p.comCnpj} unidade="contas" />
+            <p className="mt-2 text-[11px] text-text-3">
+              Número de funcionários: {p.comFuncionarios ? `${p.comFuncionarios} contas com dado.` : 'ainda sem fonte (o Apollo traz quando a cobrança for regularizada).'}
+            </p>
+          </Bloco>
           <Bloco titulo="Famílias de TI">
             <Ranking barras={p.familias} total={p.contas} unidade="contas" />
           </Bloco>

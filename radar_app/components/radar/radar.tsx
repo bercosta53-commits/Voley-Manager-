@@ -12,7 +12,9 @@ import { ControleReplay } from './controle-replay';
 import { PainelConta } from './painel-conta';
 import { Flame, Sparkles } from 'lucide-react';
 import { useEstados } from '@/components/hoje/estado';
-import { ACOES_DE_ABORDAGEM, aplicarAvaliacoes } from '@/lib/avaliacao';
+import { ACOES_DE_ABORDAGEM, FAIXAS_VSCS, aplicarAvaliacoes } from '@/lib/avaliacao';
+import { PORTES, REGIOES, SEM_UF, porteDe, regiaoDe } from '@/lib/regioes';
+import { MovimentosSemana } from './movimentos-semana';
 
 const CHAVE_ULTIMA_VISITA = 'vr:radar:ultima-visita';
 
@@ -68,6 +70,11 @@ export function TelaRadar({ base, proximidade: proximidadeOriginal }: { base: Ba
   const [ufs, setUfs] = useState<UF[]>([]);
   const [sinais, setSinais] = useState<string[]>([]);
   const [soCaminhoQuente, setSoCaminhoQuente] = useState(false);
+  const [tiers, setTiers] = useState<string[]>([]);
+  const [regioes, setRegioes] = useState<string[]>([]);
+  const [statusScore, setStatusScore] = useState<string[]>([]);
+  const [portes, setPortes] = useState<string[]>([]);
+  const contaBase = useMemo(() => new Map(base.contas.map(c => [c.id, c])), [base.contas]);
   const [selecionadaId, setSelecionadaId] = useState<string | null>(null);
   const [painelAberto, setPainelAberto] = useState(false);
   const [destacadas, setDestacadas] = useState<Set<string>>(new Set());
@@ -84,9 +91,13 @@ export function TelaRadar({ base, proximidade: proximidadeOriginal }: { base: Ba
           (!bracos.length || bracos.includes(c.braco)) &&
           (!ufs.length || ufs.includes(c.uf)) &&
           (!sinais.length || (c.ultimoSinal && sinais.includes(c.ultimoSinal.tipo))) &&
-          (!soCaminhoQuente || c.acesso.caminhoQuente),
+          (!soCaminhoQuente || c.acesso.caminhoQuente) &&
+          (!tiers.length || tiers.includes(c.tier ?? '')) &&
+          (!regioes.length || regioes.includes(regiaoDe(c.uf))) &&
+          (!statusScore.length || statusScore.includes(contaBase.get(c.id)?.vscsStatus ?? '')) &&
+          (!portes.length || (contaBase.get(c.id) && portes.includes(porteDe(contaBase.get(c.id)!)))),
       ),
-    [proximidade.contas, bracos, ufs, sinais, soCaminhoQuente],
+    [proximidade.contas, bracos, ufs, sinais, soCaminhoQuente, tiers, regioes, statusScore, portes, contaBase],
   );
 
   const pontos = useMemo(
@@ -158,12 +169,39 @@ export function TelaRadar({ base, proximidade: proximidadeOriginal }: { base: Ba
             onMudar={setBracos}
           />
           <MenuFiltro
+            rotulo="Tier"
+            opcoes={['A', 'B', 'C'].map(x => ({ id: x, rotulo: `Tier ${x}`, qtd: proximidade.contas.filter(c => c.tier === x).length })).filter(o => o.qtd)}
+            valor={tiers}
+            onMudar={setTiers}
+          />
+          <MenuFiltro
+            rotulo="Status do score"
+            opcoes={[...FAIXAS_VSCS]
+              .reverse()
+              .map(([, st]) => ({ id: st, rotulo: st, qtd: proximidade.contas.filter(c => contaBase.get(c.id)?.vscsStatus === st).length }))
+              .filter(o => o.qtd)}
+            valor={statusScore}
+            onMudar={setStatusScore}
+          />
+          <MenuFiltro
+            rotulo="Região"
+            opcoes={[...REGIOES, SEM_UF].map(r => ({ id: r, rotulo: r, qtd: proximidade.contas.filter(c => regiaoDe(c.uf) === r).length })).filter(o => o.qtd)}
+            valor={regioes}
+            onMudar={setRegioes}
+          />
+          <MenuFiltro
             rotulo="Estado"
             opcoes={[...new Set([...UFS, ...proximidade.contas.map(c => c.uf)])]
               .map(uf => ({ id: uf, rotulo: uf, qtd: proximidade.contas.filter(c => c.uf === uf).length }))
               .filter(u => u.qtd)}
             valor={ufs}
             onMudar={setUfs}
+          />
+          <MenuFiltro
+            rotulo="Porte"
+            opcoes={PORTES.map(x => ({ id: x, rotulo: x, qtd: proximidade.contas.filter(c => contaBase.get(c.id) && porteDe(contaBase.get(c.id)!) === x).length })).filter(o => o.qtd)}
+            valor={portes}
+            onMudar={setPortes}
           />
           <MenuFiltro
             rotulo="Sinal"
@@ -194,6 +232,14 @@ export function TelaRadar({ base, proximidade: proximidadeOriginal }: { base: Ba
             onParar={() => setTocandoReplay(false)}
           />
         </div>
+
+        <MovimentosSemana
+          base={base}
+          onAbrir={id => {
+            setSelecionadaId(id);
+            setPainelAberto(true);
+          }}
+        />
 
         <div className="vr-card grid grid-cols-1 gap-4 p-4 lg:grid-cols-[1fr_auto] lg:p-6">
           <RadarSvg

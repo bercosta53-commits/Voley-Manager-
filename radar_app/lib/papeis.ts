@@ -39,3 +39,15 @@ export const COR_TIER: Record<string, string> = {
   B: 'bg-cool-bg text-cool',
   C: 'bg-secondary text-text-3',
 };
+
+/** Categoria do VSCS em rótulo curto (chips de contagem). */
+export const CATEGORIA_ROTULO_CURTO: Record<string, string> = {
+  lideranca: 'Liderança',
+  expansao: 'Expansão e investimento',
+  gtm: 'GTM',
+  contratacao: 'Contratações',
+  estrategia: 'Movimentos estratégicos',
+  intencao: 'Intenção',
+  contexto: 'Contexto',
+  negativo: 'Negativos',
+};

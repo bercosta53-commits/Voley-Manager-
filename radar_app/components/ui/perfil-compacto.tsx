@@ -27,7 +27,9 @@ export function FaixaPerfil({
   blocos,
   detalhe,
   leituras,
+  colunas = 4,
 }: {
+  colunas?: 4 | 5;
   id: string;
   titulo: string;
   numeros: React.ReactNode;
@@ -55,7 +57,7 @@ export function FaixaPerfil({
         {titulo}
       </h2>
       <dl className="grid grid-cols-2 divide-border border-b border-border md:grid-cols-4 md:divide-x">{numeros}</dl>
-      <div className="grid gap-x-6 gap-y-4 px-4 py-3.5 md:grid-cols-2 xl:grid-cols-4">{blocos}</div>
+      <div className={cn('grid gap-x-6 gap-y-4 px-4 py-3.5 md:grid-cols-2', colunas === 5 ? 'lg:grid-cols-3 xl:grid-cols-5' : 'xl:grid-cols-4')}>{blocos}</div>
       {aberto && (
         <div id={`perfil-${id}-detalhe`} className="grid gap-x-6 gap-y-5 border-t border-border px-4 py-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1.3fr]">
           {detalhe}
