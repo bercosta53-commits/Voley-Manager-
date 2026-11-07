@@ -1,0 +1,653 @@
+{
+ "_sobre": "Clima por vertical (aba Clima). Macro (Selic, IIE-Br, TI Brasil, VC) com dados de nov/2026; os parâmetros por vertical (sensibilidade, driver setorial, notícias, estado) são simulados até o motor de clima rodar. Contas, tier e VSCS vêm da base.",
+ "atualizadoEm": "2026-11-07T07:10",
+ "indicadoresEmDia": [
+  7,
+  9
+ ],
+ "simulado": true,
+ "brasil": {
+  "nota": "Copom pausou os cortes em 13,75% e chamou a Selic de substancialmente contracionista. Incerteza caiu, mas a dispersão das projeções subiu.",
+  "delta30": -0.15,
+  "estado": "Instável",
+  "fatorClima": 0.74,
+  "contasEmMercadoTri": "~3,7%",
+  "baseEmMercado": "5%"
+ },
+ "blocos": [
+  "Juros",
+  "Juros esp.",
+  "Inflação",
+  "Câmbio",
+  "Incerteza",
+  "Atividade",
+  "Cap. risco"
+ ],
+ "z": [
+  -0.55,
+  -0.25,
+  -0.35,
+  -0.3,
+  0.05,
+  -0.2,
+  -0.4
+ ],
+ "pesos": {
+  "macro": 0.4,
+  "setorial": 0.45,
+  "noticias": 0.15
+ },
+ "limiares": {
+  "bom": 0.25,
+  "ruim": -0.25
+ },
+ "indicadores": [
+  {
+   "rotulo": "Selic meta",
+   "valor": "13,75%",
+   "delta": "pausa · 04/11",
+   "tom": "atencao",
+   "cor": "ruim",
+   "serie": [
+    15,
+    15,
+    14.75,
+    14.5,
+    14.5,
+    14.25,
+    14.25,
+    14,
+    13.75,
+    13.75,
+    13.75
+   ],
+   "faixa": [
+    13.5,
+    15.2
+   ],
+   "nota": "5 cortes de 0,25 desde março; Copom: \"substancialmente contracionista\".",
+   "fonte": "BCB · Copom 282ª"
+  },
+  {
+   "rotulo": "Incerteza (IIE-Br)",
+   "valor": "109,0",
+   "delta": "−1,8 em out",
+   "tom": "bom",
+   "cor": "atencao",
+   "serie": [
+    105.8,
+    117.2,
+    111.3,
+    109.4,
+    110.8,
+    109.0
+   ],
+   "faixa": [
+    104,
+    118
+   ],
+   "nota": "Menos incerteza política na mídia; mais dispersão nas projeções.",
+   "fonte": "FGV IBRE · coleta antes do 2º turno"
+  },
+  {
+   "rotulo": "TI Brasil 2026",
+   "valor": "+5,3%",
+   "delta": "vs. 10% no mundo",
+   "tom": "ruim",
+   "cor": "neutro",
+   "serie": [
+    9.5,
+    18.5,
+    5.3
+   ],
+   "faixa": [
+    4,
+    20
+   ],
+   "nota": "Juros altos, inflação resiliente e déficit fiscal; 2025 cresceu 18,5%.",
+   "fonte": "Abes / IDC"
+  },
+  {
+   "rotulo": "VC Brasil · 1º tri",
+   "valor": "US$ 429 mi",
+   "delta": "−36% a/a",
+   "tom": "ruim",
+   "cor": "ruim",
+   "serie": [
+    669,
+    428.6
+   ],
+   "faixa": [
+    380,
+    700
+   ],
+   "nota": "Investidores mais seletivos; menos rodadas = menos orçamento de growth.",
+   "fonte": "KPMG Venture Pulse"
+  }
+ ],
+ "agenda": [
+  {
+   "d": "10/11",
+   "t": "Ata do Copom"
+  },
+  {
+   "d": "semanal",
+   "t": "Boletim Focus"
+  },
+  {
+   "d": "fim de nov",
+   "t": "IIE-Br de novembro"
+  },
+  {
+   "d": "09/12",
+   "t": "Copom — última de 2026"
+  },
+  {
+   "d": "01/01",
+   "t": "CBS entra em vigor"
+  }
+ ],
+ "marcos": [
+  {
+   "semanasAtras": 0,
+   "rotulo": "Copom 04/11 · pausa"
+  },
+  {
+   "semanasAtras": 7,
+   "rotulo": "Copom 16/09 · −0,25"
+  },
+  {
+   "semanasAtras": 20,
+   "rotulo": "Copom 17/06 · −0,25"
+  }
+ ],
+ "jogadas": {
+  "Ativar": "Abordagem direta com \"por que agora\" e proposta de crescimento.",
+  "Monitorar": "A conta decide pelos próprios fatos; seguir a matriz Tier × VSCS.",
+  "Reduzir risco": "Diagnóstico de 2–3 semanas, ROI explícito, prova social, multithread no comitê.",
+  "Presença": "Trocar ativação por conteúdo, eventos e white paper; abordar só VSCS ≥ 55."
+ },
+ "verticais": [
+  {
+   "id": "ESP15",
+   "nome": "Regtech",
+   "codigos": [
+    "ESP15"
+   ],
+   "sens": [
+    0.2,
+    0.2,
+    0.2,
+    0.1,
+    0.3,
+    0.3,
+    0.3
+   ],
+   "setorial": 0.8,
+   "noticias": 0.3,
+   "delta30": 0.08,
+   "estado": "Bom",
+   "confianca": "Média",
+   "desde": "2026-09-12",
+   "jogada": "Ativar",
+   "porque": "Prazo da CBS (01/01/2027) obriga adequação de ERP e fiscal"
+  },
+  {
+   "id": "ESP02",
+   "nome": "Insurtech",
+   "codigos": [
+    "ESP02"
+   ],
+   "sens": [
+    -0.3,
+    0.3,
+    0.4,
+    0.2,
+    0.5,
+    0.4,
+    0.5
+   ],
+   "setorial": 0.75,
+   "noticias": 0.0,
+   "delta30": 0.02,
+   "estado": "Bom",
+   "confianca": "Baixa",
+   "desde": "2026-08-20",
+   "jogada": "Ativar",
+   "porque": "Selic alta sustenta a receita financeira das seguradoras"
+  },
+  {
+   "id": "ESP08",
+   "nome": "Legaltech",
+   "codigos": [
+    "ESP08"
+   ],
+   "sens": [
+    0.3,
+    0.3,
+    0.2,
+    0.1,
+    0.4,
+    0.4,
+    0.3
+   ],
+   "setorial": 0.7,
+   "noticias": 0.4,
+   "delta30": 0.06,
+   "estado": "Bom",
+   "confianca": "Média",
+   "desde": "2026-10-03",
+   "jogada": "Ativar",
+   "porque": "Transição tributária e IA jurídica aquecem a demanda"
+  },
+  {
+   "id": "ESP07",
+   "nome": "Logtech",
+   "codigos": [
+    "ESP07"
+   ],
+   "sens": [
+    0.5,
+    0.4,
+    0.4,
+    0.5,
+    0.5,
+    0.9,
+    0.4
+   ],
+   "setorial": 0.35,
+   "noticias": 0.4,
+   "delta30": 0.09,
+   "estado": "Neutro",
+   "confianca": "Média",
+   "desde": "2026-09-28",
+   "jogada": "Monitorar",
+   "porque": "Black Friday projeta +14% em cotações de frete"
+  },
+  {
+   "id": "ESP14",
+   "nome": "Energytech",
+   "codigos": [
+    "ESP14"
+   ],
+   "sens": [
+    0.6,
+    0.5,
+    0.3,
+    0.4,
+    0.5,
+    0.5,
+    0.5
+   ],
+   "setorial": 0.25,
+   "noticias": 0.0,
+   "delta30": 0.01,
+   "estado": "Neutro",
+   "confianca": "Baixa",
+   "desde": "2026-08-05",
+   "jogada": "Monitorar",
+   "porque": "Abertura do mercado livre avança devagar"
+  },
+  {
+   "id": "ESP18",
+   "nome": "Mobilitytech",
+   "codigos": [
+    "ESP18"
+   ],
+   "sens": [
+    0.7,
+    0.6,
+    0.5,
+    0.5,
+    0.5,
+    0.7,
+    0.5
+   ],
+   "setorial": 0.2,
+   "noticias": 0.0,
+   "delta30": 0.03,
+   "estado": "Neutro",
+   "confianca": "Média",
+   "desde": "2026-09-01",
+   "jogada": "Monitorar",
+   "porque": "Vendas de veículos mistas em outubro"
+  },
+  {
+   "id": "ESP10",
+   "nome": "HR Tech",
+   "codigos": [
+    "ESP10"
+   ],
+   "sens": [
+    0.5,
+    0.4,
+    0.4,
+    0.1,
+    0.5,
+    0.9,
+    0.5
+   ],
+   "setorial": 0.15,
+   "noticias": 0.0,
+   "delta30": -0.04,
+   "estado": "Neutro",
+   "confianca": "Média",
+   "desde": "2026-08-15",
+   "jogada": "Monitorar",
+   "porque": "Emprego formal desacelera; sem mudança no eSocial"
+  },
+  {
+   "id": "ESP19",
+   "nome": "Traveltech",
+   "codigos": [
+    "ESP19"
+   ],
+   "sens": [
+    0.4,
+    0.4,
+    0.5,
+    0.8,
+    0.6,
+    0.8,
+    0.4
+   ],
+   "setorial": 0.1,
+   "noticias": 0.1,
+   "delta30": -0.03,
+   "estado": "Neutro",
+   "confianca": "Baixa",
+   "desde": "2026-09-10",
+   "jogada": "Monitorar",
+   "porque": "Dólar em alta encarece viagem internacional"
+  },
+  {
+   "id": "ESP03",
+   "nome": "Healthtech",
+   "codigos": [
+    "ESP03"
+   ],
+   "sens": [
+    0.6,
+    0.5,
+    0.3,
+    0.3,
+    0.5,
+    0.4,
+    0.6
+   ],
+   "setorial": 0.0,
+   "noticias": 0.0,
+   "delta30": -0.06,
+   "estado": "Neutro",
+   "confianca": "Baixa",
+   "desde": "2026-07-22",
+   "jogada": "Monitorar",
+   "porque": "Sinistralidade das operadoras segura investimento"
+  },
+  {
+   "id": "ESP20",
+   "nome": "Foodtech",
+   "codigos": [
+    "ESP20"
+   ],
+   "sens": [
+    0.4,
+    0.4,
+    0.8,
+    0.3,
+    0.4,
+    0.7,
+    0.5
+   ],
+   "setorial": -0.1,
+   "noticias": 0.0,
+   "delta30": -0.02,
+   "estado": "Neutro",
+   "confianca": "Baixa",
+   "desde": "2026-09-18",
+   "jogada": "Monitorar",
+   "porque": "Inflação de alimentos acima da meta"
+  },
+  {
+   "id": "ESP05",
+   "nome": "Agtech",
+   "codigos": [
+    "ESP05"
+   ],
+   "sens": [
+    0.6,
+    0.5,
+    0.3,
+    0.7,
+    0.4,
+    0.4,
+    0.4
+   ],
+   "setorial": 0.25,
+   "noticias": 0.0,
+   "delta30": -0.12,
+   "estado": "Instável",
+   "confianca": "Baixa",
+   "desde": "2026-11-04",
+   "jogada": "Reduzir risco",
+   "porque": "El Niño citado pelo Copom; dólar alto ajuda exportador"
+  },
+  {
+   "id": "ESP09",
+   "nome": "Govtech",
+   "codigos": [
+    "ESP09"
+   ],
+   "sens": [
+    0.2,
+    0.2,
+    0.3,
+    0.1,
+    0.7,
+    0.3,
+    0.2
+   ],
+   "setorial": -0.1,
+   "noticias": 0.0,
+   "delta30": -0.1,
+   "estado": "Instável",
+   "confianca": "Baixa",
+   "desde": "2026-10-28",
+   "jogada": "Presença",
+   "porque": "Novos mandatos em jan/2027 travam contratações até a LOA"
+  },
+  {
+   "id": "MKT",
+   "nome": "Adtech & Martech",
+   "codigos": [
+    "ESP16",
+    "ESP17"
+   ],
+   "sens": [
+    0.5,
+    0.5,
+    0.6,
+    0.3,
+    0.7,
+    0.9,
+    0.6
+   ],
+   "setorial": -0.1,
+   "noticias": -0.3,
+   "delta30": -0.36,
+   "estado": "Instável",
+   "confianca": "Baixa",
+   "desde": "2026-10-22",
+   "jogada": "Presença",
+   "porque": "Varejo online fraco no 3T; verba publicitária incerta"
+  },
+  {
+   "id": "ESP01",
+   "nome": "Fintech",
+   "codigos": [
+    "ESP01"
+   ],
+   "sens": [
+    0.9,
+    0.8,
+    0.4,
+    0.3,
+    0.6,
+    0.4,
+    0.8
+   ],
+   "setorial": -0.15,
+   "noticias": -0.1,
+   "delta30": -0.18,
+   "estado": "Instável",
+   "confianca": "Média",
+   "desde": "2026-11-04",
+   "jogada": "Reduzir risco",
+   "porque": "Copom pausou cortes; inadimplência PJ sobe; rodadas fracas"
+  },
+  {
+   "id": "GEN",
+   "nome": "Generalista",
+   "codigos": [
+    "GEN"
+   ],
+   "sens": [
+    0.6,
+    0.6,
+    0.4,
+    0.3,
+    0.6,
+    0.6,
+    0.5
+   ],
+   "setorial": 0.0,
+   "noticias": 0.0,
+   "delta30": -0.15,
+   "estado": "Instável",
+   "confianca": "Alta",
+   "desde": "2026-11-04",
+   "jogada": "Reduzir risco",
+   "porque": "Sem vertical definida: segue o clima Brasil"
+  },
+  {
+   "id": "ESP04",
+   "nome": "Edtech",
+   "codigos": [
+    "ESP04"
+   ],
+   "sens": [
+    0.5,
+    0.4,
+    0.6,
+    0.1,
+    0.5,
+    0.6,
+    0.7
+   ],
+   "setorial": -0.35,
+   "noticias": 0.0,
+   "delta30": -0.09,
+   "estado": "Ruim",
+   "confianca": "Baixa",
+   "desde": "2026-10-09",
+   "jogada": "Presença",
+   "porque": "Regras de EAD mais duras e renda pressionada"
+  },
+  {
+   "id": "ESP11",
+   "nome": "Indústria 4.0",
+   "codigos": [
+    "ESP11"
+   ],
+   "sens": [
+    0.8,
+    0.7,
+    0.4,
+    0.6,
+    0.6,
+    0.9,
+    0.3
+   ],
+   "setorial": -0.35,
+   "noticias": -0.1,
+   "delta30": -0.05,
+   "estado": "Ruim",
+   "confianca": "Média",
+   "desde": "2026-09-02",
+   "jogada": "Presença",
+   "porque": "Produção industrial fraca e crédito caro para capex"
+  },
+  {
+   "id": "ESP12",
+   "nome": "Construtech",
+   "codigos": [
+    "ESP12"
+   ],
+   "sens": [
+    1,
+    0.9,
+    0.5,
+    0.2,
+    0.6,
+    0.7,
+    0.4
+   ],
+   "setorial": -0.45,
+   "noticias": 0.1,
+   "delta30": -0.03,
+   "estado": "Ruim",
+   "confianca": "Baixa",
+   "desde": "2026-07-14",
+   "jogada": "Presença",
+   "porque": "Juros imobiliários altos seguram lançamentos"
+  },
+  {
+   "id": "ESP13",
+   "nome": "Proptech",
+   "codigos": [
+    "ESP13"
+   ],
+   "sens": [
+    1,
+    0.9,
+    0.5,
+    0.2,
+    0.6,
+    0.7,
+    0.4
+   ],
+   "setorial": -0.45,
+   "noticias": 0.0,
+   "delta30": -0.02,
+   "estado": "Ruim",
+   "confianca": "Baixa",
+   "desde": "2026-07-14",
+   "jogada": "Presença",
+   "porque": "Crédito imobiliário caro"
+  },
+  {
+   "id": "ESP06",
+   "nome": "Retailtech",
+   "codigos": [
+    "ESP06"
+   ],
+   "sens": [
+    0.7,
+    0.6,
+    0.8,
+    0.4,
+    0.6,
+    0.9,
+    0.5
+   ],
+   "setorial": -0.4,
+   "noticias": -0.6,
+   "delta30": -0.12,
+   "estado": "Ruim",
+   "confianca": "Média",
+   "desde": "2026-10-16",
+   "jogada": "Presença",
+   "porque": "E-commerce fraco no 3T e efeito Casas Bahia; juros PF altos"
+  }
+ ]
+}

@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { get } from '@vercel/blob';
 import type { Base } from './tipos';
+import type { DadosClima } from './clima';
 
 /**
  * Lê a base do app, nesta ordem:
@@ -48,4 +49,9 @@ async function lerBaseBruta(): Promise<Base> {
 
   const base = JSON.parse(await readFile(path.join(pasta, 'contas.exemplo.json'), 'utf8')) as Base;
   return { ...base, ficticia: true };
+}
+
+/** Clima por vertical (aba Clima): data/clima.json, versionado (sem dado pessoal; o motor de clima escreve nele). */
+export async function lerClima(): Promise<DadosClima> {
+  return JSON.parse(await readFile(path.join(process.cwd(), 'data', 'clima.json'), 'utf8')) as DadosClima;
 }
