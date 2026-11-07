@@ -11,6 +11,7 @@ import { FAMILIAS, STATUS, familia, hrefConta, primeiraMaiuscula, rotuloStatus, 
 import { SEM_FILTRO, aplicar, daUrl, temFiltro, type Filtros } from '@/lib/filtros';
 import { baixarCsv } from '@/lib/exportar-csv';
 import { SeloVscs } from '@/components/ui/selo-vscs';
+import { PerfilContas } from './perfil-contas';
 import { cn, plural, quando } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -124,6 +125,9 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
           estadoTela === 'erro' ? <ErroCarregar oque="as contas" onTentar={() => location.reload()} /> : <SemPermissao />
         ) : (
           <>
+            {!carregando && (
+              <PerfilContas base={base} tiersAtivos={filtros.tiers} onTier={x => mudar({ tiers: filtros.tiers.length === 1 && filtros.tiers[0] === x ? [] : [x] })} />
+            )}
             {/* filtros salvos */}
             <div role="tablist" aria-label="Filtros salvos" className="-mx-4 mb-3 flex gap-1 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
               {todosSalvos.map(s => (

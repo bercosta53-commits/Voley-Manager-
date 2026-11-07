@@ -25,11 +25,8 @@ const FUNCOES: [string, RegExp][] = [
 ];
 const OUTRAS_FUNCOES = 'Outras';
 
-export interface Barra {
-  id: string;
-  rotulo: string;
-  valor: number;
-}
+import type { Barra } from '@/components/ui/perfil-compacto';
+export type { Barra };
 
 export interface PerfilDecisores {
   pessoas: number;
