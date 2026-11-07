@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import type { Base, PapelAbm } from '@/lib/tipos';
 import { perfilDecisores, type Barra } from '@/lib/perfil-decisores';
 import { COR_BARRA } from '@/lib/papeis';
@@ -20,6 +21,20 @@ const OPACIDADE_NIVEL = [1, 0.78, 0.6, 0.45, 0.32, 0.2];
 export function PerfilBase({ base, papeisAtivos, onPapel }: { base: Base; papeisAtivos: PapelAbm[]; onPapel: (p: PapelAbm) => void }) {
   const p = useMemo(() => perfilDecisores(base), [base]);
   const semDecisor = p.lacunas.find(l => l.id === 'Decisor');
+  // compacto por padrão; quem expande uma vez continua vendo expandido (preferência deste navegador)
+  const [aberto, setAberto] = useState(false);
+  useEffect(() => {
+    try {
+      setAberto(localStorage.getItem('vr:perfil-decisores') === 'aberto');
+    } catch {}
+  }, []);
+  const alternar = () => {
+    const prox = !aberto;
+    setAberto(prox);
+    try {
+      localStorage.setItem('vr:perfil-decisores', prox ? 'aberto' : 'fechado');
+    } catch {}
+  };
 
   return (
     <section aria-labelledby="perfil-base" className="vr-card mb-5 overflow-hidden">
@@ -60,7 +75,43 @@ export function PerfilBase({ base, papeisAtivos, onPapel }: { base: Base; papeis
         </Bloco>
       </div>
 
-      {p.leituras[0] && <p className="border-t border-border bg-[var(--vr-surface-2)] px-4 py-2 text-xs text-text-2">{p.leituras.slice(0, 2).join(' ')}</p>}
+      {aberto && (
+        <div id="perfil-detalhe" className="grid gap-x-6 gap-y-5 border-t border-border px-4 py-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1.3fr]">
+          <Bloco titulo="Todas as funções">
+            <Ranking barras={p.funcoes} total={p.pessoas} />
+          </Bloco>
+          <Bloco titulo="Onde falta gente no comitê" dica="contas sem o papel">
+            <Ranking barras={p.lacunas} total={p.contas} cor="bg-warm" unidade="contas" />
+            <p className="mt-2 text-[11px] text-text-3">
+              {num(p.comiteCompleto)} de {num(p.contas)} contas ({pct(p.comiteCompleto, p.contas)}%) têm decisor, dono da dor e quem assina o cheque.
+            </p>
+          </Bloco>
+          <Bloco titulo="Leitura da base">
+            <ul className="flex flex-col gap-1.5 text-xs text-text-2">
+              {p.leituras.map((l, i) => (
+                <li key={i} className="flex gap-2">
+                  <span aria-hidden className="mt-1.5 size-1 shrink-0 rounded-full bg-text-3" />
+                  {l}
+                </li>
+              ))}
+            </ul>
+          </Bloco>
+        </div>
+      )}
+
+      <div className="flex items-center gap-3 border-t border-border bg-[var(--vr-surface-2)] px-4 py-2">
+        {!aberto && p.leituras[0] && <p className="min-w-0 flex-1 truncate text-xs text-text-2" title={p.leituras.slice(0, 2).join(' ')}>{p.leituras[0]}</p>}
+        <button
+          type="button"
+          onClick={alternar}
+          aria-expanded={aberto}
+          aria-controls="perfil-detalhe"
+          className="ml-auto flex shrink-0 items-center gap-1 rounded-chip text-xs font-medium text-text-2 hover:text-foreground"
+        >
+          {aberto ? 'Recolher' : 'Expandir análise'}
+          <ChevronDown className={cn('size-3.5 transition-transform', aberto && 'rotate-180')} strokeWidth={1.75} />
+        </button>
+      </div>
     </section>
   );
 }
@@ -152,15 +203,15 @@ function Segmentos({
 }
 
 /** Top N em linhas finas: rótulo, barra curta, número. */
-function Ranking({ barras, total }: { barras: Barra[]; total: number }) {
+function Ranking({ barras, total, cor = 'bg-cool', unidade = 'pessoas' }: { barras: Barra[]; total: number; cor?: string; unidade?: string }) {
   const max = Math.max(1, ...barras.map(b => b.valor));
   return (
     <ul className="flex flex-col gap-0.5">
       {barras.map(b => (
-        <Tooltip key={b.id} conteudo={`${b.rotulo}: ${num(b.valor)} pessoas · ${pct(b.valor, total)}%`}>
+        <Tooltip key={b.id} conteudo={`${b.rotulo}: ${num(b.valor)} ${unidade} · ${pct(b.valor, total)}%`}>
           <li tabIndex={0} className="grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)_2.25rem] items-center gap-2 text-[11px]">
             <span className="truncate text-text-2">{b.rotulo}</span>
-            <span className="h-1.5 rounded-r-[2px] bg-cool" style={{ width: `${Math.max(3, (100 * b.valor) / max)}%` }} />
+            <span className={cn('h-1.5 rounded-r-[2px]', cor)} style={{ width: `${Math.max(3, (100 * b.valor) / max)}%` }} />
             <span className="vr-data text-right text-text-2">{num(b.valor)}</span>
           </li>
         </Tooltip>
