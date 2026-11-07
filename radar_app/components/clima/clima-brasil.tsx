@@ -1,6 +1,8 @@
 import type { Clima, Indicador } from '@/lib/clima';
 import { COR_CLIMA, FUNDO_CLIMA, ICONE_CLIMA, fmtClima } from '@/lib/clima';
 import { cn } from '@/lib/utils';
+import { SetoresImpactados } from './setores-impactados';
+import type { Conta } from '@/lib/tipos';
 
 const COR_TOM = { bom: 'var(--vr-ok)', ruim: 'var(--vr-risk)', atencao: 'var(--vr-warm)', neutro: 'var(--vr-cool)' } as const;
 
@@ -56,7 +58,7 @@ export function ClimaBrasil({ clima }: { clima: Clima }) {
 }
 
 /** Um indicador: número, variação, minigráfico (quando há série), leitura e fonte. */
-function CartaoIndicador({ t }: { t: Indicador }) {
+function CartaoIndicador({ t, contas }: { t: Indicador; contas: Conta[] }) {
   const [lo, hi] = t.faixa;
   const n = t.serie.length;
   const cor = COR_TOM[t.cor];
@@ -79,7 +81,10 @@ function CartaoIndicador({ t }: { t: Indicador }) {
         </svg>
       )}
       <div className="text-xs text-text-2">{t.nota}</div>
-      <div className="mt-auto text-[11px] text-text-3">{t.fonte}</div>
+      <div className="text-[11px] text-text-3">{t.fonte}</div>
+      <div className="mt-auto">
+        <SetoresImpactados t={t} contas={contas} />
+      </div>
     </div>
   );
 }
@@ -90,7 +95,7 @@ export function Indicadores({ clima }: { clima: Clima }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
       {indicadores.map(t => (
-        <CartaoIndicador key={t.rotulo} t={t} />
+        <CartaoIndicador key={t.rotulo} t={t} contas={clima.contas} />
       ))}
       <div className="vr-card flex flex-wrap items-center gap-x-6 gap-y-2.5 px-4 py-3.5 sm:col-span-2">
         <span className="text-xs font-bold tracking-[0.06em] text-text-2 uppercase">Agenda</span>
@@ -121,7 +126,7 @@ export function PoliticaBolsa({ clima }: { clima: Clima }) {
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {itens.map(t => (
-          <CartaoIndicador key={t.rotulo} t={t} />
+          <CartaoIndicador key={t.rotulo} t={t} contas={clima.contas} />
         ))}
       </div>
     </section>

@@ -28,6 +28,14 @@ export const FUNDO_CLIMA: Record<EstadoClima, string> = {
   Instável: 'var(--vr-warm-bg)',
 };
 
+/** Setor atingido por um movimento macro: quem é (vertical, família ou ramo de TI) e por quê. */
+export interface SetorImpactado {
+  rotulo: string;
+  efeito: 'negativo' | 'positivo';
+  porque: string;
+  filtro: { verticais?: string[]; familias?: string[]; ramos?: string[] };
+}
+
 export interface Indicador {
   rotulo: string;
   valor: string;
@@ -39,6 +47,7 @@ export interface Indicador {
   faixa: [number, number];
   nota: string;
   fonte: string;
+  setores?: SetorImpactado[];
 }
 
 export interface DadosClima {
@@ -103,6 +112,8 @@ export interface Vertical {
 
 export interface Clima {
   dados: DadosClima;
+  /** contas da base, para abrir as empresas de um setor impactado */
+  contas: Conta[];
   brasilS: number;
   verticais: Vertical[];
 }
@@ -178,10 +189,23 @@ export function calcularClima(dados: DadosClima, base: Base): Clima {
     return v;
   });
   const brasilS = verticais.find(v => v.id === 'GEN')?.S ?? 0;
-  return { dados, brasilS, verticais };
+  return { dados, brasilS, verticais, contas: base.contas };
 }
 
 /** −0,28 / +0,25: duas casas, vírgula e sinal sempre visível. */
 export function fmtClima(x: number, casas = 2) {
   return `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(casas).replace('.', ',')}`;
+}
+
+/** Contas da base que caem num setor impactado (vertical, família ou ramo), da mais quente para a mais fria. */
+export function contasDoSetor(contas: Conta[], s: SetorImpactado) {
+  const { verticais = [], familias = [], ramos = [] } = s.filtro;
+  return contas
+    .filter(
+      c =>
+        verticais.includes(c.especializacao?.codigo ?? 'GEN') ||
+        (c.ramoTI?.familia && familias.includes(c.ramoTI.familia)) ||
+        (c.ramoTI?.nome && ramos.includes(c.ramoTI.nome)),
+    )
+    .sort((a, b) => b.score - a.score);
 }

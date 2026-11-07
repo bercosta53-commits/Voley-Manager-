@@ -70,7 +70,50 @@
     15.2
    ],
    "nota": "5 cortes de 0,25 desde março; Copom: \"substancialmente contracionista\".",
-   "fonte": "BCB · Copom 282ª"
+   "fonte": "BCB · Copom 282ª",
+   "setores": [
+    {
+     "rotulo": "Construtech e Proptech",
+     "efeito": "negativo",
+     "porque": "Crédito imobiliário caro segura lançamentos e compra de software pelas incorporadoras.",
+     "filtro": {
+      "verticais": [
+       "ESP12",
+       "ESP13"
+      ]
+     }
+    },
+    {
+     "rotulo": "Fintech",
+     "efeito": "negativo",
+     "porque": "Funding caro e inadimplência PJ em alta apertam margem e rodadas.",
+     "filtro": {
+      "verticais": [
+       "ESP01"
+      ]
+     }
+    },
+    {
+     "rotulo": "Retailtech",
+     "efeito": "negativo",
+     "porque": "Juros altos para pessoa física esfriam o varejo e o orçamento de tecnologia dele.",
+     "filtro": {
+      "verticais": [
+       "ESP06"
+      ]
+     }
+    },
+    {
+     "rotulo": "Insurtech",
+     "efeito": "positivo",
+     "porque": "Selic alta sustenta a receita financeira das seguradoras clientes.",
+     "filtro": {
+      "verticais": [
+       "ESP02"
+      ]
+     }
+    }
+   ]
   },
   {
    "rotulo": "Incerteza (IIE-Br)",
@@ -91,7 +134,29 @@
     118
    ],
    "nota": "Menos incerteza política na mídia; mais dispersão nas projeções.",
-   "fonte": "FGV IBRE · coleta antes do 2º turno"
+   "fonte": "FGV IBRE · coleta antes do 2º turno",
+   "setores": [
+    {
+     "rotulo": "Generalistas",
+     "efeito": "negativo",
+     "porque": "Com incerteza alta, o cliente adia projeto novo e renova só o essencial.",
+     "filtro": {
+      "verticais": [
+       "GEN"
+      ]
+     }
+    },
+    {
+     "rotulo": "Govtech",
+     "efeito": "negativo",
+     "porque": "Troca de mandatos e orçamento indefinido seguram contratações públicas.",
+     "filtro": {
+      "verticais": [
+       "ESP09"
+      ]
+     }
+    }
+   ]
   },
   {
    "rotulo": "TI Brasil 2026",
@@ -109,7 +174,29 @@
     20
    ],
    "nota": "Juros altos, inflação resiliente e déficit fiscal; 2025 cresceu 18,5%.",
-   "fonte": "Abes / IDC"
+   "fonte": "Abes / IDC",
+   "setores": [
+    {
+     "rotulo": "Serviços e Integração",
+     "efeito": "negativo",
+     "porque": "Crescimento de TI de 5,3% (metade do mundo) aperta projetos de serviço e fábrica.",
+     "filtro": {
+      "familias": [
+       "Serviços e Integração"
+      ]
+     }
+    },
+    {
+     "rotulo": "Software e Plataformas",
+     "efeito": "negativo",
+     "porque": "Clientes renegociam licenças e adiam módulos novos.",
+     "filtro": {
+      "familias": [
+       "Software e Plataformas"
+      ]
+     }
+    }
+   ]
   },
   {
    "rotulo": "VC Brasil · 1º tri",
@@ -126,7 +213,29 @@
     700
    ],
    "nota": "Investidores mais seletivos; menos rodadas = menos orçamento de growth.",
-   "fonte": "KPMG Venture Pulse"
+   "fonte": "KPMG Venture Pulse",
+   "setores": [
+    {
+     "rotulo": "SaaS B2B",
+     "efeito": "negativo",
+     "porque": "Menos rodadas = menos orçamento de growth para quem depende de capital de risco.",
+     "filtro": {
+      "ramos": [
+       "SaaS B2B"
+      ]
+     }
+    },
+    {
+     "rotulo": "Fintech",
+     "efeito": "negativo",
+     "porque": "Fintechs são as mais dependentes de VC no Brasil.",
+     "filtro": {
+      "verticais": [
+       "ESP01"
+      ]
+     }
+    }
+   ]
   }
  ],
  "agenda": [
@@ -723,7 +832,50 @@
     1
    ],
    "nota": "Virada sobre o 1º turno; o mercado estava posicionado para a oposição. Continuidade da reforma tributária e do arcabouço fiscal no radar.",
-   "fonte": "Genial Investimentos · TSE"
+   "fonte": "Genial Investimentos · TSE",
+   "setores": [
+    {
+     "rotulo": "Regtech e Legaltech",
+     "efeito": "positivo",
+     "porque": "Continuidade da reforma tributária (CBS em 01/01/2027) mantém a demanda por adequação.",
+     "filtro": {
+      "verticais": [
+       "ESP15",
+       "ESP08"
+      ]
+     }
+    },
+    {
+     "rotulo": "Govtech",
+     "efeito": "positivo",
+     "porque": "Reeleição evita troca de gestão federal e a reabertura de contratos.",
+     "filtro": {
+      "verticais": [
+       "ESP09"
+      ]
+     }
+    },
+    {
+     "rotulo": "Fintech",
+     "efeito": "negativo",
+     "porque": "Mercado precificou risco fiscal: juros futuros e custo de capital sobem.",
+     "filtro": {
+      "verticais": [
+       "ESP01"
+      ]
+     }
+    },
+    {
+     "rotulo": "Agtech",
+     "efeito": "negativo",
+     "porque": "Setor mais exposto à agenda fiscal e ambiental do novo mandato.",
+     "filtro": {
+      "verticais": [
+       "ESP05"
+      ]
+     }
+    }
+   ]
   },
   {
    "rotulo": "Ibovespa",
@@ -743,7 +895,50 @@
     210000
    ],
    "nota": "Véspera ≈205 mil (perto do recorde) → 176.608 no dia seguinte à eleição; 6 quedas seguidas e +0,34% na semana até 6/11.",
-   "fonte": "Genial · InfoMoney · Agência Brasil"
+   "fonte": "Genial · InfoMoney · Agência Brasil",
+   "setores": [
+    {
+     "rotulo": "Fintech",
+     "efeito": "negativo",
+     "porque": "Bolsa em queda fecha a janela de IPO e derruba o valuation das rodadas.",
+     "filtro": {
+      "verticais": [
+       "ESP01"
+      ]
+     }
+    },
+    {
+     "rotulo": "Retailtech",
+     "efeito": "negativo",
+     "porque": "Varejistas listados caíram mais e cortam tecnologia primeiro.",
+     "filtro": {
+      "verticais": [
+       "ESP06"
+      ]
+     }
+    },
+    {
+     "rotulo": "Construtech e Proptech",
+     "efeito": "negativo",
+     "porque": "Incorporadoras listadas recuam e seguram lançamentos.",
+     "filtro": {
+      "verticais": [
+       "ESP12",
+       "ESP13"
+      ]
+     }
+    },
+    {
+     "rotulo": "Generalistas",
+     "efeito": "negativo",
+     "porque": "Clientes grandes (listados) revisam orçamento após a queda.",
+     "filtro": {
+      "verticais": [
+       "GEN"
+      ]
+     }
+    }
+   ]
   },
   {
    "rotulo": "Dólar",
@@ -760,7 +955,49 @@
     5.6
    ],
    "nota": "Maior cotação desde dez/2025; payroll forte nos EUA (165 mil vagas) reforçou a chance de alta de juros pelo Fed.",
-   "fonte": "Agência Brasil · Campo Grande News"
+   "fonte": "Agência Brasil · Campo Grande News",
+   "setores": [
+    {
+     "rotulo": "Traveltech",
+     "efeito": "negativo",
+     "porque": "Dólar alto encarece viagem internacional e corta orçamento corporativo de viagens.",
+     "filtro": {
+      "verticais": [
+       "ESP19"
+      ]
+     }
+    },
+    {
+     "rotulo": "Infraestrutura e Conectividade",
+     "efeito": "negativo",
+     "porque": "Hardware, cloud e licenças cotadas em dólar ficam mais caros.",
+     "filtro": {
+      "familias": [
+       "Infraestrutura e Conectividade"
+      ]
+     }
+    },
+    {
+     "rotulo": "Indústria 4.0",
+     "efeito": "negativo",
+     "porque": "Insumos e equipamentos importados encarecem o capex industrial.",
+     "filtro": {
+      "verticais": [
+       "ESP11"
+      ]
+     }
+    },
+    {
+     "rotulo": "Agtech",
+     "efeito": "positivo",
+     "porque": "Dólar alto ajuda o exportador do agro, cliente das agtechs.",
+     "filtro": {
+      "verticais": [
+       "ESP05"
+      ]
+     }
+    }
+   ]
   },
   {
    "rotulo": "Nasdaq 100 · 5/11",
@@ -774,7 +1011,40 @@
     1
    ],
    "nota": "Democratas levam o Congresso (3/11): medo de regulação de IA e de data centers. S&P 500 −4,4% (−US$ 2,8 tri); semicondutores −12,3%, pior dia desde 2020.",
-   "fonte": "NPR · NBC News · Fortune · Yahoo Finance"
+   "fonte": "NPR · NBC News · Fortune · Yahoo Finance",
+   "setores": [
+    {
+     "rotulo": "Dados, IA e Automação",
+     "efeito": "negativo",
+     "porque": "Medo de bolha e de regulação de IA esfria investimento e valuation de quem vende IA.",
+     "filtro": {
+      "familias": [
+       "Dados, IA e Automação"
+      ]
+     }
+    },
+    {
+     "rotulo": "Inteligência Artificial",
+     "efeito": "negativo",
+     "porque": "Empresas de IA ficam mais expostas ao ajuste de expectativa dos investidores.",
+     "filtro": {
+      "ramos": [
+       "Inteligência Artificial"
+      ]
+     }
+    },
+    {
+     "rotulo": "Cloud e data centers",
+     "efeito": "negativo",
+     "porque": "Regulação de data centers nos EUA pressiona provedores e parceiros de cloud.",
+     "filtro": {
+      "ramos": [
+       "Cloud Computing",
+       "Data Centers e Hosting"
+      ]
+     }
+    }
+   ]
   }
  ]
 }
