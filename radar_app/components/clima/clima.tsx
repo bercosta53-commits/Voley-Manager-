@@ -7,7 +7,7 @@ import { calcularClima, fmtClima, type DadosClima, type EstadoClima } from '@/li
 import { baixarCsv } from '@/lib/exportar-csv';
 import { Casca } from '@/components/casca/casca';
 import { Button } from '@/components/ui/button';
-import { ClimaBrasil, Indicadores } from './clima-brasil';
+import { ClimaBrasil, Indicadores, PoliticaBolsa } from './clima-brasil';
 import { MapaVerticais, PainelVertical } from './mapa-verticais';
 import { LinhaTempoClima, MapaCalor, TabelaVerticais, type Chave } from './detalhes';
 
@@ -62,7 +62,10 @@ export function TelaClima({ base, dados }: { base: Base; dados: DadosClima }) {
         {dados.simulado && (
           <div role="note" className="flex items-center gap-2.5 rounded-card border px-3.5 py-2.5 text-sm" style={{ background: 'var(--vr-warm-bg)', borderColor: 'color-mix(in srgb, var(--vr-warm) 35%, transparent)', color: 'var(--vr-text)' }}>
             <CircleAlert className="size-4 shrink-0 text-warm" strokeWidth={2} />
-            <span>Protótipo: Selic, IIE-Br, TI 2026 e VC são dados de nov/2026; contas e VSCS vêm da base. As pontuações de clima por vertical são simuladas até o motor de clima rodar.</span>
+            <span>
+              Protótipo: Selic, IIE-Br, TI 2026, VC, eleições, Ibovespa, dólar e Nasdaq são dados de nov/2026 com fonte; contas e VSCS vêm da base. As pontuações de clima por
+              vertical (inclusive o peso de política e bolsa em cada uma) são simuladas até o motor de clima rodar.
+            </span>
           </div>
         )}
 
@@ -70,6 +73,8 @@ export function TelaClima({ base, dados }: { base: Base; dados: DadosClima }) {
           <ClimaBrasil clima={clima} />
           <Indicadores clima={clima} />
         </section>
+
+        <PoliticaBolsa clima={clima} />
 
         <section aria-label="Mapa de clima por vertical" className="vr-card flex flex-wrap gap-6 p-5">
           <MapaVerticais clima={clima} sel={sel} filtro={filtro} hover={hover} onSel={setSel} onFiltro={setFiltro} onHover={setHover} />

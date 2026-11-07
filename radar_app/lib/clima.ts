@@ -28,6 +28,19 @@ export const FUNDO_CLIMA: Record<EstadoClima, string> = {
   Instável: 'var(--vr-warm-bg)',
 };
 
+export interface Indicador {
+  rotulo: string;
+  valor: string;
+  delta: string;
+  tom: 'bom' | 'ruim' | 'atencao';
+  cor: 'bom' | 'ruim' | 'atencao' | 'neutro';
+  /** vazia quando não há série (só o número do dia) */
+  serie: number[];
+  faixa: [number, number];
+  nota: string;
+  fonte: string;
+}
+
 export interface DadosClima {
   atualizadoEm: string;
   indicadoresEmDia: [number, number];
@@ -37,7 +50,9 @@ export interface DadosClima {
   z: number[];
   pesos: { macro: number; setorial: number; noticias: number };
   limiares: { bom: number; ruim: number };
-  indicadores: { rotulo: string; valor: string; delta: string; tom: 'bom' | 'ruim' | 'atencao'; cor: 'bom' | 'ruim' | 'atencao' | 'neutro'; serie: number[]; faixa: [number, number]; nota: string; fonte: string }[];
+  indicadores: Indicador[];
+  /** eleições (Brasil e EUA) e bolsas: dados reais com fonte */
+  politicaBolsa?: Indicador[];
   agenda: { d: string; t: string }[];
   marcos: { semanasAtras: number; rotulo: string }[];
   jogadas: Record<string, string>;

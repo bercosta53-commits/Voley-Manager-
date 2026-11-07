@@ -1,4 +1,4 @@
-import type { Clima } from '@/lib/clima';
+import type { Clima, Indicador } from '@/lib/clima';
 import { COR_CLIMA, FUNDO_CLIMA, ICONE_CLIMA, fmtClima } from '@/lib/clima';
 import { cn } from '@/lib/utils';
 
@@ -55,37 +55,43 @@ export function ClimaBrasil({ clima }: { clima: Clima }) {
   );
 }
 
-/** Indicadores macro com sparkline (último ponto marcado) + a agenda que pode mexer no clima. */
+/** Um indicador: número, variação, minigráfico (quando há série), leitura e fonte. */
+function CartaoIndicador({ t }: { t: Indicador }) {
+  const [lo, hi] = t.faixa;
+  const n = t.serie.length;
+  const cor = COR_TOM[t.cor];
+  const xy = t.serie.map((p, i) => [(i * 192) / Math.max(1, n - 1) + 4, 44 - ((p - lo) / (hi - lo)) * 34] as const);
+  const linha = xy.map((q, i) => `${i ? 'L' : 'M'}${q[0].toFixed(1)} ${q[1].toFixed(1)}`).join(' ');
+  return (
+    <div className="vr-card flex flex-col gap-1.5 p-4">
+      <div className="text-xs text-text-3">{t.rotulo}</div>
+      <div className="flex flex-wrap items-baseline gap-x-2">
+        <span className="vr-data text-2xl font-semibold">{t.valor}</span>
+        <span className="text-xs" style={{ color: COR_TOM[t.tom] }}>
+          {t.delta}
+        </span>
+      </div>
+      {n >= 2 && (
+        <svg viewBox="0 0 200 48" className="h-12 w-full" preserveAspectRatio="none" role="img" aria-label={`${t.rotulo}: ${t.serie.join(', ')}`}>
+          <path d={`${linha} L${xy[n - 1]![0].toFixed(1)} 48 L${xy[0]![0].toFixed(1)} 48 Z`} fill={cor} opacity={0.1} />
+          <path d={linha} fill="none" stroke={cor} strokeWidth={2} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+          <circle cx={xy[n - 1]![0]} cy={xy[n - 1]![1]} r={3.5} fill={cor} />
+        </svg>
+      )}
+      <div className="text-xs text-text-2">{t.nota}</div>
+      <div className="mt-auto text-[11px] text-text-3">{t.fonte}</div>
+    </div>
+  );
+}
+
+/** Indicadores macro com sparkline + a agenda que pode mexer no clima. */
 export function Indicadores({ clima }: { clima: Clima }) {
   const { indicadores, agenda } = clima.dados;
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
-      {indicadores.map(t => {
-        const [lo, hi] = t.faixa;
-        const n = t.serie.length;
-        const xy = t.serie.map((p, i) => [(i * 192) / Math.max(1, n - 1) + 4, 44 - ((p - lo) / (hi - lo)) * 34] as const);
-        const linha = xy.map((q, i) => `${i ? 'L' : 'M'}${q[0].toFixed(1)} ${q[1].toFixed(1)}`).join(' ');
-        const area = `${linha} L${xy[n - 1]![0].toFixed(1)} 48 L${xy[0]![0].toFixed(1)} 48 Z`;
-        const cor = COR_TOM[t.cor];
-        return (
-          <div key={t.rotulo} className="vr-card flex flex-col gap-1.5 p-4">
-            <div className="text-xs text-text-3">{t.rotulo}</div>
-            <div className="flex items-baseline gap-2">
-              <span className="vr-data text-2xl font-semibold">{t.valor}</span>
-              <span className="text-xs" style={{ color: COR_TOM[t.tom] }}>
-                {t.delta}
-              </span>
-            </div>
-            <svg viewBox="0 0 200 48" className="h-12 w-full" preserveAspectRatio="none" role="img" aria-label={`${t.rotulo}: ${t.serie.join(', ')}`}>
-              <path d={area} fill={cor} opacity={0.1} />
-              <path d={linha} fill="none" stroke={cor} strokeWidth={2} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-              <circle cx={xy[n - 1]![0]} cy={xy[n - 1]![1]} r={3.5} fill={cor} />
-            </svg>
-            <div className="text-xs text-text-2">{t.nota}</div>
-            <div className="text-[11px] text-text-3">{t.fonte}</div>
-          </div>
-        );
-      })}
+      {indicadores.map(t => (
+        <CartaoIndicador key={t.rotulo} t={t} />
+      ))}
       <div className="vr-card flex flex-wrap items-center gap-x-6 gap-y-2.5 px-4 py-3.5 sm:col-span-2">
         <span className="text-xs font-bold tracking-[0.06em] text-text-2 uppercase">Agenda</span>
         {agenda.map(g => (
@@ -96,5 +102,28 @@ export function Indicadores({ clima }: { clima: Clima }) {
         ))}
       </div>
     </div>
+  );
+}
+
+/** Política e bolsa: eleições no Brasil e nos EUA e o que fizeram com a bolsa e o dólar. */
+export function PoliticaBolsa({ clima }: { clima: Clima }) {
+  const itens = clima.dados.politicaBolsa ?? [];
+  if (!itens.length) return null;
+  return (
+    <section aria-labelledby="politica-t" className="flex flex-col gap-3">
+      <div>
+        <h2 id="politica-t" className="font-display text-xl font-semibold">
+          Política e bolsa
+        </h2>
+        <p className="mt-0.5 text-sm text-text-3">
+          Eleições no Brasil e nos EUA e a reação dos mercados. Entram no clima de cada vertical como os blocos Política e Bolsa.
+        </p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {itens.map(t => (
+          <CartaoIndicador key={t.rotulo} t={t} />
+        ))}
+      </div>
+    </section>
   );
 }

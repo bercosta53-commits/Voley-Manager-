@@ -1,14 +1,14 @@
 {
  "_sobre": "Clima por vertical (aba Clima). Macro (Selic, IIE-Br, TI Brasil, VC) com dados de nov/2026; os parâmetros por vertical (sensibilidade, driver setorial, notícias, estado) são simulados até o motor de clima rodar. Contas, tier e VSCS vêm da base.",
- "atualizadoEm": "2026-11-07T07:10",
+ "atualizadoEm": "2026-11-07T15:00",
  "indicadoresEmDia": [
-  7,
-  9
+  9,
+  11
  ],
  "simulado": true,
  "brasil": {
-  "nota": "Copom pausou os cortes em 13,75% e chamou a Selic de substancialmente contracionista. Incerteza caiu, mas a dispersão das projeções subiu.",
-  "delta30": -0.15,
+  "nota": "Lula reeleito (51,79%) contra a aposta do mercado: Ibovespa −13,88% no dia seguinte, com circuit breaker, e dólar no maior nível desde dez/2025. Copom pausou os cortes em 13,75%; nos EUA, o Congresso democrata e o medo de bolha de IA derrubaram as techs.",
+  "delta30": -0.22,
   "estado": "Instável",
   "fatorClima": 0.74,
   "contasEmMercadoTri": "~3,7%",
@@ -21,7 +21,9 @@
   "Câmbio",
   "Incerteza",
   "Atividade",
-  "Cap. risco"
+  "Cap. risco",
+  "Política",
+  "Bolsa"
  ],
  "z": [
   -0.55,
@@ -30,6 +32,8 @@
   -0.3,
   0.05,
   -0.2,
+  -0.4,
+  -0.45,
   -0.4
  ],
  "pesos": {
@@ -145,6 +149,18 @@
   {
    "d": "01/01",
    "t": "CBS entra em vigor"
+  },
+  {
+   "d": "dez",
+   "t": "Fed (FOMC) — risco de alta de juros"
+  },
+  {
+   "d": "01/01",
+   "t": "Posse do governo e dos novos governadores"
+  },
+  {
+   "d": "03/01",
+   "t": "Novo Congresso dos EUA toma posse"
   }
  ],
  "marcos": [
@@ -159,6 +175,10 @@
   {
    "semanasAtras": 20,
    "rotulo": "Copom 17/06 · −0,25"
+  },
+  {
+   "semanasAtras": 2,
+   "rotulo": "2º turno 25/10"
   }
  ],
  "jogadas": {
@@ -181,7 +201,9 @@
     0.1,
     0.3,
     0.3,
-    0.3
+    0.3,
+    0.1,
+    0.2
    ],
    "setorial": 0.8,
    "noticias": 0.3,
@@ -205,7 +227,9 @@
     0.2,
     0.5,
     0.4,
-    0.5
+    0.5,
+    0.3,
+    0.4
    ],
    "setorial": 0.75,
    "noticias": 0.0,
@@ -229,7 +253,9 @@
     0.1,
     0.4,
     0.4,
-    0.3
+    0.3,
+    0.1,
+    0.2
    ],
    "setorial": 0.7,
    "noticias": 0.4,
@@ -253,7 +279,9 @@
     0.5,
     0.5,
     0.9,
-    0.4
+    0.4,
+    0.3,
+    0.3
    ],
    "setorial": 0.35,
    "noticias": 0.4,
@@ -277,7 +305,9 @@
     0.4,
     0.5,
     0.5,
-    0.5
+    0.5,
+    0.4,
+    0.3
    ],
    "setorial": 0.25,
    "noticias": 0.0,
@@ -301,7 +331,9 @@
     0.5,
     0.5,
     0.7,
-    0.5
+    0.5,
+    0.3,
+    0.3
    ],
    "setorial": 0.2,
    "noticias": 0.0,
@@ -325,7 +357,9 @@
     0.1,
     0.5,
     0.9,
-    0.5
+    0.5,
+    0.3,
+    0.3
    ],
    "setorial": 0.15,
    "noticias": 0.0,
@@ -349,7 +383,9 @@
     0.8,
     0.6,
     0.8,
-    0.4
+    0.4,
+    0.4,
+    0.3
    ],
    "setorial": 0.1,
    "noticias": 0.1,
@@ -373,7 +409,9 @@
     0.3,
     0.5,
     0.4,
-    0.6
+    0.6,
+    0.3,
+    0.3
    ],
    "setorial": 0.0,
    "noticias": 0.0,
@@ -397,7 +435,9 @@
     0.3,
     0.4,
     0.7,
-    0.5
+    0.5,
+    0.3,
+    0.2
    ],
    "setorial": -0.1,
    "noticias": 0.0,
@@ -421,7 +461,9 @@
     0.7,
     0.4,
     0.4,
-    0.4
+    0.4,
+    0.5,
+    0.3
    ],
    "setorial": 0.25,
    "noticias": 0.0,
@@ -445,7 +487,9 @@
     0.1,
     0.7,
     0.3,
-    0.2
+    0.2,
+    -0.2,
+    0.1
    ],
    "setorial": -0.1,
    "noticias": 0.0,
@@ -470,7 +514,9 @@
     0.3,
     0.7,
     0.9,
-    0.6
+    0.6,
+    0.4,
+    0.5
    ],
    "setorial": -0.1,
    "noticias": -0.3,
@@ -494,7 +540,9 @@
     0.3,
     0.6,
     0.4,
-    0.8
+    0.8,
+    0.8,
+    0.9
    ],
    "setorial": -0.15,
    "noticias": -0.1,
@@ -518,7 +566,9 @@
     0.3,
     0.6,
     0.6,
-    0.5
+    0.5,
+    0.6,
+    0.6
    ],
    "setorial": 0.0,
    "noticias": 0.0,
@@ -542,7 +592,9 @@
     0.1,
     0.5,
     0.6,
-    0.7
+    0.7,
+    0.4,
+    0.4
    ],
    "setorial": -0.35,
    "noticias": 0.0,
@@ -566,7 +618,9 @@
     0.6,
     0.6,
     0.9,
-    0.3
+    0.3,
+    0.5,
+    0.4
    ],
    "setorial": -0.35,
    "noticias": -0.1,
@@ -590,7 +644,9 @@
     0.2,
     0.6,
     0.7,
-    0.4
+    0.4,
+    0.5,
+    0.5
    ],
    "setorial": -0.45,
    "noticias": 0.1,
@@ -614,7 +670,9 @@
     0.2,
     0.6,
     0.7,
-    0.4
+    0.4,
+    0.5,
+    0.5
    ],
    "setorial": -0.45,
    "noticias": 0.0,
@@ -638,7 +696,9 @@
     0.4,
     0.6,
     0.9,
-    0.5
+    0.5,
+    0.5,
+    0.6
    ],
    "setorial": -0.4,
    "noticias": -0.6,
@@ -648,6 +708,73 @@
    "desde": "2026-10-16",
    "jogada": "Presença",
    "porque": "E-commerce fraco no 3T e efeito Casas Bahia; juros PF altos"
+  }
+ ],
+ "politicaBolsa": [
+  {
+   "rotulo": "Eleição Brasil · 2º turno 25/10",
+   "valor": "Lula 51,79%",
+   "delta": "vs. 48,21% Flávio Bolsonaro",
+   "tom": "atencao",
+   "cor": "atencao",
+   "serie": [],
+   "faixa": [
+    0,
+    1
+   ],
+   "nota": "Virada sobre o 1º turno; o mercado estava posicionado para a oposição. Continuidade da reforma tributária e do arcabouço fiscal no radar.",
+   "fonte": "Genial Investimentos · TSE"
+  },
+  {
+   "rotulo": "Ibovespa",
+   "valor": "168.498",
+   "delta": "−13,88% em 26/10 · circuit breaker",
+   "tom": "ruim",
+   "cor": "ruim",
+   "serie": [
+    205071,
+    176608,
+    167563,
+    166191,
+    168498
+   ],
+   "faixa": [
+    160000,
+    210000
+   ],
+   "nota": "Véspera ≈205 mil (perto do recorde) → 176.608 no dia seguinte à eleição; 6 quedas seguidas e +0,34% na semana até 6/11.",
+   "fonte": "Genial · InfoMoney · Agência Brasil"
+  },
+  {
+   "rotulo": "Dólar",
+   "valor": "R$ 5,51",
+   "delta": "+~8% em 26/10",
+   "tom": "ruim",
+   "cor": "ruim",
+   "serie": [
+    5.45,
+    5.51
+   ],
+   "faixa": [
+    5.3,
+    5.6
+   ],
+   "nota": "Maior cotação desde dez/2025; payroll forte nos EUA (165 mil vagas) reforçou a chance de alta de juros pelo Fed.",
+   "fonte": "Agência Brasil · Campo Grande News"
+  },
+  {
+   "rotulo": "Nasdaq 100 · 5/11",
+   "valor": "−6,3%",
+   "delta": "−US$ 2,3 tri em um dia",
+   "tom": "ruim",
+   "cor": "ruim",
+   "serie": [],
+   "faixa": [
+    0,
+    1
+   ],
+   "nota": "Democratas levam o Congresso (3/11): medo de regulação de IA e de data centers. S&P 500 −4,4% (−US$ 2,8 tri); semicondutores −12,3%, pior dia desde 2020.",
+   "fonte": "NPR · NBC News · Fortune · Yahoo Finance"
   }
  ]
 }
