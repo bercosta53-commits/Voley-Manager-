@@ -1,11 +1,11 @@
 account_id,company,domain,tier
-VEL-0100,Constel Tecnologia e Inovação,constel.com.br,B
-VEL-0097,Belago Technologies,belago.com,C
-VEL-0075,Microservice Tecnologia da Informação,microserviceit.com.br,B
-VEL-0027,GX2 Tecnologia,gx2.com.br,C
-VEL-0052,Viaconnect,viaconnect.com.br,B
-VEL-0082,Seprol Computadores e Sistemas,seprol.com.br,B
-VEL-0132,ROQT Data & AI,roqt.com.br,C
-VEL-0048,Tech6 Group,tech6group.com,C
-VEL-0196,CDD IT,cddit.com.br,B
-VEL-0200,Codeminer42,codeminer42.com,B
+VEL-0003,Aquasoft Tecnologia da Informação,aquasoft.com.br,B
+VEL-0004,ASG_IT,asg.com.br,A
+VEL-0007,Brain Consulting Brazil,brainconsulting.info,C
+VEL-0011,DataCentrics,datacentrics.cloud,C
+VEL-0015,Deliver IT Serviços de Tecnologia,deliverit.com.br,C
+VEL-0026,Gruppen it Security,gruppen.com.br,B
+VEL-0030,iMaps Data Group,imaps.com.br,A
+VEL-0032,iProcess,iprocess.com.br,C
+VEL-0068,Flowti,flowti.com.br,B
+VEL-0046,Witec IT Solutions,witec.com.br,C
