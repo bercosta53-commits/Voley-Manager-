@@ -133,7 +133,7 @@ async def audit_one(browser, item, timeout_ms):
                 result["whatsapp_count"]=await links.count()
                 if result["whatsapp_count"]==0:continue
                 selected=None
-                for k in range(min(links.count(),6)):
+                for k in range(min(result["whatsapp_count"],6)):
                     link=links.nth(k)
                     if await link.is_visible():selected=link;break
                 if selected is None:
