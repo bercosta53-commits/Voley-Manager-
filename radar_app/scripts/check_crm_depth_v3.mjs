@@ -24,7 +24,7 @@ for(const a of analyzed){sources[a.crm.origem]=(sources[a.crm.origem]||0)+1;}
 assert.equal(sources.operacional_validado||0,0);
 assert.equal(analyzed.filter(a=>a.crm.fornecedor==='HubSpot'&&a.crm.origem==='script_web').length,10);
 assert.equal(analyzed.filter(a=>a.conta.tags.salesforce==='network').length,0);
-assert.equal(analyzed.filter(a=>a.crm.fornecedor==='RD Station'&&a.crm.origem==='script_web').length,44-1); // GX2 shares HubSpot, rank selects stronger
+assert.equal(analyzed.filter(a=>a.crm.fornecedor==='RD Station'&&a.crm.origem==='script_web').length,44-2); // GX2 and Brascin share HubSpot; stronger web signal wins
 const base=structuredClone(records.find(x=>x.id==='VEL-0029'));
 assert.ok(base);
 const tags=Object.fromEntries(Object.entries(base.tags).map(([k,v])=>[k,['salesforce','hubspot','rdStation','pipedrive','ploomes','mautic','bitrix','activeCampaign'].includes(k)?'not_observed':v]));
