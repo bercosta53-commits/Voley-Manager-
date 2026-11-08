@@ -67,7 +67,7 @@ function Barra({rotulo,valor,maximo,legenda,onClick}:{rotulo:string;valor:number
  return onClick?<button type="button" onClick={onClick} className="block w-full rounded-control p-1 text-left hover:bg-[var(--vr-surface-2)]">{area}</button>:<div>{area}</div>;
 }
 function NomeFonte({item}:{item:ContaAqu}){return <span className="min-w-0"><span className="block truncate text-sm font-semibold text-foreground">{item.name}</span><span className="vr-data block truncate text-[11px] text-text-3">{item.id} · {item.domain}</span></span>;}
-function PainelEmpresa({item,onClose}:{item:ContaAqu;onClose:()=>void}){
+function PainelEmpresa({item,onClose,contaRadarId}:{item:ContaAqu;onClose:()=>void;contaRadarId?:string}){
  const total=Object.values(item.tags).filter(x=>x==='network').length;
  const baseHref=cssUrl(item.evidence),site='https://'+item.domain;
  return <div className="fixed inset-0 z-50 flex justify-end bg-black/35" role="presentation" onMouseDown={onClose}>
@@ -102,6 +102,7 @@ function PainelEmpresa({item,onClose}:{item:ContaAqu;onClose:()=>void}){
     </section>
     <section className="rounded-card border border-acid/40 bg-acid-soft/30 p-4"><h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Target className="size-4"/> Próxima investigação</h3><p className="mb-0 text-sm leading-6 text-text-2">{item.nextValidation||'Validar infraestrutura de aquisição e integração CRM com acesso autorizado.'}</p></section>
     <div className="flex flex-wrap gap-2">
+     {contaRadarId&&<Link href={"/contas/"+contaRadarId} className="inline-flex items-center gap-1.5 rounded-control bg-foreground px-3 py-2 text-xs font-semibold text-background hover:opacity-85"><ArrowRight className="size-3.5"/> Abrir conta no Radar</Link>}
      {baseHref!=='#'&&<a href={baseHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-control border border-border px-3 py-2 text-xs font-semibold hover:bg-[var(--vr-surface-2)]"><ExternalLink className="size-3.5"/> Evidência técnica</a>}
      <a href={cssUrl(item.historicalSource)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-control border border-border px-3 py-2 text-xs font-semibold hover:bg-[var(--vr-surface-2)]"><ExternalLink className="size-3.5"/> BuiltWith</a>
      <a href={site} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-control border border-border px-3 py-2 text-xs font-semibold hover:bg-[var(--vr-surface-2)]"><ExternalLink className="size-3.5"/> Site</a>
@@ -202,5 +203,5 @@ export function TelaAquisicao({base,dados}:{base:Base;dados:Dataset}){
    </aside>
   </div>}
   <div className="mt-6 flex flex-wrap items-start gap-2 rounded-card border border-border bg-[var(--vr-surface-2)] px-4 py-3 text-[11px] leading-5 text-text-3"><ShieldCheck className="mt-0.5 size-4 shrink-0"/><p className="m-0 flex-1"><strong>Metodologia:</strong> {dados.caveat} Fonte: {dados.source}. Não foram enviados formulários ou mensagens. A cobertura técnica das 120 contas é parcial, e a pontuação é usada apenas para decidir onde investigar.</p></div>
- </main>{selecionada&&<PainelEmpresa item={selecionada} onClose={()=>setSelecionada(null)}/>}</Casca>;
+ </main>{selecionada&&<PainelEmpresa item={selecionada} contaRadarId={contaNoRadar(selecionada)} onClose={()=>setSelecionada(null)}/>}</Casca>;
 }
