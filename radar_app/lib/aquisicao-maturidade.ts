@@ -90,7 +90,7 @@ export function analisarConta(c:ContaAquisicao):AnaliseAquisicao {
    'Validar domínio, captação e tecnologias por auditoria autorizada';
  // Índice de capacidades observadas (não mede performance). Não descontar resultados desconhecidos.
  const indiceObservavel=Math.round((dimensoes.medicao*.28+dimensoes.midia*.23+dimensoes.captacao*.20+
-   dimensoes.orquestracao*.24+(eventos===null?0:eventos)*.05)/(eventos===null?.95:1));
+   dimensoes.orquestracao*.24+(eventos===null?0:eventos)*.05)/(eventos===null ? 0.95 : 1));
  const x=entre(dimensoes.medicao*.78+(eventos===null?0:eventos)*.22);
  const y=entre(dimensoes.midia*.43+dimensoes.orquestracao*.37+dimensoes.captacao*.20);
  return {conta:c,nivel,confianca,dimensoes,familias,indicios,hipotese,proximoTeste,indiceObservavel,x,y,foco:(nivel===2||nivel===3)&&confianca!=='insuficiente'};
