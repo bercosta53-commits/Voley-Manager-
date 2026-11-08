@@ -58,3 +58,42 @@ A mudança em L3 resolve um viés: empresas B2B podem ter aquisição multicanal
 Amostra web pública, páginas selecionadas, estados de consentimento e eventos nem sempre testados. Estes níveis são um **modelo heurístico exploratório** e devem ser calibrados contra auditorias completas, com casos de referência validados, antes de decisões de alto impacto. Não apresentam probabilidade estatística de maturidade nem comprovam falha comercial.
 
 Código auditável: `radar_app/lib/aquisicao-maturidade.ts`. Validação de regressões: `radar_app/scripts/check_maturity_v2.mjs`. Dados: `radar_app/data/aquisicao.json`.
+
+
+## Atualização v3 — Profundidade comercial do CRM (08/11/2026)
+
+**Premissa:** uma implantação comprovada de Salesforce ou HubSpot Sales Hub pode representar capacidade comercial muito mais robusta do que a identificação de um script RD Station Marketing. A força da plataforma deve influenciar a hipótese de maturidade, mas a marca isolada não comprova uso, integração com receita ou execução.
+
+### Sinal de plataforma x prova operacional
+
+| Evidência | Salesforce | HubSpot | RD Station |
+|---|---:|---:|---:|
+| **Somente script web carregado** | 52 | 46 | 18 |
+| **Uso comercial validado, edição não informada** | 91 | 84 | 47 (RD Vendas/CRM) |
+| **Enterprise/Professional validado** | Até 98 (Sales Cloud Enterprise) | Até 94 (Sales Hub Professional/Enterprise) | 47 (RD Vendas/CRM) |
+
+Valores são **pesos analíticos calibráveis para potencial do stack**, não notas oficiais das empresas ou uma avaliação universal da capacidade das plataformas. RD Marketing tem funcionalidades sofisticadas de automação e RD Vendas tem CRM e integrações; não caracterizar a marca inteira como CRM fraco.
+
+Requisitos para o status **CRM operacional validado**:
+- fornecedor e edição (se conhecida);
+- sistema ativo e em uso no pipeline comercial;
+- revisor, data e fonte HTTPS verificável da constatação.
+
+A simples detecção de script **não** preenche esses requisitos. Inventários históricos Clay/BuiltWith servem para prospecção de confirmação, mas valem **zero** no indicador positivo até outra evidência.
+
+### Efeito no Radar
+
+- A dimensão antes chamada 'Orquestração' passa a medir **potencial de sofisticação do CRM/automação**, com escala diferenciada por fornecedor e força da evidência.
+- A atratividade Velora incorpora até **26 pontos adicionais** conforme a profundidade do CRM. Exemplo: HubSpot web ~12 pontos; RD Marketing web ~5; Salesforce enterprise realmente validado até ~25.
+- Uso enterprise validado pode mudar L2 para L3 quando já existir mensuração e canal de captação observados. **Não promove a L4** por si só, pois integração de atribuição e receita permanece exigência independente.
+- O Atlas apresenta filtro para sinais Salesforce/HubSpot, RD Station web e CRM comercial validado, incluindo fonte de evidência e diferença no dossiê.
+- A base atual detectou **10 scripts HubSpot e 44 RD Station**, nenhum Salesforce carregado; **não há implantação comercial validada nesses 200 registros**. Isso não significa Salesforce ausente das empresas.
+
+### Fontes de referência de funcionalidades
+
+- Salesforce Sales Cloud / Pipeline e Forecast: https://www.salesforce.com/br/products/sales-cloud/features/
+- HubSpot Sales Hub catálogo: https://legal.hubspot.com/hubspot-product-and-services-catalog/products
+- HubSpot tracking code: https://knowledge.hubspot.com/reports/install-the-hubspot-tracking-code
+- RD Marketing x RD Vendas: https://www.rdstation.com/novos-nomes-produtos/
+
+Regra versionada em `radar_app/lib/crm-profundidade.ts`. Testes em `radar_app/scripts/check_crm_depth_v3.mjs`.
