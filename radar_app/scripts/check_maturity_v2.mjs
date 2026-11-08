@@ -3,12 +3,17 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import ts from 'typescript';
 
-const filename='lib/aquisicao-maturidade.ts';
-const source=fs.readFileSync(filename,'utf-8');
-const transpiled=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
-const module={exports:{}};
-new Function('require','module','exports',transpiled)(createRequire(import.meta.url),module,module.exports);
-const {analisarConta,analisarBase,contagemNiveis}=module.exports;
+function loadTS(path,cache=new Map()){
+ if(cache.has(path))return cache.get(path);
+ const source=fs.readFileSync(path,'utf-8');
+ const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+ const m={exports:{}};cache.set(path,m.exports);
+ const base=path.includes('/')?path.slice(0,path.lastIndexOf('/')+1):'';
+ new Function('require','module','exports',compiled)((name)=>name.startsWith('./')?
+   loadTS(base+name.slice(2)+'.ts',cache):createRequire(import.meta.url)(name),m,m.exports);
+ cache.set(path,m.exports);return m.exports;
+}
+const {analisarConta,analisarBase,contagemNiveis}=loadTS('lib/aquisicao-maturidade.ts');
 const records=JSON.parse(fs.readFileSync('data/aquisicao.json','utf-8')).accounts;
 assert.equal(records.length,200);
 const results=analisarBase(records);
