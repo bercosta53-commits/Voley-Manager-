@@ -1,0 +1,46 @@
+name: Velora | Expansão Aquisição 200
+on:
+  push:
+    branches: [feat/velora-aquisicao-expansion-200]
+    paths:
+      - "radar_app/**"
+      - ".github/workflows/velora-aquisicao-200-ci.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: radar_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: radar_app/package-lock.json
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Verify data 200 and L12 provenance
+        run: node scripts/check_maturity_data.mjs
+      - name: Typecheck
+        run: npm run lint
+      - name: Build
+        run: npm run build
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.56.0
+          npx playwright install --with-deps chromium
+      - name: Smoke tests, desktop and mobile
+        run: |
+          (npm run start -- -p 3000 >/tmp/velora-app.log 2>&1 &)
+          node scripts/smoke_maturity.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: velora-aquisicao-200-ui-review
+          path: radar_app/tmp/maturity/*.png
+          retention-days: 10
