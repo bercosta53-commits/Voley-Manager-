@@ -30,6 +30,31 @@ def compare(baseline, after, dl):
     else:level="SEM_EVENTO_OBSERVADO_INCONCLUSIVO"
     return level,different,replied
 
+
+CONSENT_SNAPSHOT_JS = r"""() => {
+ const selectors=['#onetrust-banner-sdk','#CybotCookiebotDialog','#cmplz-cookiebanner-container',
+ '#cookie-law-info-bar','.cky-consent-container','[id*="cookie-banner"]','[class*="cookie-banner"]'];
+ let banner=false;
+ for(const s of selectors){ const e=document.querySelector(s);
+  if(e && getComputedStyle(e).display!=='none' && getComputedStyle(e).visibility!=='hidden'){
+   const r=e.getBoundingClientRect(); if(r.width>1 && r.height>1){banner=true;break;}
+  }
+ }
+ const allowed=['analytics_storage','ad_storage','ad_user_data','ad_personalization'];
+ const mode={};let commands=0;
+ const datalayer=Array.isArray(window.dataLayer)?window.dataLayer:[];
+ for(const x of datalayer.slice(0,100)){
+  const a=Array.isArray(x)?x:Object.prototype.toString.call(x)==='[object Arguments]'?Array.from(x):[];
+  if(a[0]==='consent' && ['default','update'].includes(a[1]) && a[2] && typeof a[2]==='object'){
+   commands++;
+   for(const k of allowed){if(k in a[2]) mode[k]=['granted','denied'].includes(a[2][k])?a[2][k]:'unknown';}
+  }
+ }
+ const html=document.documentElement.outerHTML.slice(0,300000);
+ const ids=[...new Set(html.match(/\b(?:GTM-[A-Z0-9]{5,}|G-[A-Z0-9]{7,}|AW-\d{6,})\b/g)||[])].slice(0,12);
+ return {cmp_banner_visible:banner,consent_mode_commands:commands,consent_mode_observed:mode,tag_ids_in_dom:ids};
+}"""
+
 async def guarded_route(route):
     host=(urlparse(route.request.url).hostname or "").lower()
     if host in WA_HOSTS:
