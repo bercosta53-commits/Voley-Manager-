@@ -8,11 +8,13 @@ await desktop.goto('http://127.0.0.1:3000/aquisicao',{waitUntil:'networkidle',ti
 await desktop.getByRole('heading',{name:/Maturidade de aquisição/}).waitFor();
 if(!(await desktop.getByText('Onde estão as oportunidades').count()))throw Error('Scatter panel missing');
 if(!(await desktop.getByText('Empresas no sweet spot').count()))throw Error('Shortlist missing');
+if(!(await desktop.getByRole('button',{name:'Potencial L4 (20)'}).count()))throw Error('L4 candidate filter missing');
 await desktop.screenshot({path:'tmp/maturity/desktop.png',fullPage:true});
 await desktop.getByRole('button',{name:/Só foco L2\/L3/}).click();
-const count=await desktop.getByText('72 contas').count();
-if(count<1)console.log('Note: focus metric present in header, filtered table may vary');
+if(!(await desktop.getByText('117').count()))throw Error('Recalibrated focus count not visible');
 await desktop.screenshot({path:'tmp/maturity/desktop-focused.png',fullPage:true});
+await desktop.getByRole('button',{name:'Potencial L4 (20)'}).click();
+await desktop.screenshot({path:'tmp/maturity/desktop-l4-candidates.png',fullPage:true});
 const mobile=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
 await mobile.goto('http://127.0.0.1:3000/aquisicao',{waitUntil:'networkidle',timeout:60000});
 await mobile.getByRole('heading',{name:/Maturidade de aquisição/}).waitFor();
