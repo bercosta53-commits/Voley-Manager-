@@ -44,7 +44,7 @@ function Progressao({analises,active,onPick}:{analises:AnaliseAquisicao[];active
   <div className="grid grid-cols-2 divide-x divide-border md:grid-cols-5">
   {NIVEIS.map(n=>{const count=counts[n.nivel];const focus=n.nivel===2||n.nivel===3;
    return <button type="button" key={n.nivel} onClick={()=>onPick(active===n.nivel?-1:n.nivel)}
-    className={cn('group relative flex min-h-[172px] flex-col p-4 text-left transition-colors hover:bg-[var(--vr-surface-2)] md:p-5',focus?'bg-[var(--vr-surface-2)]/50':'',active===n.nivel?'ring-2 ring-inset ring-foreground':'')}>
+    className={cn('group relative flex min-h-[172px] flex-col p-4 text-left transition-colors hover:bg-[var(--vr-surface-2)] md:p-5',focus?'bg-[var(--vr-surface-2)]/50':'',n.nivel===5?'col-span-2 md:col-span-1':'',active===n.nivel?'ring-2 ring-inset ring-foreground':'')}>
       <div className="flex w-full items-center justify-between gap-2"><span className="vr-data text-[12px] font-semibold text-text-3">0{n.nivel} / 05</span>{focus&&<span className="rounded-[3px] bg-foreground px-1.5 py-1 text-[9px] font-semibold uppercase tracking-wider text-background">Foco Velora</span>}</div>
       <div className="mt-5 flex items-end gap-2"><span className="vr-data text-[38px] leading-none tracking-[-.08em] font-semibold" style={{color:focus?'var(--vr-text)':'var(--vr-text-2)'}}>{n.nivel>=4?'—':fmt(count)}</span><span className="pb-1 text-[11px] text-text-3">{n.nivel>=4?'não aferível':'contas'}</span></div>
       <div className="mt-auto pt-4"><div className="mb-2 h-[3px] w-full bg-[var(--vr-surface-3)]"><div style={{width:n.nivel>=4?'0%':String(percent(count,analises.length))+'%',backgroundColor:n.cor}} className="h-full transition-[width] duration-300"/></div><div className="text-[13px] font-semibold leading-5">{n.titulo}</div><p className="mt-0.5 text-[11px] text-text-3">{n.sub}</p></div>
@@ -77,7 +77,7 @@ function Mapa({rows,onSelect}:{rows:AnaliseAquisicao[];onSelect:(a:AnaliseAquisi
     <rect x={x0} y={y1} width={x1-x0} height={y0-y1} fill="url(#atlas-grid)" rx="3"/>
     <rect x={x0+(.34)*(x1-x0)} y={y1+(.10)*(y0-y1)} width={(x1-x0)*.42} height={(y0-y1)*.78} fill="var(--vr-ok-bg)" opacity=".24" stroke="var(--vr-ok)" strokeDasharray="5 5" strokeOpacity=".25"/>
     {[0,25,50,75,100].map(v=><g key={v}><text x={x0+v/100*(x1-x0)} y={y0+22} fontSize="11" textAnchor="middle" fill="var(--vr-text-3)">{v}</text><text x={x0-14} y={y0-v/100*(y0-y1)+4} fontSize="11" textAnchor="end" fill="var(--vr-text-3)">{v}</text></g>)}
-    <text x={x0+15} y={y1+24} fontSize="11" fontWeight="600" fill="var(--vr-text-3)" opacity=".75">MENSURAÇÃO FRACA NO TESTE</text>
+    <text x={x0+15} y={y1+24} fontSize="11" fontWeight="600" fill="var(--vr-text-3)" opacity=".75">MENOS EVIDÊNCIA WEB OBSERVADA</text>
     <text x={x1-15} y={y1+24} textAnchor="end" fontSize="11" fontWeight="600" fill="var(--vr-text-3)" opacity=".75">STACK MAIS OBSERVÁVEL</text>
     <text x={(x0+x1)/2} y="390" fontSize="12" textAnchor="middle" fill="var(--vr-text-2)">Instrumentação & eventos observáveis →</text>
     <text x="16" y={(y0+y1)/2} transform={'rotate(-90 16 '+(y0+y1)/2+')'} fontSize="12" textAnchor="middle" fill="var(--vr-text-2)">Ativação de mídia, captura & CRM web →</text>
