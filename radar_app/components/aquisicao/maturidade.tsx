@@ -83,7 +83,7 @@ function Mapa({rows,onSelect}:{rows:AnaliseAquisicao[];onSelect:(a:AnaliseAquisi
     <text x="16" y={(y0+y1)/2} transform={'rotate(-90 16 '+(y0+y1)/2+')'} fontSize="12" textAnchor="middle" fill="var(--vr-text-2)">Ativação de mídia, captura & CRM web →</text>
     {sorted.map(a=>{const p=pos(a);const c=corNivel(a.nivel);const selected=hover===a.conta.id;return <g key={a.conta.id} onMouseEnter={()=>setHover(a.conta.id)} onMouseLeave={()=>setHover(null)} onFocus={()=>setHover(a.conta.id)} onBlur={()=>setHover(null)} onClick={()=>onSelect(a)} onKeyDown={e=>{if(e.key==='Enter')onSelect(a)}} role="button" tabIndex={0} aria-label={a.conta.name+', maturidade '+a.nivel} className="cursor-pointer">
       {selected&&<circle cx={p.x} cy={p.y} r="12" fill={c} opacity=".15"/>}
-      <circle cx={p.x} cy={p.y} r={selected?6.9:a.foco?5.1:3.8} fill={a.nivel===0?'var(--vr-border-strong)':c} fillOpacity={selected?1:a.foco?.85:.55} stroke={selected?'var(--vr-text)':'var(--vr-surface)'} strokeWidth={selected?1.6:0.85}/>
+      <circle cx={p.x} cy={p.y} r={selected?6.9:a.foco?5.1:3.8} fill={a.nivel===0?'var(--vr-border-strong)':c} fillOpacity={selected ? 1 : (a.foco ? 0.85 : 0.55)} stroke={selected?'var(--vr-text)':'var(--vr-surface)'} strokeWidth={selected?1.6:0.85}/>
      </g>})}
     {point&&active&&<g style={{pointerEvents:'none'}} transform={'translate('+(Math.min(point.x,630))+','+(Math.max(point.y-62,8))+')'}>
       <rect x="10" y="0" width="212" height="58" rx="6" fill="var(--vr-text)"/>
