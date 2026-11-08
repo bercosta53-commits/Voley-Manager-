@@ -11,6 +11,8 @@ export interface ContaAquisicao {
  tags:Record<string,EstadoTecnico>;priority:number;signalFamilies:number;crmHistorical:string;crmObserved:string;mediaObserved:string;
  ctaStage:string;ctaConclusion:string;ctaClicked:boolean;ctaHttp:string;cmpVisible:boolean;consent:string;
  nextValidation:string;evidence:string;historicalSource:string;limitations:string;observation:string;
+ sourceCohort?:string;historicalTech?:string[];sector?:string;specialization?:string;region?:string;
+ verifiedICP?:boolean;verifiedRevenue?:boolean;readiness?:string;lastScannedAt?:string;
 }
 export interface DadosAquisicao {
  schema:string;lastUpdated:string;source:string;caveat:string;accounts:ContaAquisicao[];
