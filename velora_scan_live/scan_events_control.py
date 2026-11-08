@@ -14,17 +14,26 @@ def signature(record):
     return record["platform"] + ":" + record["event"]
 
 def compare(baseline, after, dl):
+    """Conservative comparison; common page events never prove CTA attribution."""
     baseline_signatures={signature(x) for x in baseline}
     novel=[x for x in after if signature(x) not in baseline_signatures]
-    meaningful=[x for x in novel if x.get("strong_conversion_label")]
+    generic={"page_view","session_start","first_visit","user_engagement","scroll",
+             "view_item","gtm.js","gtm.dom","gtm.load"}
+    meaningful=[x for x in novel if x.get("strong_conversion_label") and
+                str(x.get("event","")).lower() not in generic]
+    specific=[x for x in novel if str(x.get("event","")).lower()
+              not in generic|{"click",""}]
+    named_dl=[x for x in dl if any(k in x.lower() for k in ("whatsapp","contact","lead"))]
     if meaningful:
-        level="INDICIO_FORTE_EVENTO_APOS_CLIQUE"
-    elif novel:
-        level="REQUISICAO_NOVA_APOS_CLIQUE"
-    elif after:
-        level="REQUISICAO_SEM_DIFERENCA_DO_CONTROLE"
+        level="INDICIO_COMERCIAL_APOS_CLIQUE"
+    elif specific:
+        level="EVENTO_ESPECIFICO_SEM_ATRIBUICAO_CONFIRMADA"
+    elif named_dl:
+        level="DATALAYER_COM_EVENTO_NOMEADO"
     elif dl:
-        level="SOMENTE_DATALAYER"
+        level="SOMENTE_DATALAYER_GENERICO"
+    elif after:
+        level="SOMENTE_REQUISICOES_GENERICAS"
     else:
         level="SEM_EVENTO_OBSERVADO_INCONCLUSIVO"
     return level,novel,meaningful
