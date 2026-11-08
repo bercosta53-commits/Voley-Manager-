@@ -1,4 +1,7 @@
 import unittest
+import sys
+from pathlib import Path
+sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
 from scan_events import classify_event,safe_host_path,summarize_datalayer
 class TestEvents(unittest.TestCase):
  def test_ga4(self):
