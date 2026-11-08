@@ -1,0 +1,66 @@
+name: Velora | Consolidar auditoria expansão 80
+on:
+  push:
+    branches: [research/velora-live-tags-pilot]
+    paths:
+      - ".github/workflows/velora-expansion-publish.yml"
+permissions:
+  actions: read
+  contents: write
+jobs:
+  consolidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Fetch 80 browser evidence batches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/velora-expansion
+          gh run download 42503399885 --pattern 'velora-expansion-80-batch-*' --dir /tmp/velora-expansion
+          find /tmp/velora-expansion -name 'velora_expansion_*.json' | sort
+      - name: Build compact auditable evidence file
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json,csv
+          root=Path('/tmp/velora-expansion')
+          paths=sorted(root.rglob('velora_expansion_*.json'))
+          assert len(paths)==8,('Expected 8 batches',paths)
+          tech={'gtm':'GTM','ga4':'GA4','googleAds':'Google Ads','meta':'Meta Pixel',
+           'linkedin':'LinkedIn Insight','hubspot':'HubSpot web','rdStation':'RD Station web',
+           'ploomes':'Ploomes web','bitrix':'Bitrix24 web','salesforce':'Salesforce web',
+           'pipedrive':'Pipedrive web','mautic':'Mautic','activeCampaign':'ActiveCampaign',
+           'whatsapp':'WhatsApp','contactForm7':'Contact Form 7','typeform':'Typeform','googleForms':'Google Forms'}
+          maps={'NETWORK_2XX_3XX':'network','HTML_REFERENCED':'html',
+          'NETWORK_REQUEST_ONLY':'request','NOT_OBSERVED_IN_TEST':'not_observed','NOT_TESTED':'not_tested'}
+          rows=[]
+          for path in paths:
+           for r in json.loads(path.read_text(encoding='utf-8')):
+            tags={k:maps.get(r.get('tech',{}).get(name,{}).get('state','NOT_TESTED'),'not_tested') for k,name in tech.items()}
+            pages=r.get('pages',[])
+            rows.append({'id':r.get('account_id'),'domain':r.get('domain'),'name':r.get('company'),
+              'audit':r.get('status'),'validPages':len(pages),
+              'forms':sum(p.get('form_count',0) for p in pages),
+              'whatsappLinks':sum(p.get('whatsapp_links',0) for p in pages),
+              'checkedAt':r.get('checked_at'),'tags':tags,'errors':r.get('errors',[])[:7],
+              'sourceRun':'https://github.com/bercosta53-commits/Voley-Manager-/actions/runs/42503399885'})
+          ids=[r['id'] for r in rows]
+          assert len(rows)==80 and len(set(ids))==80,('Duplicate/missing evidence',len(rows),len(set(ids)))
+          dest=Path('velora_scan_live/results/L12_EXPANSAO_80_LIVE.json')
+          dest.parent.mkdir(parents=True,exist_ok=True)
+          dest.write_text(json.dumps({'batch':'L12 expansion 80','sourceRun':42503399885,'records':rows},ensure_ascii=False),encoding='utf-8')
+          from collections import Counter
+          print('PROCESSED',len(rows),'STATUS',Counter(r['audit'] for r in rows))
+          print('GA4 HTTP',sum(r['tags']['ga4']=='network' for r in rows))
+          PY
+      - name: Commit evidence without production changes
+        run: |
+          git config user.name "Velora Research Automation"
+          git config user.email "velora-research@users.noreply.github.com"
+          git add velora_scan_live/results/L12_EXPANSAO_80_LIVE.json
+          git diff --cached --quiet || git commit -m "research(velora): aggregate 80 live acquisition browser audits"
+          git push origin HEAD:research/velora-live-tags-pilot
