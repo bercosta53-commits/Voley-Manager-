@@ -1,3 +1,5 @@
+import {avaliarCrm, type ProvaCRM, type AvaliacaoCRM} from './crm-profundidade';
+
 /** Velora Acquisition Maturity Atlas.
  * Classificação do footprint PÚBLICO, não certificação de maturidade de negócio.
  * Ausência em um crawl nunca demonstra ausência operacional.
@@ -13,6 +15,7 @@ export interface ContaAquisicao {
  nextValidation:string;evidence:string;historicalSource:string;limitations:string;observation:string;
  sourceCohort?:string;historicalTech?:string[];sector?:string;specialization?:string;region?:string;
  verifiedICP?:boolean;verifiedRevenue?:boolean;readiness?:string;lastScannedAt?:string;
+ crmOperacional?:ProvaCRM;
  // Apenas auditorias com acesso autorizado podem preencher este objeto.
  evidenciaOperacional?:{
   crmPipelineRevenue:boolean;sourceAttribution:boolean;governance:boolean;
@@ -35,6 +38,7 @@ export interface AnaliseAquisicao {
  maturidadeConfirmada:boolean;qualidadeEvidencia:number;
  atratividadeVelora:number;requisitosPendentes:string[];
  caracterizacaoNivel:string;
+ crm:AvaliacaoCRM;
 }
 export const NIVEIS = [
  {nivel:1,curto:'L1',titulo:'Presença inicial',sub:'Sinais pontuais',descricao:'Site e pontos de contato, com pouca instrumentação observável. Requer descoberta, não diagnóstico de ausência.',cor:'#88929c'},
@@ -80,19 +84,22 @@ export function analisarConta(c:ContaAquisicao):AnaliseAquisicao {
  const tracking=quantidade(c,GRUPO_TRACKING);
  const media=quantidade(c,GRUPO_MIDIA);
  const crm=quantidade(c,GRUPO_CRM);
+ const avaliacaoCRM=avaliarCrm(c);
  const formas=Number(c.forms>0)+Number(c.whatsappLinks>0);
+ const crmForte=avaliacaoCRM.confirmado&&avaliacaoCRM.score>=80;
  const eventos=eventoObservavel(c);
  const dimensoes:Dimensoes={
   medicao:tracking*50,midia:media===0?0:media===1?38:media===2?70:100,
-  captacao:formas*50,orquestracao:crm===0?0:crm===1?70:100,eventos
+  captacao:formas*50,orquestracao:avaliacaoCRM.score,eventos
  };
- const familias=Number(tracking>0)+Number(media>0)+Number(formas>0)+Number(crm>0);
+ const familias=Number(tracking>0)+Number(media>0)+Number(formas>0)+Number(crm>0||crmForte);
  // A avaliação pública observa capacidades, não mede sucesso operacional.
  // L3 pode existir sem script de CRM no front-end: B2B consultivo usa CRM server-side.
  const estruturada=(tracking>0&&media>0&&crm>0&&formas>0) ||
   (tracking>0&&media>=2&&formas>0) ||
   (tracking>0&&media>0&&crm>0&&eventos!==null&&eventos>=65) ||
-  (media>=2&&crm>0&&formas>0);
+  (media>=2&&crm>0&&formas>0) ||
+  (avaliacaoCRM.confirmado&&avaliacaoCRM.score>=80&&tracking>0&&formas>0);
  let nivel:NivelMaturidade=0;
  if(c.validPages>0&&familias>0){
   nivel=estruturada?3:familias>=2?2:1;
@@ -102,9 +109,9 @@ export function analisarConta(c:ContaAquisicao):AnaliseAquisicao {
  if(provaOtimizacao(c))nivel=5;
 
  // Identificar a hipótese L4 separadamente evita confundir stack complexo com integração de receita.
- const potencialL4=tracking===2&&media>=2&&crm>=1&&formas>=1&&nivel===3;
+ const potencialL4=tracking===2&&media>=2&&(crm>=1||crmForte)&&formas>=1&&nivel===3;
  const potencialL4ComEvento=potencialL4&&eventos!==null&&eventos>=65;
- const sinais=tracking+media+crm;
+ const sinais=tracking+media+crm+Number(crmForte&&crm===0);
  const confianca:Confianca=c.validPages===0||familias===0?'insuficiente':
    c.validPages>=2&&sinais>=2?'adequada':'parcial';
  // Confiança de cobertura: número de páginas e de evidências distintas, não é certeza do nível.
@@ -114,7 +121,8 @@ export function analisarConta(c:ContaAquisicao):AnaliseAquisicao {
  const indicios:string[]=[];
  if(tracking)indicios.push(tracking+' tecnologia'+(tracking>1?'s':'')+' de mensuração');
  if(media)indicios.push(media+' plataforma'+(media>1?'s':'')+' de mídia');
- if(crm)indicios.push(crm+' assinatura'+(crm>1?'s':'')+' web de CRM/automação');
+ if(avaliacaoCRM.score)indicios.push(avaliacaoCRM.fornecedor+': '+(avaliacaoCRM.confirmado?'CRM comercial verificado':'script web identificado; CRM não verificado'));
+ if(crm>1)indicios.push(crm+' tecnologias de CRM/automação web detectadas');
  if(formas)indicios.push(formas===2?'Formulário + WhatsApp':'Canal de conversão no site');
  if(eventos!==null)indicios.push(eventos>=65?'Evento comercial específico observado':'CTA testado; envio não certificado');
 
@@ -140,13 +148,16 @@ export function analisarConta(c:ContaAquisicao):AnaliseAquisicao {
  if(!provaOtimizacao(c))requisitosPendentes.push('Experimentação, incrementabilidade e previsão verificadas');
  if(c.verifiedICP===false)requisitosPendentes.push('ICP, faturamento e decisores ainda não validados');
 
- const fit=c.tier==='A'?22:c.tier==='B'?14:5;
- const sinaisPositivos=Math.min(24,familias*6);
- const cobertura=confianca==='adequada'?18:confianca==='parcial'?8:0;
- const momento=Math.min(15,Math.max(0,c.priority)*.15);
- const zona=nivel===2?20:nivel===3?18:nivel===4?6:0;
+ const fit=c.tier==='A'?18:c.tier==='B'?11:5;
+ const sinaisPositivos=Math.min(16,familias*4);
+ const cobertura=confianca==='adequada'?12:confianca==='parcial'?6:0;
+ const momento=Math.min(12,Math.max(0,c.priority)*.12);
+ const zona=nivel===2?14:nivel===3?12:nivel===4?6:0;
+ // CRM enterprise em uso validado vale até 25 pontos; simples script RD Station vale ~5.
+ // HubSpot web e Salesforce web têm peso relevante, mas não se confundem com CRM instalado.
+ const pesoCRM=Math.round(avaliacaoCRM.score*.26);
  const penalidade=c.verifiedICP===false?12:0;
- const atratividadeVelora=entre(Math.round(fit+sinaisPositivos+cobertura+momento+zona-penalidade));
+ const atratividadeVelora=entre(Math.round(fit+sinaisPositivos+cobertura+momento+zona+pesoCRM-penalidade));
  const indiceObservavel=Math.round((dimensoes.medicao*.28+dimensoes.midia*.23+dimensoes.captacao*.20+
    dimensoes.orquestracao*.24+(eventos===null?0:eventos)*.05)/(eventos===null?0.95:1));
  const x=entre(dimensoes.medicao*.78+(eventos===null?0:eventos)*.22);
@@ -157,7 +168,7 @@ export function analisarConta(c:ContaAquisicao):AnaliseAquisicao {
   conta:c,nivel,confianca,dimensoes,familias,indicios,hipotese,proximoTeste,indiceObservavel,x,y,
   foco:(nivel===2||nivel===3)&&confianca!=='insuficiente',
   potencialL4,potencialL4ComEvento,maturidadeConfirmada:nivel>=4,
-  qualidadeEvidencia,atratividadeVelora,requisitosPendentes,caracterizacaoNivel
+  qualidadeEvidencia,atratividadeVelora,requisitosPendentes,caracterizacaoNivel,crm:avaliacaoCRM
  };
 }
 export function analisarBase(contas:ContaAquisicao[]):AnaliseAquisicao[]{return contas.map(analisarConta)}

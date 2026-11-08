@@ -100,7 +100,7 @@ const DIMENSOES=[
  {key:'medicao',nome:'Mensuração',peso:'GTM · GA4'},
  {key:'midia',nome:'Mídia',peso:'Ads · Meta · LinkedIn'},
  {key:'captacao',nome:'Captação',peso:'Formulário · WhatsApp'},
- {key:'orquestracao',nome:'Orquestração',peso:'CRM/automação web'},
+ {key:'orquestracao',nome:'Profundidade CRM',peso:'Fornecedor × evidência de uso'},
  {key:'eventos',nome:'Eventos',peso:'Clique · conversão'}
 ] as const;
 function MapaCalor({rows}:{rows:AnaliseAquisicao[]}){
@@ -121,9 +121,9 @@ function MapaCalor({rows}:{rows:AnaliseAquisicao[]}){
 }
 function Exportar({rows}:{rows:AnaliseAquisicao[]}){
  const exportar=()=>{
-  const cab=['ID','Empresa','Domínio','Tier','Maturidade estimada','Cobertura','Qualidade da evidência','Atratividade','Potencial L4','Maturidade validada','Mensuração','Mídia','Captação','CRM Web','Evento','Hipótese'];
+  const cab=['ID','Empresa','Domínio','Tier','Maturidade estimada','Cobertura','Qualidade da evidência','Atratividade','Potencial L4','Maturidade validada','Fornecedor CRM','Profundidade CRM','Prova do CRM','Mensuração','Mídia','Captação','CRM Web','Evento','Hipótese'];
   const csv=[cab.join(';'),...rows.map(a=>[
-   a.conta.id,a.conta.name,a.conta.domain,a.conta.tier,a.nivel||'Não aferido',a.confianca,a.qualidadeEvidencia,a.atratividadeVelora,a.potencialL4?'SIM':'NÃO',a.maturidadeConfirmada?'SIM':'NÃO',
+   a.conta.id,a.conta.name,a.conta.domain,a.conta.tier,a.nivel||'Não aferido',a.confianca,a.qualidadeEvidencia,a.atratividadeVelora,a.potencialL4?'SIM':'NÃO',a.maturidadeConfirmada?'SIM':'NÃO',a.crm.fornecedor,a.crm.score,a.crm.confirmado?'VALIDADO':a.crm.origem,
    a.dimensoes.medicao,a.dimensoes.midia,a.dimensoes.captacao,a.dimensoes.orquestracao,a.dimensoes.eventos??'N/A',a.hipotese
   ].map(v=>'"'+String(v).replaceAll('"','""')+'"').join(';'))].join('\n');
   const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
@@ -137,13 +137,13 @@ function ListaFoco({rows,onSelect}:{rows:AnaliseAquisicao[];onSelect:(a:AnaliseA
   <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-5 md:px-6"><div><LabelCaps>Shortlist Velora</LabelCaps><h2 className="mt-1 text-lg font-semibold tracking-tight">Empresas no sweet spot</h2><p className="mt-1 text-xs text-text-3">L2/L3 com evidência pública · ranqueamento por fit, sinais e cobertura.</p></div><span className="vr-data rounded-control border border-border px-2 py-1 text-[11px]">{matches.length} contas</span></div>
   <div className="overflow-x-auto"><table className="min-w-[760px] w-full text-left text-xs"><thead className="bg-[var(--vr-surface-2)] text-[10px] uppercase tracking-wider text-text-3"><tr><th className="px-5 py-3 font-semibold md:px-6">Empresa</th><th className="px-3 py-3 font-semibold">Estágio</th><th className="px-3 py-3 font-semibold">Capacidades</th><th className="px-3 py-3 font-semibold">Hipótese de oportunidade</th><th className="px-3 py-3 text-right font-semibold">Atratividade</th><th className="w-7"/></tr></thead>
   <tbody>{matches.slice(0,18).map(a=><tr key={a.conta.id} onClick={()=>onSelect(a)} onKeyDown={e=>{if(e.key==='Enter')onSelect(a)}} tabIndex={0} className="group cursor-pointer border-b border-border/80 transition-colors hover:bg-[var(--vr-surface-2)] focus:bg-[var(--vr-surface-2)]">
-    <td className="min-w-[170px] px-5 py-3 md:px-6"><div className="font-semibold text-foreground">{a.conta.name}</div><div className="vr-data mt-1 text-[10px] text-text-3">{a.conta.id} · Tier {a.conta.tier}</div></td>
+    <td className="min-w-[170px] px-5 py-3 md:px-6"><div className="font-semibold text-foreground">{a.conta.name}</div><div className="vr-data mt-1 text-[10px] text-text-3">{a.conta.id} · Tier {a.conta.tier}</div>{a.crm.score>0&&<div className="mt-1 text-[10px] font-medium text-text-2">CRM: {a.crm.fornecedor}{a.crm.confirmado?' · verificado':' · indício web'}</div>}</td>
     <td className="px-3 py-3"><SeloNivel nivel={a.nivel}/><div className="mt-2"><SeloConfianca estado={a.confianca}/></div>{a.potencialL4&&<span className="mt-1 block text-[10px] font-semibold text-[#697997]">Potencial L4 · validar</span>}</td>
     <td className="px-3 py-3"><div className="flex gap-1">{(['medicao','midia','captacao','orquestracao'] as const).map(k=><span key={k} title={k+': '+a.dimensoes[k]} className="h-7 w-2.5 rounded-[2px]" style={{background:a.dimensoes[k]?'color-mix(in srgb, var(--vr-ok) '+Math.max(25,a.dimensoes[k]*.70)+'%, var(--vr-surface-3))':'var(--vr-surface-3)'}}/>)}</div></td>
     <td className="max-w-[280px] px-3 py-3 text-[11px] leading-5 text-text-2">{delta(a)}</td>
     <td className="vr-data px-3 py-3 text-right font-semibold">{pontuacaoFoco(a)}</td><td className="px-2"><ChevronRight className="size-4 text-text-3"/></td>
    </tr>)}</tbody></table>{!matches.length&&<div className="p-8 text-center text-sm text-text-3">Nenhuma conta L2/L3 corresponde aos filtros atuais.</div>}</div>
-  <div className="border-t border-border bg-[var(--vr-surface-2)] px-5 py-3 text-[11px] leading-5 text-text-3">Atratividade = fit Tier, famílias de sinais e contexto ABM. Separada da maturidade e da confiança. Não mede falha ou receita.</div>
+  <div className="border-t border-border bg-[var(--vr-surface-2)] px-5 py-3 text-[11px] leading-5 text-text-3">Atratividade combina ICP, sinais positivos e potencial do stack comercial. Salesforce/HubSpot operacionais têm peso superior; um script web não comprova CRM nem pipeline.</div>
  </section>;
 }
 function Detalhe({a,onClose}:{a:AnaliseAquisicao;onClose:()=>void}){
@@ -165,6 +165,17 @@ function Detalhe({a,onClose}:{a:AnaliseAquisicao;onClose:()=>void}){
    </section>}
    <div className="rounded-card border border-border bg-card p-5"><LabelCaps>Posicionamento estimado</LabelCaps><h3 className="mt-1 text-lg font-semibold">{nivel?.titulo||'Evidência insuficiente'}</h3><p className="mt-2 text-sm leading-6 text-text-2">{nivel?.descricao||'Não foi possível determinar o estágio a partir das páginas e tecnologias públicas auditadas.'}</p><p className="mt-2 text-[11px] text-text-3">{a.caracterizacaoNivel}</p></div>
    <div className="rounded-card border border-border bg-card p-5"><LabelCaps>Perfil de capacidades</LabelCaps><div className="mt-4 space-y-4">{DIMENSOES.map(d=>{const v=a.dimensoes[d.key];return <div key={d.key}><div className="mb-1.5 flex justify-between gap-2 text-xs"><span className="font-medium">{d.nome}</span><span className="vr-data text-text-3">{v===null?'Não testado':v+'/100'}</span></div><div className="h-2 w-full overflow-hidden rounded-[3px] bg-[var(--vr-surface-3)]"><div className="h-full bg-foreground transition-[width]" style={{width:v===null?'0%':v+'%'}}/></div><p className="mt-1 text-[11px] text-text-3">{d.peso}</p></div>})}</div><p className="mt-4 border-t border-border pt-3 text-[11px] text-text-3">Pontuações medem presença de evidência; não comprovam eficiência.</p></div>
+   <section className="rounded-card border border-border bg-card p-5">
+    <div className="flex flex-wrap items-start justify-between gap-3">
+     <div><LabelCaps>Potencial do CRM · evidência graduada</LabelCaps><h3 className="mt-1 text-lg font-semibold">{a.crm.fornecedor}</h3>
+      <p className="mt-1 text-xs text-text-3">{a.crm.descricao}</p></div>
+     <div className="text-right"><span className="vr-data text-3xl font-semibold">{a.crm.score}</span><span className="vr-data text-xs text-text-3">/100</span>
+     <span className="block text-[10px] text-text-3">{a.crm.confirmado?'CRM comercial verificado':a.crm.origem==='script_web'?'Somente script web':a.crm.origem==='historico'?'Só registro histórico':'Sem prova positiva'}</span></div>
+    </div>
+    <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--vr-surface-3)]"><div className="h-full rounded-full bg-[#586c8a]" style={{width:a.crm.score+'%'}}/></div>
+    <p className="mt-3 text-[12px] leading-5 text-text-2">{a.crm.observacao}</p>
+    <p className="mt-2 border-t border-border pt-3 text-[11px] leading-5 text-text-3"><strong>Para aprofundar:</strong> {a.crm.proximaValidacao}</p>
+   </section>
    <div className="rounded-card border border-border bg-card p-5"><LabelCaps>Achados técnicos positivos</LabelCaps><div className="mt-3 flex flex-wrap gap-2">{a.indicios.map(t=><span key={t} className="rounded-[4px] border border-border bg-[var(--vr-surface-2)] px-2.5 py-1.5 text-[11px] text-text-2">{t}</span>)}{!a.indicios.length&&<span className="text-sm text-text-3">Nenhuma evidência suficiente nas páginas testadas.</span>}</div>
    <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4"><div><LabelCaps>Formulários DOM</LabelCaps><p className="vr-data mt-1 text-xl font-semibold">{c.forms}</p></div><div><LabelCaps>Links WhatsApp DOM</LabelCaps><p className="vr-data mt-1 text-xl font-semibold">{c.whatsappLinks}</p></div></div></div>
    {!!c.historicalTech?.length&&<div className="rounded-card border border-border bg-card p-5"><LabelCaps>Histórico de tecnologias · provedor</LabelCaps><p className="mt-1 text-[11px] text-text-3">Inventário histórico Clay/BuiltWith. Não indica instalação ativa e não entra no nível de maturidade.</p><div className="mt-3 flex flex-wrap gap-1.5">{c.historicalTech.slice(0,14).map((t,i)=><span key={t+i} className="rounded-[3px] border border-border px-2 py-1 text-[11px] text-text-2">{t}</span>)}</div></div>}
@@ -181,17 +192,17 @@ export function TelaMaturidade({base,dados}:{base:Base;dados:DadosAquisicao}){
  const todas=useMemo(()=>analisarBase(dados.accounts),[dados]);
  const [busca,setBusca]=useState('');const [tier,setTier]=useState('todos');
  const [nivel,setNivel]=useState(-1);const [confidence,setConfidence]=useState('todos');
- const [selected,setSelected]=useState<AnaliseAquisicao|null>(null);const [focusOnly,setFocusOnly]=useState(false);const [onlyNew,setOnlyNew]=useState(false);const [potentialOnly,setPotentialOnly]=useState(false);
+ const [selected,setSelected]=useState<AnaliseAquisicao|null>(null);const [focusOnly,setFocusOnly]=useState(false);const [onlyNew,setOnlyNew]=useState(false);const [potentialOnly,setPotentialOnly]=useState(false);const [crmFilter,setCrmFilter]=useState<'todos'|'enterprise'|'rd'|'verificado'>('todos');
  const rows=useMemo(()=>todas.filter(a=>{
    const match=!busca||[a.conta.name,a.conta.domain,a.conta.id].join(' ').toLocaleLowerCase('pt-BR').includes(busca.toLocaleLowerCase('pt-BR'));
    return match&&(tier==='todos'||a.conta.tier===tier)&&(nivel===-1||a.nivel===nivel)&&
-    (confidence==='todos'||a.confianca===confidence)&&(!focusOnly||a.foco)&&(!onlyNew||!!a.conta.sourceCohort)&&(!potentialOnly||a.potencialL4);
-  }),[todas,busca,tier,nivel,confidence,focusOnly,onlyNew,potentialOnly]);
+    (confidence==='todos'||a.confianca===confidence)&&(!focusOnly||a.foco)&&(!onlyNew||!!a.conta.sourceCohort)&&(!potentialOnly||a.potencialL4)&& (crmFilter==='todos'||crmFilter==='enterprise'&&a.crm.potencialEnterprise||crmFilter==='rd'&&a.conta.tags.rdStation==='network'||crmFilter==='verificado'&&a.crm.confirmado);
+  }),[todas,busca,tier,nivel,confidence,focusOnly,onlyNew,potentialOnly,crmFilter]);
  const total=contagemNiveis(todas),foco=total[2]+total[3],conclusivos=todas.filter(x=>x.nivel>0).length;
  const targetRows=rows.filter(a=>a.foco);
  const novos=todas.filter(x=>!!x.conta.sourceCohort);const novasFoco=novos.filter(x=>x.foco).length;
  const potenciaisL4=todas.filter(a=>a.potencialL4),comEvento=potenciaisL4.filter(a=>a.potencialL4ComEvento);
- const activeFilters=busca||tier!=='todos'||nivel!==-1||confidence!=='todos'||focusOnly||onlyNew||potentialOnly;
+ const activeFilters=busca||tier!=='todos'||nivel!==-1||confidence!=='todos'||focusOnly||onlyNew||potentialOnly||crmFilter!=='todos';
  return <Casca base={base}>
   <main className="mx-auto w-full max-w-[1560px] px-4 pb-28 pt-4 md:px-8 md:pb-16 md:pt-8">
    <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
@@ -220,6 +231,30 @@ export function TelaMaturidade({base,dados}:{base:Base;dados:DadosAquisicao}){
     <Metric label="Potencial L4" numero={fmt(potenciaisL4.length)} desc={`${comEvento.length} com indício de evento específico; não certificadas`} icon={ShieldAlert}/>
    </div>
    <div className="mb-3 rounded-[8px] border border-ok/25 bg-ok-bg px-4 py-3 text-xs text-text-2"><strong className="text-ok">Expansão L12:</strong> {novos.length} novas contas de TI, {novos.filter(x=>x.conta.validPages>0).length} sites auditados e <strong>{novasFoco} novas contas L2/L3</strong>. Todas seguem em pesquisa; faturamento, ICP e decisores precisam de validação antes da abordagem. <button className="ml-2 font-semibold text-ok underline underline-offset-2" onClick={()=>{setOnlyNew(true);setNivel(-1);setFocusOnly(false)}}>Ver novas contas</button></div>
+   <section className="mb-4 rounded-[10px] border border-border bg-card p-4 md:px-6 md:py-5">
+    <div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><LabelCaps>Inteligência comercial · CRM</LabelCaps><h2 className="mt-1 text-lg font-semibold">A profundidade do CRM muda o patamar</h2>
+     <p className="mt-1 max-w-3xl text-[12px] leading-5 text-text-3">Salesforce e HubSpot têm maior potencial de operação comercial. Scripts de tracking são sinais para pesquisar — não provas de Sales Cloud, Sales Hub ou integração com receita.</p></div>
+     <span className="rounded-chip border border-border bg-[var(--vr-surface-2)] px-2.5 py-1.5 text-[10px] text-text-3">Modelo de profundidade v3</span></div>
+    <div className="grid gap-2 sm:grid-cols-3">
+     <button type="button" aria-pressed={crmFilter==='enterprise'} onClick={()=>setCrmFilter(crmFilter==='enterprise'?'todos':'enterprise')} className={cn("rounded-control border p-3 text-left transition-colors hover:border-border-strong",crmFilter==='enterprise'?"border-[#586c8a] bg-[var(--vr-surface-2)]":"border-border")}>
+      <div className="flex items-center justify-between gap-2"><span className="text-[11px] font-semibold text-text-2">Salesforce / HubSpot</span><span className="vr-data text-2xl font-semibold">{todas.filter(x=>x.crm.potencialEnterprise).length}</span></div>
+      <p className="mb-0 mt-1 text-[10px] text-text-3">Sinais públicos de stack enterprise (não CRM validado)</p>
+     </button>
+     <button type="button" aria-pressed={crmFilter==='rd'} onClick={()=>setCrmFilter(crmFilter==='rd'?'todos':'rd')} className={cn("rounded-control border p-3 text-left transition-colors hover:border-border-strong",crmFilter==='rd'?"border-[#586c8a] bg-[var(--vr-surface-2)]":"border-border")}>
+      <div className="flex items-center justify-between gap-2"><span className="text-[11px] font-semibold text-text-2">RD Station web</span><span className="vr-data text-2xl font-semibold">{todas.filter(x=>x.conta.tags.rdStation==='network').length}</span></div>
+      <p className="mb-0 mt-1 text-[10px] text-text-3">Automação/marketing, sem comprovar CRM de vendas</p>
+     </button>
+     <button type="button" aria-pressed={crmFilter==='verificado'} onClick={()=>setCrmFilter(crmFilter==='verificado'?'todos':'verificado')} className={cn("rounded-control border p-3 text-left transition-colors hover:border-border-strong",crmFilter==='verificado'?"border-[#586c8a] bg-[var(--vr-surface-2)]":"border-border")}>
+      <div className="flex items-center justify-between gap-2"><span className="text-[11px] font-semibold text-text-2">CRM comercial verificado</span><span className="vr-data text-2xl font-semibold">{todas.filter(x=>x.crm.confirmado).length}</span></div>
+      <p className="mb-0 mt-1 text-[10px] text-text-3">Uso confirmado com fornecedor, pipeline e fonte</p>
+     </button>
+    </div>
+    <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-[11px] text-text-3">
+     <span><strong className="text-foreground">HubSpot web ≈ 46</strong> pontos de potencial CRM</span>
+     <span><strong className="text-foreground">RD Station web ≈ 18</strong> pontos</span>
+     <span><strong className="text-foreground">Salesforce/Sales Hub confirmado ≈ 84–98</strong> pontos, conforme edição</span>
+    </div>
+   </section>
    <Progressao analises={todas} active={nivel} onPick={x=>{setNivel(x);setFocusOnly(false);setPotentialOnly(false)}}/>
    <div className="mt-4 flex flex-wrap items-center gap-2 rounded-[8px] border border-border bg-card px-3 py-3">
     <SlidersHorizontal className="ml-1 size-4 text-text-3"/><div className="relative min-w-[180px] flex-1 md:max-w-[320px]"><Search className="absolute left-3 top-2.5 size-3.5 text-text-3"/><input value={busca} onChange={e=>setBusca(e.target.value)} className="h-9 w-full rounded-control border border-border-strong bg-background py-1.5 pl-9 pr-3 text-[12px] outline-none" placeholder="Buscar empresa ou domínio" aria-label="Buscar empresa ou domínio"/></div>
@@ -230,7 +265,7 @@ export function TelaMaturidade({base,dados}:{base:Base;dados:DadosAquisicao}){
     <button type="button" onClick={()=>setOnlyNew(!onlyNew)} className={cn("inline-flex h-9 items-center gap-2 rounded-control border px-3 text-[12px] font-semibold",onlyNew?"border-foreground bg-foreground text-background":"border-border bg-card text-text-2")}>Novas L12 ({novos.length})</button>
     <button type="button" onClick={()=>{setPotentialOnly(!potentialOnly);setNivel(-1);setFocusOnly(false)}} className={cn("inline-flex h-9 items-center gap-2 rounded-control border px-3 text-[12px] font-semibold",potentialOnly?"border-foreground bg-foreground text-background":"border-border bg-card text-text-2")}>Potencial L4 ({potenciaisL4.length})</button>
     <Exportar rows={rows}/>
-    {activeFilters&&<button onClick={()=>{setBusca('');setTier('todos');setNivel(-1);setConfidence('todos');setFocusOnly(false);setOnlyNew(false);setPotentialOnly(false)}} className="px-2 text-xs font-medium text-text-3 hover:text-foreground">Limpar</button>}
+    {activeFilters&&<button onClick={()=>{setBusca('');setTier('todos');setNivel(-1);setConfidence('todos');setFocusOnly(false);setOnlyNew(false);setPotentialOnly(false);setCrmFilter('todos')}} className="px-2 text-xs font-medium text-text-3 hover:text-foreground">Limpar</button>}
     <span className="vr-data ml-auto text-[11px] text-text-3">{rows.length} contas</span>
    </div>
    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_.8fr]"><Mapa rows={rows} onSelect={setSelected}/><MapaCalor rows={rows}/></div>
