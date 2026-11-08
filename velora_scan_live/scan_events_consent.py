@@ -17,7 +17,7 @@ def compare(baseline, after, dl):
     """Best-effort temporal evidence; no proof of conversion attribution or CRM integration."""
     initial={signature(x) for x in baseline}
     different=[x for x in after if signature(x) not in initial]
-    nonconv={"page_view","session_start","first_visit","user_engagement","scroll","gtm.js","gtm.dom","gtm.load","click","","collect (type not verified)"}
+    nonconv={"page_view","pageview","session_start","first_visit","user_engagement","scroll","gtm.js","gtm.dom","gtm.load","click","","collect (type not verified)"}
     meaningful=[x for x in different if x.get("strong_conversion_label") and str(x.get("event","")).lower() not in nonconv]
     replied=[x for x in meaningful if isinstance(x.get("http_status"),int) and 200<=x["http_status"]<400]
     named_dl=[x for x in dl if any(k in x.lower() for k in ("whatsapp","contact","lead"))]
