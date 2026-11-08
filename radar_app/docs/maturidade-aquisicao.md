@@ -1,6 +1,6 @@
 # Velora Radar — Matriz de maturidade de aquisição (v1)
 
-Atualizado em 08/11/2026. Fonte: 120 registros técnicos L08–L11.
+Atualizado em 08/11/2026. Fonte: 200 registros técnicos L08–L12.
 
 ## Intenção de negócio
 
@@ -27,9 +27,14 @@ O foco comercial da Velora são organizações com alguma infraestrutura de aqui
 
 ## Resultado atual
 
-- 120 contas inventariadas, 107 sites com visita técnica válida.
-- L1: 29; L2: 50; L3: 22; sem evidência: 19.
-- 72 contas L2+L3 no foco Velora. L4 e L5 não são atribuídos sem acesso interno.
+- 200 contas inventariadas: 120 L08–L11 e +80 L12 (55 Tier A, 25 Tier B).
+- 173 sites com visita técnica válida (107 anteriores e 66 do L12).
+- L1: 42; L2: 78; L3: 37; sem evidência: 43.
+- 115 contas L2+L3 no foco Velora (+43 na expansão L12).
+- Os 80 novos cadastros são **candidatos em pesquisa**, não liberados para outreach sem validar ICP, faturamento e decisores.
+- Do lote L12: 2 bloqueios DNS/endereço não público, 7 robots indisponíveis e 5 sem páginas válidas. Isso **não constitui ausência de tag**.
+- Resultados técnicos L12: [GitHub Actions 42503399885](https://github.com/bercosta53-commits/Voley-Manager-/actions/runs/42503399885).
+- A base de origem foi a planilha Velora 350 candidatas — aba `Mestre · Empresas 05-11`. Inventário Clay/BuiltWith permanece separado dos sinais web atuais. L4 e L5 não são atribuídos sem acesso interno.
 
 ## Segurança interpretativa
 
