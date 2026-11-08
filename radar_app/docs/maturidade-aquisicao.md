@@ -1,55 +1,60 @@
-# Velora Radar — Matriz de maturidade de aquisição (v1)
+# Velora Radar — Calibração de maturidade de aquisição v2
 
-Atualizado em 08/11/2026. Fonte: 200 registros técnicos L08–L12.
+Data: 08/11/2026. Escopo: 200 empresas de TI, 173 sites efetivamente inspecionados.
 
-## Intenção de negócio
+## Três dimensões independentes — evitar misturar notas
 
-O foco comercial da Velora são organizações com alguma infraestrutura de aquisição, mas sem comprovação de uma operação integrada e escalável.
+1. **Maturidade estimada (L0–L5).** Captura somente capacidades com evidência positiva. L0 = sem dados suficientes, nunca "maturidade zero".
+2. **Qualidade da evidência (0–100).** Leitura observacional combinando páginas válidas, diversidade de famílias de tecnologia e evento de CTA auditado. É cobertura técnica do scanner, não grau de certeza estatística.
+3. **Atratividade Velora (0–100).** Fit Tier, amplitude de sinais, qualidade da evidência e prioridade de investigação; reduz a nota provisória quando o ICP/faturamento está explicitamente não validado. Não é score de falha nem probabilidade de fechamento.
 
-- **L1 — Presença inicial:** indícios isolados de medição, mídia, CRM web ou captação. Não representa ausência comprovada de tecnologia.
-- **L2 — Aquisição emergente (foco):** evidências técnicas em pelo menos duas famílias complementares (ex.: tracking + mídia, tracking + captura, mídia + captura ou mídia + CRM web). O próximo diagnóstico valida eventos, handoff de leads e campanhas.
-- **L3 — Operação estruturada (foco):** tracking + mídia + tecnologia comercial/automação no front-end + captação no DOM, observados no crawl. O próximo diagnóstico valida a atribuição de ponta a ponta e a conexão com receita.
-- **L4 — Integrada por dados:** integração CRM/marketing/comercial demonstrada por evidências operacionais internas; não verificável por navegação pública.
-- **L5 — Otimização contínua:** atribuição robusta, experimentos, incrementabilidade e otimização recorrente demonstradas; não verificável por navegação pública.
-- **0 — Evidência insuficiente:** site não auditado ou sem famílias tecnológicas positivas observadas. Não é automaticamente L1.
+## Cinco níveis — definições e confirmação
 
-## Instrumentos de leitura
+| Nível | Definição operacional | Critério público / gate |
+|---|---|---|
+| **L1 — Presença inicial** | Evidência positiva em apenas uma família (mensuração, mídia, CRM web ou captação). | Site válido; uma família observada. Isso não prova ausência das demais. |
+| **L2 — Aquisição emergente** | Capacidades positivas em duas ou mais famílias, sem evidências suficientes para classificar L3. | Site válido, pelo menos duas famílias web. |
+| **L3 — Aquisição estruturada** | Operação multicanal observável, ainda sem demonstração da integração Marketing–Vendas–Receita. | Quatro famílias; **ou** mensuração+mídia multicanal+captação; **ou** mensuração+mídia+CRM web com evento comercial identificado; **ou** mídia multicanal+CRM web+captação. Não exige que o script do CRM apareça no front-end. |
+| **L4 — Integrada por dados** | CRM/pipeline ligado à receita, atribuição de origem e governança comercial. | Requer **evidência operacional**, fonte verificável, data e revisor. O stack público sozinho não qualifica. |
+| **L5 — Otimização contínua** | L4 + experimentação documentada, incrementabilidade e previsão/otimização de receita. | Exige **todos os requisitos L4**, mais evidências internas verificadas. |
 
-**Eixo X — Instrumentação observável:** tags GTM/GA4 confirmadas em rede, com peso adicional caso evento de CTA seja observado.
+A regra de L4/L5 agora **não contém limite fixo em L3**: a promoção está habilitada na estrutura `evidenciaOperacional` com trilha de fonte, revisor e data. Nenhuma das 200 contas possui essa validação ainda, portanto os dois níveis permanecem com **zero comprovadas**, sem concluir que elas não existam.
 
-**Eixo Y — Ativação observável:** plataformas de mídia em rede, captação no DOM (formulários/WhatsApp) e scripts de CRM ou automação web carregados.
+## Hipótese separada: potencial L4
 
-**Mapa de calor:** intensidade de capacidades observadas (0–100), não maturidade de operação. Dimensão não auditada é nula, nunca zero comprovado.
+**Potencial L4 = L3 com GTM e GA4 carregados, no mínimo duas plataformas de mídia em rede, ao menos um script web de CRM/automação em rede e um ponto de captação visível.**
 
-**Cobertura web:** adequada se duas ou mais páginas válidas e pelo menos duas detecções técnicas em rede; parcial se há página válida e evidência; insuficiente se não há material para classificação. Isso é qualidade da cobertura *deste scanner*, não auditoria certificada de CRM/ads.
+- Contar como **candidata à verificação**, nunca como L4 certificada.
+- A existência de evento comercial específico após CTA aumenta interesse na investigação; resposta de endpoint não certifica CRM integrado.
+- Os sinais de histórico Clay/BuiltWith **não** entram na classificação positiva até serem observados no navegador.
+- Não inferir campanha ativa apenas por pixel/Ads e não inferir CRM operacional só por script web.
 
-**Prioridade de foco ABM:** combina nível L2/L3, tier ICP, famílias positivas, cobertura de dados e sinal histórico de prioridade. A nota não mede fragilidade, CAC, eficiência ou receita potencial.
+## Comparação da amostra e efeito da calibração
 
-## Resultado atual
+| Classe | v1 | v2 | Diferença |
+|---|---:|---:|---:|
+| L0 — Insuficiente | 43 | 43 | 0 |
+| L1 | 42 | 40 | −2 |
+| L2 | 78 | 61 | −17 |
+| L3 | 37 | 56 | +19 |
+| L4 validado | 0 | 0 | 0 |
+| L5 validado | 0 | 0 | 0 |
+| **Foco L2+L3** | **115** | **117** | **+2** |
 
-- 200 contas inventariadas: 120 L08–L11 e +80 L12 (55 Tier A, 25 Tier B).
-- 173 sites com visita técnica válida (107 anteriores e 66 do L12).
-- L1: 42; L2: 78; L3: 37; sem evidência: 43.
-- 115 contas L2+L3 no foco Velora (+43 na expansão L12).
-- Os 80 novos cadastros são **candidatos em pesquisa**, não liberados para outreach sem validar ICP, faturamento e decisores.
-- Do lote L12: 2 bloqueios DNS/endereço não público, 7 robots indisponíveis e 5 sem páginas válidas. Isso **não constitui ausência de tag**.
-- Resultados técnicos L12: [GitHub Actions 42503399885](https://github.com/bercosta53-commits/Voley-Manager-/actions/runs/42503399885).
-- A base de origem foi a planilha Velora 350 candidatas — aba `Mestre · Empresas 05-11`. Inventário Clay/BuiltWith permanece separado dos sinais web atuais. L4 e L5 não são atribuídos sem acesso interno.
+**20 candidatas a potencial L4** (ainda L3). **1** delas combina o stack exigido com evento comercial específico no consolidado.
 
-## Segurança interpretativa
+A mudança em L3 resolve um viés: empresas B2B podem ter aquisição multicanal e CRM server-side invisível. A mudança é baseada em **evidências positivas**, não em suposta ausência de sistemas.
 
-- Não observado **não significa ausente**.
-- Uma tag Google Ads **não comprova campanha ativa ou gasto**.
-- Um script RD/HubSpot/Ploomes **não comprova uso de CRM interno nem passagem de leads**.
-- Não há prova pública, isoladamente, de integração ou deficiência.
-- Resposta HTTP em conversão comprova resposta do endpoint, não persistência e atribuição no CRM.
+## Aplicação no fluxo ABM
 
-## Fluxo recomendado
+- Público central: L2 e L3, priorizado por Atratividade Velora e qualidade da evidência.
+- Candidatas L4: investigar integração CRM/pipeline/receita para distinguir integração real de stack fragmentado.
+- L1/inconclusivas: primeiro confirmar ICP e operação; não descartar automaticamente.
+- Manter os 80 cadastros L12 como **pesquisa, sem cadência comercial automática**, até validar ICP, faturamento, responsável econômico e deduplicação.
+- Dados históricos e scores comerciais originais são preservados.
 
-1. Selecionar contas L2/L3 com cobertura adequada.
-2. Cruzar com ICP Velora e sinais empresariais independentes, como contratação de liderança de Growth, expansão, mudanças comerciais e timing.
-3. Levantar hipóteses de atribuição, lifecycle e operação. Não afirmar problemas sem acesso.
-4. Validar com acesso autorizado a GTM Preview, GA4 DebugView, pipeline/UTM no CRM, eventos e campanhas.
-5. Só então criar score de maturidade comprovada e recomendar projeto de transformação.
+## Limites metodológicos
 
-A aba antiga de inventário tecnológico permanece acessível em `/aquisicao/stack`. Dados versionados em `radar_app/data/aquisicao.json`; modelo implementado em `radar_app/lib/aquisicao-maturidade.ts`. A nova página não altera o VSCS ou notas comerciais existentes.
+Amostra web pública, páginas selecionadas, estados de consentimento e eventos nem sempre testados. Estes níveis são um **modelo heurístico exploratório** e devem ser calibrados contra auditorias completas, com casos de referência validados, antes de decisões de alto impacto. Não apresentam probabilidade estatística de maturidade nem comprovam falha comercial.
+
+Código auditável: `radar_app/lib/aquisicao-maturidade.ts`. Validação de regressões: `radar_app/scripts/check_maturity_v2.mjs`. Dados: `radar_app/data/aquisicao.json`.
