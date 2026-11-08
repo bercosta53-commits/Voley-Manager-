@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { BarChart3, Building2, CloudSun, Crosshair, Inbox, MoreHorizontal, PlugZap, Radar, Search, UsersRound } from 'lucide-react';
+import { BarChart3, Building2, CloudSun, Crosshair, Inbox, MoreHorizontal, PlugZap, Radar, Search, Target, UsersRound } from 'lucide-react';
 import { PainelFlutuante } from '@/components/ui/painel-flutuante';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import type { Base } from '@/lib/tipos';
 export const SECOES = [
   { href: '/', rotulo: 'Hoje', icone: Inbox },
   { href: '/radar', rotulo: 'Radar', icone: Radar },
+  { href: '/aquisicao', rotulo: 'Aquisição', icone: Target },
   { href: '/icp', rotulo: 'ICP', icone: Crosshair },
   { href: '/contas', rotulo: 'Contas', icone: Building2 },
   { href: '/decisores', rotulo: 'Decisores', icone: UsersRound },
@@ -176,7 +177,7 @@ export function TopoCelular({ ficticia, onBuscar }: { ficticia: boolean; onBusca
 }
 
 /** Navegação inferior (celular): cinco seções + "Mais" com o resto. Alvos de toque de 44px ou mais. */
-const NO_CELULAR = ['/', '/radar', '/icp', '/contas', '/decisores'];
+const NO_CELULAR = ['/', '/radar', '/aquisicao', '/contas', '/decisores'];
 
 export function NavInferior({ novos }: { novos: number }) {
   const ativa = useSecaoAtiva();
