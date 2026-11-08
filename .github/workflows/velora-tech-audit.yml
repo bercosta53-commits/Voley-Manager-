@@ -1,0 +1,37 @@
+name: Velora | Auditoria técnica de aquisição
+on:
+  workflow_dispatch:
+  push:
+    branches: [research/velora-live-tags-pilot]
+    paths:
+      - "velora_scan_live/**"
+      - ".github/workflows/velora-tech-audit.yml"
+permissions:
+  contents: read
+jobs:
+  verify-site-tags:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install -r velora_scan_live/requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: Test
+        run: python -m unittest discover -s velora_scan_live/tests -v
+      - name: Scan
+        run: |
+          python velora_scan_live/scan.py --csv velora_scan_live/data/pilot.csv --limit 10 --max-pages 2
+      - name: Upload JSON and CSV evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: velora-live-evidence
+          path: |
+            velora_live_results.json
+            velora_live_results.csv
+          retention-days: 30
