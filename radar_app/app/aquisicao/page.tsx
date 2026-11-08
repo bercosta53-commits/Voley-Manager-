@@ -1,13 +1,14 @@
 import { lerBase } from '@/lib/dados';
 import dados from '@/data/aquisicao.json';
-import { TelaAquisicao } from '@/components/aquisicao/aquisicao';
+import { TelaMaturidade } from '@/components/aquisicao/maturidade';
+import type { DadosAquisicao } from '@/lib/aquisicao-maturidade';
 
 export const metadata = {
-  title: 'Aquisição | Velora Radar',
-  description: 'Infraestrutura de aquisição: tags, pixels, mídia, CRM web, captação e evidências técnicas.',
+ title: 'Maturidade de aquisição | Velora Radar',
+ description: 'Atlas analítico de maturidade de aquisição com cinco níveis, foco L2/L3 e evidências auditáveis.',
 };
 
-export default async function Pagina() {
-  const base = await lerBase();
-  return <TelaAquisicao base={base} dados={dados as unknown as Parameters<typeof TelaAquisicao>[0]['dados']} />;
+export default async function Pagina(){
+ const base=await lerBase();
+ return <TelaMaturidade base={base} dados={dados as unknown as DadosAquisicao} />;
 }

@@ -1,0 +1,39 @@
+name: Velora | Maturity visual QA
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/aquisicao-maturity-atlas]
+    paths:
+      - "radar_app/components/aquisicao/**"
+      - "radar_app/scripts/smoke_maturity.mjs"
+      - ".github/workflows/velora-maturity-visual.yml"
+permissions:
+  contents: read
+jobs:
+  screenshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: radar_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: radar_app/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - name: Desktop and mobile smoke
+        run: |
+          (npm run start -- -p 3000 > /tmp/velora-next.log 2>&1 &)
+          node scripts/smoke_maturity.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: velora-maturity-design-review
+          path: radar_app/tmp/maturity/*.png
+          retention-days: 14
