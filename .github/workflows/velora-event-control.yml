@@ -1,0 +1,41 @@
+name: Velora | Evento WhatsApp com grupo-controle
+on:
+  workflow_dispatch:
+  push:
+    branches: [research/velora-live-tags-pilot]
+    paths:
+      - "velora_scan_live/scan_events_control.py"
+      - "velora_scan_live/data/event_control_pilot.csv"
+      - "velora_scan_live/tests/test_events_control.py"
+      - ".github/workflows/velora-event-control.yml"
+permissions:
+  contents: read
+jobs:
+  validate-whatsapp-tracking:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install browser
+        run: |
+          python -m pip install -r velora_scan_live/requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: Unit tests
+        run: |
+          python -m unittest discover -s velora_scan_live/tests -p test_events.py -v
+          python -m unittest discover -s velora_scan_live/tests -p test_events_control.py -v
+      - name: Run control and CTA click observations
+        run: |
+          python velora_scan_live/scan_events_control.py --csv velora_scan_live/data/event_control_pilot.csv --limit 10 --timeout-ms 12000
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: velora-whatsapp-control-evidence
+          path: |
+            velora_event_control.json
+            velora_event_control.csv
+          retention-days: 30

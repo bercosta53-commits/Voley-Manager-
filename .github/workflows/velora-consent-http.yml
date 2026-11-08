@@ -1,0 +1,39 @@
+name: Velora | L10 Consentimento e respostas HTTP
+on:
+  workflow_dispatch:
+  push:
+    branches: [research/velora-live-tags-pilot]
+    paths:
+      - "velora_scan_live/scan_events_consent.py"
+      - "velora_scan_live/data/consent_pilot.csv"
+      - "velora_scan_live/tests/test_events_consent.py"
+      - ".github/workflows/velora-consent-http.yml"
+permissions:
+  contents: read
+jobs:
+  passive-consent-http:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Playwright
+        run: |
+          python -m pip install -r velora_scan_live/requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: Unit tests
+        run: python -m unittest discover -s velora_scan_live/tests -p 'test_events_consent.py' -v
+      - name: Audit L10 no consent modifications, no form submission
+        run: |
+          python velora_scan_live/scan_events_consent.py --csv velora_scan_live/data/consent_pilot.csv --limit 10 --timeout-ms 12000
+      - name: Upload sanitized evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: velora-l10-consent-http-evidence
+          path: |
+            velora_l10_consent.json
+            velora_l10_consent.csv
+          retention-days: 30

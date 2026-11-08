@@ -1,0 +1,39 @@
+name: Velora | Teste de eventos de conversao
+on:
+  workflow_dispatch:
+  push:
+    branches: [research/velora-live-tags-pilot]
+    paths:
+      - "velora_scan_live/scan_events.py"
+      - "velora_scan_live/data/event_pilot.csv"
+      - "velora_scan_live/tests/test_events.py"
+      - ".github/workflows/velora-conversion-events.yml"
+permissions:
+  contents: read
+jobs:
+  conversion-cta-pilot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install browser
+        run: |
+          python -m pip install -r velora_scan_live/requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: Unit tests
+        run: python -m unittest discover -s velora_scan_live/tests -p test_events.py -v
+      - name: Scan WhatsApp CTA events (no messages or form submission)
+        run: |
+          python velora_scan_live/scan_events.py --csv velora_scan_live/data/event_pilot.csv --limit 10 --timeout-ms 12000
+      - name: Export evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: velora-conversion-cta-evidence
+          path: |
+            velora_events.json
+            velora_events.csv
+          retention-days: 30
