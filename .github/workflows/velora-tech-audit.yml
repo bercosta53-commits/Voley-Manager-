@@ -4,7 +4,9 @@ on:
   push:
     branches: [research/velora-live-tags-pilot]
     paths:
-      - "velora_scan_live/**"
+      - "velora_scan_live/scan.py"
+      - "velora_scan_live/data/pilot.csv"
+      - "velora_scan_live/tests/test_detect.py"
       - ".github/workflows/velora-tech-audit.yml"
 permissions:
   contents: read
