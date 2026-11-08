@@ -86,12 +86,13 @@ export function analisarConta(c:ContaAquisicao):AnaliseAquisicao {
  const crm=quantidade(c,GRUPO_CRM);
  const avaliacaoCRM=avaliarCrm(c);
  const formas=Number(c.forms>0)+Number(c.whatsappLinks>0);
+ const crmForte=avaliacaoCRM.confirmado&&avaliacaoCRM.score>=80;
  const eventos=eventoObservavel(c);
  const dimensoes:Dimensoes={
   medicao:tracking*50,midia:media===0?0:media===1?38:media===2?70:100,
   captacao:formas*50,orquestracao:avaliacaoCRM.score,eventos
  };
- const familias=Number(tracking>0)+Number(media>0)+Number(formas>0)+Number(crm>0);
+ const familias=Number(tracking>0)+Number(media>0)+Number(formas>0)+Number(crm>0||crmForte);
  // A avaliação pública observa capacidades, não mede sucesso operacional.
  // L3 pode existir sem script de CRM no front-end: B2B consultivo usa CRM server-side.
  const estruturada=(tracking>0&&media>0&&crm>0&&formas>0) ||
@@ -108,9 +109,9 @@ export function analisarConta(c:ContaAquisicao):AnaliseAquisicao {
  if(provaOtimizacao(c))nivel=5;
 
  // Identificar a hipótese L4 separadamente evita confundir stack complexo com integração de receita.
- const potencialL4=tracking===2&&media>=2&&crm>=1&&formas>=1&&nivel===3;
+ const potencialL4=tracking===2&&media>=2&&(crm>=1||crmForte)&&formas>=1&&nivel===3;
  const potencialL4ComEvento=potencialL4&&eventos!==null&&eventos>=65;
- const sinais=tracking+media+crm;
+ const sinais=tracking+media+crm+Number(crmForte&&crm===0);
  const confianca:Confianca=c.validPages===0||familias===0?'insuficiente':
    c.validPages>=2&&sinais>=2?'adequada':'parcial';
  // Confiança de cobertura: número de páginas e de evidências distintas, não é certeza do nível.
