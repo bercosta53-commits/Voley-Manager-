@@ -1,0 +1,13 @@
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+__pycache__/
+# Base real de contas: nunca vai para o repositório (ele é público).
+data/contas.local.json
+screenshots/
+.vercel
+.env*
+# Enriquecimentos manuais e backups da base real (dado de pessoa/empresa)
+data/*.local.json

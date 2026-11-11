@@ -1,0 +1,30 @@
+name: Velora Radar | validar aba Aquisição
+on:
+  push:
+    branches: [feat/velora-acquisition-dashboard]
+    paths:
+      - "radar_app/**"
+      - ".github/workflows/velora-acquisition-check.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  typecheck-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    defaults:
+      run:
+        working-directory: radar_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: radar_app/package-lock.json
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Typecheck
+        run: npm run lint
+      - name: Build
+        run: npm run build

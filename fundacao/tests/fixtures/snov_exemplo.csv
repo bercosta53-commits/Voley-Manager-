@@ -1,0 +1,14 @@
+First Name,Last Name,Position,Company Name,Company Site,Email,Email Status,LinkedIn Url,Phone,Industry,Company Size,Location
+Ana,Souza,CEO,Alfa Tecnologia,https://www.alfatecnologia.com.br,ana.souza@alfatecnologia.com.br,valid,https://linkedin.com/in/ana-souza-xyz/,11999990000,Software,51-200,"Sao Paulo, SP, Brazil"
+Bruno,Lima,Diretor Financeiro,Alfa Tecnologia,alfatecnologia.com.br,bruno.lima@alfatecnologia.com.br,catch-all,https://linkedin.com/in/bruno-lima,,Software,51-200,"Sao Paulo, SP, Brazil"
+Carla,Mendes,Head de Compras,Alfa Tecnologia,alfatecnologia.com.br,carla.mendes@alfatecnologia.com.br,unknown,https://linkedin.com/in/carla-mendes?trk=abc,,Software,51-200,"Campinas, State of Sao Paulo"
+Diego,Ramos,Gerente de Marketing,Alfa Tecnologia,alfatecnologia.com.br,diego.ramos@alfatecnologia.com.br,valid,,11988887777,Software,51-200,Sao Paulo
+Marina,Melo,Head de Marketing,Alfa Tecnologia,alfatecnologia.com.br,marina.melo@alfatecnologia.com.br,valid,https://www.linkedin.com/in/marina-melo/,,Software,51-200,"Sao Paulo, SP, Brazil"
+Ana,Souza,CEO,Alfa Tecnologia,alfatecnologia.com.br,ana.souza@alfatecnologia.com.br,valid,https://www.linkedin.com/in/ana-souza-xyz,11999990000,Software,51-200,"Sao Paulo, SP, Brazil"
+Fabio,Nogueira,Gerente Comercial,Beta Consultoria,,fabio.nogueira@gmail.com,unknown,,,Consultoria,11-50,"Curitiba, Parana, Brazil"
+Gustavo,Pires,Diretor de TI,Beta Consultoria,www.betaconsultoria.com,gustavo@betaconsultoria.com,not valid,,,Consultoria,11-50,"Londrina, PR"
+Helena,Dias,Analista,Beta Consultoria,www.betaconsultoria.com,helena@betaconsultoria.com,valid,,,Consultoria,11-50,"Curitiba, PR, Brazil"
+Igor,Castro,CFO,Gama Seguros,gamaseguros.com.br,igor.castro@gamaseguros.com.br,valid,linkedin.com/in/igor-castro,,Seguros,201-500,"Porto Alegre, Rio Grande do Sul"
+Julia,Rocha,Head Global de Vendas,Gama Seguros,gamaseguros.com.br,julia.rocha@gamaseguros.com.br,valid,linkedin.com/in/julia-rocha,,Seguros,201-500,"Caxias do Sul, RS"
+Karin,Alves,,Delta Saude,deltasaude.com.br,karin.alves@deltasaude.com.br,valid,,,Saude,51-200,"Rio de Janeiro, RJ, Brazil"
+Lucas,Ferreira,Diretor Comercial,Epsilon Corp,,lucas.ferreira@epsilon.com,valid,,,Software,11-50,"New York, NY, United States"
