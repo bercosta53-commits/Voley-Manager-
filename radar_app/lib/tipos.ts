@@ -13,6 +13,10 @@ export interface Pessoa {
   fonte: string;
   /** papel no comitê de compra (scripts/qualificar_icp.py) */
   papelAbm?: PapelAbm;
+  /** lugares extras que a mesma pessoa ocupa no comitê (ex.: decisor que também é o dono da dor) */
+  papeisExtras?: PapelAbm[];
+  /** contato da Velora dentro da conta (relacionamento já aberto) */
+  contatoVelora?: boolean;
   /** relevância da pessoa no contexto do ICP */
   relevancia?: 'alta' | 'media' | 'baixa';
   email?: string;
