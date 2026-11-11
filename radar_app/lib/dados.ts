@@ -1,5 +1,6 @@
 import 'server-only';
-import { readFile } from 'node:fs/promises';
+import { readFile, rename, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { get } from '@vercel/blob';
 import type { Base } from './tipos';
@@ -31,7 +32,28 @@ async function semRemovidas(base: Base): Promise<Base> {
   return { ...base, contas: base.contas.filter(c => !fora.has(c.id)), sinais: base.sinais.filter(s => !fora.has(s.contaId)) };
 }
 
-async function lerBaseBruta(): Promise<Base> {
+const EM_BUILD = process.env.NEXT_PHASE === 'phase-production-build';
+
+/**
+ * Cópia da base baixada do Blob, compartilhada pelos workers do mesmo build. Sem ela, cada página
+ * (uma por conta) baixava a base inteira de novo e o build gastava a cota de transferência do Blob.
+ */
+const CACHE_BUILD = EM_BUILD
+  ? path.join(os.tmpdir(), `velora-radar-base-${process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.VERCEL_DEPLOYMENT_ID ?? 'local'}.json`)
+  : null;
+
+let basePromessa: Promise<Base> | null = null;
+
+function lerBaseBruta(): Promise<Base> {
+  // uma leitura por processo; se falhar, a próxima chamada tenta de novo
+  basePromessa ??= carregarBase().catch(erro => {
+    basePromessa = null;
+    throw erro;
+  });
+  return basePromessa;
+}
+
+async function carregarBase(): Promise<Base> {
   const pasta = path.join(process.cwd(), 'data');
   try {
     return JSON.parse(await readFile(path.join(pasta, 'contas.local.json'), 'utf8')) as Base;
@@ -39,15 +61,39 @@ async function lerBaseBruta(): Promise<Base> {
     // sem arquivo local — comum em produção, onde a base real vem do Blob
   }
 
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
+  if (CACHE_BUILD) {
     try {
-      const resultado = await get('contas.local.json', { access: 'private', abortSignal: AbortSignal.timeout(8000) });
-      if (resultado?.stream) return JSON.parse(await new Response(resultado.stream).text()) as Base;
+      return JSON.parse(await readFile(CACHE_BUILD, 'utf8')) as Base;
     } catch {
-      // Blob indisponível — cai para a base de exemplo
+      // primeiro worker do build — baixa do Blob abaixo
     }
   }
 
+  let motivo = 'BLOB_READ_WRITE_TOKEN ausente';
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      const resultado = await get('contas.local.json', { access: 'private', abortSignal: AbortSignal.timeout(20000) });
+      if (resultado?.stream) {
+        const texto = await new Response(resultado.stream).text();
+        const base = JSON.parse(texto) as Base;
+        if (CACHE_BUILD) {
+          const temporario = `${CACHE_BUILD}.${process.pid}`;
+          await writeFile(temporario, texto).then(() => rename(temporario, CACHE_BUILD)).catch(() => {});
+        }
+        return base;
+      }
+      motivo = 'contas.local.json não encontrado no Blob';
+    } catch (erro) {
+      motivo = `Blob indisponível: ${erro instanceof Error ? erro.message : String(erro)}`;
+    }
+  }
+
+  // Build de produção não publica empresas fictícias: falha e o Vercel mantém a última versão boa no ar.
+  if (EM_BUILD && process.env.VERCEL_ENV === 'production') {
+    throw new Error(`Base real indisponível no build de produção (${motivo}). Build interrompido para não publicar a base de exemplo.`);
+  }
+
+  console.warn(`[dados] usando a base de exemplo: ${motivo}`);
   const base = JSON.parse(await readFile(path.join(pasta, 'contas.exemplo.json'), 'utf8')) as Base;
   return { ...base, ficticia: true };
 }
