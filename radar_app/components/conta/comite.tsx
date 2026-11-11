@@ -26,6 +26,9 @@ function papelDe(p: Pessoa): PapelAbm {
   return 'influenciador';
 }
 
+/** A pessoa ocupa este lugar? (papel principal ou um dos extras) */
+const ocupa = (p: Pessoa, papel: PapelAbm) => papelDe(p) === papel || !!p.papeisExtras?.includes(papel);
+
 function Linha({ p }: { p: Pessoa }) {
   return (
     <li className="flex items-start gap-3">
@@ -37,6 +40,7 @@ function Linha({ p }: { p: Pessoa }) {
         <p className="text-xs text-text-3">
           {p.cargo}
           {p.relevancia && <> · {RELEVANCIA[p.relevancia]}</>}
+          {p.contatoVelora && <> · <span className="font-semibold text-foreground">nosso contato</span></>}
         </p>
       </div>
     </li>
@@ -45,7 +49,7 @@ function Linha({ p }: { p: Pessoa }) {
 
 /** Comitê de compra: assina o cheque, decisor e dono da dor; quem trava aparece à parte. */
 export function Comite({ conta }: { conta: Conta }) {
-  const conhecidos = LUGARES.filter(l => conta.comite.some(p => papelDe(p) === l.papel)).length;
+  const conhecidos = LUGARES.filter(l => conta.comite.some(p => ocupa(p, l.papel))).length;
   const travas = conta.comite.filter(p => papelDe(p) === 'trava');
   return (
     <section className="vr-card p-5">
@@ -57,7 +61,7 @@ export function Comite({ conta }: { conta: Conta }) {
       </div>
       <div className="mt-3 flex flex-col gap-4">
         {LUGARES.map(l => {
-          const pessoas = conta.comite.filter(p => papelDe(p) === l.papel);
+          const pessoas = conta.comite.filter(p => ocupa(p, l.papel));
           return (
             <div key={l.papel}>
               <p className={cn('mb-1.5 text-[11px] font-semibold uppercase tracking-wide', pessoas.length ? 'text-text-2' : 'text-text-3')}>{l.rotulo}</p>

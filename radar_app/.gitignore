@@ -9,3 +9,5 @@ data/contas.local.json
 screenshots/
 .vercel
 .env*
+# Enriquecimentos manuais e backups da base real (dado de pessoa/empresa)
+data/*.local.json
