@@ -54,6 +54,11 @@ function lerBaseBruta(): Promise<Base> {
 }
 
 async function carregarBase(): Promise<Base> {
+  // Preparada ANTES de next build: sem corrida entre workers e sem cache de outro build.
+  // Se a cópia falhar, não volta ao Blob nem publica a demonstração silenciosamente.
+  if (EM_BUILD && process.env.VELORA_BUILD_BASE_PATH) {
+    return JSON.parse(await readFile(process.env.VELORA_BUILD_BASE_PATH, 'utf8')) as Base;
+  }
   const pasta = path.join(process.cwd(), 'data');
   try {
     return JSON.parse(await readFile(path.join(pasta, 'contas.local.json'), 'utf8')) as Base;
