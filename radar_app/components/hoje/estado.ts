@@ -22,7 +22,7 @@ export function useEstados() {
     (async () => {
       try {
         const r = await fetch('/api/estados');
-        if (r.ok) {
+        if (r.status === 200) {
           const doBanco = (await r.json()) as Record<string, EstadoSinal>;
           if (cancelado) return;
           comBanco.current = true;

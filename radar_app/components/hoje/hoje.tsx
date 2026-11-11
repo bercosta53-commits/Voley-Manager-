@@ -18,6 +18,7 @@ import { LinhaSinal } from './linha-sinal';
 import { Decomposicao } from '@/components/conta/decomposicao';
 import { SeloVscs } from '@/components/ui/selo-vscs';
 import { CaixaVazia, ErroCarregar, ListaEsqueleto, SemPermissao } from './estados';
+import { isoLocal, useAgora } from '@/components/ui/use-agora';
 import { VISOES, type Visao } from './navegacao';
 import { Casca } from '@/components/casca/casca';
 import { hrefConta } from '@/lib/contas';
@@ -33,7 +34,9 @@ const ADIAR_DIAS = 3;
 function useLargo() {
   const [largo, setLargo] = useState(false);
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)');
+    // 1280px: abaixo disso (com o menu lateral de 240px) a coluna do detalhe fica estreita demais e o
+    // gráfico do score passa por cima do texto; entre 768 e 1279 a tela usa os cartões empilhados
+    const mq = window.matchMedia('(min-width: 1280px)');
     const ver = () => setLargo(mq.matches);
     ver();
     mq.addEventListener('change', ver);
@@ -76,6 +79,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
   const [ajuda, setAjuda] = useState(false);
   const celular = useCelular();
   const largo = useLargo();
+  const agora = useAgora();
   const router = useRouter();
   const refs = useRef<(HTMLElement | null)[]>([]);
   const refsLinhas = useRef<(HTMLButtonElement | null)[]>([]);
@@ -339,15 +343,15 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4 md:mb-8">
           <div>
             <h1 className="font-display text-2xl font-semibold tracking-tight">Hoje</h1>
-            <p className="mt-1 text-sm text-text-3">
-              {dataLonga(hoje)}
-              {!semDados && !carregando && (
-                <>
-                  {' · '}
-                  {plural(contagens.caixa, 'sinal na caixa', 'sinais na caixa')}
-                  {novosHoje > 0 && `, ${novosHoje} de hoje`}
-                </>
-              )}
+            {/* a data do cabeçalho é a de hoje no navegador (a página é gerada no build e congelaria o dia do
+                deploy); as contas de "novo"/"adiado" continuam pela data da base (hoje = base.geradoEm) */}
+            <p className="mt-1 min-h-5 text-sm text-text-3">
+              {[
+                agora && dataLonga(isoLocal(agora)),
+                !semDados && !carregando && plural(contagens.caixa, 'sinal na caixa', 'sinais na caixa') + (novosHoje > 0 ? `, ${novosHoje} de hoje` : ''),
+              ]
+                .filter(Boolean)
+                .join(' · ')}
             </p>
           </div>
           {!semDados && !carregando && porStatus.length > 0 && (

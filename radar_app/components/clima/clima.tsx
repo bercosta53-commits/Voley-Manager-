@@ -13,7 +13,9 @@ import { LinhaTempoClima, MapaCalor, TabelaVerticais, type Chave } from './detal
 
 function quando(iso: string) {
   const d = new Date(iso);
-  return `${d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}, ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+  // fuso fixo: o servidor da Vercel roda em UTC e o navegador em Brasília; sem isso a hora diverge (erro de hidratação)
+  const tz = 'America/Sao_Paulo';
+  return `${d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: tz })}, ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: tz })}`;
 }
 
 /**

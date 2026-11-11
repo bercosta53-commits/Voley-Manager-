@@ -11,6 +11,7 @@ import { Kbd } from '@/components/ui/kbd';
 import { Tooltip } from '@/components/ui/tooltip';
 import { BotaoTema } from '@/components/hoje/tema';
 import type { Base } from '@/lib/tipos';
+import { useAgora } from '@/components/ui/use-agora';
 
 export const SECOES = [
   { href: '/', rotulo: 'Hoje', icone: Inbox },
@@ -58,10 +59,11 @@ function AvisoExemplo({ ficticia }: { ficticia: boolean }) {
 }
 
 /** Data e hora de atualização da base, em linguagem de gente ("hoje, 14:20", "ontem", "3 nov"). */
-function atualizada(iso: string | undefined) {
+function atualizada(iso: string | undefined, hoje: Date | null) {
   if (!iso) return '—';
   const d = new Date(iso.length <= 10 ? `${iso}T12:00:00` : iso);
-  const hoje = new Date();
+  // antes de montar no navegador não há "hoje" confiável (a página vem do build): mostra só a data
+  if (!hoje) return d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '');
   const dias = Math.round((new Date(hoje.toDateString()).getTime() - new Date(d.toDateString()).getTime()) / 86_400_000);
   const hora = iso.length > 10 ? `, ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : '';
   if (dias <= 0) return `hoje${hora}`;
@@ -82,7 +84,9 @@ export function NavLateral({ base, novos, onBuscar }: { base: Base; novos: numbe
   };
   const fontes = base.fontes ?? [];
   const ok = fontes.filter(f => f.status === 'ok').length;
-  const comErro = fontes.some(f => f.status === 'erro');
+  // vermelho só quando nenhuma fonte está de pé; com parte delas funcionando o radar segue útil (âmbar)
+  const tom = fontes.length && ok === 0 ? 'bg-risk' : fontes.some(f => f.status !== 'ok') ? 'bg-warm' : 'bg-ok';
+  const agora = useAgora();
   return (
     <aside
       aria-label="Navegação principal"
@@ -140,12 +144,12 @@ export function NavLateral({ base, novos, onBuscar }: { base: Base; novos: numbe
           className="hidden flex-col gap-1 rounded-control px-1 py-1 text-xs text-text-3 transition-colors hover:text-foreground lg:flex"
         >
           <span className="flex items-center gap-1.5">
-            <span aria-hidden className={cn('size-1.5 rounded-full', comErro ? 'bg-risk' : 'bg-ok')} />
-            Base atualizada {atualizada(base.atualizadoEm ?? base.geradoEm)}
+            <span aria-hidden className={cn('size-1.5 rounded-full', tom)} />
+            Base atualizada {atualizada(base.atualizadoEm ?? base.geradoEm, agora)}
           </span>
           {fontes.length > 0 && (
             <span className="pl-3">
-              {ok} de {fontes.length} fontes funcionando
+              {ok} de {fontes.length} fontes ativas
             </span>
           )}
         </Link>

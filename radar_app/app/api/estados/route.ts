@@ -5,7 +5,8 @@ export const runtime = 'nodejs';
 
 export async function GET() {
   const estados = await lerEstados();
-  if (estados === null) return NextResponse.json({ erro: 'sem banco' }, { status: 404 });
+  // sem banco (produção na Vercel): 204 em vez de 404, para não sujar o console; o app guarda no navegador
+  if (estados === null) return new NextResponse(null, { status: 204 });
   return NextResponse.json(estados);
 }
 
