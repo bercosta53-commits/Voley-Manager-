@@ -11,3 +11,7 @@ screenshots/
 .env*
 # Enriquecimentos manuais e backups da base real (dado de pessoa/empresa)
 data/*.local.json
+
+.open-next/
+.wrangler/
+.dev.vars*

@@ -7,6 +7,8 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Avisos } from '@/components/avisos';
 import { SCRIPT_TEMA } from '@/components/hoje/tema';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Velora Radar',
   description: 'Sinais de ABM das contas-alvo da Velora e o que fazer a respeito.',
