@@ -79,6 +79,10 @@ try {
   conferir(resposta('Por que a').includes('Conta qualificada desde 20 nov'), 'tese diz desde quando e por quê', resposta('Por que a').slice(0, 120));
   const fimTese = await pagina.locator('#tese-da-conta').evaluate(el => el.closest('section').getBoundingClientRect().bottom);
   conferir(fimTese <= 900, 'tese cabe sem rolar a 1440×900', `termina em ${Math.round(fimTese)} px`);
+  // a tela não pode se contradizer: rascunho de mensagem aberto só quando a tese também pede contato
+  const temRascunho = (await pagina.locator('#proxima-acao textarea').count()) > 0;
+  const tesePedeContato = resposta('Próxima ação').includes('Abrir o rascunho da abordagem');
+  conferir(temRascunho === tesePedeContato, 'tese e rascunho concordam sobre abordar agora', `rascunho ${temRascunho}, tese ${tesePedeContato}`);
   await pagina.screenshot({ path: path.join(SAIDA, '2-tese.png') });
 
   // 3. Registro: marcar como abordado fecha a caixa da conta e muda a próxima ação
@@ -108,8 +112,8 @@ try {
   await pagina.locator('#tese-da-conta').waitFor();
   conferir((await proximaAcao(pagina)).startsWith('Preparar a reunião'), 'andamento "Reunião" muda a próxima ação (persiste ao recarregar)', (await proximaAcao(pagina)).slice(0, 50));
   conferir(app.acoes.some(l => l.conta_id === contaAlvo.id && l.tipo === 'status' && l.status === 'reuniao' && l.autor_email === AUTOR), 'andamento gravado em radar_acoes com autor');
-  const blocoSugerido = await pagina.locator('#proxima-acao').innerText();
-  conferir(blocoSugerido.includes('Preparar a reunião'), 'tese e "Próxima ação sugerida" dizem a mesma coisa', blocoSugerido.replace(/\s+/g, ' ').slice(0, 80));
+  const blocoSugerido = (await pagina.locator('#proxima-acao').innerText()).trim();
+  conferir(blocoSugerido === '', 'com andamento, a próxima ação aparece só na tese (sem bloco repetido)', blocoSugerido.replace(/\s+/g, ' ').slice(0, 80));
   const terceiro = await navegador.newPage({ viewport: { width: 1440, height: 900 } });
   vigiar(terceiro);
   await terceiro.goto(app.url(`/contas/${contaAlvo.id}`), { waitUntil: 'networkidle' });

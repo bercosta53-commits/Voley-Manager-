@@ -156,7 +156,7 @@ function Detalhe({
       <div className="mt-8 grid gap-6 md:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-6">
           <TeseConta tese={tese} nomeConta={conta.nome} />
-          <div id="proxima-acao" className="scroll-mt-6">
+          <div id="proxima-acao" className="scroll-mt-6 empty:hidden">
             <ProximaAcao conta={conta} sinais={sinais} estados={estados} hoje={hoje} onMudar={onMudar} andamento={andamento} />
           </div>
           <LinhaDoTempo conta={conta} sinais={sinais} estados={estados} hoje={hoje} andamento={andamento} />
@@ -226,7 +226,7 @@ function acaoPelaMatriz(c: Conta) {
 
 const naCaixa = (e: EstadoSinal | undefined, hoje: string) => !e?.acao || (e.acao === 'adiado' && !!e.ate && e.ate <= hoje);
 
-/** Próxima ação sugerida: o sinal mais forte ainda aberto vira uma abordagem com rascunho. */
+/** Rascunho da abordagem: o sinal mais forte ainda aberto vira uma mensagem pronta, quando a ação pede contato. */
 function ProximaAcao({
   conta,
   sinais,
@@ -253,25 +253,15 @@ function ProximaAcao({
     setCopiado(false);
   }, [alvo, conta]);
 
-  const cabecalho = <h2 className="text-xs font-semibold text-text-3">Próxima ação sugerida</h2>;
+  const cabecalho = <h2 className="font-display text-md font-semibold tracking-tight">Rascunho da abordagem</h2>;
 
-  const doAndamento = andamento && ACAO_DO_ANDAMENTO[andamento.status];
-  if (doAndamento)
-    return (
-      <section className="vr-card p-5">
-        {cabecalho}
-        <p className="mt-2 text-md font-semibold">{doAndamento.titulo}</p>
-        <p className="mt-1 text-sm text-text-2">{doAndamento.texto}</p>
-        <p className="mt-2 text-xs text-text-3">
-          Pelo andamento registrado por {andamento.por} em {dataCurta(andamento.em)}.
-        </p>
-      </section>
-    );
+  // a tese já diz a próxima ação; este bloco só aparece quando acrescenta algo (o rascunho, ou o que falta antes dele)
+  if (andamento && ACAO_DO_ANDAMENTO[andamento.status]) return null;
 
   if (!alvo) {
     let titulo: string, corpo: string;
     if (abordado) {
-      titulo = `Acompanhar a abordagem de ${dataCurta(abordado.e!.em ?? hoje)}`;
+      titulo = `Abordada em ${dataCurta(abordado.e!.em ?? hoje)}`;
       corpo = `Se não houver resposta até ${dataCurta(somarDias(abordado.e!.em ?? hoje, 5))}, faça um segundo contato curto, retomando o mesmo fato.`;
     } else if (status(conta) === 'nao_abordar') {
       const semClassificacao = !conta.statusComercial.trim();
@@ -281,13 +271,10 @@ function ProximaAcao({
         : semClassificacao
           ? 'Esta conta ainda não tem status comercial da planilha. Classifique antes de abordar.'
           : 'A planilha marca esta conta como insuficiente. Confira o status comercial antes de qualquer contato.';
-    } else {
-      titulo = 'Esperar um motivo';
-      corpo = 'Nenhum sinal aberto nesta conta. O radar avisa em Hoje quando algo mudar; abordar sem motivo gasta a primeira impressão.';
-    }
+    } else return null; // "esperar um motivo" já está na tese
     return (
       <section className="vr-card p-5">
-        {cabecalho}
+        <h2 className="text-xs font-semibold tracking-wide text-text-3 uppercase">Antes do rascunho</h2>
         <p className="mt-2 text-md font-semibold">{titulo}</p>
         <p className="mt-1 text-sm text-text-2">{corpo}</p>
       </section>
@@ -295,7 +282,8 @@ function ProximaAcao({
   }
 
   // a matriz ICP × VSCS ainda não pede abordagem: diz o que fazer em vez de empurrar o rascunho
-  const acao = conta.acaoRecomendada;
+  // (mesma origem da tese: o que o motor gravou ou, sem isso, a matriz — senão a tela se contradiz)
+  const acao = conta.acaoRecomendada || acaoPelaMatriz(conta);
   if (acao && !ACOES_DE_ABORDAGEM.has(acao) && !conta.v2?.via_rapida && !mesmoAssim) {
     const corpo: Record<string, string> = {
       Monitorar: 'O VSCS ainda é baixo para o tier desta conta. Um fato sozinho não abre conversa: o radar avisa quando outro sinal chegar perto deste no tempo.',
@@ -304,15 +292,12 @@ function ProximaAcao({
       Ignorar: 'Fora do ICP e sem sinais relevantes.',
     };
     return (
-      <section className="vr-card p-5">
-        {cabecalho}
-        <p className="mt-2 text-md font-semibold">{acao}</p>
-        <p className="mt-1 text-sm text-text-2">{corpo[acao] ?? conta.v2?.frase}</p>
-        <p className="mt-2 text-sm text-text-3">
-          VSCS {pontos(conta.score)} · {conta.vscsStatus}
-          {conta.icp?.tier && ` · Tier ${conta.icp.tier}`}
-        </p>
-        <Button variant="ghost" className="mt-3" onClick={() => setMesmoAssim(true)}>
+      <section className="vr-card flex flex-wrap items-center justify-between gap-3 p-4">
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold">Rascunho guardado</h2>
+          <p className="text-sm text-text-3">{corpo[acao] ?? conta.v2?.frase}</p>
+        </div>
+        <Button variant="ghost" onClick={() => setMesmoAssim(true)}>
           Ver o rascunho mesmo assim
         </Button>
       </section>

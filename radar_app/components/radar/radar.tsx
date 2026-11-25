@@ -136,7 +136,8 @@ export function TelaRadar({ base, proximidade: proximidadeOriginal }: { base: Ba
           <div>
             <h1 className="font-display text-2xl font-semibold tracking-tight">Radar de proximidade</h1>
             <p className="mt-1 text-sm text-text-3">
-              Distância até a primeira conversa: {plural(proximidade.contas.length, 'conta', 'contas')} da base. O anel vem da ação da matriz ICP × score (VSCS); a fatia é a família de TI.
+              Distância até a primeira conversa{proximidade.contas.length ? `: ${plural(proximidade.contas.length, 'conta', 'contas')} da base` : ''}. O anel vem da ação da
+              matriz ICP × score (VSCS); a fatia é a família de TI.
             </p>
           </div>
           <div className="vr-card flex items-center gap-4 px-4 py-2.5">
@@ -145,6 +146,9 @@ export function TelaRadar({ base, proximidade: proximidadeOriginal }: { base: Ba
                 {naZona}
               </p>
               <p className="text-xs text-text-3">prontas para abordar</p>
+              {naZona === 0 && proximidade.contas.length > 0 && (
+                <p className="mt-0.5 max-w-56 text-xs text-text-3">Nenhuma nesta carga: o centro pede fato relevante e canal verificado juntos.</p>
+              )}
             </div>
             {convertidas > 0 && (
               <div className="border-l border-border pl-4">
@@ -164,77 +168,82 @@ export function TelaRadar({ base, proximidade: proximidadeOriginal }: { base: Ba
           </div>
         )}
 
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <MenuFiltro
-            rotulo="Família de TI"
-            opcoes={BRACOS.map(b => ({ id: b.id, rotulo: b.rotulo, qtd: proximidade.contas.filter(c => c.braco === b.id).length })).filter(b => b.qtd)}
-            valor={bracos}
-            onMudar={setBracos}
-          />
-          <MenuFiltro
-            rotulo="Tier"
-            opcoes={['A', 'B', 'C'].map(x => ({ id: x, rotulo: `Tier ${x}`, qtd: proximidade.contas.filter(c => c.tier === x).length })).filter(o => o.qtd)}
-            valor={tiers}
-            onMudar={setTiers}
-          />
-          <MenuFiltro
-            rotulo="Status do score"
-            opcoes={[...FAIXAS_VSCS]
-              .reverse()
-              .map(([, st]) => ({ id: st, rotulo: st, qtd: proximidade.contas.filter(c => contaBase.get(c.id)?.vscsStatus === st).length }))
-              .filter(o => o.qtd)}
-            valor={statusScore}
-            onMudar={setStatusScore}
-          />
-          <MenuFiltro
-            rotulo="Região"
-            opcoes={[...REGIOES, SEM_UF].map(r => ({ id: r, rotulo: r, qtd: proximidade.contas.filter(c => regiaoDe(c.uf) === r).length })).filter(o => o.qtd)}
-            valor={regioes}
-            onMudar={setRegioes}
-          />
-          <MenuFiltro
-            rotulo="Estado"
-            opcoes={[...new Set([...UFS, ...proximidade.contas.map(c => c.uf)])]
-              .map(uf => ({ id: uf, rotulo: uf, qtd: proximidade.contas.filter(c => c.uf === uf).length }))
-              .filter(u => u.qtd)}
-            valor={ufs}
-            onMudar={setUfs}
-          />
-          <MenuFiltro
-            rotulo="Porte"
-            opcoes={PORTES.map(x => ({ id: x, rotulo: x, qtd: proximidade.contas.filter(c => contaBase.get(c.id) && porteDe(contaBase.get(c.id)!) === x).length })).filter(o => o.qtd)}
-            valor={portes}
-            onMudar={setPortes}
-          />
-          <MenuFiltro
-            rotulo="Sinal"
-            opcoes={TIPOS_SINAL.map(t => ({ id: t.id, rotulo: t.rotulo, qtd: proximidade.contas.filter(c => c.ultimoSinal?.tipo === t.id).length })).filter(t => t.qtd)}
-            valor={sinais}
-            onMudar={setSinais}
-          />
-          <button
-            onClick={() => setSoCaminhoQuente(v => !v)}
-            className={cn(
-              'flex h-8 items-center gap-1.5 rounded-control border px-2.5 text-sm transition-colors duration-[var(--vr-dur-hover)] max-md:h-10',
-              soCaminhoQuente ? 'border-border-strong bg-secondary font-medium text-foreground' : 'border-border bg-card text-text-2 hover:border-border-strong',
-            )}
-            aria-pressed={soCaminhoQuente}
-          >
-            <Flame className="size-3.5" strokeWidth={1.5} />
-            Só caminho quente
-          </button>
-          <p className="ml-auto text-xs text-text-3">{plural(filtradas.length, 'conta', 'contas')}</p>
-        </div>
+        {/* sem contas posicionadas, filtros e replay só mostrariam zeros */}
+        {proximidade.contas.length > 0 && (
+          <>
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <MenuFiltro
+              rotulo="Família de TI"
+              opcoes={BRACOS.map(b => ({ id: b.id, rotulo: b.rotulo, qtd: proximidade.contas.filter(c => c.braco === b.id).length })).filter(b => b.qtd)}
+              valor={bracos}
+              onMudar={setBracos}
+            />
+            <MenuFiltro
+              rotulo="Tier"
+              opcoes={['A', 'B', 'C'].map(x => ({ id: x, rotulo: `Tier ${x}`, qtd: proximidade.contas.filter(c => c.tier === x).length })).filter(o => o.qtd)}
+              valor={tiers}
+              onMudar={setTiers}
+            />
+            <MenuFiltro
+              rotulo="Status do score"
+              opcoes={[...FAIXAS_VSCS]
+                .reverse()
+                .map(([, st]) => ({ id: st, rotulo: st, qtd: proximidade.contas.filter(c => contaBase.get(c.id)?.vscsStatus === st).length }))
+                .filter(o => o.qtd)}
+              valor={statusScore}
+              onMudar={setStatusScore}
+            />
+            <MenuFiltro
+              rotulo="Região"
+              opcoes={[...REGIOES, SEM_UF].map(r => ({ id: r, rotulo: r, qtd: proximidade.contas.filter(c => regiaoDe(c.uf) === r).length })).filter(o => o.qtd)}
+              valor={regioes}
+              onMudar={setRegioes}
+            />
+            <MenuFiltro
+              rotulo="Estado"
+              opcoes={[...new Set([...UFS, ...proximidade.contas.map(c => c.uf)])]
+                .map(uf => ({ id: uf, rotulo: uf, qtd: proximidade.contas.filter(c => c.uf === uf).length }))
+                .filter(u => u.qtd)}
+              valor={ufs}
+              onMudar={setUfs}
+            />
+            <MenuFiltro
+              rotulo="Porte"
+              opcoes={PORTES.map(x => ({ id: x, rotulo: x, qtd: proximidade.contas.filter(c => contaBase.get(c.id) && porteDe(contaBase.get(c.id)!) === x).length })).filter(o => o.qtd)}
+              valor={portes}
+              onMudar={setPortes}
+            />
+            <MenuFiltro
+              rotulo="Sinal"
+              opcoes={TIPOS_SINAL.map(t => ({ id: t.id, rotulo: t.rotulo, qtd: proximidade.contas.filter(c => c.ultimoSinal?.tipo === t.id).length })).filter(t => t.qtd)}
+              valor={sinais}
+              onMudar={setSinais}
+            />
+            <button
+              onClick={() => setSoCaminhoQuente(v => !v)}
+              className={cn(
+                'flex h-8 items-center gap-1.5 rounded-control border px-2.5 text-sm transition-colors duration-[var(--vr-dur-hover)] max-md:h-10',
+                soCaminhoQuente ? 'border-border-strong bg-secondary font-medium text-foreground' : 'border-border bg-card text-text-2 hover:border-border-strong',
+              )}
+              aria-pressed={soCaminhoQuente}
+            >
+              <Flame className="size-3.5" strokeWidth={1.5} />
+              Só caminho quente
+            </button>
+            <p className="ml-auto text-xs text-text-3">{plural(filtradas.length, 'conta', 'contas')}</p>
+          </div>
 
-        <div className="mb-4">
-          <ControleReplay
-            diaOffset={diaReplay}
-            tocando={tocandoReplay}
-            onMudarDia={setDiaReplay}
-            onTocar={() => setTocandoReplay(true)}
-            onParar={() => setTocandoReplay(false)}
-          />
-        </div>
+          <div className="mb-4">
+            <ControleReplay
+              diaOffset={diaReplay}
+              tocando={tocandoReplay}
+              onMudarDia={setDiaReplay}
+              onTocar={() => setTocandoReplay(true)}
+              onParar={() => setTocandoReplay(false)}
+            />
+          </div>
+          </>
+        )}
 
         <MovimentosSemana
           base={base}
@@ -244,7 +253,20 @@ export function TelaRadar({ base, proximidade: proximidadeOriginal }: { base: Ba
           }}
         />
 
-        <div className="vr-card grid grid-cols-1 gap-4 p-4 lg:grid-cols-[1fr_auto] lg:p-6">
+        <div className="vr-card relative grid grid-cols-1 gap-4 p-4 lg:grid-cols-[1fr_auto] lg:p-6">
+          {pontos.length === 0 && (
+            // sem pontos, o círculo vazio pareceria defeito: diz por que está vazio e o que muda isso
+            <div className="pointer-events-none absolute inset-x-4 top-1/2 z-10 mx-auto max-w-sm -translate-y-1/2 rounded-control border border-border bg-card/95 p-4 text-center shadow-2 lg:right-64">
+              <p className="text-sm font-semibold">
+                {proximidade.contas.length ? 'Nenhuma conta com estes filtros' : 'Esta carga ainda não posiciona contas no radar'}
+              </p>
+              <p className="mt-1 text-sm text-text-3">
+                {proximidade.contas.length
+                  ? 'Tire um filtro para ver as contas de novo.'
+                  : 'O anel de cada conta vem da ação da matriz ICP × VSCS. Quando a carga trouxer essa ação, as contas aparecem aqui.'}
+              </p>
+            </div>
+          )}
           <RadarSvg
             pontos={pontos}
             faixaEstavelPorAnel={faixaEstavelPorAnel}

@@ -1,5 +1,5 @@
 import { NIVEL_GATILHO } from '@/lib/papeis';
-import { cn } from '@/lib/utils';
+import { cn, pontos } from '@/lib/utils';
 
 export interface EventoGrafico {
   data: string;
@@ -12,8 +12,8 @@ export interface EventoGrafico {
 
 const DIAS = 90;
 const L = 300;
-const A = 104;
-const M = { topo: 16, base: 18, esq: 4, dir: 4 };
+const A = 112;
+const M = { topo: 18, base: 20, esq: 4, dir: 4 };
 
 function diasAtras(data: string, hoje: string) {
   return Math.round((Date.parse(hoje) - Date.parse(data)) / 86_400_000);
@@ -59,7 +59,7 @@ export function GraficoSinais({ serie, eventos, hoje, className }: { serie: numb
       {[0, 50, 100].map(v => (
         <g key={v}>
           <line x1={M.esq} x2={M.esq + w} y1={y(v)} y2={y(v)} stroke="var(--vr-border)" strokeWidth={1} strokeDasharray={v === 0 ? undefined : '2 3'} />
-          <text x={M.esq + w} y={y(v) - 3} textAnchor="end" className="fill-text-3 text-[8px]">
+          <text x={M.esq + w} y={y(v) - 3} textAnchor="end" className="fill-text-3 text-[10px]">
             {v}
           </text>
         </g>
@@ -74,26 +74,26 @@ export function GraficoSinais({ serie, eventos, hoje, className }: { serie: numb
         const chave = `${e.data}-${e.rotulo}`;
         return (
           <g key={chave}>
-            <title>{`${e.rotulo} · ${e.pontos < 0 ? '−' : '+'}${Math.abs(e.pontos)} pts · ${e.data.split('-').reverse().join('/')}`}</title>
+            <title>{`${e.rotulo} · ${e.pontos < 0 ? '−' : '+'}${pontos(Math.abs(e.pontos))} pts · ${e.data.split('-').reverse().join('/')}`}</title>
             <line x1={cx} x2={cx} y1={cy} y2={M.topo + h} stroke={cor} strokeWidth={1} strokeDasharray="1.5 2" opacity={0.6} />
             {e.atual && <circle cx={cx} cy={cy} r={6.5} fill="none" stroke={cor} strokeWidth={1.25} opacity={0.5} />}
             <circle cx={cx} cy={cy} r={e.atual ? 4 : 3} fill={cor} stroke="var(--vr-surface)" strokeWidth={1.5} />
             {rotulados.has(chave) && (
-              <text x={cx} y={cy - 8} textAnchor="middle" className="vr-data text-[9px] font-semibold" fill={cor}>
-                {e.pontos < 0 ? `−${Math.abs(e.pontos)}` : `+${e.pontos}`}
+              <text x={cx} y={cy - 9} textAnchor="middle" className="vr-data text-[11px] font-semibold" fill={cor}>
+                {e.pontos < 0 ? `−${pontos(Math.abs(e.pontos))}` : `+${pontos(e.pontos)}`}
               </text>
             )}
           </g>
         );
       })}
       <circle cx={M.esq + w} cy={y(atual)} r={2.5} fill="var(--vr-warm)" />
-      <text x={M.esq} y={A - 3} className="fill-text-3 text-[8px]">
+      <text x={M.esq} y={A - 3} className="fill-text-3 text-[10px]">
         90 dias
       </text>
-      <text x={M.esq + w / 2} y={A - 3} textAnchor="middle" className="fill-text-3 text-[8px]">
+      <text x={M.esq + w / 2} y={A - 3} textAnchor="middle" className="fill-text-3 text-[10px]">
         45
       </text>
-      <text x={M.esq + w} y={A - 3} textAnchor="end" className="fill-text-3 text-[8px]">
+      <text x={M.esq + w} y={A - 3} textAnchor="end" className="fill-text-3 text-[10px]">
         hoje
       </text>
     </svg>

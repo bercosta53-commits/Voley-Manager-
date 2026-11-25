@@ -5,13 +5,14 @@ import type { PapelAbm } from '@/lib/tipos';
 import { rotuloValidacao, type Tese } from '@/lib/tese';
 import { primeiraMaiuscula } from '@/lib/contas';
 import { COR_PAPEL, rotuloPapel } from '@/lib/papeis';
-import { cn, dataCurta, plural } from '@/lib/utils';
+import { cn, dataCurta, plural, pontos } from '@/lib/utils';
+import { COR_STATUS_VSCS } from '@/components/ui/selo-vscs';
 import { SeloQualificada } from '@/components/ui/selo-qualificada';
 
 function Linha({ pergunta, children, vazio }: { pergunta: string; children?: React.ReactNode; vazio?: string }) {
   return (
-    <div className="grid gap-1 py-3 first:pt-0 last:pb-0 sm:grid-cols-[168px_minmax(0,1fr)] sm:gap-4">
-      <dt className="text-xs font-semibold text-text-3 sm:pt-0.5">{pergunta}</dt>
+    <div className="grid gap-1 py-3.5 first:pt-0 last:pb-0 sm:grid-cols-[176px_minmax(0,1fr)] sm:gap-5">
+      <dt className="text-sm font-medium text-text-3 sm:pt-px">{pergunta}</dt>
       {/* children vazio (null, undefined ou false) mostra o texto de ausência: nada é preenchido por inferência */}
       <dd className="min-w-0 text-sm">{children || <span className="text-text-3">{vazio ?? 'Não identificado na base.'}</span>}</dd>
     </div>
@@ -28,11 +29,14 @@ const Papel = ({ papel }: { papel?: PapelAbm }) =>
 export function TeseConta({ tese, nomeConta }: { tese: Tese; nomeConta: string }) {
   const { empresa, agora, oportunidade, evidencias, fatos90d, quem, comite, acao, scorePendente, qualificada } = tese;
   return (
-    <section aria-labelledby="tese-da-conta" className="vr-card p-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="tese-da-conta" className="text-xs font-semibold text-text-3">
-          Tese da conta
-        </h2>
+    <section aria-labelledby="tese-da-conta" className="vr-card p-5 md:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 id="tese-da-conta" className="font-display text-lg font-semibold tracking-tight">
+            Tese da conta
+          </h2>
+          <p className="text-sm text-text-3">Por que agir agora, com quem e o que fazer.</p>
+        </div>
         <span className="flex flex-wrap items-center gap-1.5">
           <SeloQualificada conta={{ qualificada }} />
           {scorePendente && (
@@ -42,7 +46,7 @@ export function TeseConta({ tese, nomeConta }: { tese: Tese; nomeConta: string }
           )}
         </span>
       </div>
-      <dl className="mt-3 divide-y divide-border">
+      <dl className="mt-5 divide-y divide-border">
         <Linha pergunta={`Por que a ${nomeConta}`}>
           {empresa && (
             <>
@@ -64,15 +68,15 @@ export function TeseConta({ tese, nomeConta }: { tese: Tese; nomeConta: string }
         <Linha pergunta="Por que agora" vazio="Nenhum fato aberto nesta conta.">
           {agora && (
             <>
-              <p className="font-medium">{agora.sinal.sinal || agora.sinal.rotulo}</p>
-              <p className="mt-0.5 text-text-2">
-                {agora.sinal.porQueAgora}
-                <span className="text-text-3">
-                  {' '}
-                  · {dataCurta(agora.sinal.data)}, {agora.dias === 0 ? 'hoje' : `há ${plural(agora.dias, 'dia', 'dias')}`} · +{agora.sinal.pontos} no VSCS
-                  {agora.estagio && ` · ${agora.estagio}`}
-                  {agora.abertos > 1 && ` · mais ${plural(agora.abertos - 1, 'fato aberto', 'fatos abertos')}`}
+              <p className="text-md font-semibold">{agora.sinal.sinal || agora.sinal.rotulo}</p>
+              <p className="mt-0.5 text-text-2">{agora.sinal.porQueAgora}</p>
+              <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+                <span className="vr-data rounded-chip border border-border px-1.5 py-0.5 text-text-2">
+                  {dataCurta(agora.sinal.data)} · {agora.dias === 0 ? 'hoje' : `há ${plural(agora.dias, 'dia', 'dias')}`}
                 </span>
+                <span className="vr-data rounded-chip bg-warm-bg px-1.5 py-0.5 font-semibold text-warm">+{pontos(agora.sinal.pontos)} no VSCS</span>
+                {agora.estagio && <span className={cn('rounded-chip px-1.5 py-0.5 font-medium', COR_STATUS_VSCS[agora.estagio])}>{agora.estagio}</span>}
+                {agora.abertos > 1 && <span className="text-text-3">mais {plural(agora.abertos - 1, 'fato aberto', 'fatos abertos')}</span>}
               </p>
             </>
           )}
@@ -128,14 +132,22 @@ export function TeseConta({ tese, nomeConta }: { tese: Tese; nomeConta: string }
         </Linha>
 
         <Linha pergunta="Próxima ação">
-          <p className="font-medium">{acao.titulo}</p>
-          {acao.texto && <p className="mt-0.5 text-text-2">{acao.texto}</p>}
-          {acao.origem === 'matriz' && <p className="mt-0.5 text-xs text-text-3">Pela matriz ICP × VSCS; o motor ainda não gravou a ação desta conta.</p>}
-          {acao.abordar && (
-            <a href="#proxima-acao" className="mt-1 inline-block text-sm font-medium underline decoration-border-strong underline-offset-4">
-              Ver o rascunho
-            </a>
-          )}
+          {/* a resposta que a tela toda prepara: em destaque quando pede contato, neutra quando pede esperar */}
+          <div className={cn('rounded-control p-4', acao.abordar ? 'bg-foreground text-background' : 'bg-muted')}>
+            <p className="text-md font-semibold">{acao.titulo}</p>
+            {acao.texto && <p className={cn('mt-1', acao.abordar ? 'text-background/80' : 'text-text-2')}>{acao.texto}</p>}
+            {acao.origem === 'matriz' && (
+              <p className={cn('mt-1.5 text-xs', acao.abordar ? 'text-background/70' : 'text-text-3')}>Pela matriz ICP × VSCS; o motor ainda não gravou a ação desta conta.</p>
+            )}
+            {acao.abordar && (
+              <a
+                href="#proxima-acao"
+                className="mt-3 inline-flex min-h-9 items-center rounded-control bg-background px-3.5 text-sm font-semibold text-foreground transition-opacity hover:opacity-90"
+              >
+                Abrir o rascunho da abordagem
+              </a>
+            )}
+          </div>
         </Linha>
       </dl>
     </section>
