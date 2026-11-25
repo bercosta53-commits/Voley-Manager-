@@ -29,13 +29,34 @@ export async function baseDeTeste() {
   return base;
 }
 
-/** Sobe o Supabase simulado e o app. Devolve `url(caminho)`, o log do app e `parar()`. */
-export async function subirApp(base, { porta } = {}) {
+/**
+ * Sobe o Supabase simulado e o app. Devolve `url(caminho)`, o log do app, as linhas gravadas em radar_acoes e
+ * `parar()`. `env` liga recursos do app no teste (por exemplo RADAR_ACOES=1).
+ */
+export async function subirApp(base, { porta, env = {} } = {}) {
   const corpo = JSON.stringify([{ payload: base }]);
-  const supabase = http.createServer((req, res) => {
-    const ok = req.url?.startsWith('/rest/v1/radar_snapshots') && req.headers.apikey === 'chave-de-teste';
-    res.writeHead(ok ? 200 : 401, { 'content-type': 'application/json' });
-    res.end(ok ? corpo : '{"message":"nao autorizado"}');
+  const acoes = []; // radar_acoes em memória: só inserção, como a tabela real
+  const supabase = http.createServer(async (req, res) => {
+    const responder = (status, dados) => {
+      res.writeHead(status, { 'content-type': 'application/json' });
+      res.end(typeof dados === 'string' ? dados : JSON.stringify(dados));
+    };
+    if (req.headers.apikey !== 'chave-de-teste') return responder(401, '{"message":"nao autorizado"}');
+    const u = new URL(req.url, 'http://x');
+    if (u.pathname === '/rest/v1/radar_snapshots') return responder(200, corpo);
+    if (u.pathname === '/rest/v1/radar_acoes' && req.method === 'POST') {
+      let texto = '';
+      for await (const parte of req) texto += parte;
+      for (const l of [].concat(JSON.parse(texto))) acoes.push({ nota: null, ...l, id: acoes.length + 1, criado_em: new Date().toISOString() });
+      return responder(201, '');
+    }
+    if (u.pathname === '/rest/v1/radar_acoes') {
+      const sinal = u.searchParams.get('sinal_id')?.replace(/^eq\./, '');
+      const offset = Number(u.searchParams.get('offset') ?? 0);
+      const limite = Number(u.searchParams.get('limit') ?? 1000);
+      return responder(200, acoes.filter(l => !sinal || l.sinal_id === sinal).slice(offset, offset + limite));
+    }
+    return responder(404, '{"message":"rota desconhecida"}');
   });
   await new Promise(r => supabase.listen(0, '127.0.0.1', r));
   const portaApp = porta ?? 3100 + Math.floor(Math.random() * 800);
@@ -46,6 +67,7 @@ export async function subirApp(base, { porta } = {}) {
       SUPABASE_URL: `http://127.0.0.1:${supabase.address().port}`,
       SUPABASE_SECRET_KEY: 'chave-de-teste',
       NEXT_TELEMETRY_DISABLED: '1',
+      ...env,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -60,7 +82,7 @@ export async function subirApp(base, { porta } = {}) {
   for (let i = 0; i < 60; i++) {
     try {
       await fetch(url('/api/estados'));
-      return { url, parar, porta: portaApp, get log() { return estado.log; } };
+      return { url, parar, porta: portaApp, acoes, get log() { return estado.log; } };
     } catch {
       await new Promise(r => setTimeout(r, 500));
     }

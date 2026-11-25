@@ -23,7 +23,9 @@ const porConta = Map.groupBy(acionaveis, s => s.contaId);
 const sinalAlvo = acionaveis.filter(s => porConta.get(s.contaId).length === 1).sort((a, b) => b.pontos - a.pontos)[0];
 const contaAlvo = base.contas.find(c => c.id === sinalAlvo.contaId);
 
-const app = await subirApp(base);
+// registro compartilhado ligado (radar_acoes em memória no Supabase simulado), com um autor de teste
+const AUTOR = 'demo@velora.teste';
+const app = await subirApp(base, { env: { RADAR_ACOES: '1', RADAR_AUTOR_TESTE: AUTOR } });
 const navegador = await chromium.launch();
 let falhas = 0;
 function conferir(ok, descricao, detalhe = '') {
@@ -80,6 +82,23 @@ try {
   await pagina.locator('#tese-da-conta').waitFor();
   const acao = await pagina.$$eval('section:has(#tese-da-conta) dl > div', ds => ds.find(d => d.querySelector('dt').textContent === 'Próxima ação')?.querySelector('dd').textContent ?? '');
   conferir(acao.startsWith('Acompanhar a abordagem'), 'depois de abordar, a próxima ação é acompanhar (persiste ao recarregar)', acao.slice(0, 60));
+
+  // 3b. Registro compartilhado: a linha foi gravada com autor, e outro navegador (sem nada local) vê a ação
+  const gravada = app.acoes.find(l => l.sinal_id === sinalAlvo.id && l.tipo === 'abordado');
+  conferir(gravada?.autor_email === AUTOR && gravada?.conta_id === contaAlvo.id, 'abordado gravado em radar_acoes com autor e conta', JSON.stringify(gravada ?? null));
+  const outro = await navegador.newPage({ viewport: { width: 1440, height: 900 } }); // contexto novo: localStorage vazio
+  vigiar(outro);
+  await outro.goto(app.url(`/contas/${contaAlvo.id}`), { waitUntil: 'networkidle' });
+  await outro.locator('#tese-da-conta').waitFor();
+  const acaoOutro = await outro.$$eval('section:has(#tese-da-conta) dl > div', ds => ds.find(d => d.querySelector('dt').textContent === 'Próxima ação')?.querySelector('dd').textContent ?? '');
+  conferir(acaoOutro.startsWith('Acompanhar a abordagem'), 'outro navegador vê a abordagem feita no primeiro', acaoOutro.slice(0, 60));
+  await outro.close();
+
+  // 3c. A API recusa o que não é válido
+  const post = corpo => fetch(app.url('/api/estados'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) }).then(r => r.status);
+  conferir((await post({ sinalId: sinalAlvo.id, estado: { acao: 'apagar' } })) === 400, 'API recusa ação desconhecida');
+  conferir((await post({ sinalId: 'sinal-que-nao-existe', estado: { acao: 'abordado' } })) === 400, 'API recusa sinal fora da base');
+  conferir((await post({ sinalId: sinalAlvo.id, estado: { acao: 'adiado' } })) === 400, 'API recusa adiar sem data');
 
   // 4. Decisores no modo apresentação: nenhum e-mail exposto
   await pagina.goto(app.url('/decisores'), { waitUntil: 'networkidle' });

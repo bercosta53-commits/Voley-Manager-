@@ -20,12 +20,18 @@ lendo um snapshot no Supabase.
   de volta. Não existe fallback para dados fictícios.
 - **Carga:** a pesquisa diária grava o snapshot inteiro. O app avisa no topo de todas as telas quando a base
   passa de 36 h (âmbar) ou de 72 h (vermelho); veja `lib/frescor.ts`.
-- **Ações do time** (abordado, adiado, útil/ruído): hoje ficam no navegador de cada pessoa (`localStorage`). O
-  registro compartilhado no Supabase está proposto em `docs/contrato-radar-acoes.md` e `db/001_radar_acoes.sql`,
-  e **ainda não foi aplicado**.
+- **Ações do time** (abordado, adiado, útil/ruído, relevância): o registro compartilhado (`lib/banco.ts`, tabela
+  `radar_acoes`) está pronto, mas **desligado**. Desligado, as marcações ficam no navegador de cada pessoa. Para
+  ligar, nesta ordem:
+  1. a inteligência confirma que os IDs de conta e sinal são estáveis entre cargas;
+  2. aplicar `db/001_radar_acoes.sql` no Supabase;
+  3. definir `RADAR_ACOES=1` no Worker.
+
+  O autor de cada marcação é o e-mail do Access; veja `docs/contrato-radar-acoes.md`.
 
 Variáveis do Worker (runtime, nunca de build; nunca com prefixo `NEXT_PUBLIC_`): `SUPABASE_URL`,
-`SUPABASE_SECRET_KEY`, `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD`. O repositório é público: nunca versione a
+`SUPABASE_SECRET_KEY`, `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD` e, quando o registro compartilhado for ligado,
+`RADAR_ACOES=1`. `RADAR_AUTOR_TESTE` existe só para os testes (`smoke` e `jornada`). O repositório é público: nunca versione a
 base real, contatos ou credenciais.
 
 ## Rodar e testar

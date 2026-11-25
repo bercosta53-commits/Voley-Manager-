@@ -1,19 +1,48 @@
 import { NextResponse } from 'next/server';
-import { lerEstados, salvarEstado } from '@/lib/banco';
+import { lerEstados, registroLigado, salvarEstado } from '@/lib/banco';
+import { emailDoAccess, validarEstado } from '@/lib/acoes';
+import { lerSnapshot } from '@/lib/dados';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
+const semCache = { 'Cache-Control': 'no-store' };
+
+/**
+ * Marcações do time sobre os sinais (abordado, adiado, útil/ruído, relevância).
+ * 204 = registro compartilhado desligado (RADAR_ACOES ≠ 1): a tela guarda só no navegador.
+ * 200 = { estados, status } lidos de radar_acoes.
+ */
 export async function GET() {
-  const estados = await lerEstados();
-  // sem banco (produção na Vercel): 204 em vez de 404, para não sujar o console; o app guarda no navegador
-  if (estados === null) return new NextResponse(null, { status: 204 });
-  return NextResponse.json(estados);
+  const dados = await lerEstados();
+  if (dados === null) return new NextResponse(null, { status: 204, headers: semCache });
+  return NextResponse.json(dados, { headers: semCache });
 }
 
 export async function POST(req: Request) {
-  const { sinalId, estado } = (await req.json()) as { sinalId: string; estado: unknown };
-  if (!sinalId) return NextResponse.json({ erro: 'sinalId obrigatório' }, { status: 400 });
-  const ok = await salvarEstado(sinalId, (estado as Parameters<typeof salvarEstado>[1]) ?? null);
-  if (!ok) return NextResponse.json({ erro: 'sem banco' }, { status: 404 });
-  return NextResponse.json({ ok: true });
+  if (!registroLigado()) return NextResponse.json({ erro: 'registro compartilhado desligado' }, { status: 404, headers: semCache });
+
+  // Quem marcou: o e-mail do JWT do Access, que o Worker já verificou antes de a requisição chegar aqui.
+  // RADAR_AUTOR_TESTE existe só para o CI e a máquina local, onde não há Access.
+  const autor = emailDoAccess(req.headers.get('cf-access-jwt-assertion')) ?? process.env.RADAR_AUTOR_TESTE ?? null;
+  if (!autor) return NextResponse.json({ erro: 'sem identidade do Access' }, { status: 401, headers: semCache });
+
+  let corpo: { sinalId?: unknown; estado?: unknown };
+  try {
+    corpo = await req.json();
+  } catch {
+    return NextResponse.json({ erro: 'JSON inválido' }, { status: 400, headers: semCache });
+  }
+  const sinalId = typeof corpo.sinalId === 'string' ? corpo.sinalId : '';
+  const estado = validarEstado(corpo.estado);
+  if (!sinalId || estado === 'invalido') return NextResponse.json({ erro: 'sinalId ou estado inválido' }, { status: 400, headers: semCache });
+
+  // a conta vem da base, não do navegador: também garante que o sinal existe
+  const base = await lerSnapshot().catch(() => null);
+  const contaId = base?.sinais.find(s => s.id === sinalId)?.contaId;
+  if (!contaId) return NextResponse.json({ erro: 'sinal não encontrado na base' }, { status: 400, headers: semCache });
+
+  const r = await salvarEstado(sinalId, contaId, estado, autor);
+  if (r !== 'ok') return NextResponse.json({ erro: 'não foi possível gravar' }, { status: 503, headers: semCache });
+  return NextResponse.json({ ok: true }, { headers: semCache });
 }

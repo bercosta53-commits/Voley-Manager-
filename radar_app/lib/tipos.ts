@@ -259,6 +259,10 @@ export interface EstadoSinal {
   ate?: string; // adiado até (AAAA-MM-DD)
   avaliacao?: Avaliacao;
   /** relevância que a pessoa deu ao sinal: 1 mantém, 2 soma 10%, 3 soma 15% (lib/avaliacao.ts) */
-  relevancia?: 1 | 2 | 3;
+  relevancia?: Relevancia3;
   em?: string;
+  /** quem fez a última marcação (e-mail do Access), quando o registro compartilhado está ligado */
+  por?: string;
 }
+
+export type Relevancia3 = 1 | 2 | 3;
