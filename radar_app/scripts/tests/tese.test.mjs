@@ -49,7 +49,7 @@ test('as seis respostas com uma conta completa', () => {
 test('pessoa nomeada no sinal tem prioridade e ganha o papel do comitê', () => {
   const s = sinal('s1', '2026-11-20', 30, { abordar: { nome: 'bia souza', cargo: 'CEO', papel: 'decisor' } });
   const t = teseDaConta(conta(), [s], dep());
-  assert.deepEqual(t.quem, { nome: 'bia souza', cargo: 'CEO', papel: 'assina_cheque', origem: 'sinal' });
+  assert.deepEqual(t.quem, { nome: 'bia souza', cargo: 'CEO', papel: 'assina_cheque', origem: 'sinal', statusValidacao: undefined, bloqueado: false });
 });
 
 test('evidência junta as fontes do mesmo fato sem repetir link e ignora fonte sem link', () => {
@@ -92,4 +92,52 @@ test('notícia setorial não vira o "por que agora", e a janela de 90 dias conta
   const t = teseDaConta(conta(), [setorial, sinal('s1', '2026-11-20', 30), antigo], dep());
   assert.equal(t.agora.sinal.id, 's1');
   assert.equal(t.fatos90d, 1);
+});
+
+// Formato real da base em 25/11 (devolutiva da inteligência): comitê com statusValidacao, sem papelAbm,
+// sem acaoRecomendada e com scorePendente. Nomes fictícios.
+const contaReal = () => ({
+  id: 'rec-1', nome: 'Conta Real', tier: 'B', segmento: 'SaaS', score: 46, tendencia: 0, scorePendente: true, comite: [
+    { nome: 'Ana CEO', cargo: 'Founder & CEO', area: 'executivo', papel: 'decisor', fonte: 'x', statusValidacao: 'VALIDAR_EMAIL_EXISTENTE' },
+    { nome: 'Beto Vendas', cargo: 'Sales Director', area: 'comercial', papel: 'decisor', fonte: 'x', statusValidacao: 'BLOQUEADO_AGUARDA_AUDITORIA' },
+    { nome: 'Caio CRO', cargo: 'CRO', area: 'comercial', papel: 'decisor', fonte: 'x', statusValidacao: 'BLOQUEADO_AGUARDA_AUDITORIA' },
+  ],
+  icp: { tier: 'B', motivos: ['Receita pendente'] },
+});
+const papelPorArea = p => (p.area === 'executivo' ? 'assina_cheque' : p.area === 'comercial' && p.papel === 'decisor' ? 'decisor' : 'influenciador');
+const MATRIZ = { A: ['Monitorar', 'Ampliar pesquisa', 'Abordagem contextualizada', 'ABM personalizado', '1:1 executivo'], B: ['Monitorar', 'Monitorar', 'Ampliar pesquisa', 'Abordagem contextualizada', 'ABM personalizado'], C: ['Ignorar', 'Monitorar', 'Monitorar', 'Revisar ICP da conta', 'Revisar ICP da conta'] };
+const faixa = v => (v >= 85 ? 4 : v >= 70 ? 3 : v >= 55 ? 2 : v >= 40 ? 1 : 0);
+const depReal = extra => dep({ papelDe: papelPorArea, acaoDaMatriz: c => MATRIZ[c.icp?.tier ?? c.tier]?.[faixa(c.score)], ...extra });
+
+test('contato bloqueado pela auditoria não é sugerido antes de um liberado', () => {
+  const s = sinal('s1', '2026-11-23', 32, { tipo: 'vaga_area_alvo', abordar: { nome: '', cargo: 'Liderança de Receita', papel: 'decisor' } });
+  const t = teseDaConta(contaReal(), [s], depReal());
+  assert.equal(t.quem.nome, 'Ana CEO'); // os decisores comerciais estão bloqueados
+  assert.equal(t.quem.bloqueado, false);
+  assert.equal(t.quem.statusValidacao, 'VALIDAR_EMAIL_EXISTENTE');
+});
+
+test('se todos estão bloqueados, mostra o melhor papel sinalizado como bloqueado', () => {
+  const c = contaReal();
+  c.comite = c.comite.slice(1);
+  const t = teseDaConta(c, [sinal('s1', '2026-11-23', 32)], depReal());
+  assert.equal(t.quem.bloqueado, true);
+});
+
+test('nome mascarado no fato conta como fato sem nome', () => {
+  const s = sinal('s1', '2026-11-23', 32, { abordar: { nome: '•••', cargo: 'Liderança', papel: 'decisor' } });
+  assert.equal(teseDaConta(contaReal(), [s], depReal()).quem.origem, 'comite');
+});
+
+test('sem acaoRecomendada, a ação vem da matriz ICP × VSCS e diz isso', () => {
+  const t = teseDaConta(contaReal(), [sinal('s1', '2026-11-23', 32)], depReal());
+  assert.equal(t.acao.titulo, 'Monitorar'); // tier B com VSCS 46
+  assert.equal(t.acao.origem, 'matriz');
+  assert.equal(t.acao.abordar, false);
+  assert.equal(t.scorePendente, true);
+});
+
+test('acaoRecomendada gravada pelo motor tem prioridade sobre a matriz', () => {
+  const t = teseDaConta({ ...contaReal(), acaoRecomendada: 'Ampliar pesquisa' }, [sinal('s1', '2026-11-23', 32)], depReal());
+  assert.deepEqual([t.acao.titulo, t.acao.origem], ['Ampliar pesquisa', 'base']);
 });

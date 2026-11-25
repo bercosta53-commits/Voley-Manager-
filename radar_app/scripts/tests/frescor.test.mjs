@@ -45,3 +45,8 @@ test('rótulos', () => {
   assert.equal(rotuloIdade(30), 'há 30 h');
   assert.equal(rotuloIdade(80), 'há 3 dias');
 });
+
+test('formato combinado com a inteligência (ISO com -03:00) e o formato atual (sem fuso) dão o mesmo instante', () => {
+  assert.equal(instanteBase('2026-11-26T00:41:00-03:00')?.toISOString(), instanteBase('2026-11-26T00:41:00')?.toISOString());
+  assert.equal(rotuloCarga('2026-11-26T00:41:00-03:00'), '26/11 às 00h41');
+});

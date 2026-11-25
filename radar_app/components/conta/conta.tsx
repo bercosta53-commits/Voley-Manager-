@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { ArrowDownRight, ArrowUpRight, CalendarClock, Check, ChevronLeft, Copy, ExternalLink, Minus, SearchX, Send } from 'lucide-react';
 import type { Base, Conta, EstadoSinal, Sinal } from '@/lib/tipos';
-import { ACOES_DE_ABORDAGEM, aplicarAvaliacoes } from '@/lib/avaliacao';
+import { ACOES_DE_ABORDAGEM, MATRIZ_ICP, aplicarAvaliacoes, faixaVscs } from '@/lib/avaliacao';
 import { primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, sentido, status } from '@/lib/contas';
 import { gancho, rascunho } from '@/lib/mensagem';
 import { papelNoComite } from '@/lib/papeis';
@@ -107,6 +107,7 @@ function Detalhe({
         ganchoDe: gancho,
         papelDe: papelNoComite,
         acoesDeAbordagem: ACOES_DE_ABORDAGEM,
+        acaoDaMatriz: acaoPelaMatriz,
       }),
     [conta, sinais, estados, hoje],
   );
@@ -192,6 +193,12 @@ function ScoreGrande({ conta, onAbrir }: { conta: Conta; onAbrir: () => void }) 
       </div>
     </button>
   );
+}
+
+/** Ação da matriz ICP × VSCS (a mesma tabela do motor, confirmada pela inteligência em 25/11) para quando a base não traz acaoRecomendada. */
+function acaoPelaMatriz(c: Conta) {
+  const tier = (c.icp?.tier ?? c.tier) as 'A' | 'B' | 'C';
+  return MATRIZ_ICP[tier] && Number.isFinite(c.score) ? MATRIZ_ICP[tier][faixaVscs(c.score)] : undefined;
 }
 
 const naCaixa = (e: EstadoSinal | undefined, hoje: string) => !e?.acao || (e.acao === 'adiado' && !!e.ate && e.ate <= hoje);

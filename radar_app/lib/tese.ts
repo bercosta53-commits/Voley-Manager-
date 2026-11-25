@@ -23,9 +23,12 @@ export interface Tese {
   evidencias: Evidencia[];
   /** fatos da conta nos 90 dias até a data de referência */
   fatos90d: number;
-  quem: { nome: string; cargo: string; papel?: PapelAbm; origem: 'sinal' | 'comite' } | null;
+  quem: { nome: string; cargo: string; papel?: PapelAbm; origem: 'sinal' | 'comite'; statusValidacao?: string; bloqueado: boolean } | null;
   comite: { pessoas: number; faltando: string[] };
-  acao: { titulo: string; texto: string; abordar: boolean };
+  /** 'base' = acaoRecomendada gravada pelo motor; 'matriz' = derivada da matriz ICP × VSCS porque a base ainda não traz */
+  acao: { titulo: string; texto: string; abordar: boolean; origem?: 'base' | 'matriz' };
+  /** score ainda não certificado pelo motor */
+  scorePendente: boolean;
 }
 
 export interface DependenciasTese {
@@ -39,13 +42,15 @@ export interface DependenciasTese {
   papelDe: (p: Pessoa) => PapelAbm;
   /** ações da matriz ICP × VSCS que pedem contato agora */
   acoesDeAbordagem: Set<string>;
+  /** ação da matriz ICP × VSCS para a conta, usada só quando a base não traz acaoRecomendada */
+  acaoDaMatriz?: (conta: Conta) => string | undefined;
 }
 
 const TEXTO_ACAO: Record<string, string> = {
   'Abordagem contextualizada': 'Abordar a pessoa indicada citando o fato. O rascunho abaixo já parte dele.',
   'ABM personalizado': 'Trabalhar a conta inteira: mais de uma pessoa do comitê, com mensagem por papel.',
   '1:1 executivo': 'Contato executivo direto, de liderança para liderança, com o fato como abertura.',
-  Monitorar: 'O VSCS ainda é baixo para o tier desta conta. Um fato sozinho não abre conversa: o Radar avisa quando outro chegar perto deste no tempo.',
+  Monitorar: 'O VSCS ainda é baixo para o tier desta conta: os fatos de agora não bastam para abrir conversa. O Radar avisa quando um novo fato chegar perto deles no tempo.',
   'Ampliar pesquisa': 'Há movimento, mas falta um segundo fato. Pesquisar a conta e confirmar quem decide antes de abordar.',
   'Revisar ICP da conta': 'Score alto em conta fora do ICP costuma indicar ICP mal classificado. Revisar o tier antes de perseguir.',
   Ignorar: 'Fora do ICP e sem sinais relevantes.',
@@ -53,6 +58,9 @@ const TEXTO_ACAO: Record<string, string> = {
 
 /** Ordem de preferência para "com quem falar" quando o sinal não nomeia ninguém. */
 const ORDEM_PAPEL: PapelAbm[] = ['decisor', 'assina_cheque', 'dono_da_dor', 'influenciador', 'trava'];
+
+/** Contato que a auditoria da inteligência bloqueou: não é sugerido primeiro, e aparece sinalizado. */
+export const contatoBloqueado = (p: Pick<Pessoa, 'statusValidacao'>) => !!p.statusValidacao?.toUpperCase().startsWith('BLOQUEADO');
 
 const dia = (iso: string) => Date.parse(iso.slice(0, 10) + 'T12:00:00Z') / 86_400_000;
 const normal = (t: string) => t.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
@@ -90,13 +98,24 @@ export function teseDaConta(conta: Conta, sinais: Sinal[], dep: DependenciasTese
   }).length;
 
   let quem: Tese['quem'] = null;
-  if (principal?.abordar?.nome) {
-    const doComite = conta.comite.find(p => normal(p.nome) === normal(principal.abordar.nome));
-    quem = { nome: principal.abordar.nome, cargo: principal.abordar.cargo, papel: doComite ? dep.papelDe(doComite) : undefined, origem: 'sinal' };
+  const citado = principal?.abordar?.nome?.replace(/[•\s.]/g, '') ? principal.abordar.nome : '';
+  if (citado) {
+    const doComite = conta.comite.find(p => normal(p.nome) === normal(citado));
+    quem = {
+      nome: citado,
+      cargo: principal!.abordar.cargo,
+      papel: doComite ? dep.papelDe(doComite) : undefined,
+      origem: 'sinal',
+      statusValidacao: doComite?.statusValidacao,
+      bloqueado: !!doComite && contatoBloqueado(doComite),
+    };
   } else {
-    const ordenado = [...conta.comite].sort((a, b) => ORDEM_PAPEL.indexOf(dep.papelDe(a)) - ORDEM_PAPEL.indexOf(dep.papelDe(b)));
+    // sem nome no fato: o papel mais próximo da decisão, mas nunca um contato bloqueado antes de um liberado
+    const ordenado = [...conta.comite].sort(
+      (a, b) => Number(contatoBloqueado(a)) - Number(contatoBloqueado(b)) || ORDEM_PAPEL.indexOf(dep.papelDe(a)) - ORDEM_PAPEL.indexOf(dep.papelDe(b)),
+    );
     const p = ordenado[0];
-    if (p) quem = { nome: p.nome, cargo: p.cargo, papel: dep.papelDe(p), origem: 'comite' };
+    if (p) quem = { nome: p.nome, cargo: p.cargo, papel: dep.papelDe(p), origem: 'comite', statusValidacao: p.statusValidacao, bloqueado: contatoBloqueado(p) };
   }
 
   let acao: Tese['acao'];
@@ -104,11 +123,13 @@ export function teseDaConta(conta: Conta, sinais: Sinal[], dep: DependenciasTese
     acao = { titulo: 'Acompanhar a abordagem', texto: 'Sem resposta em 5 dias, fazer um segundo contato curto retomando o mesmo fato.', abordar: false };
   } else if (!principal) {
     acao = { titulo: 'Esperar um motivo', texto: 'Nenhum fato aberto nesta conta. Abordar sem motivo gasta a primeira impressão; o Radar avisa em Hoje quando algo mudar.', abordar: false };
-  } else if (conta.acaoRecomendada) {
+  } else if (conta.acaoRecomendada || dep.acaoDaMatriz?.(conta)) {
+    const titulo = (conta.acaoRecomendada || dep.acaoDaMatriz?.(conta))!;
     acao = {
-      titulo: conta.acaoRecomendada,
-      texto: TEXTO_ACAO[conta.acaoRecomendada] ?? conta.v2?.frase ?? '',
-      abordar: dep.acoesDeAbordagem.has(conta.acaoRecomendada) || !!conta.v2?.via_rapida,
+      titulo,
+      texto: TEXTO_ACAO[titulo] ?? conta.v2?.frase ?? '',
+      abordar: dep.acoesDeAbordagem.has(titulo) || !!conta.v2?.via_rapida,
+      origem: conta.acaoRecomendada ? 'base' : 'matriz',
     };
   } else {
     acao = { titulo: 'Avaliar a abordagem', texto: 'A matriz ICP × VSCS ainda não classificou esta conta. Decidir pelo fato e pelo comitê.', abordar: true };
@@ -123,5 +144,6 @@ export function teseDaConta(conta: Conta, sinais: Sinal[], dep: DependenciasTese
     quem,
     comite: { pessoas: conta.comite.length, faltando: conta.comiteFaltando ?? [] },
     acao,
+    scorePendente: !!conta.scorePendente,
   };
 }

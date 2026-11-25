@@ -17,6 +17,8 @@ export interface Pessoa {
   papeisExtras?: PapelAbm[];
   /** contato da Velora dentro da conta (relacionamento já aberto) */
   contatoVelora?: boolean;
+  /** auditoria do contato pela inteligência (ex.: APTO_HISTORICO, VALIDAR_EMAIL_EXISTENTE, BLOQUEADO_AGUARDA_AUDITORIA) */
+  statusValidacao?: string;
   /** relevância da pessoa no contexto do ICP */
   relevancia?: 'alta' | 'media' | 'baixa';
   email?: string;
@@ -131,6 +133,8 @@ export interface Conta {
   /** status do VSCS e ação recomendada (gravados pelo score_v2.py --exibir) */
   vscsStatus?: StatusVscs;
   acaoRecomendada?: string;
+  /** score ainda não certificado pelo motor (a inteligência marca até rodar o VSCS sobre a conta) */
+  scorePendente?: boolean;
 }
 
 export type StatusVscs = 'Monitoramento' | 'Atenção' | 'Oportunidade emergente' | 'Alta prioridade' | 'Prioridade máxima';
@@ -224,6 +228,8 @@ export interface EventoAgenda {
 
 export interface Base {
   geradoEm: string;
+  /** versão do motor de score que gerou esta base (ex.: vscs-3.0) */
+  scoreVersao?: string;
   /** data e hora da última atualização da base (score_v2.py --exibir) */
   atualizadoEm?: string;
   contas: Conta[];

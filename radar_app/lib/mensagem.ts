@@ -2,7 +2,8 @@ import type { Conta, Sinal } from './tipos';
 
 /**
  * Por que o fato abre conversa para a Velora, por tipo de sinal. É a leitura comercial do sinal: vai no
- * rascunho da mensagem e na linha "Oportunidade" da tese da conta.
+ * rascunho da mensagem e na linha "Oportunidade" da tese da conta. Revisado com a inteligência em 25/11
+ * (parceria nova; executivo_chegou, fusao_aquisicao, captacao e lancamento_ia sem prometer a dor).
  */
 const GANCHOS: Record<string, string> = {
   vaga_marketing: 'Costuma ser o momento de desenhar metas e canais antes de a pessoa chegar.',
@@ -18,13 +19,14 @@ const GANCHOS: Record<string, string> = {
   vaga_area_alvo: 'Time comercial crescendo pede previsibilidade de pipeline desde o primeiro mês.',
   vaga_expansao_comercial: 'Contratar várias pessoas de uma vez pede pipeline pronto para elas desde o primeiro mês.',
   vaga_lideranca_alvo: 'Quem chega para liderar costuma revisar canais e metas nos primeiros 90 dias.',
-  executivo_chegou: 'Nova liderança costuma revisar prioridades de crescimento nos primeiros 90 dias.',
-  fusao_aquisicao: 'Integrar marcas e bases depois de uma aquisição abre espaço para rever o funil.',
-  captacao: 'Rodada nova costuma vir com meta de crescimento mais agressiva.',
+  executivo_chegou: 'A chegada de um executivo pode abrir uma janela de revisão de estratégia e prioridades.',
+  fusao_aquisicao: 'Uma operação societária pode mudar prioridades, autonomia comercial e necessidades de integração.',
+  captacao: 'Uma captação pode criar condições para discutir a eficiência dos investimentos em crescimento.',
   lancamento_produto: 'Lançamento B2B ganha tração quando marketing e vendas miram as mesmas contas.',
   lancamento_servico: 'Lançamento B2B ganha tração quando marketing e vendas miram as mesmas contas.',
-  lancamento_ia: 'Lançamento B2B ganha tração quando marketing e vendas miram as mesmas contas.',
+  lancamento_ia: 'Uma solução de IA pode exigir clareza de posicionamento, diferenciação e adoção comercial.',
   expansao_mercado: 'Expansão regional pede um plano de aquisição por praça.',
+  parceria: 'Uma nova parceria pode abrir canais comerciais e exigir alinhamento de posicionamento e geração de demanda.',
 };
 
 /** A leitura comercial de um tipo de sinal, ou undefined quando ainda não há uma escrita para ele. */

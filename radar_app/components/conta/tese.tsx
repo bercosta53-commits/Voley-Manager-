@@ -24,12 +24,19 @@ const Papel = ({ papel }: { papel?: PapelAbm }) =>
  * base (lib/tese.ts); o que falta aparece como "não identificado", nunca preenchido por inferência.
  */
 export function TeseConta({ tese, nomeConta }: { tese: Tese; nomeConta: string }) {
-  const { empresa, agora, oportunidade, evidencias, fatos90d, quem, comite, acao } = tese;
+  const { empresa, agora, oportunidade, evidencias, fatos90d, quem, comite, acao, scorePendente } = tese;
   return (
     <section aria-labelledby="tese-da-conta" className="vr-card p-5">
-      <h2 id="tese-da-conta" className="text-xs font-semibold text-text-3">
-        Tese da conta
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="tese-da-conta" className="text-xs font-semibold text-text-3">
+          Tese da conta
+        </h2>
+        {scorePendente && (
+          <span className="rounded-chip border border-warm bg-warm-bg px-1.5 py-0.5 text-xs text-foreground" title="O motor ainda não certificou o VSCS desta conta">
+            Score pendente de certificação
+          </span>
+        )}
+      </div>
       <dl className="mt-3 divide-y divide-border">
         <Linha pergunta={`Por que a ${nomeConta}`}>
           {empresa && (
@@ -97,6 +104,7 @@ export function TeseConta({ tese, nomeConta }: { tese: Tese; nomeConta: string }
                 <Papel papel={quem.papel} />
               </p>
               <p className="mt-0.5 text-xs text-text-3">
+                {quem.bloqueado && <span className="font-medium text-risk">Contato bloqueado até a auditoria · </span>}
                 {quem.origem === 'sinal' ? 'Citada no fato' : 'Do comitê mapeado'} · {plural(comite.pessoas, 'pessoa', 'pessoas')} no comitê
                 {comite.faltando.length > 0 && ` · falta: ${comite.faltando.map(f => (rotuloPapel(f as PapelAbm) ?? f).toLowerCase()).join(', ')}`}
               </p>
@@ -107,6 +115,7 @@ export function TeseConta({ tese, nomeConta }: { tese: Tese; nomeConta: string }
         <Linha pergunta="Próxima ação">
           <p className="font-medium">{acao.titulo}</p>
           {acao.texto && <p className="mt-0.5 text-text-2">{acao.texto}</p>}
+          {acao.origem === 'matriz' && <p className="mt-0.5 text-xs text-text-3">Pela matriz ICP × VSCS; o motor ainda não gravou a ação desta conta.</p>}
           {acao.abordar && (
             <a href="#proxima-acao" className="mt-1 inline-block text-sm font-medium underline decoration-border-strong underline-offset-4">
               Ver o rascunho
