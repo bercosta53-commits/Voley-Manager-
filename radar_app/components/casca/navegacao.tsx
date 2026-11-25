@@ -15,16 +15,22 @@ import { useAgora } from '@/components/ui/use-agora';
 import { frescor, rotuloCarga } from '@/lib/frescor';
 import { definirApresentacao, SECOES_FORA_DA_APRESENTACAO, useApresentacao } from '@/components/ui/use-apresentacao';
 
+/**
+ * Seções em três grupos: o trabalho do dia (Operação), a leitura do mercado (Mercado) e como o Radar funciona
+ * (Sistema). Os endereços e nomes não mudam; a barra do celular mantém a própria ordem (NO_CELULAR).
+ */
+export const GRUPOS = ['Operação', 'Mercado', 'Sistema'] as const;
+
 export const SECOES = [
-  { href: '/', rotulo: 'Hoje', icone: Inbox },
-  { href: '/radar', rotulo: 'Radar', icone: Radar },
-  { href: '/aquisicao', rotulo: 'Aquisição', icone: Target },
-  { href: '/icp', rotulo: 'ICP', icone: Crosshair },
-  { href: '/contas', rotulo: 'Contas', icone: Building2 },
-  { href: '/decisores', rotulo: 'Decisores', icone: UsersRound },
-  { href: '/fontes', rotulo: 'Fontes', icone: PlugZap },
-  { href: '/clima', rotulo: 'Clima', icone: CloudSun },
-  { href: '/metricas', rotulo: 'Métricas', icone: BarChart3 },
+  { href: '/', rotulo: 'Hoje', icone: Inbox, grupo: 'Operação' },
+  { href: '/contas', rotulo: 'Contas', icone: Building2, grupo: 'Operação' },
+  { href: '/decisores', rotulo: 'Decisores', icone: UsersRound, grupo: 'Operação' },
+  { href: '/radar', rotulo: 'Radar', icone: Radar, grupo: 'Mercado' },
+  { href: '/aquisicao', rotulo: 'Aquisição', icone: Target, grupo: 'Mercado' },
+  { href: '/icp', rotulo: 'ICP', icone: Crosshair, grupo: 'Mercado' },
+  { href: '/clima', rotulo: 'Clima', icone: CloudSun, grupo: 'Mercado' },
+  { href: '/fontes', rotulo: 'Fontes', icone: PlugZap, grupo: 'Sistema' },
+  { href: '/metricas', rotulo: 'Métricas', icone: BarChart3, grupo: 'Sistema' },
 ] as const;
 
 /** As seções do menu e da busca; no modo apresentação, sem as que ficam fora do roteiro. */
@@ -133,26 +139,37 @@ export function NavLateral({ base, novos, onBuscar }: { base: Base; novos: numbe
         </button>
       </div>
 
-      <nav aria-label="Seções" className="mt-3 flex flex-col gap-0.5 px-2.5 lg:px-3">
-        {secoes.map(({ href, rotulo, icone: Icone }) => {
-          const n = contagem[href];
+      <nav aria-label="Seções" className="mt-3 flex flex-col gap-3 px-2.5 lg:px-3">
+        {GRUPOS.map(grupo => {
+          const doGrupo = secoes.filter(s => s.grupo === grupo);
+          if (!doGrupo.length) return null; // modo apresentação pode esvaziar um grupo
           return (
-            <Link
-              key={href}
-              href={href}
-              title={rotulo}
-              aria-current={ativa(href) ? 'page' : undefined}
-              className={cn(
-                'relative flex h-9 items-center justify-center gap-2.5 rounded-control px-2.5 text-sm font-medium text-text-2 transition-colors duration-[var(--vr-dur-hover)] hover:bg-[var(--vr-surface-2)] hover:text-foreground lg:justify-start',
-                ativa(href) && 'bg-[var(--vr-surface-3)] text-foreground',
-              )}
-            >
-              {ativa(href) && <span aria-hidden className="absolute top-2 bottom-2 left-0 w-[3px] rounded-r bg-foreground" />}
-              <Icone className="size-4 shrink-0" strokeWidth={1.75} />
-              <span className="hidden flex-1 lg:inline">{rotulo}</span>
-              {n !== undefined && <span className="vr-data hidden text-xs text-text-3 lg:inline">{n}</span>}
-              {href === '/' && novos > 0 && <span aria-hidden className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-acid ring-2 ring-[var(--vr-surface)] lg:hidden" />}
-            </Link>
+            <div key={grupo} role="group" aria-labelledby={`grupo-${grupo}`} className="flex flex-col gap-0.5 border-t border-border pt-3 first:border-t-0 first:pt-0 lg:border-t-0 lg:pt-0">
+              <span id={`grupo-${grupo}`} className="hidden px-2.5 pb-1 text-xs font-semibold text-text-3 lg:block">
+                {grupo}
+              </span>
+              {doGrupo.map(({ href, rotulo, icone: Icone }) => {
+                const n = contagem[href];
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    title={rotulo}
+                    aria-current={ativa(href) ? 'page' : undefined}
+                    className={cn(
+                      'relative flex h-9 items-center justify-center gap-2.5 rounded-control px-2.5 text-sm font-medium text-text-2 transition-colors duration-[var(--vr-dur-hover)] hover:bg-[var(--vr-surface-2)] hover:text-foreground lg:justify-start',
+                      ativa(href) && 'bg-[var(--vr-surface-3)] text-foreground',
+                    )}
+                  >
+                    {ativa(href) && <span aria-hidden className="absolute top-2 bottom-2 left-0 w-[3px] rounded-r bg-foreground" />}
+                    <Icone className="size-4 shrink-0" strokeWidth={1.75} />
+                    <span className="hidden flex-1 lg:inline">{rotulo}</span>
+                    {n !== undefined && <span className="vr-data hidden text-xs text-text-3 lg:inline">{n}</span>}
+                    {href === '/' && novos > 0 && <span aria-hidden className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-acid ring-2 ring-[var(--vr-surface)] lg:hidden" />}
+                  </Link>
+                );
+              })}
+            </div>
           );
         })}
       </nav>
@@ -208,7 +225,7 @@ export function NavInferior({ novos }: { novos: number }) {
   const ativa = useSecaoAtiva();
   const [mais, setMais] = useState(false);
   const secoes = useSecoes();
-  const principais = secoes.filter(s => NO_CELULAR.includes(s.href));
+  const principais = secoes.filter(s => NO_CELULAR.includes(s.href)).sort((a, b) => NO_CELULAR.indexOf(a.href) - NO_CELULAR.indexOf(b.href));
   const resto = secoes.filter(s => !NO_CELULAR.includes(s.href));
   const restoAtivo = resto.some(s => ativa(s.href));
   const item = 'flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-card text-xs font-medium text-text-3 transition-colors duration-[var(--vr-dur-hover)]';
