@@ -29,6 +29,7 @@ export interface Alavancas {
 }
 
 export type Tier = 'A' | 'B' | 'C';
+export type GrupoIcp = Tier | 'P' | 'X'; // P = pesquisa pendente; X = exclusão
 export type MotivoExclusao = 'regiao' | 'porte' | 'ramo' | 'b2c';
 
 /** Barreiras de compra (G3): o que alonga o ciclo. */
@@ -93,10 +94,12 @@ export interface ContaIcp {
   familia: string;
   segmento: string;
   /** tier gravado na base hoje */
-  tierAtual: Tier;
+  tierAtual: GrupoIcp;
   /** pedaços da regra, independentes das alavancas */
   ramo: 'principal' | 'secundario' | 'fora' | 'sem';
   b2c: boolean;
+  restricaoPorte: boolean;
+  baixoFit: boolean;
   ufConfirmada: boolean;
   porte: 'abaixo' | 'validado' | 'sem';
   /** gatilhos que batem (1–5) e os medidos com dado incompleto */
@@ -153,8 +156,8 @@ export function prepararContas(base: Base, regras: RegrasIcp): ContaIcp[] {
     const semComercial = !vendas.length && !mkt.length;
     const gatilhos = new Set<number>();
     const incompletos = new Set<number>();
-    if (maxV <= 2 && maxM <= 3) gatilhos.add(1);
-    if (semComercial) incompletos.add(1).add(4);
+    if (vendas.length && mkt.length && maxV <= 2 && maxM <= 3) { gatilhos.add(1); incompletos.add(1); }
+    if (!vendas.length || !mkt.length) incompletos.add(1).add(4);
     if (c.modeloNegocio === 'servico' || c.modeloNegocio === 'misto') gatilhos.add(2);
     // G3: ciclo deduzido da oferta + do cliente atendido
     const texto = normalizar(`${c.oQueFaz ?? ''} ${c.segmento ?? ''}`);
@@ -178,22 +181,30 @@ export function prepararContas(base: Base, regras: RegrasIcp): ContaIcp[] {
     }
     if (ciclo >= 2) gatilhos.add(3);
     const temFundador = c.comite.some(p => FUNDADOR.test(normalizar(p.cargo)));
-    if (temFundador && maxV <= 3 && maxM <= 3) gatilhos.add(4);
+    if (temFundador && vendas.length && mkt.length && maxV <= 3 && maxM <= 3) { gatilhos.add(4); incompletos.add(4); }
     const fundacao = c.dataAbertura ?? (c.anoFundacao ? `${c.anoFundacao}-07-01` : null);
     if (fundacao) {
-      if (diasEntre(fundacao, hoje) >= 3652 && !crescimento.has(c.id)) gatilhos.add(5);
+      if (diasEntre(fundacao, hoje) >= 3652 && !crescimento.has(c.id)) incompletos.add(5); // histórico incompleto não prova estagnação
       if (!c.dataAbertura) incompletos.add(5); // ano de fundação de pesquisa: medição ainda a validar
     } else incompletos.add(5);
 
+    // A faixa legada C mistura exclusão e falta de dados. Não reutilizar como verdade.
+    const b2c = ramo === 'fora' || regras.especializacoesExcluidas.includes(esp);
+    const restricaoPorte = porte === 'abaixo';
+    // Faixa C: ofertas tecnológicas periféricas de produto/distribuição; serviços consultivos ficam elegíveis para B.
+    const baixoFit = ['IN15', 'IN16', 'EN27', 'EN28', 'SW06'].includes(codRamo) && c.modeloNegocio === 'produto';
+    const tierAtual: GrupoIcp = b2c || restricaoPorte || (uf && !regras.regiao.includes(uf)) ? 'X' : ramo === 'sem' || !c.icp?.tier ? 'P' : c.icp.tier === 'A' ? 'A' : baixoFit ? 'C' : 'B';
     return {
       conta: c,
       uf,
       vertical: esp === 'GEN' ? 'Generalista' : (c.especializacao?.nome ?? 'Generalista'),
       familia: c.ramoTI?.familia || 'Sem classificação',
       segmento: c.ramoTI?.nome && c.ramoTI.nome !== 'A classificar' ? c.ramoTI.nome : 'Sem segmento',
-      tierAtual: (c.icp?.tier ?? c.tier ?? 'C') as Tier,
+      tierAtual,
       ramo,
-      b2c: ramo === 'fora' || regras.especializacoesExcluidas.includes(esp),
+      b2c,
+      restricaoPorte,
+      baixoFit,
       ufConfirmada: !!uf && (c.ufFonte === 'receita' || c.ufFonte === 'site'),
       porte,
       gatilhos,
@@ -201,33 +212,34 @@ export function prepararContas(base: Base, regras: RegrasIcp): ContaIcp[] {
       ciclo,
       barreiras,
       papeis: new Set(c.comite.map(p => p.papelAbm ?? '').filter(Boolean)),
-      comiteCompleto: !(c.comiteFaltando ?? []).length,
+      comiteCompleto: ['assina_cheque', 'decisor', 'dono_da_dor'].every(p => c.comite.some(x => x.papelAbm === p || x.papeisExtras?.includes(p as NonNullable<Pessoa['papelAbm']>))),
     };
   });
 }
 
 /** Tier simulado + por que a conta ficou fora (para os cards de exclusão). */
-export function tierSimulado(a: ContaIcp, al: Alavancas): { tier: Tier; exclusao?: MotivoExclusao } {
-  if (a.b2c) return { tier: 'C', exclusao: 'b2c' };
-  if (a.ramo === 'sem') return { tier: 'C', exclusao: 'ramo' };
-  if (a.uf && !al.regiao.includes(a.uf)) return { tier: 'C', exclusao: 'regiao' };
-  if (a.porte === 'abaixo') return { tier: 'C', exclusao: 'porte' };
+export function tierSimulado(a: ContaIcp, al: Alavancas): { tier: GrupoIcp; exclusao?: MotivoExclusao } {
+  if (a.b2c) return { tier: 'X', exclusao: 'b2c' };
+  if (a.restricaoPorte) return { tier: 'X', exclusao: 'porte' };
+  if (a.ramo === 'sem' || !a.conta.modeloNegocio) return { tier: 'P' };
+  if (a.uf && !al.regiao.includes(a.uf)) return { tier: 'X', exclusao: 'regiao' };
+  if (a.baixoFit && !al.saas) return { tier: 'C' };
   const ramoOk = a.ramo === 'principal' || (a.ramo === 'secundario' && al.saas);
   const sedeOk = !!a.uf && (a.ufConfirmada || al.sedeNaoConfirmada);
   const porteOk = !al.exigirFaturamento || a.porte === 'validado';
   let tier: Tier = ramoOk && sedeOk && porteOk ? 'A' : 'B';
-  if (tier === 'A' && a.gatilhos.size < al.minGatilhos) tier = 'B';
+  if (tier === 'A' && [...a.gatilhos].filter(g => !a.incompletos.has(g)).length < al.minGatilhos) tier = 'B';
   return { tier };
 }
 
-export const ALAVANCAS_ATUAIS = (regras: RegrasIcp): Alavancas => ({ saas: false, sedeNaoConfirmada: false, exigirFaturamento: false, regiao: [...regras.regiao], minGatilhos: 0 });
+export const ALAVANCAS_ATUAIS = (regras: RegrasIcp): Alavancas => ({ saas: false, sedeNaoConfirmada: true, exigirFaturamento: false, regiao: [...regras.regiao], minGatilhos: 0 });
 
 /** Tudo o que a aba mostra para um cenário de alavancas. */
 export function simular(contas: ContaIcp[], al: Alavancas) {
   const linhas = contas.map(a => ({ ...a, ...tierSimulado(a, al) }));
-  const conta = (t: Tier) => linhas.filter(l => l.tier === t).length;
+  const conta = (t: GrupoIcp) => linhas.filter(l => l.tier === t).length;
   const A = linhas.filter(l => l.tier === 'A');
-  const exclusoes = (['regiao', 'porte', 'ramo', 'b2c'] as MotivoExclusao[]).map(m => ({ motivo: m, n: linhas.filter(l => l.exclusao === m).length }));
+  const exclusoes = (['regiao', 'porte', 'b2c'] as MotivoExclusao[]).map(m => ({ motivo: m, n: linhas.filter(l => l.exclusao === m).length }));
   const umAUm = A.filter(l => l.conta.score >= 40).length;
   const umMany = linhas.filter(l => l.tier === 'B' && l.uf && al.regiao.includes(l.uf)).length;
   const entram = linhas.filter(l => l.tier === 'A' && l.tierAtual !== 'A').sort((x, y) => y.conta.score - x.conta.score);
@@ -241,7 +253,7 @@ export function simular(contas: ContaIcp[], al: Alavancas) {
           ? `${l.gatilhos.size} de ${al.minGatilhos} gatilhos`
           : 'regra alterada';
   const naRegiao = linhas.filter(l => l.uf && al.regiao.includes(l.uf)).length;
-  const classificadas = linhas.filter(l => l.uf && al.regiao.includes(l.uf) && !l.exclusao).length;
+  const classificadas = linhas.filter(l => l.uf && al.regiao.includes(l.uf) && l.tier !== 'X' && l.tier !== 'P').length;
   const funil = [
     { rotulo: 'Base total', n: linhas.length },
     { rotulo: `Na região ${al.regiao.join('/') || '—'}`, n: naRegiao },
@@ -255,6 +267,8 @@ export function simular(contas: ContaIcp[], al: Alavancas) {
     nA: A.length,
     nB: conta('B'),
     nC: conta('C'),
+    nP: conta('P'),
+    nX: conta('X'),
     exclusoes,
     saasAfetadas: linhas.filter(l => l.ramo === 'secundario').length,
     aSemFaturamento: A.filter(l => l.porte !== 'validado').length,

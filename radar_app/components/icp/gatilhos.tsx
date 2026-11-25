@@ -51,7 +51,7 @@ export function Gatilhos({
   sel: number;
   onSel: (g: number) => void;
 }) {
-  const pool = escopo === 'A' ? linhas.filter(l => l.tier === 'A') : escopo === 'AB' ? linhas.filter(l => l.tier !== 'C') : linhas;
+  const pool = escopo === 'A' ? linhas.filter(l => l.tier === 'A') : escopo === 'AB' ? linhas.filter(l => l.tier === 'A' || l.tier === 'B') : linhas.filter(l => l.tier === 'A' || l.tier === 'B' || l.tier === 'C');
   const tot = Math.max(1, pool.length);
   const pct = (n: number) => `${Math.round((100 * n) / tot)}%`;
   // histograma: contas por nº de gatilhos, empilhado por tier
@@ -84,7 +84,7 @@ export function Gatilhos({
             Como a empresa vende hoje, não só o que ela é. Cada gatilho é uma dor que o diagnóstico da Velora resolve. Clique num gatilho para ver as contas que batem.
           </p>
         </div>
-        <Alternar rotulo="Escopo dos gatilhos" valor={escopo} onMudar={onEscopo} opcoes={[['A', 'Tier A simulado'], ['AB', 'Tiers A e B'], ['all', 'Toda a base']]} />
+        <Alternar rotulo="Escopo dos gatilhos" valor={escopo} onMudar={onEscopo} opcoes={[['A', 'Tier A simulado'], ['AB', 'Tiers A e B'], ['all', 'Tiers A, B e C']]} />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
