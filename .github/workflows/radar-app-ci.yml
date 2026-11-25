@@ -1,0 +1,46 @@
+name: Radar | CI da branch de produção
+on:
+  push:
+    branches: [migration/cloudflare-supabase]
+    paths:
+      - "radar_app/**"
+      - ".github/workflows/radar-app-ci.yml"
+  pull_request:
+    branches: [migration/cloudflare-supabase]
+    paths:
+      - "radar_app/**"
+      - ".github/workflows/radar-app-ci.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: radar-app-ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validar:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: radar_app
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: radar_app/package-lock.json
+      - name: Instalar (somente lockfile)
+        run: npm ci --no-audit --no-fund
+      - name: Typecheck
+        run: npm run lint
+      - name: Testes do score (VSCS)
+        run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+      - name: Build do Worker (OpenNext)
+        run: npm run build:cloudflare
+      - name: Tamanho do Worker (limite do plano gratuito, 3 MiB comprimido)
+        run: npx --no-install wrangler deploy --dry-run --outdir /tmp/worker-dry-run 2>&1 | tee /tmp/dry-run.log
+      - name: Teste de fumaça das telas (base fictícia, só no CI)
+        run: npm run smoke
