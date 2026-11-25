@@ -51,10 +51,11 @@ export async function subirApp(base, { porta, env = {} } = {}) {
       return responder(201, '');
     }
     if (u.pathname === '/rest/v1/radar_acoes') {
-      const sinal = u.searchParams.get('sinal_id')?.replace(/^eq\./, '');
+      // filtros de igualdade do PostgREST que o app usa (sinal_id, conta_id, tipo)
+      const filtros = ['sinal_id', 'conta_id', 'tipo'].map(k => [k, u.searchParams.get(k)?.replace(/^eq\./, '')]).filter(([, v]) => v);
       const offset = Number(u.searchParams.get('offset') ?? 0);
       const limite = Number(u.searchParams.get('limit') ?? 1000);
-      return responder(200, acoes.filter(l => !sinal || l.sinal_id === sinal).slice(offset, offset + limite));
+      return responder(200, acoes.filter(l => filtros.every(([k, v]) => l[k] === v)).slice(offset, offset + limite));
     }
     return responder(404, '{"message":"rota desconhecida"}');
   });

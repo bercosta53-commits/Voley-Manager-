@@ -85,3 +85,18 @@ test('e-mail vem do JWT do Access (já verificado pelo Worker)', () => {
   assert.equal(emailDoAccess(null), null);
   assert.equal(emailDoAccess('lixo'), null);
 });
+
+test('andamento da conta: avançar, repetir não grava, tirar desfaz a linha vigente', async () => {
+  const { linhaDoStatus, validarStatus } = await import('../../lib/acoes.ts');
+  seq = 0;
+  const s1 = linha('status', { sinal_id: null, status: 'respondeu' });
+  const { statusVigente } = dobrar([s1]);
+  assert.equal(linhaDoStatus('c1', statusVigente.c1, 'respondeu'), null);
+  assert.deepEqual(['tipo', 'status', 'desfaz_id'].map(k => linhaDoStatus('c1', statusVigente.c1, 'reuniao')[k]), ['status', 'reuniao', null]);
+  const tirar = linhaDoStatus('c1', statusVigente.c1, null);
+  assert.deepEqual([tirar.status, tirar.desfaz_id], ['respondeu', s1.id]);
+  assert.equal(dobrar([s1, linha('status', tirar)]).status.c1, undefined);
+  assert.equal(linhaDoStatus('c1', undefined, null), null);
+  assert.equal(validarStatus('reuniao'), 'reuniao');
+  assert.equal(validarStatus('ganho'), 'invalido');
+});

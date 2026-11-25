@@ -88,5 +88,34 @@ export function useEstados() {
     [compartilhado],
   );
 
-  return { estados, status, salvar, pronto, compartilhado };
+  /** Andamento da conta (só com o registro compartilhado). Otimista: volta atrás e avisa se não gravar. */
+  const salvarStatus = useCallback(
+    (contaId: string, para: StatusConta | null, quem = 'você') => {
+      if (!compartilhado) return;
+      let anterior: StatusPorConta[string] | undefined;
+      setStatus(s => {
+        anterior = s[contaId];
+        const prox = { ...s };
+        if (para) prox[contaId] = { status: para, por: quem, em: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }) };
+        else delete prox[contaId];
+        return prox;
+      });
+      fetch('/api/estados', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contaId, status: para }) })
+        .then(r => {
+          if (!r.ok) throw new Error(String(r.status));
+        })
+        .catch(() => {
+          setStatus(s => {
+            const volta = { ...s };
+            if (anterior) volta[contaId] = anterior;
+            else delete volta[contaId];
+            return volta;
+          });
+          toast('Não consegui registrar o andamento da conta.', { description: 'Nada foi alterado. Tente de novo em instantes.' });
+        });
+    },
+    [compartilhado],
+  );
+
+  return { estados, status, salvar, salvarStatus, pronto, compartilhado };
 }

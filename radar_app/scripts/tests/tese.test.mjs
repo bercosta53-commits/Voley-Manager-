@@ -141,3 +141,13 @@ test('acaoRecomendada gravada pelo motor tem prioridade sobre a matriz', () => {
   const t = teseDaConta({ ...contaReal(), acaoRecomendada: 'Ampliar pesquisa' }, [sinal('s1', '2026-11-23', 32)], depReal());
   assert.deepEqual([t.acao.titulo, t.acao.origem], ['Ampliar pesquisa', 'base']);
 });
+
+test('andamento do time decide a próxima ação depois do contato', () => {
+  const s = [sinal('s1', '2026-11-20', 30)];
+  const reuniao = teseDaConta(conta(), s, dep({ andamento: { status: 'reuniao', em: '2026-11-24', por: 'ana@velora.com.br' } }));
+  assert.deepEqual([reuniao.acao.titulo, reuniao.acao.origem, reuniao.acao.abordar], ['Preparar a reunião', 'andamento', false]);
+  assert.equal(teseDaConta(conta(), s, dep({ andamento: { status: 'descartada', em: '2026-11-24', por: 'x' } })).acao.titulo, 'Conta descartada');
+  // "abordado" sem fato aberto: acompanhar; com fato aberto, a matriz continua valendo
+  assert.equal(teseDaConta(conta(), s, dep({ aberto: () => false, andamento: { status: 'abordado', em: '2026-11-24', por: 'x' } })).acao.titulo, 'Acompanhar a abordagem');
+  assert.equal(teseDaConta(conta(), s, dep({ andamento: { status: 'abordado', em: '2026-11-24', por: 'x' } })).acao.titulo, 'ABM personalizado');
+});

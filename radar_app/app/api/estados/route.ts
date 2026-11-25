@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { lerEstados, registroLigado, salvarEstado } from '@/lib/banco';
-import { emailDoAccess, validarEstado } from '@/lib/acoes';
+import { lerEstados, registroLigado, salvarEstado, salvarStatus } from '@/lib/banco';
+import { emailDoAccess, validarEstado, validarStatus } from '@/lib/acoes';
 import { lerSnapshot } from '@/lib/dados';
 
 export const runtime = 'nodejs';
@@ -27,12 +27,24 @@ export async function POST(req: Request) {
   const autor = emailDoAccess(req.headers.get('cf-access-jwt-assertion')) ?? process.env.RADAR_AUTOR_TESTE ?? null;
   if (!autor) return NextResponse.json({ erro: 'sem identidade do Access' }, { status: 401, headers: semCache });
 
-  let corpo: { sinalId?: unknown; estado?: unknown };
+  let corpo: { sinalId?: unknown; estado?: unknown; contaId?: unknown; status?: unknown };
   try {
     corpo = await req.json();
   } catch {
     return NextResponse.json({ erro: 'JSON inválido' }, { status: 400, headers: semCache });
   }
+  // andamento da conta: { contaId, status } (status null tira o vigente)
+  if (corpo.contaId !== undefined) {
+    const contaId = typeof corpo.contaId === 'string' ? corpo.contaId : '';
+    const status = validarStatus(corpo.status);
+    if (!contaId || status === 'invalido') return NextResponse.json({ erro: 'contaId ou status inválido' }, { status: 400, headers: semCache });
+    const baseConta = await lerSnapshot().catch(() => null);
+    if (!baseConta?.contas.some(c => c.id === contaId)) return NextResponse.json({ erro: 'conta não encontrada na base' }, { status: 400, headers: semCache });
+    const rs = await salvarStatus(contaId, status, autor);
+    if (rs !== 'ok') return NextResponse.json({ erro: 'não foi possível gravar' }, { status: 503, headers: semCache });
+    return NextResponse.json({ ok: true }, { headers: semCache });
+  }
+
   const sinalId = typeof corpo.sinalId === 'string' ? corpo.sinalId : '';
   const estado = validarEstado(corpo.estado);
   if (!sinalId || estado === 'invalido') return NextResponse.json({ erro: 'sinalId ou estado inválido' }, { status: 400, headers: semCache });

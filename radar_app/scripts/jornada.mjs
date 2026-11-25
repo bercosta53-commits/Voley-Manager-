@@ -94,6 +94,30 @@ try {
   conferir(acaoOutro.startsWith('Acompanhar a abordagem'), 'outro navegador vê a abordagem feita no primeiro', acaoOutro.slice(0, 60));
   await outro.close();
 
+  // 3d. Andamento da conta: "Reunião" muda a próxima ação, aparece para o time e pode ser desfeito
+  const proximaAcao = pg => pg.$$eval('section:has(#tese-da-conta) dl > div', ds => ds.find(d => d.querySelector('dt').textContent === 'Próxima ação')?.querySelector('dd').textContent ?? '');
+  await pagina.getByRole('group', { name: 'Andamento da conta' }).getByRole('button', { name: 'Reunião' }).click();
+  await pagina.waitForTimeout(500);
+  await pagina.reload({ waitUntil: 'networkidle' });
+  await pagina.locator('#tese-da-conta').waitFor();
+  conferir((await proximaAcao(pagina)).startsWith('Preparar a reunião'), 'andamento "Reunião" muda a próxima ação (persiste ao recarregar)', (await proximaAcao(pagina)).slice(0, 50));
+  conferir(app.acoes.some(l => l.conta_id === contaAlvo.id && l.tipo === 'status' && l.status === 'reuniao' && l.autor_email === AUTOR), 'andamento gravado em radar_acoes com autor');
+  const blocoSugerido = await pagina.locator('#proxima-acao').innerText();
+  conferir(blocoSugerido.includes('Preparar a reunião'), 'tese e "Próxima ação sugerida" dizem a mesma coisa', blocoSugerido.replace(/\s+/g, ' ').slice(0, 80));
+  const terceiro = await navegador.newPage({ viewport: { width: 1440, height: 900 } });
+  vigiar(terceiro);
+  await terceiro.goto(app.url(`/contas/${contaAlvo.id}`), { waitUntil: 'networkidle' });
+  await terceiro.locator('#andamento-conta').waitFor();
+  const textoAndamento = await terceiro.locator('section:has(#andamento-conta)').innerText();
+  conferir(textoAndamento.includes(`Reunião · por ${AUTOR}`), 'outro navegador vê o andamento com autor', textoAndamento.replace(/\s+/g, ' ').slice(0, 90));
+  await terceiro.getByRole('group', { name: 'Andamento da conta' }).getByRole('button', { name: 'Reunião' }).click();
+  await terceiro.waitForTimeout(500);
+  await terceiro.reload({ waitUntil: 'networkidle' });
+  await terceiro.locator('#tese-da-conta').waitFor();
+  conferir((await proximaAcao(terceiro)).startsWith('Acompanhar a abordagem'), 'clicar de novo desfaz o andamento (sem apagar o registro)', (await proximaAcao(terceiro)).slice(0, 50));
+  conferir(app.acoes.some(l => l.tipo === 'status' && l.desfaz_id), 'o desfazer ficou registrado como linha nova');
+  await terceiro.close();
+
   // 3c. A API recusa o que não é válido
   const post = corpo => fetch(app.url('/api/estados'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) }).then(r => r.status);
   conferir((await post({ sinalId: sinalAlvo.id, estado: { acao: 'apagar' } })) === 400, 'API recusa ação desconhecida');

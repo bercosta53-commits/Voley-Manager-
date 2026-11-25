@@ -44,7 +44,11 @@ export interface Dobra {
   vigentes: Record<string, Vigentes>;
   /** último status de cada conta, com autor e data */
   status: Record<string, { status: StatusConta; por: string; em: string }>;
+  /** a linha de status vigente de cada conta: é ela que um "desfazer" referencia */
+  statusVigente: Record<string, LinhaAcao>;
 }
+
+export const STATUS_CONTA: StatusConta[] = ['abordado', 'respondeu', 'reuniao', 'oportunidade', 'descartada'];
 
 const grupo = (t: TipoAcao): keyof Vigentes | 'status' =>
   t === 'util' || t === 'ruido' ? 'avaliacao' : t === 'relevancia' ? 'relevancia' : t === 'status' ? 'status' : 'acao';
@@ -55,12 +59,20 @@ const data = (iso: string) => iso.slice(0, 10);
 export function dobrar(linhas: LinhaAcao[]): Dobra {
   const vigentes: Record<string, Vigentes> = {};
   const status: Dobra['status'] = {};
+  const statusVigente: Dobra['statusVigente'] = {};
   const porId = new Map(linhas.map(l => [l.id, l]));
   for (const l of [...linhas].sort((a, b) => a.id - b.id)) {
     const g = grupo(l.tipo);
     if (g === 'status') {
-      if (l.desfaz_id) delete status[l.conta_id];
-      else if (l.status) status[l.conta_id] = { status: l.status, por: l.autor_email, em: data(l.criado_em) };
+      if (l.desfaz_id) {
+        if (statusVigente[l.conta_id]?.id === l.desfaz_id) {
+          delete status[l.conta_id];
+          delete statusVigente[l.conta_id];
+        }
+      } else if (l.status) {
+        status[l.conta_id] = { status: l.status, por: l.autor_email, em: data(l.criado_em) };
+        statusVigente[l.conta_id] = l;
+      }
       continue;
     }
     if (!l.sinal_id) continue;
@@ -86,7 +98,20 @@ export function dobrar(linhas: LinhaAcao[]): Dobra {
     e.por = recentes[0].autor_email;
     estados[sinalId] = e;
   }
-  return { estados, vigentes, status };
+  return { estados, vigentes, status, statusVigente };
+}
+
+/** A linha que leva a conta do status vigente (do banco) ao status pedido; null tira o status (desfazer). */
+export function linhaDoStatus(contaId: string, vigente: LinhaAcao | undefined, para: StatusConta | null): NovaLinha | null {
+  const base = { conta_id: contaId, sinal_id: null, ate: null, relevancia: null, desfaz_id: null };
+  if (para) return vigente?.status === para ? null : { ...base, tipo: 'status', status: para };
+  return vigente ? { ...base, tipo: 'status', status: vigente.status, desfaz_id: vigente.id } : null;
+}
+
+/** Valida o status que chega da tela: um dos cinco, ou null para tirar. */
+export function validarStatus(x: unknown): StatusConta | null | 'invalido' {
+  if (x === null || x === undefined) return null;
+  return STATUS_CONTA.includes(x as StatusConta) ? (x as StatusConta) : 'invalido';
 }
 
 /**

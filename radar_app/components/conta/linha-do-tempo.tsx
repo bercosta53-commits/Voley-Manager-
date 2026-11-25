@@ -1,4 +1,5 @@
-import { Archive, CalendarClock, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { Archive, CalendarClock, Flag, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
+import type { StatusConta } from '@/lib/acoes';
 import type { Conta, EstadoSinal, Sinal } from '@/lib/tipos';
 import { cn, dataCurta, quando } from '@/lib/utils';
 import { IconeSinal } from '@/components/hoje/icone-sinal';
@@ -16,8 +17,32 @@ interface Item {
 }
 
 /** Linha do tempo: sinais (abertos e antigos) e o que a equipe fez, do mais recente para o mais antigo. */
-export function LinhaDoTempo({ conta, sinais, estados, hoje }: { conta: Conta; sinais: Sinal[]; estados: Record<string, EstadoSinal>; hoje: string }) {
+const ROTULO_ANDAMENTO: Record<StatusConta, string> = {
+  abordado: 'Andamento: abordado',
+  respondeu: 'Andamento: respondeu',
+  reuniao: 'Andamento: reunião marcada',
+  oportunidade: 'Andamento: virou oportunidade',
+  descartada: 'Andamento: conta descartada',
+};
+
+export function LinhaDoTempo({
+  conta,
+  sinais,
+  estados,
+  hoje,
+  andamento,
+}: {
+  conta: Conta;
+  sinais: Sinal[];
+  estados: Record<string, EstadoSinal>;
+  hoje: string;
+  andamento?: { status: StatusConta; por: string; em: string };
+}) {
   const itens: Item[] = [];
+  // com o registro compartilhado, cada ação diz quem fez
+  const sobre = (s: Sinal, e: EstadoSinal) => `Sobre: ${s.rotulo.toLowerCase()}${e.por ? ` · por ${e.por}` : ''}`;
+  if (andamento)
+    itens.push({ chave: 'andamento', data: andamento.em, icone: <Flag className="size-4" strokeWidth={1.5} />, titulo: ROTULO_ANDAMENTO[andamento.status], texto: `por ${andamento.por}`, acao: true });
   for (const s of sinais) {
     const e = estados[s.id];
     itens.push({
@@ -34,9 +59,9 @@ export function LinhaDoTempo({ conta, sinais, estados, hoje }: { conta: Conta; s
       const Icone = icones[e.acao];
       const titulo =
         e.acao === 'abordado' ? 'Abordado' : e.acao === 'adiado' ? `Adiado até ${dataCurta(e.ate ?? e.em)}` : e.avaliacao === 'ruido' ? 'Marcado como ruído' : 'Arquivado';
-      itens.push({ chave: `${s.id}-acao`, data: e.em, icone: <Icone className="size-4" strokeWidth={1.5} />, titulo, texto: `Sobre: ${s.rotulo.toLowerCase()}`, acao: true });
+      itens.push({ chave: `${s.id}-acao`, data: e.em, icone: <Icone className="size-4" strokeWidth={1.5} />, titulo, texto: sobre(s, e), acao: true });
     } else if (e?.avaliacao === 'util' && e.em) {
-      itens.push({ chave: `${s.id}-util`, data: e.em, icone: <ThumbsUp className="size-4" strokeWidth={1.5} />, titulo: 'Marcado como útil', texto: `Sobre: ${s.rotulo.toLowerCase()}`, acao: true });
+      itens.push({ chave: `${s.id}-util`, data: e.em, icone: <ThumbsUp className="size-4" strokeWidth={1.5} />, titulo: 'Marcado como útil', texto: sobre(s, e), acao: true });
     }
   }
   for (const h of conta.historico)

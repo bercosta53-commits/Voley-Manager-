@@ -9,7 +9,7 @@ import { ACOES_DE_ABORDAGEM, MATRIZ_ICP, aplicarAvaliacoes, faixaVscs } from '@/
 import { primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, sentido, status } from '@/lib/contas';
 import { gancho, rascunho } from '@/lib/mensagem';
 import { papelNoComite } from '@/lib/papeis';
-import { teseDaConta } from '@/lib/tese';
+import { ACAO_DO_ANDAMENTO, teseDaConta } from '@/lib/tese';
 import { TeseConta } from './tese';
 import { cn, dataComAno, dataCurta, moeda, plural, somarDias } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,9 @@ import { Casca } from '@/components/casca/casca';
 import { LogoConta } from '@/components/hoje/logo-conta';
 import { Curva } from '@/components/hoje/score';
 import { Aviso, ErroCarregar, SemPermissao } from '@/components/hoje/estados';
-import { useEstados } from '@/components/hoje/estado';
+import { useEstados, type StatusPorConta } from '@/components/hoje/estado';
+import type { StatusConta } from '@/lib/acoes';
+import { Andamento } from './andamento';
 import { Comite } from './comite';
 import { LinhaDoTempo } from './linha-do-tempo';
 import { Decomposicao } from './decomposicao';
@@ -34,7 +36,7 @@ export function TelaConta({ base: baseOriginal, contaId }: { base: Base; contaId
     const e = new URLSearchParams(location.search).get('estado') as EstadoTela | null;
     if (e && ESTADOS.includes(e)) setEstadoTela(e);
   }, []);
-  const { estados, salvar, pronto } = useEstados();
+  const { estados, salvar, pronto, status: andamentos, salvarStatus, compartilhado } = useEstados();
   const base = useMemo(() => aplicarAvaliacoes(baseOriginal, estados), [baseOriginal, estados]);
   const conta = estadoTela === 'vazio' ? undefined : base.contas.find(c => c.id === contaId);
   const sinais = useMemo(() => base.sinais.filter(s => s.contaId === contaId), [base.sinais, contaId]);
@@ -68,7 +70,20 @@ export function TelaConta({ base: baseOriginal, contaId }: { base: Base; contaId
         Ela pode ter saído da base na última importação da planilha. Procure pelo nome em Contas ou com ⌘K.
       </Aviso>
     );
-  else conteudo = <Detalhe conta={conta} sinais={sinais} estados={estados} hoje={hoje} onMudar={mudar} ficticia={base.ficticia} />;
+  else
+    conteudo = (
+      <Detalhe
+        conta={conta}
+        sinais={sinais}
+        estados={estados}
+        hoje={hoje}
+        onMudar={mudar}
+        ficticia={base.ficticia}
+        andamento={andamentos[conta.id]}
+        compartilhado={compartilhado}
+        onAndamento={st => salvarStatus(conta.id, st)}
+      />
+    );
 
   return (
     <Casca base={base}>
@@ -89,6 +104,9 @@ function Detalhe({
   hoje,
   onMudar,
   ficticia,
+  andamento,
+  compartilhado,
+  onAndamento,
 }: {
   conta: Conta;
   sinais: Sinal[];
@@ -96,6 +114,9 @@ function Detalhe({
   hoje: string;
   onMudar: (s: Sinal, m: EstadoSinal, aviso: string) => void;
   ficticia?: boolean;
+  andamento?: StatusPorConta[string];
+  compartilhado: boolean;
+  onAndamento: (status: StatusConta | null) => void;
 }) {
   const [decompor, setDecompor] = useState(false);
   const tese = useMemo(
@@ -108,8 +129,9 @@ function Detalhe({
         papelDe: papelNoComite,
         acoesDeAbordagem: ACOES_DE_ABORDAGEM,
         acaoDaMatriz: acaoPelaMatriz,
+        andamento,
       }),
-    [conta, sinais, estados, hoje],
+    [conta, sinais, estados, hoje, andamento],
   );
   return (
     <>
@@ -135,11 +157,12 @@ function Detalhe({
         <div className="flex min-w-0 flex-col gap-6">
           <TeseConta tese={tese} nomeConta={conta.nome} />
           <div id="proxima-acao" className="scroll-mt-6">
-            <ProximaAcao conta={conta} sinais={sinais} estados={estados} hoje={hoje} onMudar={onMudar} />
+            <ProximaAcao conta={conta} sinais={sinais} estados={estados} hoje={hoje} onMudar={onMudar} andamento={andamento} />
           </div>
-          <LinhaDoTempo conta={conta} sinais={sinais} estados={estados} hoje={hoje} />
+          <LinhaDoTempo conta={conta} sinais={sinais} estados={estados} hoje={hoje} andamento={andamento} />
         </div>
         <div className="flex flex-col gap-6">
+          <Andamento atual={andamento} compartilhado={compartilhado} onMudar={onAndamento} />
           <Comite conta={conta} />
           <Cadastro conta={conta} />
         </div>
@@ -210,12 +233,14 @@ function ProximaAcao({
   estados,
   hoje,
   onMudar,
+  andamento,
 }: {
   conta: Conta;
   sinais: Sinal[];
   estados: Record<string, EstadoSinal>;
   hoje: string;
   onMudar: (s: Sinal, m: EstadoSinal, aviso: string) => void;
+  andamento?: StatusPorConta[string];
 }) {
   const abertos = sinais.filter(s => naCaixa(estados[s.id], hoje)).sort((a, b) => b.pontos - a.pontos);
   const alvo = abertos[0];
@@ -229,6 +254,19 @@ function ProximaAcao({
   }, [alvo, conta]);
 
   const cabecalho = <h2 className="text-xs font-semibold text-text-3">Próxima ação sugerida</h2>;
+
+  const doAndamento = andamento && ACAO_DO_ANDAMENTO[andamento.status];
+  if (doAndamento)
+    return (
+      <section className="vr-card p-5">
+        {cabecalho}
+        <p className="mt-2 text-md font-semibold">{doAndamento.titulo}</p>
+        <p className="mt-1 text-sm text-text-2">{doAndamento.texto}</p>
+        <p className="mt-2 text-xs text-text-3">
+          Pelo andamento registrado por {andamento.por} em {dataCurta(andamento.em)}.
+        </p>
+      </section>
+    );
 
   if (!alvo) {
     let titulo: string, corpo: string;

@@ -1,4 +1,5 @@
 import type { Conta, PapelAbm, Pessoa, Sinal, StatusVscs } from './tipos';
+import type { StatusConta } from './acoes';
 
 /**
  * Tese da conta: as seis perguntas de uma oportunidade respondidas com o que a base tem. Por que esta
@@ -26,7 +27,7 @@ export interface Tese {
   quem: { nome: string; cargo: string; papel?: PapelAbm; origem: 'sinal' | 'comite'; statusValidacao?: string; bloqueado: boolean } | null;
   comite: { pessoas: number; faltando: string[] };
   /** 'base' = acaoRecomendada gravada pelo motor; 'matriz' = derivada da matriz ICP × VSCS porque a base ainda não traz */
-  acao: { titulo: string; texto: string; abordar: boolean; origem?: 'base' | 'matriz' };
+  acao: { titulo: string; texto: string; abordar: boolean; origem?: 'base' | 'matriz' | 'andamento' };
   /** score ainda não certificado pelo motor */
   scorePendente: boolean;
 }
@@ -44,7 +45,17 @@ export interface DependenciasTese {
   acoesDeAbordagem: Set<string>;
   /** ação da matriz ICP × VSCS para a conta, usada só quando a base não traz acaoRecomendada */
   acaoDaMatriz?: (conta: Conta) => string | undefined;
+  /** andamento registrado pelo time (radar_acoes), quando o registro compartilhado está ligado */
+  andamento?: { status: StatusConta; em: string; por: string };
 }
+
+/** Depois do primeiro contato, o andamento registrado pelo time decide a próxima ação. */
+export const ACAO_DO_ANDAMENTO: Partial<Record<StatusConta, { titulo: string; texto: string }>> = {
+  respondeu: { titulo: 'Marcar a conversa', texto: 'A pessoa respondeu. Proponha um horário e leve a tese da conta para a primeira reunião.' },
+  reuniao: { titulo: 'Preparar a reunião', texto: 'Revise a tese, o comitê e os fatos que chegaram desde o primeiro contato.' },
+  oportunidade: { titulo: 'Conduzir a oportunidade', texto: 'Registre a proposta no CRM. O Radar segue trazendo os fatos da conta.' },
+  descartada: { titulo: 'Conta descartada', texto: 'O Radar só volta a sugerir abordagem com um fato novo, depois do período de espera.' },
+};
 
 const TEXTO_ACAO: Record<string, string> = {
   'Abordagem contextualizada': 'Abordar a pessoa indicada citando o fato. O rascunho abaixo já parte dele.',
@@ -119,7 +130,10 @@ export function teseDaConta(conta: Conta, sinais: Sinal[], dep: DependenciasTese
   }
 
   let acao: Tese['acao'];
-  if (!principal && dep.abordadoEm) {
+  const doAndamento = dep.andamento && ACAO_DO_ANDAMENTO[dep.andamento.status];
+  if (doAndamento) {
+    acao = { ...doAndamento, abordar: false, origem: 'andamento' };
+  } else if (!principal && (dep.abordadoEm || dep.andamento?.status === 'abordado')) {
     acao = { titulo: 'Acompanhar a abordagem', texto: 'Sem resposta em 5 dias, fazer um segundo contato curto retomando o mesmo fato.', abordar: false };
   } else if (!principal) {
     acao = { titulo: 'Esperar um motivo', texto: 'Nenhum fato aberto nesta conta. Abordar sem motivo gasta a primeira impressão; o Radar avisa em Hoje quando algo mudar.', abordar: false };

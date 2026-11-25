@@ -1,6 +1,6 @@
 import 'server-only';
 import type { EstadoSinal } from './tipos';
-import { dobrar, linhasDaMudanca, type Dobra, type LinhaAcao } from './acoes';
+import { dobrar, linhaDoStatus, linhasDaMudanca, type Dobra, type LinhaAcao, type StatusConta } from './acoes';
 
 /**
  * Registro compartilhado das ações do time (tabela radar_acoes, db/001_radar_acoes.sql).
@@ -82,6 +82,29 @@ export async function salvarEstado(sinalId: string, contaId: string, para: Estad
     return 'ok';
   } catch (e) {
     registrar('radar.acoes.erro', { operacao: 'gravar', sinalId, detalhe: e instanceof Error ? e.message : 'desconhecido' });
+    return 'erro';
+  }
+}
+
+/** Leva o andamento da conta ao status pedido (null tira), contra o status vigente no banco. */
+export async function salvarStatus(contaId: string, para: StatusConta | null, autor: string): Promise<'ok' | 'desligado' | 'erro'> {
+  if (!registroLigado()) return 'desligado';
+  try {
+    const { statusVigente } = dobrar(await lerLinhas({ conta_id: `eq.${contaId}`, tipo: 'eq.status' }));
+    const nova = linhaDoStatus(contaId, statusVigente[contaId], para);
+    if (!nova) return 'ok';
+    const { endpoint, headers } = cliente();
+    const r = await fetch(endpoint({}), {
+      method: 'POST',
+      headers: { ...headers, Prefer: 'return=minimal' },
+      body: JSON.stringify([{ ...nova, autor_email: autor, origem: 'app' }]),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!r.ok) throw new Error(`radar_acoes: gravação HTTP ${r.status}`);
+    registrar('radar.acoes.gravadas', { contaId, tipos: ['status'], status: para });
+    return 'ok';
+  } catch (e) {
+    registrar('radar.acoes.erro', { operacao: 'gravar_status', contaId, detalhe: e instanceof Error ? e.message : 'desconhecido' });
     return 'erro';
   }
 }
