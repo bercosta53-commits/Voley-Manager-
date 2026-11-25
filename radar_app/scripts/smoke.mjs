@@ -1,67 +1,27 @@
-// Teste de fumaça do app: sobe `next start` contra um Supabase simulado e confere que cada tela responde.
-//
-// Só para CI e máquina local. O Supabase simulado serve a base FICTÍCIA do repositório
-// (data/contas.exemplo.json). Ela leva a marca `ficticia: true`, e o app recusa base fictícia de propósito.
-// Por isso a marca é retirada aqui, apenas dentro deste processo de teste. Nada disso roda em produção,
-// e nenhum dado real é lido.
+// Teste de fumaça do app: sobe `next start` contra um Supabase simulado (scripts/app-de-teste.mjs, base
+// fictícia, só CI e máquina local) e confere que cada tela responde.
 //
 // Uso: npm run build && npm run smoke
-import http from 'node:http';
-import { spawn } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
+import { baseDeTeste, MARCA_FICTICIA, raiz, subirApp } from './app-de-teste.mjs';
 
-const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const base = JSON.parse(await readFile(path.join(raiz, 'data/contas.exemplo.json'), 'utf8'));
-delete base.ficticia;
-// A base fictícia marca todos os sinais como `exemplo`, e o app descarta sinal de exemplo (lib/dados.ts).
-// Para as telas terem conteúdo no teste, a marca sai aqui; um único sinal continua marcado para provar o descarte.
-const MARCA_FICTICIA = 'SINAL-EXEMPLO-QUE-NAO-PODE-APARECER';
-base.sinais = base.sinais.map(s => ({ ...s, exemplo: false }));
-base.contas = base.contas.map(c => ({ ...c, historico: (c.historico ?? []).map(h => ({ ...h, exemplo: false })) }));
-base.sinais.push({ ...base.sinais[0], id: 'sinal-exemplo-teste', rotulo: MARCA_FICTICIA, sinal: MARCA_FICTICIA, porQueAgora: MARCA_FICTICIA, exemplo: true });
+const base = await baseDeTeste();
 const primeiraConta = base.contas[0].id;
-const corpo = JSON.stringify([{ payload: base }]);
-
-const supabase = http.createServer((req, res) => {
-  const ok = req.url?.startsWith('/rest/v1/radar_snapshots') && req.headers.apikey === 'chave-de-teste';
-  res.writeHead(ok ? 200 : 401, { 'content-type': 'application/json' });
-  res.end(ok ? corpo : '{"message":"nao autorizado"}');
-});
-await new Promise(r => supabase.listen(0, '127.0.0.1', r));
-const portaSupabase = supabase.address().port;
-const portaApp = 3100 + Math.floor(Math.random() * 800);
-
-const app = spawn(path.join(raiz, 'node_modules/.bin/next'), ['start', '-p', String(portaApp), '-H', '127.0.0.1'], {
-  cwd: raiz,
-  env: { ...process.env, SUPABASE_URL: `http://127.0.0.1:${portaSupabase}`, SUPABASE_SECRET_KEY: 'chave-de-teste', NEXT_TELEMETRY_DISABLED: '1' },
-  stdio: ['ignore', 'pipe', 'pipe'],
-});
-let log = '';
-app.stdout.on('data', d => (log += d));
-app.stderr.on('data', d => (log += d));
+let app;
+try {
+  app = await subirApp(base);
+} catch (e) {
+  console.error(e.message);
+  process.exit(1);
+}
+const portaApp = app.porta;
+const url = app.url;
 
 function encerrar(codigo) {
-  app.kill('SIGTERM');
-  supabase.close();
+  app.parar();
   process.exit(codigo);
 }
-
-const url = p => `http://127.0.0.1:${portaApp}${p}`;
-async function esperarApp() {
-  for (let i = 0; i < 60; i++) {
-    try {
-      await fetch(url('/api/estados'));
-      return;
-    } catch {
-      await new Promise(r => setTimeout(r, 500));
-    }
-  }
-  console.error('O app não subiu em 30 s.\n' + log);
-  encerrar(1);
-}
-await esperarApp();
 
 // [rota, status esperado, texto que precisa aparecer no HTML]
 const casos = [
@@ -146,5 +106,5 @@ semBase.kill('SIGTERM');
 if (!semBaseOk) falhas++;
 
 console.log(falhas ? `\n${falhas} verificação(ões) falharam.` : '\nTodas as verificações passaram.');
-if (falhas) console.error(log.slice(-4000));
+if (falhas) console.error(app.log.slice(-4000));
 encerrar(falhas ? 1 : 0);
