@@ -9,6 +9,7 @@ import { Casca } from '@/components/casca/casca';
 import { Aviso, ErroCarregar, SemPermissao } from '@/components/hoje/estados';
 import { useEstados } from '@/components/hoje/estado';
 import { ComoCalcula } from './como-calcula';
+import { VisaoLideranca } from './lideranca';
 
 type EstadoTela = 'normal' | 'carregando' | 'vazio' | 'erro' | 'sem-permissao';
 const ESTADOS: EstadoTela[] = ['carregando', 'vazio', 'erro', 'sem-permissao'];
@@ -30,7 +31,7 @@ export function TelaMetricas({ base }: { base: Base }) {
     const e = new URLSearchParams(location.search).get('estado') as EstadoTela | null;
     if (e && ESTADOS.includes(e)) setEstadoTela(e);
   }, []);
-  const { estados, pronto } = useEstados();
+  const { estados, pronto, status, compartilhado } = useEstados();
   const sinais = estadoTela === 'vazio' ? [] : base.sinais;
 
   const m = useMemo(() => {
@@ -155,10 +156,11 @@ export function TelaMetricas({ base }: { base: Base }) {
         <div className="mb-6 md:mb-8">
           <h1 className="font-display text-2xl font-semibold tracking-tight">Métricas</h1>
           <p className="mt-1 max-w-xl text-sm text-text-3">
-            Primeiro, como o score é feito. Depois, quatro perguntas sobre o radar: as respostas usam o que você marcou em Hoje (útil, ruído, abordado), guardado
-            neste navegador — por isso começam vazias em outro aparelho.
+            O que o time fez com o que o Radar trouxe, como o score é feito, e quatro perguntas sobre o radar. As respostas usam o que foi marcado em Hoje
+            (útil, ruído, abordado){compartilhado ? ' pelo time inteiro.' : ', guardado neste navegador: por isso começam vazias em outro aparelho.'}
           </p>
         </div>
+        {pronto && <VisaoLideranca base={base} estados={estados} status={status} compartilhado={compartilhado} />}
         {!base.ficticia && <ComoCalcula base={base} />}
         {conteudo}
       </main>

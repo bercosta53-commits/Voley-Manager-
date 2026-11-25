@@ -130,6 +130,14 @@ try {
   conferir((await post({ sinalId: 'sinal-que-nao-existe', estado: { acao: 'abordado' } })) === 400, 'API recusa sinal fora da base');
   conferir((await post({ sinalId: sinalAlvo.id, estado: { acao: 'adiado' } })) === 400, 'API recusa adiar sem data');
 
+  // 3f. Visão da liderança (Métricas): lê os cliques do time; a conta abordada sai da lista "sem ação"
+  await pagina.goto(app.url('/metricas'), { waitUntil: 'networkidle' });
+  await pagina.locator('#visao-lideranca').waitFor();
+  const visao = await pagina.locator('section:has(#visao-lideranca)').innerText();
+  conferir(visao.includes('Já trabalhadas pelo time') && !visao.includes('depende do registro compartilhado'), 'visão da liderança lê as ações do time');
+  const semAcao = await pagina.locator('section:has(#visao-lideranca) ul').first().innerText().catch(() => '');
+  conferir(!semAcao.includes(contaAlvo.nome), 'conta já abordada não aparece em "sem nenhuma ação"', semAcao.replace(/\s+/g, ' ').slice(0, 100));
+
   // 3e. Aba Qualificadas em Contas: aparece porque a base traz o campo, e lista só a conta qualificada
   await pagina.goto(app.url('/contas'), { waitUntil: 'networkidle' });
   await pagina.getByRole('tab', { name: 'Qualificadas', exact: true }).click();
