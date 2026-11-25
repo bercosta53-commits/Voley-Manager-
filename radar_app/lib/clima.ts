@@ -51,33 +51,10 @@ export interface Indicador {
   setores?: SetorImpactado[];
 }
 
-export interface FonteClima { nome: string; url: string }
-
-export type PrioridadeClima = 'abordar' | 'validar' | 'monitorar';
-
-export interface TeseClima {
-  id: string;
-  titulo: string;
-  recorte: string;
-  prioridade: PrioridadeClima;
-  fatos: { texto: string; fonte: FonteClima }[];
-  leitura: string;
-  gatilho: string;
-  oferta: string;
-  limite: string;
-}
-
-export interface EdicaoClima {
-  data: string;
-  resumo: string;
-  macro: { rotulo: string; valor: string; referencia: string; fonte: FonteClima }[];
-  teses: TeseClima[];
-  agenda: { data: string; titulo: string; leitura: string; fonte: FonteClima }[];
-}
+interface FonteClima { nome: string; url: string }
 
 export interface DadosClima {
   atualizadoEm: string;
-  edicao?: EdicaoClima;
   indicadoresEmDia: [number, number];
   simulado: boolean;
   historicoMedido?: boolean;
