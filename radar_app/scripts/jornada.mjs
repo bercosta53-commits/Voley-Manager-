@@ -83,6 +83,17 @@ try {
   const temRascunho = (await pagina.locator('#proxima-acao textarea').count()) > 0;
   const tesePedeContato = resposta('Próxima ação').includes('Abrir o rascunho da abordagem');
   conferir(temRascunho === tesePedeContato, 'tese e rascunho concordam sobre abordar agora', `rascunho ${temRascunho}, tese ${tesePedeContato}`);
+  // e o caso que já se contradisse: conta sem acaoRecomendada em que a matriz ICP × VSCS não pede contato
+  const contaMatriz = base.contas.find(c => !c.acaoRecomendada && c.tier === 'C' && c.score < 70 && porConta.get(c.id)?.length);
+  if (contaMatriz) {
+    const pm = await navegador.newPage({ viewport: { width: 1440, height: 900 } });
+    vigiar(pm);
+    await pm.goto(app.url(`/contas/${contaMatriz.id}`), { waitUntil: 'networkidle' });
+    await pm.locator('#tese-da-conta').waitFor();
+    const rascunhoAberto = (await pm.locator('#proxima-acao textarea').count()) > 0;
+    conferir(!rascunhoAberto, 'sem pedido de contato pela matriz, o rascunho fica guardado', contaMatriz.id);
+    await pm.close();
+  }
   await pagina.screenshot({ path: path.join(SAIDA, '2-tese.png') });
 
   // 3. Registro: marcar como abordado fecha a caixa da conta e muda a próxima ação
