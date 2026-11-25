@@ -1,7 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import type { Base } from './tipos';
-import type { DadosClima } from './clima';
+import type { DadosClima, Indicador, EstadoClima, SetorImpactado } from './clima';
 import type { RegrasIcp } from './icp';
 import clima from '../data/clima.json';
 import regras from '../data/icp.json';
@@ -32,5 +32,40 @@ export const lerBase = cache(async (): Promise<Base> => {
   return { ...base, contas: base.contas.filter(c => !fora.has(c.id)), sinais: base.sinais.filter(s => !fora.has(s.contaId)) };
 });
 
-export async function lerClima(): Promise<DadosClima> { return clima as DadosClima; }
+function parNumerico(valores: number[], campo: string): [number, number] {
+  if (valores.length !== 2 || !valores.every(Number.isFinite)) {
+    throw new Error('Clima: par numérico inválido em ' + campo);
+  }
+  return [valores[0], valores[1]];
+}
+
+function opcao<T extends string>(valor: string, opcoes: readonly T[], campo: string): T {
+  if (!opcoes.includes(valor as T)) throw new Error('Clima: valor inválido em ' + campo);
+  return valor as T;
+}
+
+const estados = ['Bom', 'Neutro', 'Ruim', 'Instável'] as const;
+function indicador(i: Omit<Indicador, 'faixa' | 'tom' | 'cor' | 'setores'> & {
+  faixa: number[]; tom: string; cor: string;
+  setores?: (Omit<SetorImpactado, 'efeito'> & { efeito: string })[];
+}): Indicador {
+  return {
+    ...i,
+    faixa: parNumerico(i.faixa, i.rotulo),
+    tom: opcao(i.tom, ['bom', 'ruim', 'atencao'] as const, 'tom'),
+    cor: opcao(i.cor, ['bom', 'ruim', 'atencao', 'neutro'] as const, 'cor'),
+    setores: i.setores?.map(s => ({...s, efeito: opcao(s.efeito, ['negativo', 'positivo'] as const, 'efeito')})),
+  };
+}
+
+export async function lerClima(): Promise<DadosClima> {
+  return {
+    ...clima,
+    indicadoresEmDia: parNumerico(clima.indicadoresEmDia, 'indicadoresEmDia'),
+    brasil: {...clima.brasil, estado: opcao<EstadoClima>(clima.brasil.estado, estados, 'brasil.estado')},
+    indicadores: clima.indicadores.map(indicador),
+    politicaBolsa: clima.politicaBolsa?.map(indicador),
+    verticais: clima.verticais.map(v => ({...v, estado: opcao<EstadoClima>(v.estado, estados, 'vertical.estado')})),
+  };
+}
 export async function lerRegrasIcp(): Promise<RegrasIcp> { return regras as RegrasIcp; }
