@@ -14,7 +14,7 @@ import { IconeSinal } from './icone-sinal';
 import { LogoConta } from './logo-conta';
 import { ScoreTendencia } from './score';
 import { GraficoSinais, type EventoGrafico } from './grafico-sinais';
-import { COR_PAPEL, COR_TIER, NIVEL_GATILHO, rotuloPapel } from '@/lib/papeis';
+import { COR_PAPEL, COR_TIER, NIVEL_GATILHO, papelNoComite, rotuloPapel } from '@/lib/papeis';
 import { ACOES_DE_ABORDAGEM, ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
 import { useApresentacao } from '@/components/ui/use-apresentacao';
 import { Evidencia } from '@/components/ui/evidencia';
@@ -94,7 +94,8 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
 
   const negativo = sinal.categoria === 'negativo';
   const nivel = negativo ? { ...NIVEL_GATILHO.C, rotulo: 'Sinal negativo', cor: 'bg-risk-bg text-risk' } : NIVEL_GATILHO[sinal.nivel ?? 'C'];
-  const papelContato = conta.comite.find(p => p.nome === sinal.abordar.nome)?.papelAbm;
+  const contato = conta.comite.find(p => p.nome === sinal.abordar.nome);
+  const papelContato = contato && papelNoComite(contato);
   // eventos do gráfico: cada acontecimento que conta no VSCS, com o que somou ao score + o sinal deste cartão
   const eventos: EventoGrafico[] = (conta.v2?.contribuicoes ?? []).map(c => ({
     data: c.data,

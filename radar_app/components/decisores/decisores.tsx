@@ -12,7 +12,7 @@ import { LogoConta } from '@/components/hoje/logo-conta';
 import { Aviso } from '@/components/hoje/estados';
 import { Button } from '@/components/ui/button';
 import { MenuFiltro } from '@/components/contas/menu-filtro';
-import { COR_BARRA, COR_PAPEL, PAPEIS } from '@/lib/papeis';
+import { COR_BARRA, COR_PAPEL, PAPEIS, papelNoComite } from '@/lib/papeis';
 import { PerfilBase } from './perfil-base';
 import { mascararEmail, useApresentacao } from '@/components/ui/use-apresentacao';
 
@@ -84,7 +84,8 @@ export function TelaDecisores({ base }: { base: Base }) {
   const [niveis, setNiveis] = useState<('alta' | 'media' | 'baixa')[]>([]);
 
   const pessoas = useMemo<Linha[]>(
-    () => base.contas.flatMap(c => c.comite.map(p => ({ ...p, contaId: c.id, contaNome: c.nome, contaDominio: c.dominio, contaTier: c.tier }))),
+    // papel no comitê pela mesma leitura do comitê da conta: papel ABM quando vem, senão pelo cargo
+    () => base.contas.flatMap(c => c.comite.map(p => ({ ...p, papelAbm: papelNoComite(p), contaId: c.id, contaNome: c.nome, contaDominio: c.dominio, contaTier: c.tier }))),
     [base.contas],
   );
 

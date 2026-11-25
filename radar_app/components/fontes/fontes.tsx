@@ -65,7 +65,7 @@ export function TelaFontes({ base }: { base: Base }) {
           <h1 className="font-display text-2xl font-semibold tracking-tight">Fontes</h1>
           <p className="mt-1 max-w-xl text-sm text-text-3">
             {fontes.length && pronto && estadoTela === 'normal'
-              ? `${ok} de ${plural(fontes.length, 'fonte funcionando', 'fontes funcionando')}. Cada cartão diz o que a fonte procura, onde, e se precisa de algo.`
+              ? `${ok} de ${plural(fontes.length, 'fonte funcionando', 'fontes funcionando')}. Cada cartão diz o que a fonte procura, onde, e se precisa de algo. Chaves de acesso entram pelas configurações do ambiente, nunca pelo chat.`
               : 'De onde o radar tira os sinais.'}
           </p>
         </div>
@@ -116,7 +116,6 @@ function CartaoFonte({ fonte: f, hoje }: { fonte: Fonte; hoje: string }) {
         {f.requisito ? <KeyRound className={cn('mt-0.5 size-4 shrink-0', st.cor)} strokeWidth={1.5} /> : <Icone className={cn('mt-0.5 size-4 shrink-0', st.cor)} strokeWidth={1.5} />}
         <p>
           {f.resumo}
-          {f.requisito && ' Quem cuida do Radar coloca a chave nas configurações do ambiente; nunca cole a chave no chat.'}
         </p>
       </div>
     </li>

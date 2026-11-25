@@ -206,9 +206,9 @@ export function TelaMaturidade({base,dados}:{base:Base;dados:DadosAquisicao}){
  return <Casca base={base}>
   <main className="mx-auto w-full max-w-[1560px] px-4 pb-28 pt-4 md:px-8 md:pb-16 md:pt-8">
    <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
-    <div><div className="mb-2 flex items-center gap-2"><span className="size-[7px] rounded-full bg-ok"/><LabelCaps>Velora intelligence · Acquisition maturity</LabelCaps></div>
-     <h1 className="font-display text-[32px] font-semibold tracking-[-.045em] md:text-[38px]">Maturidade de aquisição<span className="text-text-3">.</span></h1>
-     <p className="mt-2 max-w-2xl text-[13px] leading-6 text-text-2">Onde existe capacidade instalada, mas ainda há espaço para transformar aquisição em crescimento previsível.</p></div>
+    <div><div className="mb-2 flex items-center gap-2"><span className="size-[7px] rounded-full bg-ok"/><LabelCaps>Inteligência Velora · maturidade de aquisição</LabelCaps></div>
+     <h1 className="font-display text-2xl font-semibold tracking-tight">Maturidade de aquisição</h1>
+     <p className="mt-1 max-w-2xl text-sm text-text-3">Onde existe capacidade instalada, mas ainda há espaço para transformar aquisição em crescimento previsível.</p></div>
     <div className="flex flex-wrap items-center gap-2"><span className="vr-data rounded-control border border-border bg-card px-2.5 py-2 text-[11px] text-text-3">Evidências · 08 NOV 2026</span><span className="vr-data rounded-control border border-ok/35 bg-ok-bg px-2.5 py-2 text-[11px] font-semibold text-ok">+{novos.length} contas L12</span><Link href="/aquisicao/stack" className="inline-flex h-9 items-center gap-2 rounded-control border border-border bg-card px-3 text-xs font-semibold hover:bg-[var(--vr-surface-2)]"><Layers3 className="size-3.5"/> Stack detalhado <ArrowUpRight className="size-3"/></Link></div>
    </header>
    <section className="relative mb-4 overflow-hidden rounded-[10px] bg-[#1e2928] px-5 py-6 text-white md:px-7 md:py-7">

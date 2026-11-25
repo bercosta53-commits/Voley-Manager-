@@ -70,7 +70,7 @@ export function TelaIcp({ base, regras }: { base: Base; regras: RegrasIcp }) {
                 const w = Math.max(3, (f.n / sim.funil[0]!.n) * 470);
                 const y = 18 + i * 47;
                 const ant = i ? sim.funil[i - 1]!.n : null;
-                const queda = ant === null ? '' : `−${ant - f.n}`;
+                const queda = ant === null || ant === f.n ? '' : `−${ant - f.n}`;
                 const forte = ant !== null && ant > 0 && (ant - f.n) / ant > 0.5;
                 return (
                   <g key={f.rotulo}>
