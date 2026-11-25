@@ -325,7 +325,7 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
                               <LogoConta nome={c.nome} dominio={c.dominio} tamanho={28} />
                               <div className="min-w-0">
                                 <span className="flex min-w-0 items-center gap-1">
-                                  <Link href={hrefConta(c.id)} className="truncate rounded-chip font-semibold text-foreground">
+                                  <Link href={hrefConta(c.id)} className="inline-flex min-h-6 min-w-0 items-center truncate rounded-chip font-semibold text-foreground">
                                     {c.nome}
                                   </Link>
                                   {c.dominio && (
@@ -334,7 +334,7 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       aria-label={`Site de ${c.nome}`}
-                                      className="shrink-0 rounded-chip text-text-3 hover:text-foreground"
+                                      className="grid size-6 shrink-0 place-items-center rounded-chip text-text-3 hover:text-foreground"
                                     >
                                       <ExternalLink className="size-3" strokeWidth={1.5} />
                                     </a>

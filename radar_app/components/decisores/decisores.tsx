@@ -212,7 +212,7 @@ export function TelaDecisores({ base }: { base: Base }) {
                       </div>
                     </td>
                     <td className="hidden truncate px-3 py-2.5 sm:table-cell">
-                      <Link href={hrefConta(p.contaId)} className="flex min-w-0 items-center gap-2 rounded-chip">
+                      <Link href={hrefConta(p.contaId)} className="flex min-h-6 min-w-0 items-center gap-2 rounded-chip">
                         <LogoConta nome={p.contaNome} dominio={p.contaDominio} tamanho={20} />
                         <span className="truncate text-text-2 hover:text-foreground hover:underline">{p.contaNome}</span>
                       </Link>

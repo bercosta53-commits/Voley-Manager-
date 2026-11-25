@@ -36,7 +36,7 @@ export function ScoreTendencia({ score, tendencia, serie, status, compacto = fal
           <Seta className="size-3.5" strokeWidth={1.5} />
           {sentido === 'estavel' ? '0' : `${tendencia > 0 ? '+' : '−'}${Math.abs(tendencia)}`}
         </span>
-        {status && <span className="mt-1 whitespace-nowrap text-[10px] text-text-3">{status}</span>}
+        {status && <span className="mt-1 whitespace-nowrap text-xs text-text-3">{status}</span>}
       </div>
     </div>
   );

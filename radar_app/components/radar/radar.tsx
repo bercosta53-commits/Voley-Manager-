@@ -277,7 +277,7 @@ export function TelaRadar({ base, proximidade: proximidadeOriginal }: { base: Ba
                 Sem gatilho ativo
               </div>
               <p className="mt-2 text-xs text-text-2">Tamanho: tier de ICP (A maior, C menor).</p>
-              <p className="mt-3 text-[11px] text-text-3">Scroll ou pinça pra dar zoom. Arraste pra mover.</p>
+              <p className="mt-3 text-xs text-text-3">Scroll ou pinça pra dar zoom. Arraste pra mover.</p>
             </div>
           </div>
         </div>

@@ -57,7 +57,7 @@ export function useSecaoAtiva() {
 
 function Marca() {
   return (
-    <Link href="/" className="flex items-center gap-2 rounded-chip">
+    <Link href="/" className="flex min-h-6 items-center gap-2 rounded-chip">
       <span className="text-md font-semibold tracking-tight">velora</span>
       <span className="text-md text-text-3">radar</span>
     </Link>

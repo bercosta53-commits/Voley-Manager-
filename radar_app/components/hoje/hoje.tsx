@@ -283,7 +283,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
                   <SeloVscs status={c.vscsStatus} acao={c.acaoRecomendada} className="flex-row! items-center! gap-2!" />
                 </div>
                 <Decomposicao conta={c} />
-                <Link href={hrefConta(c.id)} className="mt-4 inline-block text-sm font-medium text-text-2 underline decoration-border-strong underline-offset-4 hover:text-foreground">
+                <Link href={hrefConta(c.id)} className="mt-4 inline-flex min-h-6 items-center text-sm font-medium text-text-2 underline decoration-border-strong underline-offset-4 hover:text-foreground">
                   Abrir a conta: comitê, linha do tempo e dados cadastrais
                 </Link>
               </section>

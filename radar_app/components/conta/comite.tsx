@@ -58,7 +58,7 @@ export function Comite({ conta }: { conta: Conta }) {
           const pessoas = conta.comite.filter(p => ocupa(p, l.papel));
           return (
             <div key={l.papel}>
-              <p className={cn('mb-1.5 text-[11px] font-semibold uppercase tracking-wide', pessoas.length ? 'text-text-2' : 'text-text-3')}>{l.rotulo}</p>
+              <p className={cn('mb-1.5 text-xs font-semibold uppercase tracking-wide', pessoas.length ? 'text-text-2' : 'text-text-3')}>{l.rotulo}</p>
               {pessoas.length ? (
                 <ul className="flex flex-col gap-2.5">
                   {pessoas.map(p => (
@@ -78,7 +78,7 @@ export function Comite({ conta }: { conta: Conta }) {
         })}
         {travas.length > 0 && (
           <div>
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-2">{ROTULO.trava}</p>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-text-2">{ROTULO.trava}</p>
             <ul className="flex flex-col gap-2.5">
               {travas.map(p => (
                 <Linha key={p.nome} p={p} />

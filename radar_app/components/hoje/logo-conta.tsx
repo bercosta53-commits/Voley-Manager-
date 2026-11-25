@@ -9,12 +9,12 @@ export function LogoConta({ nome, dominio, tamanho = 32, className }: { nome: st
   const base = cn('grid shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-secondary', className);
   if (!dominio || falhou)
     return (
-      <span aria-hidden className={cn(base, 'font-semibold text-text-2')} style={{ width: tamanho, height: tamanho, fontSize: tamanho * 0.36 }}>
+      <span aria-hidden data-logo className={cn(base, 'font-semibold text-text-2')} style={{ width: tamanho, height: tamanho, fontSize: tamanho * 0.36 }}>
         {iniciais(nome)}
       </span>
     );
   return (
-    <span aria-hidden className={cn(base, 'bg-card')} style={{ width: tamanho, height: tamanho }}>
+    <span aria-hidden data-logo className={cn(base, 'bg-card')} style={{ width: tamanho, height: tamanho }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(dominio)}&sz=128`}

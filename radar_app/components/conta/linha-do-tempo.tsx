@@ -96,7 +96,7 @@ function Evidencia({ fonte, url, exemplo, extra }: { fonte: string; url: string;
           ver fonte <ExternalLink className="size-3" strokeWidth={1.5} />
         </a>
       ) : (
-        exemplo && <span className="rounded-chip border border-border px-1 text-[11px]">exemplo</span>
+        exemplo && <span className="rounded-chip border border-border px-1 text-xs">exemplo</span>
       )}
       {extra && <span>· {extra}</span>}
     </p>

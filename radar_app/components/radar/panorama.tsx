@@ -58,7 +58,7 @@ export function Panorama({ base }: { base: Base }) {
         <h2 id="panorama-base" className="text-sm font-semibold">
           Panorama da base
         </h2>
-        <Link href="/fontes" className="text-xs text-text-3 hover:text-foreground">
+        <Link href="/fontes" className="inline-flex min-h-6 items-center text-xs text-text-3 hover:text-foreground">
           Dados de {rotuloCarga(base.atualizadoEm ?? base.geradoEm)} · {p.fontesOk} de {p.fontes} fontes ativas
         </Link>
       </div>

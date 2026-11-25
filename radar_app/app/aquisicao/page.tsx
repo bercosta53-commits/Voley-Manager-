@@ -4,7 +4,7 @@ import { TelaMaturidade } from '@/components/aquisicao/maturidade';
 import type { DadosAquisicao } from '@/lib/aquisicao-maturidade';
 
 export const metadata = {
- title: 'Maturidade de aquisição | Velora Radar',
+ title: 'Maturidade de aquisição',
  description: 'Atlas analítico de maturidade de aquisição com cinco níveis, foco L2/L3 e evidências auditáveis.',
 };
 

@@ -84,7 +84,7 @@ export function FaixaPerfil({
           onClick={alternar}
           aria-expanded={aberto}
           aria-controls={`perfil-${id}-detalhe`}
-          className="ml-auto flex shrink-0 items-center gap-1 rounded-chip text-xs font-medium text-text-2 hover:text-foreground"
+          className="ml-auto flex min-h-6 shrink-0 items-center gap-1 rounded-chip text-xs font-medium text-text-2 hover:text-foreground"
         >
           {aberto ? 'Recolher' : 'Expandir análise'}
           <ChevronDown className={cn('size-3.5 transition-transform', aberto && 'rotate-180')} strokeWidth={1.75} />
@@ -147,7 +147,7 @@ export function Segmentos({
           );
         })}
       </div>
-      <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-text-3">
+      <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-text-3">
         {barras.map((b, i) => {
           const { className, style } = estilo(b, i);
           const ativo = ativos?.includes(b.id);
@@ -165,7 +165,7 @@ export function Segmentos({
                   type="button"
                   aria-pressed={ativo}
                   onClick={() => onClicar(b)}
-                  className={cn('flex items-center gap-1 rounded-chip hover:text-foreground', ativo && 'font-semibold text-foreground')}
+                  className={cn('flex min-h-6 items-center gap-1 rounded-chip hover:text-foreground', ativo && 'font-semibold text-foreground')}
                 >
                   {item}
                 </button>
@@ -187,7 +187,7 @@ export function Ranking({ barras, total, cor = 'bg-cool', unidade = 'pessoas' }:
     <ul className="flex flex-col gap-0.5">
       {barras.map(b => (
         <Tooltip key={b.id} conteudo={`${b.rotulo}: ${num(b.valor)} ${unidade} · ${pct(b.valor, total)}%`}>
-          <li tabIndex={0} className="grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)_2.25rem] items-center gap-2 text-[11px]">
+          <li tabIndex={0} className="grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)_2.25rem] items-center gap-2 text-xs">
             <span className="truncate text-text-2">{b.rotulo}</span>
             <span className={cn('h-1.5 rounded-r-[2px]', cor)} style={{ width: `${Math.max(3, (100 * b.valor) / max)}%` }} />
             <span className="vr-data text-right text-text-2">{num(b.valor)}</span>
@@ -207,7 +207,7 @@ export function Colunas({ barras, total, dica, rotulo }: { barras: Barra[]; tota
         {barras.map(b => (
           <Tooltip key={b.id} conteudo={`${dica(b)} · ${pct(b.valor, total)}%`}>
             <li tabIndex={0} className="flex h-full flex-1 flex-col items-center justify-end gap-0.5">
-              <span className="vr-data text-[10px] leading-none text-text-2">{num(b.valor)}</span>
+              <span className="vr-data text-xs leading-none text-text-2">{num(b.valor)}</span>
               <span className="w-full rounded-t-[2px] bg-cool" style={{ height: `${Math.max(2, (40 * b.valor) / max)}px` }} />
             </li>
           </Tooltip>
@@ -215,7 +215,7 @@ export function Colunas({ barras, total, dica, rotulo }: { barras: Barra[]; tota
       </ul>
       <ul aria-hidden className="mt-1 flex gap-1">
         {barras.map(b => (
-          <li key={b.id} className="vr-data flex-1 text-center text-[10px] text-text-3">
+          <li key={b.id} className="vr-data flex-1 text-center text-xs text-text-3">
             {b.rotulo}
           </li>
         ))}

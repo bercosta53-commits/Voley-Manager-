@@ -96,7 +96,7 @@ export function ComoCalcula({ base }: { base: Base }) {
                   <th className="py-1 pr-2 text-left font-normal text-text-3">Tier</th>
                   {faixas.map(([piso, st], i) => (
                     <th key={st} className="px-0.5 py-1 font-normal">
-                      <span className={cn('block rounded-chip px-1 py-0.5 text-center text-[10px] leading-tight', FAIXA_COR[i])}>
+                      <span className={cn('block rounded-chip px-1 py-0.5 text-center text-xs leading-tight', FAIXA_COR[i])}>
                         {st}
                         <span className="vr-data block opacity-80">{piso}+</span>
                       </span>
@@ -153,7 +153,7 @@ function Passo({ n, titulo, children }: { n: number; titulo: string; children: R
   return (
     <li className="text-sm text-text-2">
       <p className="flex items-center gap-2 font-medium text-foreground">
-        <span className="vr-data grid size-5 place-items-center rounded-full bg-secondary text-[11px]">{n}</span>
+        <span className="vr-data grid size-5 place-items-center rounded-full bg-secondary text-xs">{n}</span>
         {titulo}
       </p>
       <div className="mt-1.5">{children}</div>

@@ -179,16 +179,16 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                 </Link>
               </h2>
               {conta.tier && (
-                <span className={cn('shrink-0 rounded-chip px-1.5 py-0.5 text-[11px] font-semibold', COR_TIER[conta.tier] ?? COR_TIER.C)} title={(conta.icp?.motivos ?? []).join(' · ')}>
+                <span className={cn('shrink-0 rounded-chip px-1.5 py-0.5 text-xs font-semibold', COR_TIER[conta.tier] ?? COR_TIER.C)} title={(conta.icp?.motivos ?? []).join(' · ')}>
                   Tier {conta.tier}
                 </span>
               )}
               {conta.v2?.via_rapida ? (
-                <span className="shrink-0 rounded-chip bg-risk px-1.5 py-0.5 text-[11px] font-semibold text-white">Via rápida · 48h</span>
+                <span className="shrink-0 rounded-chip bg-risk px-1.5 py-0.5 text-xs font-semibold text-white">Via rápida · 48h</span>
               ) : (
                 conta.acaoRecomendada &&
                 ACOES_DE_ABORDAGEM.has(conta.acaoRecomendada) && (
-                  <span className="shrink-0 rounded-chip bg-ok px-1.5 py-0.5 text-[11px] font-semibold text-white">{conta.acaoRecomendada}</span>
+                  <span className="shrink-0 rounded-chip bg-ok px-1.5 py-0.5 text-xs font-semibold text-white">{conta.acaoRecomendada}</span>
                 )
               )}
             </div>
@@ -201,11 +201,11 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
           {/* o sinal: nível do gatilho, a sinalização rápida e os pontos — leitura em 2 segundos */}
           <div className="flex min-w-0 flex-col gap-3">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className={cn('inline-flex items-center gap-1 rounded-chip px-1.5 py-0.5 text-[11px] font-semibold', nivel.cor)}>
+              <span className={cn('inline-flex items-center gap-1 rounded-chip px-1.5 py-0.5 text-xs font-semibold', nivel.cor)}>
                 <IconeSinal tipo={sinal.tipo} className="size-3.5" />
                 {nivel.rotulo}
               </span>
-              <span className="rounded-chip bg-secondary px-1.5 py-0.5 text-[11px] text-text-2">{sinal.rotulo}</span>
+              <span className="rounded-chip bg-secondary px-1.5 py-0.5 text-xs text-text-2">{sinal.rotulo}</span>
             </div>
             <div className="flex items-baseline gap-2">
               <p className="text-xl font-semibold leading-snug tracking-tight text-foreground">{sinal.sinal ?? sinal.porQueAgora}</p>
@@ -244,7 +244,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                       ver fonte <ExternalLink className="size-3" strokeWidth={1.5} />
                     </a>
                   ) : (
-                    sinal.exemplo && <span className="rounded-chip border border-border px-1 text-[11px] text-text-3">exemplo</span>
+                    sinal.exemplo && <span className="rounded-chip border border-border px-1 text-xs text-text-3">exemplo</span>
                   )}
                 </dd>
               </div>
@@ -253,7 +253,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                 <dd className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
                   <span className="min-w-0">{quem}</span>
                   {papelContato && (
-                    <span className={cn('rounded-chip px-1.5 py-0.5 text-[11px] font-medium', COR_PAPEL[papelContato])}>{rotuloPapel(papelContato)}</span>
+                    <span className={cn('rounded-chip px-1.5 py-0.5 text-xs font-medium', COR_PAPEL[papelContato])}>{rotuloPapel(papelContato)}</span>
                   )}
                 </dd>
               </div>
@@ -264,12 +264,12 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
 
           {/* o score da conta no tempo, com cada sinal marcado na data em que aconteceu */}
           <div className="min-w-0 rounded-control border border-border bg-background/40 p-3">
-            <p className="mb-1 flex items-center justify-between text-[11px] text-text-3">
+            <p className="mb-1 flex items-center justify-between text-xs text-text-3">
               <span className="font-medium text-text-2">Score em 90 dias</span>
               <span>cada ponto é um sinal</span>
             </p>
             <GraficoSinais serie={conta.serie} eventos={eventos} hoje={hoje} />
-            <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-text-3">
+            <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-text-3">
               {(['A', 'B', 'C'] as const).map(n => (
                 <span key={n} className="inline-flex items-center gap-1">
                   <span className="size-2 rounded-full" style={{ background: NIVEL_GATILHO[n].ponto }} />

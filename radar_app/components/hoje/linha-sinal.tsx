@@ -33,11 +33,11 @@ export const LinhaSinal = forwardRef<HTMLButtonElement, { sinal: Sinal; conta: C
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-1.5">
               <span className="truncate text-sm font-semibold">{conta.nome}</span>
-              {conta.tier && <span className={cn('shrink-0 rounded-chip px-1 text-[10px] font-semibold', COR_TIER[conta.tier] ?? COR_TIER.C)}>{conta.tier}</span>}
-              <span className="vr-data ml-auto shrink-0 text-[11px] text-text-3">{dataCurta(sinal.data)}</span>
+              {conta.tier && <span className={cn('shrink-0 rounded-chip px-1 text-xs font-semibold', COR_TIER[conta.tier] ?? COR_TIER.C)}>{conta.tier}</span>}
+              <span className="vr-data ml-auto shrink-0 text-xs text-text-3">{dataCurta(sinal.data)}</span>
             </span>
             <span className="mt-0.5 block truncate text-sm text-text-2">{sinal.sinal ?? sinal.porQueAgora}</span>
-            <span className="mt-1 flex items-center gap-1.5 text-[11px] text-text-3">
+            <span className="mt-1 flex items-center gap-1.5 text-xs text-text-3">
               <span aria-hidden className="size-1.5 shrink-0 rounded-full" style={{ background: cor }} />
               <span className="truncate">{sinal.rotulo}</span>
               {util && <span className="shrink-0 text-ok">· útil</span>}

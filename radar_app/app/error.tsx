@@ -9,7 +9,7 @@ export default function Erro({ error, retry }: { error: unknown; retry: () => vo
   const codigo = error instanceof Error && 'digest' in error ? String((error as Error & { digest?: string }).digest ?? '') : '';
   return (
     <main className="mx-auto w-full max-w-[760px] px-4 pt-20 md:px-6 md:pt-24">
-      <ErroCarregar onTentar={retry} codigo={codigo} />
+      <ErroCarregar principal onTentar={retry} codigo={codigo} />
     </main>
   );
 }

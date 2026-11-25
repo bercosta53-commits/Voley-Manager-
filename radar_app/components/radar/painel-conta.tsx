@@ -18,7 +18,7 @@ function GrafoComite({ conta }: { conta: ContaProximidade }) {
   return (
     <svg viewBox={`0 0 280 ${linhas}`} width="100%" height={linhas} className="overflow-visible">
       <circle cx={28} cy={linhas / 2} r={16} className="fill-secondary" stroke="var(--vr-border-strong)" />
-      <text x={28} y={linhas / 2 + 4} textAnchor="middle" className="fill-text-2 text-[10px] font-semibold">
+      <text x={28} y={linhas / 2 + 4} textAnchor="middle" className="fill-text-2 text-xs font-semibold">
         {conta.nome.slice(0, 2).toUpperCase()}
       </text>
       {conta.comite.map((p, i) => {
@@ -28,10 +28,10 @@ function GrafoComite({ conta }: { conta: ContaProximidade }) {
           <g key={i}>
             <line x1={44} y1={linhas / 2} x2={96} y2={y} stroke={completo ? 'var(--vr-ok)' : 'var(--vr-border-strong)'} strokeWidth={1.5} strokeDasharray={completo ? undefined : '3 3'} />
             <circle cx={96} cy={y} r={3} fill={completo ? 'var(--vr-ok)' : 'var(--vr-text-3)'} />
-            <text x={106} y={y - 4} className="fill-foreground text-[11px] font-medium">
+            <text x={106} y={y - 4} className="fill-foreground text-xs font-medium">
               {p.nome}
             </text>
-            <text x={106} y={y + 10} className="fill-text-3 text-[10px]">
+            <text x={106} y={y + 10} className="fill-text-3 text-xs">
               {p.cargo} · {ROTULO_PAPEL[p.papelIcp]}
             </text>
           </g>
@@ -50,10 +50,10 @@ function GrafoComite({ conta }: { conta: ContaProximidade }) {
             strokeLinecap="round"
           />
           <circle cx={96} cy={24 + conta.comite.length * 40} r={3} fill="var(--vr-acid)" />
-          <text x={106} y={24 + conta.comite.length * 40 - 4} className="fill-foreground text-[11px] font-medium">
+          <text x={106} y={24 + conta.comite.length * 40 - 4} className="fill-foreground text-xs font-medium">
             {conta.caminhoQuenteVia}
           </text>
-          <text x={106} y={24 + conta.comite.length * 40 + 10} className="fill-text-3 text-[10px]">
+          <text x={106} y={24 + conta.comite.length * 40 + 10} className="fill-text-3 text-xs">
             Caminho quente (1º/2º grau)
           </text>
         </g>
