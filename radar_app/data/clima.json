@@ -1,15 +1,15 @@
 {
- "_sobre": "Clima por vertical (aba Clima). Macro (Selic, IIE-Br, TI Brasil, VC) com dados de nov/2026; os parâmetros por vertical (sensibilidade, driver setorial, notícias, estado) são simulados até o motor de clima rodar. Contas, tier e VSCS vêm da base.",
- "atualizadoEm": "2026-11-07T15:00",
+ "_sobre": "Dados publicados até 24/11/2026, edição de 25/11. A escala de clima representa uma avaliação editorial de condições de mercado para prospecção B2B. Os nove blocos macro e os componentes setorial e de notícias usam valores entre −1 e +1. As notas não são estatísticas nem previsões de demanda.",
+ "atualizadoEm": "2026-11-25T00:00:00-03:00",
  "indicadoresEmDia": [
-  9,
-  11
+  13,
+  13
  ],
  "simulado": true,
  "brasil": {
-  "nota": "Lula reeleito (51,79%) contra a aposta do mercado: Ibovespa −13,88% no dia seguinte, com circuit breaker, e dólar no maior nível desde dez/2025. Copom pausou os cortes em 13,75%; nos EUA, o Congresso democrata e o medo de bolha de IA derrubaram as techs.",
+  "nota": "Juros de 13,75% e Focus com PIB de 1,00% em 2027 favorecem propostas com retorno demonstrável. A reforma tributária dá prazo concreto a projetos de adequação. Em crédito, a alta anual da inadimplência dá contexto para ofertas de cobrança e gestão de carteira.",
   "delta30": -0.22,
-  "estado": "Instável",
+  "estado": "Ruim",
   "fatorClima": 0.74,
   "contasEmMercadoTri": "~3,7%",
   "baseEmMercado": "5%"
@@ -26,15 +26,15 @@
   "Bolsa"
  ],
  "z": [
-  -0.55,
+  -0.75,
+  -0.75,
+  -0.5,
+  -0.75,
   -0.25,
-  -0.35,
-  -0.3,
-  0.05,
-  -0.2,
-  -0.4,
-  -0.45,
-  -0.4
+  -0.5,
+  -0.5,
+  0,
+  -0.5
  ],
  "pesos": {
   "macro": 0.4,
@@ -49,33 +49,22 @@
   {
    "rotulo": "Selic meta",
    "valor": "13,75%",
-   "delta": "pausa · 04/11",
-   "tom": "atencao",
+   "delta": "mantida em 04/11",
+   "tom": "ruim",
    "cor": "ruim",
-   "serie": [
-    15,
-    15,
-    14.75,
-    14.5,
-    14.5,
-    14.25,
-    14.25,
-    14,
-    13.75,
-    13.75,
-    13.75
-   ],
+   "serie": [],
    "faixa": [
-    13.5,
-    15.2
+    0,
+    1
    ],
-   "nota": "5 cortes de 0,25 desde março; Copom: \"substancialmente contracionista\".",
-   "fonte": "BCB · Copom 282ª",
+   "nota": "O Copom manteve a taxa. Crédito e investimento financiado seguem sujeitos a custo elevado.",
+   "fonte": "Banco Central · Copom",
+   "fonteUrl": "https://www.bcb.gov.br/publicacoes/atascopom/04112026",
    "setores": [
     {
      "rotulo": "Construtech e Proptech",
      "efeito": "negativo",
-     "porque": "Crédito imobiliário caro segura lançamentos e compra de software pelas incorporadoras.",
+     "porque": "Priorize obras contratadas e conversão de projetos com crédito aprovado.",
      "filtro": {
       "verticais": [
        "ESP12",
@@ -86,73 +75,111 @@
     {
      "rotulo": "Fintech",
      "efeito": "negativo",
-     "porque": "Funding caro e inadimplência PJ em alta apertam margem e rodadas.",
+     "porque": "Separe originadores expostos a funding de fornecedores de cobrança e risco.",
      "filtro": {
       "verticais": [
        "ESP01"
-      ]
-     }
-    },
-    {
-     "rotulo": "Retailtech",
-     "efeito": "negativo",
-     "porque": "Juros altos para pessoa física esfriam o varejo e o orçamento de tecnologia dele.",
-     "filtro": {
-      "verticais": [
-       "ESP06"
-      ]
-     }
-    },
-    {
-     "rotulo": "Insurtech",
-     "efeito": "positivo",
-     "porque": "Selic alta sustenta a receita financeira das seguradoras clientes.",
-     "filtro": {
-      "verticais": [
-       "ESP02"
       ]
      }
     }
    ]
   },
   {
-   "rotulo": "Incerteza (IIE-Br)",
-   "valor": "109,0",
-   "delta": "−1,8 em out",
-   "tom": "bom",
-   "cor": "atencao",
+   "rotulo": "Selic 2027 · Focus",
+   "valor": "13,00%",
+   "delta": "vs. 12,75% na semana anterior",
+   "tom": "ruim",
+   "cor": "ruim",
    "serie": [
-    105.8,
-    117.2,
-    111.3,
-    109.4,
-    110.8,
-    109.0
+    11.75,
+    12.75,
+    13
    ],
    "faixa": [
-    104,
-    118
+    11.5,
+    13.5
    ],
-   "nota": "Menos incerteza política na mídia; mais dispersão nas projeções.",
-   "fonte": "FGV IBRE · coleta antes do 2º turno",
+   "nota": "Mediana de fim de 2027. O mercado projeta 13,75% no fim de 2026.",
+   "fonte": "Banco Central · Focus de 19/11",
+   "fonteUrl": "https://www.bcb.gov.br/content/focus/focus/R20261119.pdf"
+  },
+  {
+   "rotulo": "IPCA · outubro",
+   "valor": "4,63%",
+   "delta": "em 12 meses · +0,14% no mês",
+   "tom": "atencao",
+   "cor": "atencao",
+   "serie": [
+    4.58,
+    4.63
+   ],
+   "faixa": [
+    4.4,
+    4.8
+   ],
+   "nota": "Setembro teve 4,58% em 12 meses. No Focus, a mediana de IPCA para 2027 está em 5,12%.",
+   "fonte": "IBGE · IPCA de outubro",
+   "fonteUrl": "https://ftp.ibge.gov.br/Precos_Indices_de_Precos_ao_Consumidor/IPCA/Fasciculo_Indicadores_IBGE/ipca-inpc_202610caderno.pdf"
+  },
+  {
+   "rotulo": "PIB 2027 · Focus",
+   "valor": "+1,00%",
+   "delta": "vs. +1,02% na semana anterior",
+   "tom": "atencao",
+   "cor": "atencao",
+   "serie": [
+    1.31,
+    1.02,
+    1
+   ],
+   "faixa": [
+    0.85,
+    1.45
+   ],
+   "nota": "Mediana de crescimento de 1,70% para 2026. Use o PIB como contexto para budget e cobre sinais de prioridade em cada conta.",
+   "fonte": "Banco Central · Focus de 19/11",
+   "fonteUrl": "https://www.bcb.gov.br/content/focus/focus/R20261119.pdf"
+  },
+  {
+   "rotulo": "Incerteza · IIE-Br",
+   "valor": "109,0",
+   "delta": "−1,8 ponto em outubro",
+   "tom": "atencao",
+   "cor": "atencao",
+   "serie": [
+    110.8,
+    109
+   ],
+   "faixa": [
+    108,
+    112
+   ],
+   "nota": "O componente de imprensa caiu e aumentou a dispersão das projeções econômicas.",
+   "fonte": "FGV IBRE · IIE-Br de outubro",
+   "fonteUrl": "https://portalibre.fgv.br/press-releases/iie-br-de-outubro-de-2026"
+  },
+  {
+   "rotulo": "Atividade · setembro",
+   "valor": "−0,8%",
+   "delta": "indústria vs. mês anterior",
+   "tom": "ruim",
+   "cor": "ruim",
+   "serie": [],
+   "faixa": [
+    0,
+    1
+   ],
+   "nota": "Serviços: −0,1%. Varejo: +0,2%. As três variações são mensais e têm ajuste sazonal.",
+   "fonte": "IBGE · Painel de Indicadores",
+   "fonteUrl": "https://www.ibge.gov.br/indicadores/estatisticas",
    "setores": [
     {
-     "rotulo": "Generalistas",
+     "rotulo": "Indústria 4.0",
      "efeito": "negativo",
-     "porque": "Com incerteza alta, o cliente adia projeto novo e renova só o essencial.",
+     "porque": "Teste projetos de produtividade em plantas com gargalo ou expansão comprovada.",
      "filtro": {
       "verticais": [
-       "GEN"
-      ]
-     }
-    },
-    {
-     "rotulo": "Govtech",
-     "efeito": "negativo",
-     "porque": "Troca de mandatos e orçamento indefinido seguram contratações públicas.",
-     "filtro": {
-      "verticais": [
-       "ESP09"
+       "ESP11"
       ]
      }
     }
@@ -161,74 +188,67 @@
   {
    "rotulo": "TI Brasil 2026",
    "valor": "+5,3%",
-   "delta": "vs. 10% no mundo",
-   "tom": "ruim",
-   "cor": "neutro",
+   "delta": "projeção anual ABES/IDC",
+   "tom": "atencao",
+   "cor": "atencao",
+   "serie": [],
+   "faixa": [
+    0,
+    1
+   ],
+   "nota": "Estimativa de crescimento nacional frente a +18,5% em 2025 e previsão global de +9,7% em 2026.",
+   "fonte": "ABES/IDC · estudo de 2026",
+   "fonteUrl": "https://abes.org.br/evolucao-e-maturidade-abes-revela-novos-dados-do-estudo-mercado-brasileiro-de-software-2026/"
+  },
+  {
+   "rotulo": "VC Brasil · 3º tri",
+   "valor": "US$ 609,4 mi",
+   "delta": "+56,1% t/t · −46,8% a/a",
+   "tom": "atencao",
+   "cor": "atencao",
    "serie": [
-    9.5,
-    18.5,
-    5.3
+    390.3,
+    609.4
    ],
    "faixa": [
-    4,
-    20
+    300,
+    700
    ],
-   "nota": "Juros altos, inflação resiliente e déficit fiscal; 2025 cresceu 18,5%.",
-   "fonte": "Abes / IDC",
+   "nota": "O volume subiu ante o segundo trimestre. No acumulado até setembro, ficou 45,1% abaixo de 2025.",
+   "fonte": "KPMG · Venture Pulse 3T26",
+   "fonteUrl": "https://kpmg.com/br/pt/insights/2026/11/venture-pulse-q3-2026.html",
    "setores": [
     {
-     "rotulo": "Serviços e Integração",
+     "rotulo": "Fintech",
      "efeito": "negativo",
-     "porque": "Crescimento de TI de 5,3% (metade do mundo) aperta projetos de serviço e fábrica.",
+     "porque": "Procure rodada, receita recorrente ou ganho operacional comprovado antes de propor expansão de aquisição.",
      "filtro": {
-      "familias": [
-       "Serviços e Integração"
-      ]
-     }
-    },
-    {
-     "rotulo": "Software e Plataformas",
-     "efeito": "negativo",
-     "porque": "Clientes renegociam licenças e adiam módulos novos.",
-     "filtro": {
-      "familias": [
-       "Software e Plataformas"
+      "verticais": [
+       "ESP01"
       ]
      }
     }
    ]
   },
   {
-   "rotulo": "VC Brasil · 1º tri",
-   "valor": "US$ 429 mi",
-   "delta": "−36% a/a",
-   "tom": "ruim",
-   "cor": "ruim",
-   "serie": [
-    669,
-    428.6
-   ],
+   "rotulo": "Inadimplência PJ · setembro",
+   "valor": "3,3%",
+   "delta": "+0,5 p.p. em 12 meses",
+   "tom": "atencao",
+   "cor": "atencao",
+   "serie": [],
    "faixa": [
-    380,
-    700
+    0,
+    1
    ],
-   "nota": "Investidores mais seletivos; menos rodadas = menos orçamento de growth.",
-   "fonte": "KPMG Venture Pulse",
+   "nota": "Carteira total de empresas. A taxa cedeu 0,1 p.p. no mês. No crédito livre PJ, ficou em 4,2%.",
+   "fonte": "Banco Central · crédito em setembro",
+   "fonteUrl": "https://www.bcb.gov.br/content/estatisticas/hist_estatisticasmonetariascredito/202610_Texto_de_estatisticas_monetarias_e_de_credito.pdf",
    "setores": [
     {
-     "rotulo": "SaaS B2B",
-     "efeito": "negativo",
-     "porque": "Menos rodadas = menos orçamento de growth para quem depende de capital de risco.",
-     "filtro": {
-      "ramos": [
-       "SaaS B2B"
-      ]
-     }
-    },
-    {
-     "rotulo": "Fintech",
-     "efeito": "negativo",
-     "porque": "Fintechs são as mais dependentes de VC no Brasil.",
+     "rotulo": "Fintech de cobrança e risco",
+     "efeito": "positivo",
+     "porque": "A inadimplência anual dá contexto para recuperação, renegociação e automação de carteira.",
      "filtro": {
       "verticais": [
        "ESP01"
@@ -240,61 +260,24 @@
  ],
  "agenda": [
   {
-   "d": "10/11",
-   "t": "Ata do Copom"
+   "d": "30/11",
+   "t": "Focus e divulgação do IIE-Br de novembro"
   },
   {
-   "d": "semanal",
-   "t": "Boletim Focus"
+   "d": "08–09/12",
+   "t": "Copom e FOMC"
   },
   {
-   "d": "fim de nov",
-   "t": "IIE-Br de novembro"
-  },
-  {
-   "d": "09/12",
-   "t": "Copom — última de 2026"
-  },
-  {
-   "d": "01/01",
-   "t": "CBS entra em vigor"
-  },
-  {
-   "d": "dez",
-   "t": "Fed (FOMC) — risco de alta de juros"
-  },
-  {
-   "d": "01/01",
-   "t": "Posse do governo e dos novos governadores"
-  },
-  {
-   "d": "03/01",
-   "t": "Novo Congresso dos EUA toma posse"
+   "d": "01/01/2027",
+   "t": "Nova etapa da transição de CBS e IBS"
   }
  ],
- "marcos": [
-  {
-   "semanasAtras": 0,
-   "rotulo": "Copom 04/11 · pausa"
-  },
-  {
-   "semanasAtras": 7,
-   "rotulo": "Copom 16/09 · −0,25"
-  },
-  {
-   "semanasAtras": 20,
-   "rotulo": "Copom 17/06 · −0,25"
-  },
-  {
-   "semanasAtras": 2,
-   "rotulo": "2º turno 25/10"
-  }
- ],
+ "marcos": [],
  "jogadas": {
-  "Ativar": "Abordagem direta com \"por que agora\" e proposta de crescimento.",
-  "Monitorar": "A conta decide pelos próprios fatos; seguir a matriz Tier × VSCS.",
-  "Reduzir risco": "Diagnóstico de 2–3 semanas, ROI explícito, prova social, multithread no comitê.",
-  "Presença": "Trocar ativação por conteúdo, eventos e white paper; abordar só VSCS ≥ 55."
+  "Ativar": "Abordagem direta quando houver prazo regulatório, projeto anunciado ou área responsável identificada.",
+  "Monitorar": "Acompanhar fatos da conta e priorizar conforme Tier e VSCS.",
+  "Reduzir risco": "Oferecer diagnóstico curto, escopo definido, indicador de retorno e piloto com meta acordada.",
+  "Presença": "Acompanhar orçamento e manter relacionamento até aparecer um projeto financiado ou uma prioridade explícita."
  },
  "verticais": [
   {
@@ -314,14 +297,21 @@
     0.1,
     0.2
    ],
-   "setorial": 0.8,
-   "noticias": 0.3,
-   "delta30": 0.08,
+   "setorial": 1,
+   "noticias": 0.6,
+   "delta30": 0,
    "estado": "Bom",
-   "confianca": "Média",
-   "desde": "2026-09-12",
+   "confianca": "Alta",
+   "desde": "2026-11-25",
    "jogada": "Ativar",
-   "porque": "Prazo da CBS (01/01/2027) obriga adequação de ERP e fiscal"
+   "porque": "A Receita Federal publicou regras de transição da CBS e do IBS para o Simples Nacional. A transição gera trabalho de adequação em ERP, emissão fiscal e integração.",
+   "acao": "Mapear fornecedores de ERP e fiscal com carteira PME. Oferecer diagnóstico de adequação com checklist e plano de comunicação para a base.",
+   "fontes": [
+    {
+     "nome": "Receita Federal · Simples Nacional",
+     "url": "https://www.gov.br/receitafederal/pt-br/assuntos/noticias/2026/novembro/comite-gestor-do-simples-nacional-publica-novas-regras-para-o-simples-nacional-e-para-a-transicao-da-reforma-tributaria/"
+    }
+   ]
   },
   {
    "id": "ESP02",
@@ -340,14 +330,21 @@
     0.3,
     0.4
    ],
-   "setorial": 0.75,
-   "noticias": 0.0,
-   "delta30": 0.02,
-   "estado": "Bom",
-   "confianca": "Baixa",
-   "desde": "2026-08-20",
-   "jogada": "Ativar",
-   "porque": "Selic alta sustenta a receita financeira das seguradoras"
+   "setorial": 0.55,
+   "noticias": 0,
+   "delta30": 0,
+   "estado": "Neutro",
+   "confianca": "Média",
+   "desde": "2026-11-25",
+   "jogada": "Monitorar",
+   "porque": "Seguros de danos e pessoas, excluído VGBL, cresceram 5,65% nominalmente até setembro. O conjunto de seguros, previdência e capitalização avançou apenas 0,68%.",
+   "acao": "Priorizar seguradoras e corretoras com crescimento em vida ou auto. Testar conversão de cotação e ativação de corretores.",
+   "fontes": [
+    {
+     "nome": "Susep · boletim de setembro",
+     "url": "https://www.gov.br/susep/pt-br/arquivos/arquivos-dados-estatisticos/boletins-susep/2026/boletim-susep-setembro-2026.pdf/@@display-file/file"
+    }
+   ]
   },
   {
    "id": "ESP08",
@@ -366,14 +363,21 @@
     0.1,
     0.2
    ],
-   "setorial": 0.7,
-   "noticias": 0.4,
-   "delta30": 0.06,
-   "estado": "Bom",
+   "setorial": 0.8,
+   "noticias": 0.45,
+   "delta30": 0,
+   "estado": "Neutro",
    "confianca": "Média",
-   "desde": "2026-10-03",
+   "desde": "2026-11-25",
    "jogada": "Ativar",
-   "porque": "Transição tributária e IA jurídica aquecem a demanda"
+   "porque": "A transição de CBS e IBS cria demanda por orientação jurídica e tributária para clientes empresariais.",
+   "acao": "Buscar escritórios e plataformas com prática tributária ativa. Validar interesse em inteligência comercial ou em uma jornada de geração de demanda para essa prática.",
+   "fontes": [
+    {
+     "nome": "Ministério da Fazenda · reforma tributária",
+     "url": "https://www.gov.br/fazenda/pt-br/assuntos/noticias/2026/novembro/receita-federal-e-orgaos-parceiros-detalham-proximos-passos-da-reforma-tributaria/"
+    }
+   ]
   },
   {
    "id": "ESP07",
@@ -392,14 +396,21 @@
     0.3,
     0.3
    ],
-   "setorial": 0.35,
-   "noticias": 0.4,
-   "delta30": 0.09,
+   "setorial": 0.25,
+   "noticias": 0,
+   "delta30": 0,
    "estado": "Neutro",
    "confianca": "Média",
-   "desde": "2026-09-28",
+   "desde": "2026-11-25",
    "jogada": "Monitorar",
-   "porque": "Black Friday projeta +14% em cotações de frete"
+   "porque": "O panorama da Fazenda aponta avanço anual de 1,8% no fluxo rodoviário de veículos pesados em outubro, um indicador de atividade para operadores do setor.",
+   "acao": "Buscar operadores com expansão de rotas e volume recorrente. Oferecer piloto para reduzir custo por entrega ou incidentes.",
+   "fontes": [
+    {
+     "nome": "Ministério da Fazenda · panorama de novembro",
+     "url": "https://www.gov.br/fazenda/pt-br/central-de-conteudo/publicacoes/conjuntura-economica/panorama-macroeconomico/2026/panmacro_slides_novembro_2026.pdf"
+    }
+   ]
   },
   {
    "id": "ESP14",
@@ -419,13 +430,20 @@
     0.3
    ],
    "setorial": 0.25,
-   "noticias": 0.0,
-   "delta30": 0.01,
+   "noticias": 0.25,
+   "delta30": 0,
    "estado": "Neutro",
-   "confianca": "Baixa",
-   "desde": "2026-08-05",
+   "confianca": "Média",
+   "desde": "2026-11-25",
    "jogada": "Monitorar",
-   "porque": "Abertura do mercado livre avança devagar"
+   "porque": "A regulamentação da abertura do mercado de energia alcança consumidores de baixa tensão sob um calendário de implantação.",
+   "acao": "Priorizar comercializadoras que já montam canais e operação de migração. Validar calendário antes de abordar.",
+   "fontes": [
+    {
+     "nome": "Senado Federal · abertura do mercado de energia",
+     "url": "https://legis.senado.gov.br/norma/43675473/publicacao/43678847"
+    }
+   ]
   },
   {
    "id": "ESP18",
@@ -444,14 +462,21 @@
     0.3,
     0.3
    ],
-   "setorial": 0.2,
-   "noticias": 0.0,
-   "delta30": 0.03,
+   "setorial": 0.5,
+   "noticias": 0,
+   "delta30": 0,
    "estado": "Neutro",
    "confianca": "Média",
-   "desde": "2026-09-01",
+   "desde": "2026-11-25",
    "jogada": "Monitorar",
-   "porque": "Vendas de veículos mistas em outubro"
+   "porque": "A Anfavea reportou alta anual de vendas e produção em outubro, com exportações 28,3% menores. Eletrificados chegaram a 20,5% dos emplacamentos de leves novos no acumulado.",
+   "acao": "Buscar frotas, redes de concessionárias ou serviços de recarga com projetos ativos. Separar mercado doméstico de exportação.",
+   "fontes": [
+    {
+     "nome": "Anfavea · balanço de outubro",
+     "url": "https://anfavea.com.br/site/imprensa-noticia/vendas-e-producao-crescem-em-outubro-mas-exportacoes-recuam-283/"
+    }
+   ]
   },
   {
    "id": "ESP10",
@@ -470,14 +495,21 @@
     0.3,
     0.3
    ],
-   "setorial": 0.15,
-   "noticias": 0.0,
-   "delta30": -0.04,
+   "setorial": 0.25,
+   "noticias": 0,
+   "delta30": 0,
    "estado": "Neutro",
    "confianca": "Média",
-   "desde": "2026-08-15",
+   "desde": "2026-11-25",
    "jogada": "Monitorar",
-   "porque": "Emprego formal desacelera; sem mudança no eSocial"
+   "porque": "O Novo Caged registrou 121.305 vagas formais líquidas em setembro. O dado nacional dá contexto para selecionar empregadores que continuam contratando.",
+   "acao": "Cruzar vagas e expansão da conta. Testar automação de triagem, onboarding ou redução do tempo de contratação.",
+   "fontes": [
+    {
+     "nome": "MTE · Novo Caged de setembro",
+     "url": "https://www.gov.br/trabalho-e-emprego/pt-br/noticias-e-conteudo/2026/novembro/pais-gerou-1-248-mil-empregos-formais-ate-setembro-de-2026/"
+    }
+   ]
   },
   {
    "id": "ESP19",
@@ -496,14 +528,25 @@
     0.4,
     0.3
    ],
-   "setorial": 0.1,
-   "noticias": 0.1,
-   "delta30": -0.03,
+   "setorial": 0.25,
+   "noticias": 0,
+   "delta30": 0,
    "estado": "Neutro",
-   "confianca": "Baixa",
-   "desde": "2026-09-10",
-   "jogada": "Monitorar",
-   "porque": "Dólar em alta encarece viagem internacional"
+   "confianca": "Média",
+   "desde": "2026-11-25",
+   "jogada": "Reduzir risco",
+   "porque": "A aviação movimentou 10,9 milhões de passageiros em setembro. A cotação do dólar pressiona a previsibilidade de custos das operações internacionais.",
+   "acao": "Separar turismo doméstico e internacional. Em contas expostas ao exterior, testar ofertas focadas em margem e conversão.",
+   "fontes": [
+    {
+     "nome": "ANAC via Agência Gov · demanda em setembro",
+     "url": "https://agenciagov.ebc.com.br/noticias/202610/aviacao-civil-brasileira-movimentou-10-9-milhoes-de-passageiros-em-setembro"
+    },
+    {
+     "nome": "B3 · fechamento de 24/11",
+     "url": "https://borainvestir.b3.com.br/noticias/mercado/ibovespa-b3-cede-043-com-peso-de-vale-e-petrobras-dolar-cai-a-r-591/"
+    }
+   ]
   },
   {
    "id": "ESP03",
@@ -522,14 +565,21 @@
     0.3,
     0.3
    ],
-   "setorial": 0.0,
-   "noticias": 0.0,
-   "delta30": -0.06,
+   "setorial": 0.55,
+   "noticias": 0,
+   "delta30": 0,
    "estado": "Neutro",
-   "confianca": "Baixa",
-   "desde": "2026-07-22",
-   "jogada": "Monitorar",
-   "porque": "Sinistralidade das operadoras segura investimento"
+   "confianca": "Alta",
+   "desde": "2026-11-25",
+   "jogada": "Ativar",
+   "porque": "A ANS registrou 53,1 milhões de beneficiários em planos médicos. Os planos coletivos empresariais cresceram 1,92% em 12 meses.",
+   "acao": "Priorizar operadoras e fornecedores com foco em planos empresariais. Testar conversão de cotação, adesão e retenção.",
+   "fontes": [
+    {
+     "nome": "ANS · beneficiários de setembro",
+     "url": "https://www.gov.br/ans/pt-br/assuntos/noticias/numeros-do-setor/ans-divulga-numeros-de-beneficiarios-de-setembro"
+    }
+   ]
   },
   {
    "id": "ESP20",
@@ -548,14 +598,21 @@
     0.3,
     0.2
    ],
-   "setorial": -0.1,
-   "noticias": 0.0,
-   "delta30": -0.02,
+   "setorial": 0,
+   "noticias": 0,
+   "delta30": 0,
    "estado": "Neutro",
    "confianca": "Baixa",
-   "desde": "2026-09-18",
+   "desde": "2026-11-25",
    "jogada": "Monitorar",
-   "porque": "Inflação de alimentos acima da meta"
+   "porque": "O IPCA é referência de pressão de preços. A oportunidade em tecnologia para alimentação depende de evidência na conta ou em seu segmento.",
+   "acao": "Procurar redes que estejam abrindo unidades ou revisando CMV. Testar redução de desperdício com indicador já acompanhado pela operação.",
+   "fontes": [
+    {
+     "nome": "IBGE · IPCA de outubro",
+     "url": "https://ftp.ibge.gov.br/Precos_Indices_de_Precos_ao_Consumidor/IPCA/Fasciculo_Indicadores_IBGE/ipca-inpc_202610caderno.pdf"
+    }
+   ]
   },
   {
    "id": "ESP05",
@@ -574,14 +631,21 @@
     0.5,
     0.3
    ],
-   "setorial": 0.25,
-   "noticias": 0.0,
-   "delta30": -0.12,
-   "estado": "Instável",
-   "confianca": "Baixa",
-   "desde": "2026-11-04",
-   "jogada": "Reduzir risco",
-   "porque": "El Niño citado pelo Copom; dólar alto ajuda exportador"
+   "setorial": 0.35,
+   "noticias": 0,
+   "delta30": 0,
+   "estado": "Neutro",
+   "confianca": "Média",
+   "desde": "2026-11-25",
+   "jogada": "Monitorar",
+   "porque": "A Conab projeta 366,1 milhões de toneladas de grãos em 2026/27. Estimativa nacional sujeita à evolução da safra e a diferenças regionais.",
+   "acao": "Buscar cooperativas e fornecedores em expansão com foco em produtividade, rastreabilidade e gestão de risco. Validar a condição da praça.",
+   "fontes": [
+    {
+     "nome": "Conab · 2º levantamento 2026/27",
+     "url": "https://www.gov.br/conab/pt-br/assuntos/noticias/nova-estimativa-da-conab-para-safra-de-graos-2026-27-e-de-366-1-milhoes-de-toneladas/"
+    }
+   ]
   },
   {
    "id": "ESP09",
@@ -600,14 +664,21 @@
     -0.2,
     0.1
    ],
-   "setorial": -0.1,
-   "noticias": 0.0,
-   "delta30": -0.1,
-   "estado": "Instável",
-   "confianca": "Baixa",
-   "desde": "2026-10-28",
+   "setorial": -0.25,
+   "noticias": -0.25,
+   "delta30": 0,
+   "estado": "Ruim",
+   "confianca": "Média",
+   "desde": "2026-11-25",
    "jogada": "Presença",
-   "porque": "Novos mandatos em jan/2027 travam contratações até a LOA"
+   "porque": "A lei de ajuste fiscal permite limitar a execução de despesas a partir de 2027. O impacto sobre cada órgão depende de execução e orçamento.",
+   "acao": "Prospectar a partir de edital, dotação ou plano de contratação publicado. Validar o patrocinador e o estágio da compra.",
+   "fontes": [
+    {
+     "nome": "Câmara dos Deputados · ajuste fiscal",
+     "url": "https://www.camara.leg.br/noticias/1322586-lei-do-ajuste-fiscal-e-sancionada-sem-vetos-e-ja-esta-em-vigor"
+    }
+   ]
   },
   {
    "id": "MKT",
@@ -627,14 +698,21 @@
     0.4,
     0.5
    ],
-   "setorial": -0.1,
-   "noticias": -0.3,
-   "delta30": -0.36,
-   "estado": "Instável",
+   "setorial": 0,
+   "noticias": 0,
+   "delta30": 0,
+   "estado": "Neutro",
    "confianca": "Baixa",
-   "desde": "2026-10-22",
-   "jogada": "Presença",
-   "porque": "Varejo online fraco no 3T; verba publicitária incerta"
+   "desde": "2026-11-25",
+   "jogada": "Monitorar",
+   "porque": "A projeção da ABES/IDC indica desaceleração do mercado brasileiro de TI, uma referência ampla para fornecedores de marketing.",
+   "acao": "Usar sinais de verba, contratação ou troca de liderança. Em contas com orçamento confirmado, priorizar eficiência de aquisição e mensuração.",
+   "fontes": [
+    {
+     "nome": "ABES/IDC · estudo de 2026",
+     "url": "https://abes.org.br/evolucao-e-maturidade-abes-revela-novos-dados-do-estudo-mercado-brasileiro-de-software-2026/"
+    }
+   ]
   },
   {
    "id": "ESP01",
@@ -653,14 +731,25 @@
     0.8,
     0.9
    ],
-   "setorial": -0.15,
-   "noticias": -0.1,
-   "delta30": -0.18,
+   "setorial": 0.25,
+   "noticias": 0,
+   "delta30": 0,
    "estado": "Instável",
-   "confianca": "Média",
-   "desde": "2026-11-04",
+   "confianca": "Alta",
+   "desde": "2026-11-25",
    "jogada": "Reduzir risco",
-   "porque": "Copom pausou cortes; inadimplência PJ sobe; rodadas fracas"
+   "porque": "A Selic de 13,75% encarece funding. Na carteira PJ total, a inadimplência caiu no mês e subiu 0,5 p.p. em 12 meses. A oportunidade varia entre originação e gestão de carteira.",
+   "acao": "Priorizar cobrança, renegociação e prevenção de inadimplência. Para originadores de alto custo, só avançar com retorno demonstrável e canal financiado.",
+   "fontes": [
+    {
+     "nome": "Banco Central · crédito em setembro",
+     "url": "https://www.bcb.gov.br/content/estatisticas/hist_estatisticasmonetariascredito/202610_Texto_de_estatisticas_monetarias_e_de_credito.pdf"
+    },
+    {
+     "nome": "Banco Central · Copom",
+     "url": "https://www.bcb.gov.br/publicacoes/atascopom/04112026"
+    }
+   ]
   },
   {
    "id": "GEN",
@@ -679,14 +768,21 @@
     0.6,
     0.6
    ],
-   "setorial": 0.0,
-   "noticias": 0.0,
-   "delta30": -0.15,
-   "estado": "Instável",
-   "confianca": "Alta",
-   "desde": "2026-11-04",
+   "setorial": 0,
+   "noticias": 0,
+   "delta30": 0,
+   "estado": "Ruim",
+   "confianca": "Média",
+   "desde": "2026-11-25",
    "jogada": "Reduzir risco",
-   "porque": "Sem vertical definida: segue o clima Brasil"
+   "porque": "O Focus projeta crescimento de 1,00% em 2027 e juros de 13,00% no fechamento do ano. A pressão é maior em iniciativas dependentes de crédito ou sem retorno definido.",
+   "acao": "Usar a leitura macro como contexto. Promover a conta por fatos próprios, como investimento aprovado, mudança de liderança ou expansão.",
+   "fontes": [
+    {
+     "nome": "Banco Central · Focus de 19/11",
+     "url": "https://www.bcb.gov.br/content/focus/focus/R20261119.pdf"
+    }
+   ]
   },
   {
    "id": "ESP04",
@@ -705,14 +801,21 @@
     0.4,
     0.4
    ],
-   "setorial": -0.35,
-   "noticias": 0.0,
-   "delta30": -0.09,
-   "estado": "Ruim",
+   "setorial": 0,
+   "noticias": 0,
+   "delta30": 0,
+   "estado": "Neutro",
    "confianca": "Baixa",
-   "desde": "2026-10-09",
-   "jogada": "Presença",
-   "porque": "Regras de EAD mais duras e renda pressionada"
+   "desde": "2026-11-25",
+   "jogada": "Monitorar",
+   "porque": "O Focus aponta menor crescimento em 2027. A exposição de cada escola ou fornecedor depende de renda, ticket e formato de venda.",
+   "acao": "Procurar redes com novas turmas ou unidades anunciadas. Testar retenção e conversão de matrículas com dados da conta.",
+   "fontes": [
+    {
+     "nome": "Banco Central · Focus de 19/11",
+     "url": "https://www.bcb.gov.br/content/focus/focus/R20261119.pdf"
+    }
+   ]
   },
   {
    "id": "ESP11",
@@ -731,14 +834,25 @@
     0.5,
     0.4
    ],
-   "setorial": -0.35,
-   "noticias": -0.1,
-   "delta30": -0.05,
+   "setorial": -0.5,
+   "noticias": 0,
+   "delta30": 0,
    "estado": "Ruim",
    "confianca": "Média",
-   "desde": "2026-09-02",
-   "jogada": "Presença",
-   "porque": "Produção industrial fraca e crédito caro para capex"
+   "desde": "2026-11-25",
+   "jogada": "Reduzir risco",
+   "porque": "A produção industrial caiu 0,8% em setembro ante agosto. Com a Selic em 13,75%, projetos financiados precisam justificar o prazo de retorno.",
+   "acao": "Priorizar manutenção, eficiência energética e automação com ganho medido. Reservar projetos maiores para fábricas com investimento anunciado.",
+   "fontes": [
+    {
+     "nome": "IBGE · Painel de Indicadores",
+     "url": "https://www.ibge.gov.br/indicadores/estatisticas"
+    },
+    {
+     "nome": "Banco Central · Copom",
+     "url": "https://www.bcb.gov.br/publicacoes/atascopom/04112026"
+    }
+   ]
   },
   {
    "id": "ESP12",
@@ -757,14 +871,21 @@
     0.5,
     0.5
    ],
-   "setorial": -0.45,
-   "noticias": 0.1,
-   "delta30": -0.03,
+   "setorial": -0.5,
+   "noticias": 0,
+   "delta30": 0,
    "estado": "Ruim",
-   "confianca": "Baixa",
-   "desde": "2026-07-14",
-   "jogada": "Presença",
-   "porque": "Juros imobiliários altos seguram lançamentos"
+   "confianca": "Média",
+   "desde": "2026-11-25",
+   "jogada": "Reduzir risco",
+   "porque": "O crédito imobiliário via SBPE somou R$ 13,62 bilhões em setembro, cerca de 14% abaixo do mesmo mês de 2025. A série cobre recursos da poupança.",
+   "acao": "Priorizar construtoras com obras contratadas. Ancorar a oferta em controle de custo, compras ou produtividade de obra.",
+   "fontes": [
+    {
+     "nome": "Abecip · crédito imobiliário em setembro",
+     "url": "https://www.abecip.org.br/admin/assets/uploads/anexos/data-abecip-2026-09.pdf"
+    }
+   ]
   },
   {
    "id": "ESP13",
@@ -783,14 +904,21 @@
     0.5,
     0.5
    ],
-   "setorial": -0.45,
-   "noticias": 0.0,
-   "delta30": -0.02,
+   "setorial": -0.5,
+   "noticias": 0,
+   "delta30": 0,
    "estado": "Ruim",
-   "confianca": "Baixa",
-   "desde": "2026-07-14",
-   "jogada": "Presença",
-   "porque": "Crédito imobiliário caro"
+   "confianca": "Média",
+   "desde": "2026-11-25",
+   "jogada": "Reduzir risco",
+   "porque": "Os financiamentos via SBPE recuaram em setembro na comparação anual, embora cresçam no acumulado de 12 meses. O recorte ajuda a monitorar a exposição de compradores ao crédito.",
+   "acao": "Filtrar imobiliárias por estoque, velocidade de vendas e exposição ao crédito. Começar por CRM, qualificação e conversão.",
+   "fontes": [
+    {
+     "nome": "Abecip · crédito imobiliário em setembro",
+     "url": "https://www.abecip.org.br/admin/assets/uploads/anexos/data-abecip-2026-09.pdf"
+    }
+   ]
   },
   {
    "id": "ESP06",
@@ -809,21 +937,32 @@
     0.5,
     0.6
    ],
-   "setorial": -0.4,
-   "noticias": -0.6,
-   "delta30": -0.12,
-   "estado": "Ruim",
+   "setorial": 0.1,
+   "noticias": 0,
+   "delta30": 0,
+   "estado": "Neutro",
    "confianca": "Média",
-   "desde": "2026-10-16",
-   "jogada": "Presença",
-   "porque": "E-commerce fraco no 3T e efeito Casas Bahia; juros PF altos"
+   "desde": "2026-11-25",
+   "jogada": "Monitorar",
+   "porque": "As vendas do varejo cresceram 0,2% em setembro na margem. O avanço é pequeno e convive com inadimplência de 8,1% no crédito livre às pessoas físicas.",
+   "acao": "Priorizar margem, recorrência e CRM em redes com orçamento. Usar desempenho de Black Friday quando houver dado público da conta.",
+   "fontes": [
+    {
+     "nome": "IBGE · Painel de Indicadores",
+     "url": "https://www.ibge.gov.br/indicadores/estatisticas"
+    },
+    {
+     "nome": "Banco Central · crédito em setembro",
+     "url": "https://www.bcb.gov.br/content/estatisticas/hist_estatisticasmonetariascredito/202610_Texto_de_estatisticas_monetarias_e_de_credito.pdf"
+    }
+   ]
   }
  ],
  "politicaBolsa": [
   {
-   "rotulo": "Eleição Brasil · 2º turno 25/10",
-   "valor": "Lula 51,79%",
-   "delta": "vs. 48,21% Flávio Bolsonaro",
+   "rotulo": "Ajuste fiscal · LC 239/2026",
+   "valor": "Sancionada",
+   "delta": "24/11 · em vigor",
    "tom": "atencao",
    "cor": "atencao",
    "serie": [],
@@ -831,178 +970,14 @@
     0,
     1
    ],
-   "nota": "Virada sobre o 1º turno; o mercado estava posicionado para a oposição. Continuidade da reforma tributária e do arcabouço fiscal no radar.",
-   "fonte": "Genial Investimentos · TSE",
-   "setores": [
-    {
-     "rotulo": "Regtech e Legaltech",
-     "efeito": "positivo",
-     "porque": "Continuidade da reforma tributária (CBS em 01/01/2027) mantém a demanda por adequação.",
-     "filtro": {
-      "verticais": [
-       "ESP15",
-       "ESP08"
-      ]
-     }
-    },
-    {
-     "rotulo": "Govtech",
-     "efeito": "positivo",
-     "porque": "Reeleição evita troca de gestão federal e a reabertura de contratos.",
-     "filtro": {
-      "verticais": [
-       "ESP09"
-      ]
-     }
-    },
-    {
-     "rotulo": "Fintech",
-     "efeito": "negativo",
-     "porque": "Mercado precificou risco fiscal: juros futuros e custo de capital sobem.",
-     "filtro": {
-      "verticais": [
-       "ESP01"
-      ]
-     }
-    },
-    {
-     "rotulo": "Agtech",
-     "efeito": "negativo",
-     "porque": "Setor mais exposto à agenda fiscal e ambiental do novo mandato.",
-     "filtro": {
-      "verticais": [
-       "ESP05"
-      ]
-     }
-    }
-   ]
+   "nota": "A lei permite limitar a execução de despesas para perseguir metas fiscais a partir de 2027. Em vendas ao setor público, confirme dotação e calendário.",
+   "fonte": "Câmara dos Deputados · ajuste fiscal",
+   "fonteUrl": "https://www.camara.leg.br/noticias/1322586-lei-do-ajuste-fiscal-e-sancionada-sem-vetos-e-ja-esta-em-vigor"
   },
   {
    "rotulo": "Ibovespa",
-   "valor": "168.498",
-   "delta": "−13,88% em 26/10 · circuit breaker",
-   "tom": "ruim",
-   "cor": "ruim",
-   "serie": [
-    205071,
-    176608,
-    167563,
-    166191,
-    168498
-   ],
-   "faixa": [
-    160000,
-    210000
-   ],
-   "nota": "Véspera ≈205 mil (perto do recorde) → 176.608 no dia seguinte à eleição; 6 quedas seguidas e +0,34% na semana até 6/11.",
-   "fonte": "Genial · InfoMoney · Agência Brasil",
-   "setores": [
-    {
-     "rotulo": "Fintech",
-     "efeito": "negativo",
-     "porque": "Bolsa em queda fecha a janela de IPO e derruba o valuation das rodadas.",
-     "filtro": {
-      "verticais": [
-       "ESP01"
-      ]
-     }
-    },
-    {
-     "rotulo": "Retailtech",
-     "efeito": "negativo",
-     "porque": "Varejistas listados caíram mais e cortam tecnologia primeiro.",
-     "filtro": {
-      "verticais": [
-       "ESP06"
-      ]
-     }
-    },
-    {
-     "rotulo": "Construtech e Proptech",
-     "efeito": "negativo",
-     "porque": "Incorporadoras listadas recuam e seguram lançamentos.",
-     "filtro": {
-      "verticais": [
-       "ESP12",
-       "ESP13"
-      ]
-     }
-    },
-    {
-     "rotulo": "Generalistas",
-     "efeito": "negativo",
-     "porque": "Clientes grandes (listados) revisam orçamento após a queda.",
-     "filtro": {
-      "verticais": [
-       "GEN"
-      ]
-     }
-    }
-   ]
-  },
-  {
-   "rotulo": "Dólar",
-   "valor": "R$ 5,51",
-   "delta": "+~8% em 26/10",
-   "tom": "ruim",
-   "cor": "ruim",
-   "serie": [
-    5.45,
-    5.51
-   ],
-   "faixa": [
-    5.3,
-    5.6
-   ],
-   "nota": "Maior cotação desde dez/2025; payroll forte nos EUA (165 mil vagas) reforçou a chance de alta de juros pelo Fed.",
-   "fonte": "Agência Brasil · Campo Grande News",
-   "setores": [
-    {
-     "rotulo": "Traveltech",
-     "efeito": "negativo",
-     "porque": "Dólar alto encarece viagem internacional e corta orçamento corporativo de viagens.",
-     "filtro": {
-      "verticais": [
-       "ESP19"
-      ]
-     }
-    },
-    {
-     "rotulo": "Infraestrutura e Conectividade",
-     "efeito": "negativo",
-     "porque": "Hardware, cloud e licenças cotadas em dólar ficam mais caros.",
-     "filtro": {
-      "familias": [
-       "Infraestrutura e Conectividade"
-      ]
-     }
-    },
-    {
-     "rotulo": "Indústria 4.0",
-     "efeito": "negativo",
-     "porque": "Insumos e equipamentos importados encarecem o capex industrial.",
-     "filtro": {
-      "verticais": [
-       "ESP11"
-      ]
-     }
-    },
-    {
-     "rotulo": "Agtech",
-     "efeito": "positivo",
-     "porque": "Dólar alto ajuda o exportador do agro, cliente das agtechs.",
-     "filtro": {
-      "verticais": [
-       "ESP05"
-      ]
-     }
-    }
-   ]
-  },
-  {
-   "rotulo": "Nasdaq 100 · 5/11",
-   "valor": "−6,3%",
-   "delta": "−US$ 2,3 tri em um dia",
+   "valor": "164.089,81",
+   "delta": "−0,43% em 24/11",
    "tom": "ruim",
    "cor": "ruim",
    "serie": [],
@@ -1010,41 +985,62 @@
     0,
     1
    ],
-   "nota": "Democratas levam o Congresso (3/11): medo de regulação de IA e de data centers. S&P 500 −4,4% (−US$ 2,8 tri); semicondutores −12,3%, pior dia desde 2020.",
-   "fonte": "NPR · NBC News · Fortune · Yahoo Finance",
+   "nota": "Fechamento oficial, com pressão de Vale e Petrobras. Use a cotação como contexto para contas expostas ao mercado de capitais.",
+   "fonte": "B3 · fechamento de 24/11",
+   "fonteUrl": "https://borainvestir.b3.com.br/noticias/mercado/ibovespa-b3-cede-043-com-peso-de-vale-e-petrobras-dolar-cai-a-r-591/"
+  },
+  {
+   "rotulo": "Dólar comercial",
+   "valor": "R$ 5,91",
+   "delta": "−0,27% em 24/11",
+   "tom": "atencao",
+   "cor": "atencao",
+   "serie": [],
+   "faixa": [
+    0,
+    1
+   ],
+   "nota": "O fechamento importa para contas com custos em dólar, como nuvem, licenças importadas e equipamentos.",
+   "fonte": "B3 · fechamento de 24/11",
+   "fonteUrl": "https://borainvestir.b3.com.br/noticias/mercado/ibovespa-b3-cede-043-com-peso-de-vale-e-petrobras-dolar-cai-a-r-591/",
    "setores": [
     {
-     "rotulo": "Dados, IA e Automação",
+     "rotulo": "Traveltech",
      "efeito": "negativo",
-     "porque": "Medo de bolha e de regulação de IA esfria investimento e valuation de quem vende IA.",
+     "porque": "Mapeie a exposição de cada conta a viagens internacionais e custos em moeda estrangeira.",
      "filtro": {
-      "familias": [
-       "Dados, IA e Automação"
-      ]
-     }
-    },
-    {
-     "rotulo": "Inteligência Artificial",
-     "efeito": "negativo",
-     "porque": "Empresas de IA ficam mais expostas ao ajuste de expectativa dos investidores.",
-     "filtro": {
-      "ramos": [
-       "Inteligência Artificial"
-      ]
-     }
-    },
-    {
-     "rotulo": "Cloud e data centers",
-     "efeito": "negativo",
-     "porque": "Regulação de data centers nos EUA pressiona provedores e parceiros de cloud.",
-     "filtro": {
-      "ramos": [
-       "Cloud Computing",
-       "Data Centers e Hosting"
+      "verticais": [
+       "ESP19"
       ]
      }
     }
    ]
+  },
+  {
+   "rotulo": "Nasdaq Composite",
+   "valor": "23.733,54",
+   "delta": "−1,48% em 24/11",
+   "tom": "atencao",
+   "cor": "atencao",
+   "serie": [
+    25136.27,
+    24509.76,
+    24328.06,
+    24429.88,
+    23879.2,
+    22617.73,
+    24089.56,
+    23733.54
+   ],
+   "faixa": [
+    22000,
+    25500
+   ],
+   "nota": "A volatilidade do índice pede olhar para funding e exposição ao mercado de capitais em cada empresa.",
+   "fonte": "Investing.com · Nasdaq Composite",
+   "fonteUrl": "https://br.investing.com/indices/nasdaq-composite-historical-data"
   }
- ]
+ ],
+ "historicoMedido": false,
+ "metodo": "Indicadores com data e fonte. As notas de clima são avaliações da Velora para prospecção B2B, com pesos de 40% macro, 45% setorial e 15% notícias. Generalistas seguem o macro."
 }

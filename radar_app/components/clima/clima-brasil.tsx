@@ -28,7 +28,6 @@ export function ClimaBrasil({ clima }: { clima: Clima }) {
         <path d={arco(-1, ruim, 110)} fill="none" stroke="var(--vr-risk)" strokeWidth={16} opacity={0.8} />
         <path d={arco(ruim, bom, 110)} fill="none" stroke="var(--vr-border-strong)" strokeWidth={16} />
         <path d={arco(bom, 1, 110)} fill="none" stroke="var(--vr-ok)" strokeWidth={16} opacity={0.8} />
-        <path d={arco(S - 0.14, S + 0.14, 92)} fill="none" stroke="var(--vr-warm)" strokeWidth={4} strokeDasharray="3 4" />
         <line x1={140} y1={140} x2={gx(ang(S), 96).toFixed(1)} y2={gy(ang(S), 96).toFixed(1)} stroke="var(--vr-text)" strokeWidth={3} strokeLinecap="round" />
         <circle cx={140} cy={140} r={7} fill="var(--vr-text)" />
         <text x={24} y={156} className="vr-data fill-text-3 text-[11px]">−1</text>
@@ -36,12 +35,14 @@ export function ClimaBrasil({ clima }: { clima: Clima }) {
       </svg>
       <div className="flex items-baseline gap-2.5">
         <span className="vr-data text-4xl font-semibold">{fmtClima(S)}</span>
-        <span className="text-sm text-text-3">
-          {brasil.delta30 < 0 ? '↘' : '↗'} {fmtClima(brasil.delta30)} em 30 dias
-        </span>
+        {clima.dados.historicoMedido !== false && (
+          <span className="text-sm text-text-3">
+            {brasil.delta30 < 0 ? '↘' : '↗'} {fmtClima(brasil.delta30)} em 30 dias
+          </span>
+        )}
       </div>
       <p className="text-sm text-text-2">{brasil.nota}</p>
-      <div className="mt-1.5 grid grid-cols-2 gap-3 border-t border-border pt-3">
+      {clima.dados.historicoMedido !== false && <div className="mt-1.5 grid grid-cols-2 gap-3 border-t border-border pt-3">
         <div>
           <div className="text-xs text-text-3">Fator de clima m</div>
           <div className="vr-data text-xl">{brasil.fatorClima.toFixed(2).replace('.', ',')}</div>
@@ -52,7 +53,7 @@ export function ClimaBrasil({ clima }: { clima: Clima }) {
             {brasil.contasEmMercadoTri} <span className="text-xs text-text-3">(base {brasil.baseEmMercado})</span>
           </div>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
@@ -81,7 +82,9 @@ function CartaoIndicador({ t, contas }: { t: Indicador; contas: Conta[] }) {
         </svg>
       )}
       <div className="text-xs text-text-2">{t.nota}</div>
-      <div className="text-[11px] text-text-3">{t.fonte}</div>
+      <div className="text-[11px] text-text-3">
+        {t.fonteUrl ? <a href={t.fonteUrl} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-foreground">{t.fonte}</a> : t.fonte}
+      </div>
       <div className="mt-auto">
         <SetoresImpactados t={t} contas={contas} />
       </div>
@@ -93,11 +96,11 @@ function CartaoIndicador({ t, contas }: { t: Indicador; contas: Conta[] }) {
 export function Indicadores({ clima }: { clima: Clima }) {
   const { indicadores, agenda } = clima.dados;
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
+    <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2 xl:grid-cols-3">
       {indicadores.map(t => (
         <CartaoIndicador key={t.rotulo} t={t} contas={clima.contas} />
       ))}
-      <div className="vr-card flex flex-wrap items-center gap-x-6 gap-y-2.5 px-4 py-3.5 sm:col-span-2">
+      <div className="vr-card flex flex-wrap items-center gap-x-6 gap-y-2.5 px-4 py-3.5 sm:col-span-full">
         <span className="text-xs font-bold tracking-[0.06em] text-text-2 uppercase">Agenda</span>
         {agenda.map(g => (
           <span key={g.t} className="inline-flex items-center gap-2 text-sm">
@@ -110,7 +113,7 @@ export function Indicadores({ clima }: { clima: Clima }) {
   );
 }
 
-/** Política e bolsa: eleições no Brasil e nos EUA e o que fizeram com a bolsa e o dólar. */
+/** Eventos fiscais e fechamento dos mercados. */
 export function PoliticaBolsa({ clima }: { clima: Clima }) {
   const itens = clima.dados.politicaBolsa ?? [];
   if (!itens.length) return null;
@@ -121,7 +124,7 @@ export function PoliticaBolsa({ clima }: { clima: Clima }) {
           Política e bolsa
         </h2>
         <p className="mt-0.5 text-sm text-text-3">
-          Eleições no Brasil e nos EUA e a reação dos mercados. Entram no clima de cada vertical como os blocos Política e Bolsa.
+          Decisões fiscais e movimentos de bolsa e câmbio que podem influenciar orçamento e custo de capital.
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

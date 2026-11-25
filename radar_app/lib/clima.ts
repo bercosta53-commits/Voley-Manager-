@@ -7,8 +7,8 @@ import { diasEntre } from './utils';
  * Nível S de cada vertical = 0,40 × macro + 0,45 × driver setorial + 0,15 × notícias; o macro é a média dos
  * z-scores dos blocos (juros, inflação, câmbio…) ponderada pela sensibilidade da vertical a cada um. A
  * Generalista segue só o macro (é o "Clima Brasil"). Estados: Bom ≥ +0,25, Ruim ≤ −0,25, Neutro entre os
- * dois; Instável é marcado pelo motor quando a direção é incerta. Os parâmetros por vertical vêm de
- * data/clima.json (simulados até o motor rodar); contas, tier e VSCS vêm da base.
+ * dois; Instável indica sinais divergentes. O arquivo data/clima.json guarda a avaliação editorial;
+ * contas, tier e VSCS vêm da base.
  */
 
 export type EstadoClima = 'Bom' | 'Neutro' | 'Ruim' | 'Instável';
@@ -47,13 +47,18 @@ export interface Indicador {
   faixa: [number, number];
   nota: string;
   fonte: string;
+  fonteUrl?: string;
   setores?: SetorImpactado[];
 }
+
+interface FonteClima { nome: string; url: string }
 
 export interface DadosClima {
   atualizadoEm: string;
   indicadoresEmDia: [number, number];
   simulado: boolean;
+  historicoMedido?: boolean;
+  metodo?: string;
   brasil: { nota: string; delta30: number; estado: EstadoClima; fatorClima: number; contasEmMercadoTri: string; baseEmMercado: string };
   blocos: string[];
   z: number[];
@@ -78,6 +83,8 @@ export interface DadosClima {
     desde: string;
     jogada: string;
     porque: string;
+    acao?: string;
+    fontes?: FonteClima[];
   }[];
 }
 
@@ -100,6 +107,7 @@ export interface Vertical {
   jogada: string;
   jogadaTexto: string;
   porque: string;
+  fontes?: FonteClima[];
   /** da base */
   contas: number;
   tierA: number;
@@ -136,9 +144,13 @@ export function estadoNaSemana(s: number, v: Pick<Vertical, 'estado' | 'S'>, sem
 }
 
 export function calcularClima(dados: DadosClima, base: Base): Clima {
-  const hoje = base.geradoEm;
+  const dataClima = dados.atualizadoEm.slice(0, 10);
+  const hoje = dataClima > base.geradoEm ? dataClima : base.geradoEm;
   const crescendo = new Set(
-    base.sinais.filter(s => s.categoria && CATEGORIAS_CRESCIMENTO.has(s.categoria) && diasEntre(s.data, hoje) <= 30).map(s => s.contaId),
+    base.sinais.filter(s => {
+      const dias = diasEntre(s.data, hoje);
+      return s.categoria && CATEGORIAS_CRESCIMENTO.has(s.categoria) && dias >= 0 && dias <= 30;
+    }).map(s => s.contaId),
   );
   const contasDe = (codigos: string[]) => base.contas.filter(c => codigos.includes(c.especializacao?.codigo ?? 'GEN'));
 
@@ -165,8 +177,9 @@ export function calcularClima(dados: DadosClima, base: Base): Clima {
       confianca: r.confianca,
       desde: r.desde,
       jogada: r.jogada,
-      jogadaTexto: dados.jogadas[r.jogada] ?? '',
+      jogadaTexto: r.acao ?? dados.jogadas[r.jogada] ?? '',
       porque: r.porque,
+      fontes: r.fontes,
       contas: cs.length,
       tierA: cs.filter(c => c.tier === 'A').length,
       quentes: [...cs]
@@ -176,6 +189,7 @@ export function calcularClima(dados: DadosClima, base: Base): Clima {
       contraMare: ruimOuInstavel ? cs.filter(c => crescendo.has(c.id)).length : 0,
       // história semanal reconstruída do nível e da direção (simulada até o motor gravar o histórico)
       serie(semanas: number) {
+        if (dados.historicoMedido === false) return [];
         const out: number[] = [];
         for (let t = 0; t < semanas; t++) {
           const atras = semanas - 1 - t;

@@ -154,7 +154,7 @@ export function LinhaTempoClima({ clima, periodo, onPeriodo }: { clima: Clima; p
   );
 }
 
-type Chave = 'nome' | 'estado' | 'S' | 'delta30' | 'contas' | 'contraMare';
+type Chave = 'nome' | 'estado' | 'S' | 'delta30' | 'setorial' | 'contas' | 'contraMare';
 const ORDEM_ESTADO = ['Bom', 'Neutro', 'Instável', 'Ruim'];
 
 /** Relatório por vertical, ordenável pelo cabeçalho. */
@@ -171,11 +171,13 @@ export function TabelaVerticais({
   onOrdem: (o: { chave: Chave; dir: 1 | -1 }) => void;
   onSel: (id: string) => void;
 }) {
+  const temHistorico = clima.dados.historicoMedido !== false;
   const chaves: Record<Chave, (v: Vertical) => string | number> = {
     nome: v => v.nome,
     estado: v => ORDEM_ESTADO.indexOf(v.estado),
     S: v => -v.S,
     delta30: v => -v.delta30,
+    setorial: v => -v.setorial,
     contas: v => -v.contas,
     contraMare: v => -v.contraMare,
   };
@@ -189,18 +191,18 @@ export function TabelaVerticais({
     ['nome', 'Vertical', 'left'],
     ['estado', 'Clima', 'left'],
     ['S', 'Nível S', 'right'],
-    ['delta30', 'Δ 30d', 'right'],
-    [null, 'Últimas 26 semanas', 'left'],
+    temHistorico ? ['delta30', 'Δ 30d', 'right'] : ['setorial', 'Setorial', 'right'],
     [null, 'Por quê', 'left'],
     ['contas', 'Contas', 'right'],
     ['contraMare', 'Contra a maré', 'right'],
     [null, 'Jogada', 'left'],
   ];
+  if (temHistorico) cols.splice(4, 0, [null, 'Últimas 26 semanas', 'left']);
   return (
     <section aria-labelledby="tab-t" className="vr-card flex flex-col gap-3 p-5">
       <Cabecalho id="tab-t" titulo="Relatório por vertical" texto='Clique no cabeçalho para ordenar. "Contra a maré" = contas com fato de crescimento em vertical Ruim ou Instável.' />
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px] border-collapse text-sm">
+        <table className="w-full min-w-[900px] border-collapse text-sm">
           <thead>
             <tr>
               {cols.map(([k, r, al]) => (
@@ -220,8 +222,7 @@ export function TabelaVerticais({
           </thead>
           <tbody>
             {linhas.map(v => {
-              const ss = v.serie(26);
-              const sp = ss.map((x, i) => `${i ? 'L' : 'M'}${((i * 120) / 25).toFixed(1)} ${(14 - x * 20).toFixed(1)}`).join(' ');
+              const avaliacao = temHistorico ? v.delta30 : v.setorial;
               return (
                 <tr key={v.id} className={cn('border-b border-border', sel === v.id && 'bg-acid-soft')}>
                   <td className="px-2 py-2.5">
@@ -235,15 +236,15 @@ export function TabelaVerticais({
                     </span>
                   </td>
                   <td className="vr-data px-2 py-2.5 text-right">{fmtClima(v.S)}</td>
-                  <td className="vr-data px-2 py-2.5 text-right" style={{ color: v.delta30 >= 0 ? 'var(--vr-ok)' : 'var(--vr-risk)' }}>
-                    {fmtClima(v.delta30)}
+                  <td className="vr-data px-2 py-2.5 text-right" style={{ color: avaliacao > 0 ? 'var(--vr-ok)' : avaliacao < 0 ? 'var(--vr-risk)' : undefined }}>
+                    {fmtClima(avaliacao)}
                   </td>
-                  <td className="px-2 py-1.5">
+                  {temHistorico && <td className="px-2 py-1.5">
                     <svg viewBox="0 0 120 28" width={120} height={28} aria-hidden>
                       <line x1={0} y1={14} x2={120} y2={14} stroke="var(--vr-border)" />
-                      <path d={sp} fill="none" stroke={COR_CLIMA[v.estado]} strokeWidth={1.75} />
+                      <path d={v.serie(26).map((x, i) => `${i ? 'L' : 'M'}${((i * 120) / 25).toFixed(1)} ${(14 - x * 20).toFixed(1)}`).join(' ')} fill="none" stroke={COR_CLIMA[v.estado]} strokeWidth={1.75} />
                     </svg>
-                  </td>
+                  </td>}
                   <td className="max-w-[320px] px-2 py-2.5 text-text-2">{v.porque}</td>
                   <td className="vr-data px-2 py-2.5 text-right">{v.contas}</td>
                   <td className={cn('vr-data px-2 py-2.5 text-right', v.contraMare > 0 ? 'font-semibold text-foreground' : 'text-text-3')}>{v.contraMare}</td>
