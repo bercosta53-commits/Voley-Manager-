@@ -13,9 +13,7 @@ import { LinhaTempoClima, MapaCalor, TabelaVerticais, type Chave } from './detal
 
 function quando(iso: string) {
   const d = new Date(iso);
-  // fuso fixo: o servidor da Vercel roda em UTC e o navegador em Brasília; sem isso a hora diverge (erro de hidratação)
-  const tz = 'America/Sao_Paulo';
-  return `${d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: tz })}, ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: tz })}`;
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' });
 }
 
 /**
@@ -32,12 +30,14 @@ export function TelaClima({ base, dados }: { base: Base; dados: DadosClima }) {
   const [periodo, setPeriodo] = useState(26);
   const [ordem, setOrdem] = useState<{ chave: Chave; dir: 1 | -1 }>({ chave: 'S', dir: 1 });
   const vertical = clima.verticais.find(v => v.id === sel) ?? clima.verticais[0]!;
+  const temHistorico = dados.historicoMedido !== false;
+  const metodo = dados.metodo ?? (dados.simulado ? 'Protótipo com notas e histórico por vertical simulados.' : null);
 
   const exportar = () =>
     baixarCsv(
-      `clima-por-vertical-${base.geradoEm}.csv`,
-      ['Vertical', 'Códigos', 'Clima', 'Nível S', 'Δ 30 dias', 'Confiança', 'Desde', 'Por quê', 'Contas', 'Tier A', 'Contra a maré', 'Jogada'],
-      clima.verticais.map(v => [v.nome, v.codigos.join('+'), v.estado, fmtClima(v.S), fmtClima(v.delta30), v.confianca, v.desde, v.porque, v.contas, v.tierA, v.contraMare, v.jogada]),
+      `clima-por-vertical-${dados.atualizadoEm.slice(0, 10)}.csv`,
+      ['Vertical', 'Códigos', 'Clima', 'Nível S', 'Δ 30 dias', 'Confiança', temHistorico ? 'Desde' : 'Revisão', 'Por quê', 'Contas', 'Tier A', 'Contra a maré', 'Jogada', 'Ação recomendada', 'Fontes'],
+      clima.verticais.map(v => [v.nome, v.codigos.join('+'), v.estado, fmtClima(v.S), temHistorico ? fmtClima(v.delta30) : '', v.confianca, v.desde, v.porque, v.contas, v.tierA, v.contraMare, v.jogada, v.jogadaTexto, v.fontes?.map(f => f.url).join(' | ') ?? '']),
     );
 
   return (
@@ -48,7 +48,7 @@ export function TelaClima({ base, dados }: { base: Base; dados: DadosClima }) {
             <h1 className="font-display text-2xl font-semibold tracking-tight">Clima</h1>
             <p className="mt-1 text-sm text-text-2">O mercado está abrindo ou fechando janelas para o seu ICP — e para quais contas.</p>
             <p className="mt-1 text-xs text-text-3">
-              Clima atualizado {quando(dados.atualizadoEm)} · {dados.indicadoresEmDia[0]} de {dados.indicadoresEmDia[1]} indicadores em dia
+              Edição de {quando(dados.atualizadoEm)} · {dados.indicadoresEmDia[0]} indicadores com fonte
             </p>
           </div>
           <div className="flex flex-wrap gap-2 print:hidden">
@@ -61,13 +61,10 @@ export function TelaClima({ base, dados }: { base: Base; dados: DadosClima }) {
           </div>
         </div>
 
-        {dados.simulado && (
+        {metodo && (
           <div role="note" className="flex items-center gap-2.5 rounded-card border px-3.5 py-2.5 text-sm" style={{ background: 'var(--vr-warm-bg)', borderColor: 'color-mix(in srgb, var(--vr-warm) 35%, transparent)', color: 'var(--vr-text)' }}>
             <CircleAlert className="size-4 shrink-0 text-warm" strokeWidth={2} />
-            <span>
-              Protótipo: Selic, IIE-Br, TI 2026, VC, eleições, Ibovespa, dólar e Nasdaq são dados de nov/2026 com fonte; contas e VSCS vêm da base. As pontuações de clima por
-              vertical (inclusive o peso de política e bolsa em cada uma) são simuladas até o motor de clima rodar.
-            </span>
+            <span>{metodo}</span>
           </div>
         )}
 
@@ -84,7 +81,7 @@ export function TelaClima({ base, dados }: { base: Base; dados: DadosClima }) {
         </section>
 
         <MapaCalor clima={clima} sel={sel} modo={modo} onModo={setModo} onSel={setSel} />
-        <LinhaTempoClima clima={clima} periodo={periodo} onPeriodo={setPeriodo} />
+        {temHistorico && <LinhaTempoClima clima={clima} periodo={periodo} onPeriodo={setPeriodo} />}
         <TabelaVerticais clima={clima} sel={sel} ordem={ordem} onOrdem={setOrdem} onSel={setSel} />
       </main>
     </Casca>
