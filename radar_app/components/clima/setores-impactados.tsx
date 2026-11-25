@@ -6,7 +6,7 @@ import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import type { Conta } from '@/lib/tipos';
 import { contasDoSetor, type Indicador, type SetorImpactado } from '@/lib/clima';
 import { hrefConta } from '@/lib/contas';
-import { cn } from '@/lib/utils';
+import { cn, pontos } from '@/lib/utils';
 import { PainelFlutuante } from '@/components/ui/painel-flutuante';
 import { LogoConta } from '@/components/hoje/logo-conta';
 import { COR_STATUS_VSCS } from '@/components/ui/selo-vscs';
@@ -76,7 +76,7 @@ export function SetoresImpactados({ t, contas }: { t: Indicador; contas: Conta[]
                       </span>
                     </span>
                     {c.vscsStatus && <span className={cn('hidden rounded-chip px-1.5 py-0.5 text-[10px] sm:inline', COR_STATUS_VSCS[c.vscsStatus])}>{c.vscsStatus}</span>}
-                    <span className="vr-data w-8 text-right text-sm font-semibold">{c.score}</span>
+                    <span className="vr-data w-8 text-right text-sm font-semibold">{pontos(c.score)}</span>
                   </Link>
                 </li>
               ))}

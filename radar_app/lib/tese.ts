@@ -24,7 +24,7 @@ export interface Tese {
   evidencias: Evidencia[];
   /** fatos da conta nos 90 dias até a data de referência */
   fatos90d: number;
-  quem: { nome: string; cargo: string; papel?: PapelAbm; origem: 'sinal' | 'comite'; statusValidacao?: string; bloqueado: boolean } | null;
+  quem: { nome: string; cargo: string; papel?: PapelAbm; origem: 'sinal' | 'comite'; statusValidacao?: string; bloqueado: boolean; liberado: boolean } | null;
   comite: { pessoas: number; faltando: string[] };
   /** 'base' = acaoRecomendada gravada pelo motor; 'matriz' = derivada da matriz ICP × VSCS porque a base ainda não traz */
   acao: { titulo: string; texto: string; abordar: boolean; origem?: 'base' | 'matriz' | 'andamento' };
@@ -75,6 +75,33 @@ const ORDEM_PAPEL: PapelAbm[] = ['decisor', 'assina_cheque', 'dono_da_dor', 'inf
 /** Contato que a auditoria da inteligência bloqueou: não é sugerido primeiro, e aparece sinalizado. */
 export const contatoBloqueado = (p: Pick<Pessoa, 'statusValidacao'>) => !!p.statusValidacao?.toUpperCase().startsWith('BLOQUEADO');
 
+/**
+ * Lista de liberados da inteligência (adendo v2, 25/11): só APTO_HISTORICO conta como liberado para contato.
+ * Liberado não significa e-mail entregável hoje nem autorização jurídica irrestrita.
+ */
+export const contatoLiberado = (p: Pick<Pessoa, 'statusValidacao'>) => p.statusValidacao?.toUpperCase() === 'APTO_HISTORICO';
+
+/** Ordem de preferência para sugerir: liberado, depois sem status ou pendente de validação, por último bloqueado. */
+const prioridadeContato = (p: Pick<Pessoa, 'statusValidacao'>) => (contatoLiberado(p) ? 0 : contatoBloqueado(p) ? 2 : 1);
+
+const ROTULO_VALIDACAO: Record<string, string> = {
+  APTO_HISTORICO: 'contato liberado',
+  APTO_HISTORICO_COM_ALERTA: 'liberado com alerta: revisar antes',
+  VALIDAR_EMAIL_EXISTENTE: 'validar o e-mail antes',
+  VALIDAR_EMAIL_NOVO: 'validar o e-mail novo antes',
+  VERIFICAR_CATCH_ALL: 'e-mail catch-all: verificar antes',
+  RECONFIRMAR_VINCULO: 'reconfirmar se ainda está na empresa',
+  CHECAR_LINKEDIN_E_CARGO: 'checar LinkedIn e cargo antes',
+  PESQUISAR_OU_REVISAR_LINKEDIN: 'revisar o LinkedIn antes',
+  CONFIRMAR_LINKEDIN_NOVO: 'confirmar o LinkedIn novo antes',
+  REVISAR_EMAIL_NOVO_VINCULO: 'revisar o e-mail do novo vínculo',
+  PESQUISAR_EMAIL: 'e-mail ainda não encontrado',
+  BLOQUEADO_AGUARDA_AUDITORIA: 'contato bloqueado até a auditoria',
+};
+
+/** O status de validação em linguagem de quem vai abordar; status desconhecido aparece como veio. */
+export const rotuloValidacao = (status?: string) => (status ? (ROTULO_VALIDACAO[status.toUpperCase()] ?? status.toLowerCase().replace(/_/g, ' ')) : undefined);
+
 const dia = (iso: string) => Date.parse(iso.slice(0, 10) + 'T12:00:00Z') / 86_400_000;
 const normal = (t: string) => t.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
 
@@ -121,14 +148,15 @@ export function teseDaConta(conta: Conta, sinais: Sinal[], dep: DependenciasTese
       origem: 'sinal',
       statusValidacao: doComite?.statusValidacao,
       bloqueado: !!doComite && contatoBloqueado(doComite),
+      liberado: !!doComite && contatoLiberado(doComite),
     };
   } else {
-    // sem nome no fato: o papel mais próximo da decisão, mas nunca um contato bloqueado antes de um liberado
+    // sem nome no fato: primeiro um contato liberado, depois pendente, por último bloqueado; dentro de cada grupo, o papel mais próximo da decisão
     const ordenado = [...conta.comite].sort(
-      (a, b) => Number(contatoBloqueado(a)) - Number(contatoBloqueado(b)) || ORDEM_PAPEL.indexOf(dep.papelDe(a)) - ORDEM_PAPEL.indexOf(dep.papelDe(b)),
+      (a, b) => prioridadeContato(a) - prioridadeContato(b) || ORDEM_PAPEL.indexOf(dep.papelDe(a)) - ORDEM_PAPEL.indexOf(dep.papelDe(b)),
     );
     const p = ordenado[0];
-    if (p) quem = { nome: p.nome, cargo: p.cargo, papel: dep.papelDe(p), origem: 'comite', statusValidacao: p.statusValidacao, bloqueado: contatoBloqueado(p) };
+    if (p) quem = { nome: p.nome, cargo: p.cargo, papel: dep.papelDe(p), origem: 'comite', statusValidacao: p.statusValidacao, bloqueado: contatoBloqueado(p), liberado: contatoLiberado(p) };
   }
 
   let acao: Tese['acao'];

@@ -5,7 +5,7 @@ import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { Archive, CalendarClock, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
 import type { Base, EstadoSinal, Sinal, StatusVscs } from '@/lib/tipos';
-import { cn, dataCurta, dataLonga, plural, somarDias } from '@/lib/utils';
+import { cn, dataCurta, dataLonga, plural, somarDias, pontos } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/ui/kbd';
 import { PainelFlutuante } from '@/components/ui/painel-flutuante';
@@ -279,7 +279,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
             return (
               <section aria-label={`Score de ${c.nome}`} className="vr-card mt-4 p-5">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="text-sm font-semibold">Por que {c.nome} está com {c.score}</h2>
+                  <h2 className="text-sm font-semibold">Por que {c.nome} está com {pontos(c.score)}</h2>
                   <SeloVscs status={c.vscsStatus} acao={c.acaoRecomendada} className="flex-row! items-center! gap-2!" />
                 </div>
                 <Decomposicao conta={c} />

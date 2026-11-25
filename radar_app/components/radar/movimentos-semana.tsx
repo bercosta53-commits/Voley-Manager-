@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import type { Base, Conta, Sinal } from '@/lib/tipos';
 import { CATEGORIA_ROTULO_CURTO } from '@/lib/papeis';
-import { cn, diasEntre, plural } from '@/lib/utils';
+import { cn, diasEntre, plural, pontos } from '@/lib/utils';
 import { LogoConta } from '@/components/hoje/logo-conta';
 import { COR_STATUS_VSCS } from '@/components/ui/selo-vscs';
 
@@ -101,7 +101,7 @@ function Lista({ titulo, itens, vazio, onAbrir }: { titulo: string; itens: Movim
                 {conta.vscsStatus && <span className={cn('rounded-chip px-1 text-xs', COR_STATUS_VSCS[conta.vscsStatus])}>{conta.vscsStatus}</span>}
                 <span className={cn('vr-data flex items-center justify-end gap-0.5 font-semibold', delta > 0 ? 'text-warm' : 'text-cool')}>
                   {delta > 0 ? <ArrowUpRight className="size-3" strokeWidth={2} /> : <ArrowDownRight className="size-3" strokeWidth={2} />}
-                  {Math.abs(delta)}
+                  {pontos(Math.abs(delta))}
                 </span>
               </button>
             </li>

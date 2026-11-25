@@ -13,7 +13,7 @@ import { SeloQualificada } from '@/components/ui/selo-qualificada';
 import { baixarCsv } from '@/lib/exportar-csv';
 import { SeloVscs } from '@/components/ui/selo-vscs';
 import { PerfilContas } from './perfil-contas';
-import { cn, plural, quando } from '@/lib/utils';
+import { cn, plural, quando, pontos } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Casca } from '@/components/casca/casca';
@@ -435,13 +435,13 @@ function ScoreLinha({ conta }: { conta: Conta }) {
   const cor = s === 'sobe' ? 'text-warm' : s === 'desce' ? 'text-cool' : 'text-text-3';
   const Seta = s === 'sobe' ? ArrowUpRight : s === 'desce' ? ArrowDownRight : Minus;
   return (
-    <div className="flex items-center justify-end gap-2.5" role="img" aria-label={`Score ${conta.score}, ${s === 'sobe' ? 'esquentando' : s === 'desce' ? 'esfriando' : 'estável'}`}>
+    <div className="flex items-center justify-end gap-2.5" role="img" aria-label={`Score ${pontos(conta.score)}, ${s === 'sobe' ? 'esquentando' : s === 'desce' ? 'esfriando' : 'estável'}`}>
       <Curva serie={conta.serie} largura={44} altura={18} classe={cn(cor, 'max-md:hidden')} />
       <span className={cn('vr-data flex w-9 items-center justify-end gap-0.5 text-xs', cor)}>
         <Seta className="size-3" strokeWidth={1.5} />
-        {s === 'estavel' ? '0' : Math.abs(conta.tendencia)}
+        {s === 'estavel' ? '0' : pontos(Math.abs(conta.tendencia))}
       </span>
-      <span className="w-8 text-right font-display text-md font-semibold tabular-nums">{conta.score}</span>
+      <span className="w-8 text-right font-display text-md font-semibold tabular-nums">{pontos(conta.score)}</span>
     </div>
   );
 }

@@ -11,7 +11,7 @@ import { gancho, rascunho } from '@/lib/mensagem';
 import { papelNoComite } from '@/lib/papeis';
 import { ACAO_DO_ANDAMENTO, teseDaConta } from '@/lib/tese';
 import { TeseConta } from './tese';
-import { cn, dataComAno, dataCurta, moeda, plural, somarDias } from '@/lib/utils';
+import { cn, dataComAno, dataCurta, moeda, plural, somarDias, pontos } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PainelFlutuante } from '@/components/ui/painel-flutuante';
@@ -171,7 +171,7 @@ function Detalhe({
       <PainelFlutuante
         aberto={decompor}
         onFechar={() => setDecompor(false)}
-        titulo={`Score ${conta.score}: de onde vem`}
+        titulo={`Score ${pontos(conta.score)}: de onde vem`}
         descricao="Quanto cada coisa soma hoje. Cada sinal perde metade do valor a cada 60 dias."
       >
         <Decomposicao conta={conta} ficticia={ficticia} />
@@ -185,11 +185,11 @@ function ScoreGrande({ conta, onAbrir }: { conta: Conta; onAbrir: () => void }) 
   const s = sentido(conta.tendencia);
   const cor = s === 'sobe' ? 'text-warm' : s === 'desce' ? 'text-cool' : 'text-text-3';
   const Seta = s === 'sobe' ? ArrowUpRight : s === 'desce' ? ArrowDownRight : Minus;
-  const texto = s === 'sobe' ? `esquentando, +${conta.tendencia} em 30 dias` : s === 'desce' ? `esfriando, −${Math.abs(conta.tendencia)} em 30 dias` : 'estável em 30 dias';
+  const texto = s === 'sobe' ? `esquentando, +${pontos(conta.tendencia)} em 30 dias` : s === 'desce' ? `esfriando, −${pontos(Math.abs(conta.tendencia))} em 30 dias` : 'estável em 30 dias';
   return (
     <button
       onClick={onAbrir}
-      aria-label={`Score ${conta.score}, ${texto}. Ver de onde vem`}
+      aria-label={`Score ${pontos(conta.score)}, ${texto}. Ver de onde vem`}
       className="vr-card flex items-center gap-5 px-5 py-4 text-left transition-[box-shadow,border-color] duration-[var(--vr-dur-hover)] hover:border-border-strong hover:shadow-2"
     >
       <div className="flex flex-col">
@@ -200,10 +200,10 @@ function ScoreGrande({ conta, onAbrir }: { conta: Conta; onAbrir: () => void }) 
         </span>
       </div>
       <div className="flex flex-col items-end">
-        <span className="font-display text-score leading-none font-semibold tracking-tight tabular-nums">{conta.score}</span>
+        <span className="font-display text-score leading-none font-semibold tracking-tight tabular-nums">{pontos(conta.score)}</span>
         <span className={cn('mt-1 flex items-center gap-0.5 text-xs', cor)}>
           <Seta className="size-3.5" strokeWidth={1.5} />
-          <span className="vr-data">{s === 'estavel' ? '0' : `${conta.tendencia > 0 ? '+' : '−'}${Math.abs(conta.tendencia)}`}</span>
+          <span className="vr-data">{s === 'estavel' ? '0' : `${conta.tendencia > 0 ? '+' : '−'}${pontos(Math.abs(conta.tendencia))}`}</span>
           <span className="ml-1 text-text-3">30 dias</span>
         </span>
         {conta.vscsStatus && (
@@ -309,7 +309,7 @@ function ProximaAcao({
         <p className="mt-2 text-md font-semibold">{acao}</p>
         <p className="mt-1 text-sm text-text-2">{corpo[acao] ?? conta.v2?.frase}</p>
         <p className="mt-2 text-sm text-text-3">
-          VSCS {conta.score} · {conta.vscsStatus}
+          VSCS {pontos(conta.score)} · {conta.vscsStatus}
           {conta.icp?.tier && ` · Tier ${conta.icp.tier}`}
         </p>
         <Button variant="ghost" className="mt-3" onClick={() => setMesmoAssim(true)}>

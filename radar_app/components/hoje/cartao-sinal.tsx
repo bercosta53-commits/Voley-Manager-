@@ -4,7 +4,7 @@ import { forwardRef } from 'react';
 import { motion, useMotionValue, useReducedMotion, useTransform, type PanInfo } from 'motion/react';
 import { Archive, CalendarClock, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
 import type { Conta, EstadoSinal, Sinal } from '@/lib/tipos';
-import { cn, dataCurta, diasEntre, quando } from '@/lib/utils';
+import { cn, dataCurta, diasEntre, quando, pontos } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/ui/kbd';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -197,7 +197,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
             </div>
             <p className="mt-0.5 truncate text-sm text-text-3">{[conta.ramoTI?.nome ?? primeiraMaiuscula(conta.segmento), conta.uf].filter(Boolean).join(' · ')}</p>
           </div>
-          <ScoreTendencia score={conta.score} tendencia={conta.tendencia} serie={conta.serie} status={conta.vscsStatus} compacto />
+          <ScoreTendencia score={pontos(conta.score)} tendencia={conta.tendencia} serie={conta.serie} status={conta.vscsStatus} compacto />
         </header>
 
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_280px] md:gap-6">

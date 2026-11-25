@@ -4,7 +4,7 @@ import Link from 'next/link';
 import type { Clima, EstadoClima, Vertical } from '@/lib/clima';
 import { COR_CLIMA, ESTADOS_CLIMA, FUNDO_CLIMA, ICONE_CLIMA, estadoNaSemana, fmtClima } from '@/lib/clima';
 import { hrefConta } from '@/lib/contas';
-import { cn, dataCurta } from '@/lib/utils';
+import { cn, dataCurta, pontos } from '@/lib/utils';
 import { LogoConta } from '@/components/hoje/logo-conta';
 
 const xs = (s: number) => 400 + (Math.max(-0.7, Math.min(0.7, s)) / 0.7) * 320;
@@ -261,7 +261,7 @@ export function PainelVertical({ clima, v }: { clima: Clima; v: Vertical }) {
             </span>
             <span className="flex items-center gap-2.5">
               <span className="text-[11px] text-text-3">Tier {c.tier}</span>
-              <span className="vr-data min-w-7 text-right text-sm">{c.score}</span>
+              <span className="vr-data min-w-7 text-right text-sm">{pontos(c.score)}</span>
             </span>
           </Link>
         ))}

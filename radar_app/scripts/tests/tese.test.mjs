@@ -49,7 +49,7 @@ test('as seis respostas com uma conta completa', () => {
 test('pessoa nomeada no sinal tem prioridade e ganha o papel do comitê', () => {
   const s = sinal('s1', '2026-11-20', 30, { abordar: { nome: 'bia souza', cargo: 'CEO', papel: 'decisor' } });
   const t = teseDaConta(conta(), [s], dep());
-  assert.deepEqual(t.quem, { nome: 'bia souza', cargo: 'CEO', papel: 'assina_cheque', origem: 'sinal', statusValidacao: undefined, bloqueado: false });
+  assert.deepEqual(t.quem, { nome: 'bia souza', cargo: 'CEO', papel: 'assina_cheque', origem: 'sinal', statusValidacao: undefined, bloqueado: false, liberado: false });
 });
 
 test('evidência junta as fontes do mesmo fato sem repetir link e ignora fonte sem link', () => {
@@ -150,4 +150,14 @@ test('andamento do time decide a próxima ação depois do contato', () => {
   // "abordado" sem fato aberto: acompanhar; com fato aberto, a matriz continua valendo
   assert.equal(teseDaConta(conta(), s, dep({ aberto: () => false, andamento: { status: 'abordado', em: '2026-11-24', por: 'x' } })).acao.titulo, 'Acompanhar a abordagem');
   assert.equal(teseDaConta(conta(), s, dep({ andamento: { status: 'abordado', em: '2026-11-24', por: 'x' } })).acao.titulo, 'ABM personalizado');
+});
+
+test('lista de liberados (adendo v2): APTO_HISTORICO vem antes de um papel melhor ainda pendente', async () => {
+  const { rotuloValidacao } = await import('../../lib/tese.ts');
+  const c = contaReal();
+  c.comite.push({ nome: 'Eva Mkt', cargo: 'Gerente de Marketing', area: 'marketing', papel: 'influenciador', fonte: 'x', statusValidacao: 'APTO_HISTORICO' });
+  const t = teseDaConta(c, [sinal('s1', '2026-11-23', 32)], depReal());
+  assert.deepEqual([t.quem.nome, t.quem.liberado, t.quem.bloqueado], ['Eva Mkt', true, false]);
+  assert.equal(rotuloValidacao('VALIDAR_EMAIL_EXISTENTE'), 'validar o e-mail antes');
+  assert.equal(rotuloValidacao('STATUS_NOVO_QUALQUER'), 'status novo qualquer');
 });

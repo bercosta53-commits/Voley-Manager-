@@ -2,7 +2,8 @@
 
 import { ExternalLink } from 'lucide-react';
 import type { PapelAbm } from '@/lib/tipos';
-import type { Tese } from '@/lib/tese';
+import { rotuloValidacao, type Tese } from '@/lib/tese';
+import { primeiraMaiuscula } from '@/lib/contas';
 import { COR_PAPEL, rotuloPapel } from '@/lib/papeis';
 import { cn, dataCurta, plural } from '@/lib/utils';
 import { SeloQualificada } from '@/components/ui/selo-qualificada';
@@ -114,7 +115,11 @@ export function TeseConta({ tese, nomeConta }: { tese: Tese; nomeConta: string }
                 <Papel papel={quem.papel} />
               </p>
               <p className="mt-0.5 text-xs text-text-3">
-                {quem.bloqueado && <span className="font-medium text-risk">Contato bloqueado até a auditoria · </span>}
+                {quem.statusValidacao && (
+                  <span className={cn('font-medium', quem.bloqueado ? 'text-risk' : quem.liberado ? 'text-ok' : 'text-warm')}>
+                    {primeiraMaiuscula(rotuloValidacao(quem.statusValidacao) ?? '')} ·{' '}
+                  </span>
+                )}
                 {quem.origem === 'sinal' ? 'Citada no fato' : 'Do comitê mapeado'} · {plural(comite.pessoas, 'pessoa', 'pessoas')} no comitê
                 {comite.faltando.length > 0 && ` · falta: ${comite.faltando.map(f => (rotuloPapel(f as PapelAbm) ?? f).toLowerCase()).join(', ')}`}
               </p>

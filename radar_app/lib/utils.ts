@@ -46,6 +46,9 @@ export const iniciais = (nome: string) =>
     .map(p => p[0]!.toUpperCase())
     .join('') || '?';
 
+/** Score na tela: inteiro. O valor gravado pelo motor pode ter casas decimais e é usado exato em filtros e faixas. */
+export const pontos = (n: number) => (Number.isFinite(n) ? Math.round(n) : n);
+
 export const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
 const FORMATO_MOEDA = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });

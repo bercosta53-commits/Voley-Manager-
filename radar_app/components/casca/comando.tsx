@@ -8,7 +8,7 @@ import { ArrowRight, CornerDownLeft, MessageCircleQuestion, Search, UserRound } 
 import type { Base } from '@/lib/tipos';
 import { hrefConta, normalizar } from '@/lib/contas';
 import { aplicar, interpretar, paraUrl } from '@/lib/filtros';
-import { cn, plural } from '@/lib/utils';
+import { cn, plural, pontos } from '@/lib/utils';
 import { Kbd } from '@/components/ui/kbd';
 import { LogoConta } from '@/components/hoje/logo-conta';
 import { useSecoes } from './navegacao';
@@ -94,7 +94,7 @@ export function Comando({ base, aberto, onAberto }: { base: Base; aberto: boolea
         id: c.id,
         grupo: 'Contas',
         titulo: c.nome,
-        detalhe: [c.cidade && `${c.cidade}/${c.uf}`, `score ${c.score}`].filter(Boolean).join(' · '),
+        detalhe: [c.cidade && `${c.cidade}/${c.uf}`, `score ${pontos(c.score)}`].filter(Boolean).join(' · '),
         icone: <LogoConta nome={c.nome} dominio={c.dominio} tamanho={24} />,
         href: hrefConta(c.id),
       });

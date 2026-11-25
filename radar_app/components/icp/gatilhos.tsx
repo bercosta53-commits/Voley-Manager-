@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { BARREIRAS, FAIXAS_CICLO, GATILHOS, type simular } from '@/lib/icp';
 import { hrefConta } from '@/lib/contas';
-import { cn } from '@/lib/utils';
+import { cn, pontos } from '@/lib/utils';
 import { COR_TIER_ICP } from './simulador';
 
 type Linha = ReturnType<typeof simular>['linhas'][number];
@@ -324,7 +324,7 @@ function ContaLinha({ a }: { a: Linha }) {
       <div className={cn('py-1.5 text-right font-bold', borda)} style={{ color: a.tier === 'C' ? 'var(--vr-text-3)' : COR_TIER_ICP[a.tier] }}>
         {a.tier}
       </div>
-      <div className={cn('vr-data py-1.5 text-right', borda)}>{a.conta.score}</div>
+      <div className={cn('vr-data py-1.5 text-right', borda)}>{pontos(a.conta.score)}</div>
     </>
   );
 }
