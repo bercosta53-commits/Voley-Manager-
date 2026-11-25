@@ -13,7 +13,7 @@
     "build:cloudflare": "opennextjs-cloudflare build",
     "smoke": "node scripts/smoke.mjs",
     "jornada": "node scripts/jornada.mjs",
-    "test": "node --experimental-strip-types --test scripts/tests/*.test.mjs",
+    "test": "node --experimental-strip-types --import ./scripts/tests/resolver.mjs --test scripts/tests/*.test.mjs",
     "dados": "python3 scripts/gerar_dados.py",
     "exportar": "bash scripts/exportar_estatico.sh"
   },
