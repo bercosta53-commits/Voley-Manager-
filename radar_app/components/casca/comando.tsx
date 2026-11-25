@@ -11,7 +11,7 @@ import { aplicar, interpretar, paraUrl } from '@/lib/filtros';
 import { cn, plural } from '@/lib/utils';
 import { Kbd } from '@/components/ui/kbd';
 import { LogoConta } from '@/components/hoje/logo-conta';
-import { SECOES } from './navegacao';
+import { useSecoes } from './navegacao';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -50,6 +50,7 @@ export function Comando({ base, aberto, onAberto }: { base: Base; aberto: boolea
     if (!aberto) setQ('');
   }, [aberto]);
 
+  const secoes = useSecoes();
   const sinaisPorConta = useMemo(() => {
     const m = new Map<string, typeof base.sinais>();
     for (const s of base.sinais) m.set(s.contaId, [...(m.get(s.contaId) ?? []), s]);
@@ -69,7 +70,7 @@ export function Comando({ base, aberto, onAberto }: { base: Base; aberto: boolea
           icone: <LogoConta nome={c.nome} dominio={c.dominio} tamanho={24} />,
           href: hrefConta(c.id),
         });
-      for (const s of SECOES) saida.push({ id: s.href, grupo: 'Ir para', titulo: s.rotulo, icone: <s.icone className="size-4" strokeWidth={1.5} />, href: s.href });
+      for (const s of secoes) saida.push({ id: s.href, grupo: 'Ir para', titulo: s.rotulo, icone: <s.icone className="size-4" strokeWidth={1.5} />, href: s.href });
       return saida;
     }
 
@@ -108,10 +109,10 @@ export function Comando({ base, aberto, onAberto }: { base: Base; aberto: boolea
             icone: <UserRound className="size-4" strokeWidth={1.5} />,
             href: hrefConta(c.id),
           });
-    for (const s of SECOES)
+    for (const s of secoes)
       if (casa(s.rotulo)) saida.push({ id: s.href, grupo: 'Ir para', titulo: s.rotulo, icone: <s.icone className="size-4" strokeWidth={1.5} />, href: s.href });
     return saida;
-  }, [q, base.contas, sinaisPorConta]);
+  }, [q, base.contas, sinaisPorConta, secoes]);
 
   useEffect(() => setSel(0), [q]);
   useEffect(() => {

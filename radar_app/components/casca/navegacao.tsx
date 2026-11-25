@@ -13,6 +13,7 @@ import { BotaoTema } from '@/components/hoje/tema';
 import type { Base } from '@/lib/tipos';
 import { useAgora } from '@/components/ui/use-agora';
 import { frescor, rotuloCarga } from '@/lib/frescor';
+import { definirApresentacao, SECOES_FORA_DA_APRESENTACAO, useApresentacao } from '@/components/ui/use-apresentacao';
 
 export const SECOES = [
   { href: '/', rotulo: 'Hoje', icone: Inbox },
@@ -25,6 +26,29 @@ export const SECOES = [
   { href: '/clima', rotulo: 'Clima', icone: CloudSun },
   { href: '/metricas', rotulo: 'Métricas', icone: BarChart3 },
 ] as const;
+
+/** As seções do menu e da busca; no modo apresentação, sem as que ficam fora do roteiro. */
+export function useSecoes() {
+  const apresentacao = useApresentacao();
+  return apresentacao ? SECOES.filter(s => !SECOES_FORA_DA_APRESENTACAO.includes(s.href)) : SECOES;
+}
+
+/** Selo do modo apresentação: avisa que ele está ligado e desliga com um clique. */
+function SeloApresentacao() {
+  const apresentacao = useApresentacao();
+  if (!apresentacao) return null;
+  return (
+    <Tooltip lado="bottom" conteudo="Clima e ICP fora do menu, e-mails mascarados, nota de relevância oculta. Clique para desligar.">
+      <button
+        type="button"
+        onClick={() => definirApresentacao(false)}
+        className="rounded-chip border border-border-strong px-2 py-0.5 text-xs font-medium whitespace-nowrap text-text-2 hover:text-foreground"
+      >
+        Modo apresentação · sair
+      </button>
+    </Tooltip>
+  );
+}
 
 export function useSecaoAtiva() {
   const caminho = usePathname() || '/';
@@ -65,6 +89,7 @@ function AvisoExemplo({ ficticia }: { ficticia: boolean }) {
  */
 export function NavLateral({ base, novos, onBuscar }: { base: Base; novos: number; onBuscar: () => void }) {
   const ativa = useSecaoAtiva();
+  const secoes = useSecoes();
   const contagem: Record<string, number | undefined> = {
     '/': novos || undefined,
     '/contas': base.contas.length,
@@ -109,7 +134,7 @@ export function NavLateral({ base, novos, onBuscar }: { base: Base; novos: numbe
       </div>
 
       <nav aria-label="Seções" className="mt-3 flex flex-col gap-0.5 px-2.5 lg:px-3">
-        {SECOES.map(({ href, rotulo, icone: Icone }) => {
+        {secoes.map(({ href, rotulo, icone: Icone }) => {
           const n = contagem[href];
           return (
             <Link
@@ -150,6 +175,7 @@ export function NavLateral({ base, novos, onBuscar }: { base: Base; novos: numbe
         <div className="mt-2 flex items-center justify-center gap-1 lg:justify-between">
           <span className="hidden lg:inline">
             <AvisoExemplo ficticia={!!base.ficticia} />
+            <SeloApresentacao />
           </span>
           <BotaoTema />
         </div>
@@ -165,6 +191,7 @@ export function TopoCelular({ ficticia, onBuscar }: { ficticia: boolean; onBusca
       <Marca />
       <div className="ml-auto flex items-center gap-1">
         <AvisoExemplo ficticia={ficticia} />
+        <SeloApresentacao />
         <Button variant="ghost" size="icon" onClick={onBuscar} aria-label="Buscar ou perguntar">
           <Search />
         </Button>
@@ -180,8 +207,9 @@ const NO_CELULAR = ['/', '/radar', '/aquisicao', '/contas', '/decisores'];
 export function NavInferior({ novos }: { novos: number }) {
   const ativa = useSecaoAtiva();
   const [mais, setMais] = useState(false);
-  const principais = SECOES.filter(s => NO_CELULAR.includes(s.href));
-  const resto = SECOES.filter(s => !NO_CELULAR.includes(s.href));
+  const secoes = useSecoes();
+  const principais = secoes.filter(s => NO_CELULAR.includes(s.href));
+  const resto = secoes.filter(s => !NO_CELULAR.includes(s.href));
   const restoAtivo = resto.some(s => ativa(s.href));
   const item = 'flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-card text-xs font-medium text-text-3 transition-colors duration-[var(--vr-dur-hover)]';
   return (

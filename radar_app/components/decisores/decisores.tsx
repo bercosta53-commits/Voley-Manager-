@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { MenuFiltro } from '@/components/contas/menu-filtro';
 import { COR_BARRA, COR_PAPEL, PAPEIS } from '@/lib/papeis';
 import { PerfilBase } from './perfil-base';
+import { mascararEmail, useApresentacao } from '@/components/ui/use-apresentacao';
 
 const AREAS: { id: Area; rotulo: string }[] = [
   { id: 'executivo', rotulo: 'Executivo' },
@@ -76,6 +77,7 @@ interface Linha {
 
 /** Lista plana de pessoas (comitê de todas as contas), para achar quem falar sem entrar conta por conta. */
 export function TelaDecisores({ base }: { base: Base }) {
+  const apresentacao = useApresentacao();
   const [texto, setTexto] = useState('');
   const [areas, setAreas] = useState<Area[]>([]);
   const [papeis, setPapeis] = useState<PapelAbm[]>([]);
@@ -160,7 +162,7 @@ export function TelaDecisores({ base }: { base: Base }) {
                   p.contaNome,
                   p.contaTier,
                   p.contaDominio,
-                  p.email ?? '',
+                  p.email ? (apresentacao ? mascararEmail(p.email) : p.email) : '',
                   p.linkedin ?? '',
                 ]),
               )
@@ -224,11 +226,17 @@ export function TelaDecisores({ base }: { base: Base }) {
                     </td>
                     <td className="px-3 py-2.5 pr-4 md:pr-5">
                       <div className="flex items-center justify-end gap-1">
-                        {p.email && (
-                          <a href={`mailto:${p.email}`} aria-label={`E-mail de ${p.nome}`} className="grid size-7 place-items-center rounded-chip text-text-3 hover:text-foreground">
-                            <Mail className="size-4" strokeWidth={1.5} />
-                          </a>
-                        )}
+                        {p.email &&
+                          (apresentacao ? (
+                            // modo apresentação: mostra que há e-mail verificado, sem expor o endereço na tela
+                            <span title={mascararEmail(p.email)} aria-label={`E-mail de ${p.nome}: ${mascararEmail(p.email)}`} className="grid size-7 place-items-center rounded-chip text-text-3">
+                              <Mail className="size-4" strokeWidth={1.5} />
+                            </span>
+                          ) : (
+                            <a href={`mailto:${p.email}`} aria-label={`E-mail de ${p.nome}`} className="grid size-7 place-items-center rounded-chip text-text-3 hover:text-foreground">
+                              <Mail className="size-4" strokeWidth={1.5} />
+                            </a>
+                          ))}
                         {p.linkedin && (
                           <a href={p.linkedin} target="_blank" rel="noreferrer" aria-label={`LinkedIn de ${p.nome}`} className="grid size-7 place-items-center rounded-chip text-text-3 hover:text-foreground">
                             <ExternalLink className="size-4" strokeWidth={1.5} />

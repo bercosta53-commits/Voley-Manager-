@@ -16,6 +16,7 @@ import { ScoreTendencia } from './score';
 import { GraficoSinais, type EventoGrafico } from './grafico-sinais';
 import { COR_PAPEL, COR_TIER, NIVEL_GATILHO, rotuloPapel } from '@/lib/papeis';
 import { ACOES_DE_ABORDAGEM, ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
+import { useApresentacao } from '@/components/ui/use-apresentacao';
 
 /** "Sinal de alta relevância": 1 mantém o peso, 2 soma 10%, 3 soma 15% — e o score da conta é recalculado. */
 function SeletorRelevancia({ valor, onMudar }: { valor?: Relevancia; onMudar: (n: Relevancia) => void }) {
@@ -76,6 +77,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
   ref,
 ) {
   const reduzir = useReducedMotion();
+  const apresentacao = useApresentacao();
   const x = useMotionValue(0);
   const revelaUtil = useTransform(x, [24, LIMITE_DESLIZE], [0, 1]);
   const revelaArquivar = useTransform(x, [-24, -LIMITE_DESLIZE], [0, 1]);
@@ -256,7 +258,8 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                 </dd>
               </div>
             </dl>
-            {onAvaliar && <SeletorRelevancia valor={estado?.relevancia} onMudar={onAvaliar} />}
+            {/* no modo apresentação a nota sai da tela: ela recalcula o score só neste navegador */}
+            {onAvaliar && !apresentacao && <SeletorRelevancia valor={estado?.relevancia} onMudar={onAvaliar} />}
           </div>
 
           {/* o score da conta no tempo, com cada sinal marcado na data em que aconteceu */}

@@ -5,10 +5,12 @@ import type { Base } from '@/lib/tipos';
 import { Comando } from './comando';
 import { NavInferior, NavLateral, TopoCelular } from './navegacao';
 import { AvisoFrescor } from './aviso-frescor';
+import { useParametroApresentacao } from '@/components/ui/use-apresentacao';
 
 /** Moldura comum às telas: menu lateral no computador, navegação inferior no celular, e o Cmd+K. */
 export function Casca({ base, novos = 0, children }: { base: Base; novos?: number; children: React.ReactNode }) {
   const [buscar, setBuscar] = useState(false);
+  useParametroApresentacao();
   return (
     <>
       <NavLateral base={base} novos={novos} onBuscar={() => setBuscar(true)} />
