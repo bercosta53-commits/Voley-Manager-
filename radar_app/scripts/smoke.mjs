@@ -66,7 +66,7 @@ await esperarApp();
 // [rota, status esperado, texto que precisa aparecer no HTML]
 const casos = [
   ['/', 200, 'Hoje'],
-  ['/radar', 200, 'Radar'],
+  ['/radar', 200, 'Panorama da base'],
   ['/contas', 200, 'Contas'],
   [`/contas/${primeiraConta}`, 200, base.contas[0].nome],
   // Débito conhecido: com loading.tsx o Next já enviou o status 200 quando notFound() roda (soft 404).

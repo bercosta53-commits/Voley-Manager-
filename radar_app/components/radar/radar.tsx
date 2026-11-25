@@ -15,6 +15,7 @@ import { useEstados } from '@/components/hoje/estado';
 import { ACOES_DE_ABORDAGEM, FAIXAS_VSCS, aplicarAvaliacoes } from '@/lib/avaliacao';
 import { PORTES, REGIOES, SEM_UF, porteDe, regiaoDe } from '@/lib/regioes';
 import { MovimentosSemana } from './movimentos-semana';
+import { Panorama } from './panorama';
 
 const CHAVE_ULTIMA_VISITA = 'vr:radar:ultima-visita';
 
@@ -153,6 +154,8 @@ export function TelaRadar({ base, proximidade: proximidadeOriginal }: { base: Ba
             )}
           </div>
         </div>
+
+        <Panorama base={base} />
 
         {bannerDelta && (
           <div className="mb-4 flex items-center gap-2 rounded-control border border-acid/40 bg-acid-soft px-3 py-2 text-sm text-foreground">
