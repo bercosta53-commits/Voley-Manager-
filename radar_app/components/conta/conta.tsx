@@ -7,7 +7,10 @@ import { ArrowDownRight, ArrowUpRight, CalendarClock, Check, ChevronLeft, Copy, 
 import type { Base, Conta, EstadoSinal, Sinal } from '@/lib/tipos';
 import { ACOES_DE_ABORDAGEM, aplicarAvaliacoes } from '@/lib/avaliacao';
 import { primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, sentido, status } from '@/lib/contas';
-import { rascunho } from '@/lib/mensagem';
+import { gancho, rascunho } from '@/lib/mensagem';
+import { papelNoComite } from '@/lib/papeis';
+import { teseDaConta } from '@/lib/tese';
+import { TeseConta } from './tese';
 import { cn, dataComAno, dataCurta, moeda, plural, somarDias } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -95,6 +98,18 @@ function Detalhe({
   ficticia?: boolean;
 }) {
   const [decompor, setDecompor] = useState(false);
+  const tese = useMemo(
+    () =>
+      teseDaConta(conta, sinais, {
+        hoje,
+        aberto: s => naCaixa(estados[s.id], hoje),
+        abordadoEm: sinais.map(s => estados[s.id]).find(e => e?.acao === 'abordado')?.em,
+        ganchoDe: gancho,
+        papelDe: papelNoComite,
+        acoesDeAbordagem: ACOES_DE_ABORDAGEM,
+      }),
+    [conta, sinais, estados, hoje],
+  );
   return (
     <>
       {/* cabeçalho: quem é + calor */}
@@ -117,7 +132,10 @@ function Detalhe({
 
       <div className="mt-8 grid gap-6 md:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-6">
-          <ProximaAcao conta={conta} sinais={sinais} estados={estados} hoje={hoje} onMudar={onMudar} />
+          <TeseConta tese={tese} nomeConta={conta.nome} />
+          <div id="proxima-acao" className="scroll-mt-6">
+            <ProximaAcao conta={conta} sinais={sinais} estados={estados} hoje={hoje} onMudar={onMudar} />
+          </div>
           <LinhaDoTempo conta={conta} sinais={sinais} estados={estados} hoje={hoje} />
         </div>
         <div className="flex flex-col gap-6">

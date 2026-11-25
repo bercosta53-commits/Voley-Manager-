@@ -1,6 +1,7 @@
 import { UserRound, UserRoundSearch } from 'lucide-react';
 import type { Conta, Pessoa, PapelAbm } from '@/lib/tipos';
 import { cn } from '@/lib/utils';
+import { papelNoComite } from '@/lib/papeis';
 
 /** Os três lugares que o ABM precisa ocupar antes de abordar (scripts/qualificar_icp.py classifica pelo cargo). */
 const LUGARES: { papel: PapelAbm; rotulo: string; quem: string }[] = [
@@ -17,14 +18,7 @@ const ROTULO: Record<PapelAbm, string> = {
 };
 const RELEVANCIA = { alta: 'relevância alta', media: 'relevância média', baixa: 'relevância baixa' } as const;
 
-/** Lugar de cada pessoa: papel ABM quando já classificado; senão, o mapa antigo por área. */
-function papelDe(p: Pessoa): PapelAbm {
-  if (p.papelAbm) return p.papelAbm;
-  if (p.area === 'executivo') return 'assina_cheque';
-  if ((p.area === 'marketing' || p.area === 'comercial') && p.papel === 'decisor') return 'decisor';
-  if (p.area === 'marketing' || p.area === 'comercial') return 'dono_da_dor';
-  return 'influenciador';
-}
+const papelDe = papelNoComite;
 
 /** A pessoa ocupa este lugar? (papel principal ou um dos extras) */
 const ocupa = (p: Pessoa, papel: PapelAbm) => papelDe(p) === papel || !!p.papeisExtras?.includes(papel);

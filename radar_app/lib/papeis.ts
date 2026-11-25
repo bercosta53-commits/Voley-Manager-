@@ -1,4 +1,4 @@
-import type { PapelAbm } from './tipos';
+import type { PapelAbm, Pessoa } from './tipos';
 
 /** Papel no comitê de compra: rótulo e cor, iguais em Decisores, no comitê da conta e no cartão de Hoje. */
 export const PAPEIS: { id: PapelAbm; rotulo: string }[] = [
@@ -9,6 +9,15 @@ export const PAPEIS: { id: PapelAbm; rotulo: string }[] = [
   { id: 'influenciador', rotulo: 'Influenciador' },
 ];
 export const rotuloPapel = (p?: PapelAbm) => PAPEIS.find(x => x.id === p)?.rotulo;
+
+/** Lugar de cada pessoa no comitê: papel ABM quando já classificado; senão, o mapa antigo por área. */
+export function papelNoComite(p: Pessoa): PapelAbm {
+  if (p.papelAbm) return p.papelAbm;
+  if (p.area === 'executivo') return 'assina_cheque';
+  if ((p.area === 'marketing' || p.area === 'comercial') && p.papel === 'decisor') return 'decisor';
+  if (p.area === 'marketing' || p.area === 'comercial') return 'dono_da_dor';
+  return 'influenciador';
+}
 
 /** Uma cor por papel: verde aprova o orçamento, azul decide, âmbar sente a dor, vermelho pode travar. */
 export const COR_PAPEL: Record<PapelAbm, string> = {
