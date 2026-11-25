@@ -202,9 +202,15 @@ function ScoreGrande({ conta, onAbrir }: { conta: Conta; onAbrir: () => void }) 
       <div className="flex flex-col items-end">
         <span className="font-display text-score leading-none font-semibold tracking-tight tabular-nums">{pontos(conta.score)}</span>
         <span className={cn('mt-1 flex items-center gap-0.5 text-xs', cor)}>
-          <Seta className="size-3.5" strokeWidth={1.5} />
-          <span className="vr-data">{s === 'estavel' ? '0' : `${conta.tendencia > 0 ? '+' : '−'}${pontos(Math.abs(conta.tendencia))}`}</span>
-          <span className="ml-1 text-text-3">30 dias</span>
+          {s === 'estavel' ? (
+            <span>estável em 30 dias</span>
+          ) : (
+            <>
+              <Seta className="size-3.5" strokeWidth={1.5} />
+              <span className="vr-data">{`${conta.tendencia > 0 ? '+' : '−'}${pontos(Math.abs(conta.tendencia))}`}</span>
+              <span className="ml-1 text-text-3">30 dias</span>
+            </>
+          )}
         </span>
         {conta.vscsStatus && (
           <span className="mt-1.5 text-right text-xs text-text-2">

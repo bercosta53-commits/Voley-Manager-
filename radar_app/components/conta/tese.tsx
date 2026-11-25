@@ -11,7 +11,7 @@ import { SeloQualificada } from '@/components/ui/selo-qualificada';
 
 function Linha({ pergunta, children, vazio }: { pergunta: string; children?: React.ReactNode; vazio?: string }) {
   return (
-    <div className="grid gap-1 py-3.5 first:pt-0 last:pb-0 sm:grid-cols-[176px_minmax(0,1fr)] sm:gap-5">
+    <div className="grid gap-1 py-3 first:pt-0 last:pb-0 sm:grid-cols-[176px_minmax(0,1fr)] sm:gap-5">
       <dt className="text-sm font-medium text-text-3 sm:pt-px">{pergunta}</dt>
       {/* children vazio (null, undefined ou false) mostra o texto de ausência: nada é preenchido por inferência */}
       <dd className="min-w-0 text-sm">{children || <span className="text-text-3">{vazio ?? 'Não identificado na base.'}</span>}</dd>
@@ -46,7 +46,7 @@ export function TeseConta({ tese, nomeConta }: { tese: Tese; nomeConta: string }
           )}
         </span>
       </div>
-      <dl className="mt-5 divide-y divide-border">
+      <dl className="mt-4 divide-y divide-border">
         <Linha pergunta={`Por que a ${nomeConta}`}>
           {empresa && (
             <>
@@ -133,7 +133,7 @@ export function TeseConta({ tese, nomeConta }: { tese: Tese; nomeConta: string }
 
         <Linha pergunta="Próxima ação">
           {/* a resposta que a tela toda prepara: em destaque quando pede contato, neutra quando pede esperar */}
-          <div className={cn('rounded-control p-4', acao.abordar ? 'bg-foreground text-background' : 'bg-muted')}>
+          <div className={cn('rounded-control px-4 py-3', acao.abordar ? 'bg-foreground text-background' : 'bg-muted')}>
             <p className="text-md font-semibold">{acao.titulo}</p>
             {acao.texto && <p className={cn('mt-1', acao.abordar ? 'text-background/80' : 'text-text-2')}>{acao.texto}</p>}
             {acao.origem === 'matriz' && (

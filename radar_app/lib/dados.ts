@@ -1,6 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import type { Base } from './tipos';
+import { MATRIZ_ICP, faixaVscs, statusVscs } from './avaliacao';
 import type { DadosClima, Indicador, EstadoClima, SetorImpactado } from './clima';
 import type { RegrasIcp } from './icp';
 import clima from '../data/clima.json';
@@ -84,7 +85,15 @@ export async function lerSnapshot(): Promise<Base> {
     .filter(c => !fora.has(c.id))
     .map(c => {
       const historico = (c.historico ?? []).filter(h => !h.exemplo);
-      return historico.length === (c.historico ?? []).length ? c : { ...c, historico };
+      // estágio ausente na carga: o rótulo sai do próprio score pelas faixas do VSCS 3.0 (85/70/55/40), como no
+      // Panorama — senão Contas mostra "—" e "0 em Atenção" enquanto o Panorama conta as mesmas contas por faixa
+      const vscsStatus = c.vscsStatus || (Number.isFinite(c.score) ? statusVscs(c.score) : undefined);
+      // idem para a ação: sem acaoRecomendada, a tabela confirmada da matriz ICP × VSCS decide, marcada como derivada,
+      // para Contas, Hoje e a tese contarem as mesmas contas "para abordar"
+      const tier = (c.v2?.tier ?? c.icp?.tier ?? c.tier) as 'A' | 'B' | 'C';
+      const daMatriz = !c.acaoRecomendada && Number.isFinite(c.score) && MATRIZ_ICP[tier] ? MATRIZ_ICP[tier][faixaVscs(c.score)] : undefined;
+      if (historico.length === (c.historico ?? []).length && vscsStatus === c.vscsStatus && !daMatriz) return c;
+      return { ...c, historico, vscsStatus, ...(daMatriz && { acaoRecomendada: daMatriz, acaoDaMatriz: true }) };
     });
   const ids = new Set(contas.map(c => c.id));
   const historicoExemplo = base.contas.reduce((n, c) => n + (fora.has(c.id) ? 0 : (c.historico ?? []).filter(h => h.exemplo).length), 0);

@@ -438,8 +438,12 @@ function ScoreLinha({ conta }: { conta: Conta }) {
     <div className="flex items-center justify-end gap-2.5" role="img" aria-label={`Score ${pontos(conta.score)}, ${s === 'sobe' ? 'esquentando' : s === 'desce' ? 'esfriando' : 'estável'}`}>
       <Curva serie={conta.serie} largura={44} altura={18} classe={cn(cor, 'max-md:hidden')} />
       <span className={cn('vr-data flex w-9 items-center justify-end gap-0.5 text-xs', cor)}>
-        <Seta className="size-3" strokeWidth={1.5} />
-        {s === 'estavel' ? '0' : pontos(Math.abs(conta.tendencia))}
+        {s !== 'estavel' && (
+          <>
+            <Seta className="size-3" strokeWidth={1.5} />
+            {pontos(Math.abs(conta.tendencia))}
+          </>
+        )}
       </span>
       <span className="w-8 text-right font-display text-md font-semibold tabular-nums">{pontos(conta.score)}</span>
     </div>

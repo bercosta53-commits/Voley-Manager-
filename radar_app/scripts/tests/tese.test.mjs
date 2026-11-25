@@ -137,6 +137,11 @@ test('sem acaoRecomendada, a ação vem da matriz ICP × VSCS e diz isso', () =>
   assert.equal(t.scorePendente, true);
 });
 
+test('ação derivada da matriz ao ler a base continua dita como da matriz, não do motor', () => {
+  const t = teseDaConta({ ...contaReal(), acaoRecomendada: 'Monitorar', acaoDaMatriz: true }, [sinal('s1', '2026-11-23', 32)], depReal());
+  assert.deepEqual([t.acao.titulo, t.acao.origem], ['Monitorar', 'matriz']);
+});
+
 test('acaoRecomendada gravada pelo motor tem prioridade sobre a matriz', () => {
   const t = teseDaConta({ ...contaReal(), acaoRecomendada: 'Ampliar pesquisa' }, [sinal('s1', '2026-11-23', 32)], depReal());
   assert.deepEqual([t.acao.titulo, t.acao.origem], ['Ampliar pesquisa', 'base']);

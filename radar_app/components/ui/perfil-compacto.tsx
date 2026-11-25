@@ -107,6 +107,12 @@ export function Numero({ rotulo, valor, nota, alerta }: { rotulo: string; valor:
   );
 }
 
+/** Bloco sem dado na carga: diz isso em vez de deixar o espaço em branco (que parece defeito). */
+function SemDado() {
+  return <p className="text-xs text-text-3">Sem dado nesta carga.</p>;
+}
+const vazio = (barras: Barra[]) => !barras.some(b => b.valor > 0);
+
 export function Bloco({ titulo, dica, children }: { titulo: string; dica?: string; children: React.ReactNode }) {
   return (
     <div className="min-w-0">
@@ -134,6 +140,7 @@ export function Segmentos({
   onClicar?: (b: Barra) => void;
 }) {
   const algum = !!ativos?.length;
+  if (vazio(barras)) return <SemDado />;
   return (
     <div>
       <div className="flex h-2.5 gap-[2px] overflow-hidden rounded-[3px]">
@@ -183,6 +190,7 @@ export function Segmentos({
 /** Top N em linhas finas: rótulo, barra curta, número. */
 export function Ranking({ barras, total, cor = 'bg-cool', unidade = 'pessoas' }: { barras: Barra[]; total: number; cor?: string; unidade?: string }) {
   const max = Math.max(1, ...barras.map(b => b.valor));
+  if (vazio(barras)) return <SemDado />;
   return (
     <ul className="flex flex-col gap-0.5">
       {barras.map(b => (
@@ -201,6 +209,7 @@ export function Ranking({ barras, total, cor = 'bg-cool', unidade = 'pessoas' }:
 /** Distribuição em colunas baixas (altura fixa de 40px), número em cima da coluna. */
 export function Colunas({ barras, total, dica, rotulo }: { barras: Barra[]; total: number; dica: (b: Barra) => string; rotulo: string }) {
   const max = Math.max(1, ...barras.map(b => b.valor));
+  if (vazio(barras)) return <SemDado />;
   return (
     <div>
       <ul className="flex h-[52px] items-end gap-1 border-b border-border-strong" aria-label={rotulo}>

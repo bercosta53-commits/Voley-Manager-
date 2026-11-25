@@ -20,7 +20,7 @@ const ROTULO_ANDAMENTO: [StatusConta, string][] = [
 function Numero({ valor, rotulo, detalhe }: { valor: string; rotulo: string; detalhe?: string }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5 px-4 py-3">
-      <span className="vr-data text-2xl font-semibold tracking-tight tabular-nums">{valor}</span>
+      <span className="vr-data font-display text-score leading-none font-semibold tracking-tight tabular-nums">{valor}</span>
       <span className="text-sm font-medium">{rotulo}</span>
       {detalhe && <span className="text-xs text-text-3">{detalhe}</span>}
     </div>
@@ -59,16 +59,22 @@ export function VisaoLideranca({
       <div className="grid grid-cols-2 md:grid-cols-4 [&>*:not(:last-child)]:border-r [&>*]:border-border">
         <Numero valor={String(l.fatosSemana)} rotulo="Fatos novos na semana" detalhe={plural(l.contasComFatoSemana, 'empresa', 'empresas')} />
         <Numero valor={String(l.quentes)} rotulo="Empresas em oportunidade" detalhe="VSCS 55 ou mais, ou qualificadas" />
-        <Numero
-          valor={compartilhado ? String(l.quentesComAcao) : '—'}
-          rotulo="Já trabalhadas pelo time"
-          detalhe={compartilhado ? `${l.quentesSemAcaoTotal} ainda sem nenhuma ação` : 'depende do registro compartilhado'}
-        />
-        <Numero
-          valor={compartilhado && l.diasAteAgir !== null ? `${l.diasAteAgir.toLocaleString('pt-BR')} d` : '—'}
-          rotulo="Do aviso à primeira ação"
-          detalhe={compartilhado ? (l.sinaisComAcao ? `mediana de ${plural(l.sinaisComAcao, 'sinal', 'sinais')}` : 'nenhuma ação ainda') : 'depende do registro compartilhado'}
-        />
+        {compartilhado ? (
+          <>
+            <Numero valor={String(l.quentesComAcao)} rotulo="Já trabalhadas pelo time" detalhe={`${l.quentesSemAcaoTotal} ainda sem nenhuma ação`} />
+            <Numero
+              valor={l.diasAteAgir !== null ? `${l.diasAteAgir.toLocaleString('pt-BR')} d` : '—'}
+              rotulo="Do aviso à primeira ação"
+              detalhe={l.sinaisComAcao ? `mediana de ${plural(l.sinaisComAcao, 'sinal', 'sinais')}` : 'nenhuma ação ainda'}
+            />
+          </>
+        ) : (
+          // sem o registro compartilhado, dois traços grandes pareceriam defeito: um aviso só, no lugar dos dois números
+          <div className="col-span-2 flex flex-col justify-center gap-0.5 px-4 py-3">
+            <span className="text-sm font-medium">Já trabalhadas pelo time · do aviso à primeira ação</span>
+            <span className="text-xs text-text-3">Aparecem quando o registro compartilhado estiver ligado: hoje cada pessoa só vê o que ela mesma marcou.</span>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-4 border-t border-border px-4 py-3 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-8">
@@ -76,7 +82,7 @@ export function VisaoLideranca({
           <h3 className="text-xs font-semibold text-text-3">Em oportunidade e ainda sem nenhuma ação</h3>
           {!compartilhado ? (
             <p className="mt-2 text-sm text-text-3">
-              Aparece quando o registro compartilhado estiver ligado. Sem ele, cada pessoa só vê o que ela mesma marcou.
+              Depende do registro compartilhado.
             </p>
           ) : l.quentesSemAcao.length === 0 ? (
             <p className="mt-2 text-sm text-text-3">{l.quentes ? 'Todas as empresas em oportunidade já tiveram alguma ação.' : 'Nenhuma empresa em oportunidade agora.'}</p>

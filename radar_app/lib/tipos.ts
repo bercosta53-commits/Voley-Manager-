@@ -133,6 +133,9 @@ export interface Conta {
   /** status do VSCS e ação recomendada (gravados pelo score_v2.py --exibir) */
   vscsStatus?: StatusVscs;
   acaoRecomendada?: string;
+  /** true quando a carga não trouxe acaoRecomendada e a tela a derivou da matriz ICP × VSCS ao ler a base
+   * (lib/dados.ts). Não vem da carga; serve para a tela dizer que a ação é da matriz, não do motor. */
+  acaoDaMatriz?: boolean;
   /** score ainda não certificado pelo motor (a inteligência marca até rodar o VSCS sobre a conta) */
   scorePendente?: boolean;
   /** Conta Qualificada, regra CQ-1, gravada pelo motor (contrato D12); a tela só exibe */

@@ -33,8 +33,14 @@ export function ScoreTendencia({ score, tendencia, serie, status, compacto = fal
       <div className="flex flex-col items-end leading-none">
         <span className="font-display text-xl font-semibold tracking-tight tabular-nums">{pontos(score)}</span>
         <span className={cn('vr-data mt-1 flex items-center gap-0.5 text-xs', cor)}>
-          <Seta className="size-3.5" strokeWidth={1.5} />
-          {sentido === 'estavel' ? '0' : `${tendencia > 0 ? '+' : '−'}${pontos(Math.abs(tendencia))}`}
+          {sentido === 'estavel' ? (
+            'estável'
+          ) : (
+            <>
+              <Seta className="size-3.5" strokeWidth={1.5} />
+              {`${tendencia > 0 ? '+' : '−'}${pontos(Math.abs(tendencia))}`}
+            </>
+          )}
         </span>
         {status && <span className="mt-1 whitespace-nowrap text-xs text-text-3">{status}</span>}
       </div>

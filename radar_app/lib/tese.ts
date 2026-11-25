@@ -173,7 +173,7 @@ export function teseDaConta(conta: Conta, sinais: Sinal[], dep: DependenciasTese
       titulo,
       texto: TEXTO_ACAO[titulo] ?? conta.v2?.frase ?? '',
       abordar: dep.acoesDeAbordagem.has(titulo) || !!conta.v2?.via_rapida,
-      origem: conta.acaoRecomendada ? 'base' : 'matriz',
+      origem: conta.acaoRecomendada && !conta.acaoDaMatriz ? 'base' : 'matriz',
     };
   } else {
     acao = { titulo: 'Avaliar a abordagem', texto: 'A matriz ICP × VSCS ainda não classificou esta conta. Decidir pelo fato e pelo comitê.', abordar: true };
