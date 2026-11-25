@@ -2,6 +2,7 @@ import type { Base, Conta, Pessoa } from './tipos';
 import { ACOES_DE_ABORDAGEM } from './avaliacao';
 import { normalizar } from './contas';
 import { diasEntre } from './utils';
+import { faltandoNoComite, papelNoComite } from './papeis';
 
 /**
  * Aba ICP: a mesma regra de tier de scripts/qualificar_icp.py (regras em data/icp.json), conta a conta, com
@@ -200,8 +201,8 @@ export function prepararContas(base: Base, regras: RegrasIcp): ContaIcp[] {
       incompletos,
       ciclo,
       barreiras,
-      papeis: new Set(c.comite.map(p => p.papelAbm ?? '').filter(Boolean)),
-      comiteCompleto: !(c.comiteFaltando ?? []).length,
+      papeis: new Set<string>(c.comite.flatMap(p => [papelNoComite(p), ...(p.papeisExtras ?? [])])),
+      comiteCompleto: !faltandoNoComite(c).length,
     };
   });
 }

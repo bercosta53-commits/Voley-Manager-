@@ -1,6 +1,6 @@
 import type { Base, PapelAbm } from './tipos';
 import { normalizar } from './contas';
-import { PAPEIS } from './papeis';
+import { PAPEIS, faltandoNoComite, papelNoComite } from './papeis';
 
 /** Nível hierárquico pelo cargo (a primeira regra que bate vence; a ordem vai do topo para a base). */
 const NIVEIS: [string, RegExp][] = [
@@ -77,7 +77,7 @@ export function perfilDecisores(base: Base): PerfilDecisores {
     .filter(b => b.valor > 0)
     .sort((a, b) => Number(a.rotulo === OUTRAS_FUNCOES) - Number(b.rotulo === OUTRAS_FUNCOES) || b.valor - a.valor);
 
-  const papeis = PAPEIS.map(x => ({ id: x.id, rotulo: x.rotulo, valor: pessoas.filter(p => p.papelAbm === x.id).length })).filter(b => b.valor > 0);
+  const papeis = PAPEIS.map(x => ({ id: x.id, rotulo: x.rotulo, valor: pessoas.filter(p => papelNoComite(p) === x.id).length })).filter(b => b.valor > 0);
 
   const faixas = ['1', '2', '3', '4', '5', '6+'];
   const contatosPorConta = faixas.map(f => ({
@@ -88,11 +88,11 @@ export function perfilDecisores(base: Base): PerfilDecisores {
   const semContato = porConta.filter(n => n === 0).length;
   if (semContato) contatosPorConta.unshift({ id: '0', rotulo: '0', valor: semContato });
 
-  const faltando = base.contas.flatMap(c => c.comiteFaltando ?? []);
+  const faltando = base.contas.flatMap(c => faltandoNoComite(c));
   const lacunas = ['Decisor', 'Dono da dor', 'Assina o cheque']
     .map(r => ({ id: r, rotulo: r === 'Assina o cheque' ? 'Sem quem assina o cheque' : `Sem ${r.charAt(0).toLowerCase()}${r.slice(1)}`, valor: faltando.filter(x => x === r).length }))
     .filter(b => b.valor > 0);
-  const comiteCompleto = base.contas.filter(c => !(c.comiteFaltando ?? []).length).length;
+  const comiteCompleto = base.contas.filter(c => !faltandoNoComite(c).length).length;
 
   const topo = niveis[0]!;
   const maiorLacuna = [...lacunas].sort((a, b) => b.valor - a.valor)[0];

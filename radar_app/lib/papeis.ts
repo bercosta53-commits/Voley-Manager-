@@ -1,4 +1,4 @@
-import type { PapelAbm, Pessoa } from './tipos';
+import type { Conta, PapelAbm, Pessoa } from './tipos';
 
 /** Papel no comitê de compra: rótulo e cor, iguais em Decisores, no comitê da conta e no cartão de Hoje. */
 export const PAPEIS: { id: PapelAbm; rotulo: string }[] = [
@@ -17,6 +17,25 @@ export function papelNoComite(p: Pessoa): PapelAbm {
   if ((p.area === 'marketing' || p.area === 'comercial') && p.papel === 'decisor') return 'decisor';
   if (p.area === 'marketing' || p.area === 'comercial') return 'dono_da_dor';
   return 'influenciador';
+}
+
+/** Os três lugares que fazem o comitê completo (quem trava e influenciadores ficam à parte). */
+export const LUGARES_ESSENCIAIS: { papel: PapelAbm; rotulo: string }[] = [
+  { papel: 'assina_cheque', rotulo: 'Assina o cheque' },
+  { papel: 'decisor', rotulo: 'Decisor' },
+  { papel: 'dono_da_dor', rotulo: 'Dono da dor' },
+];
+
+/** A pessoa ocupa este lugar? (papel principal ou um dos extras) */
+export const ocupa = (p: Pessoa, papel: PapelAbm) => papelNoComite(p) === papel || !!p.papeisExtras?.includes(papel);
+
+/**
+ * Lugares essenciais sem ninguém na conta. Usa o que o motor gravou (comiteFaltando) quando vem na carga;
+ * senão, a mesma leitura por cargo do comitê da conta. Ausência do campo nunca vale como "comitê completo".
+ */
+export function faltandoNoComite(c: Pick<Conta, 'comite' | 'comiteFaltando'>): string[] {
+  if (Array.isArray(c.comiteFaltando)) return c.comiteFaltando;
+  return LUGARES_ESSENCIAIS.filter(l => !c.comite.some(p => ocupa(p, l.papel))).map(l => l.rotulo);
 }
 
 /** Uma cor por papel: verde aprova o orçamento, azul decide, âmbar sente a dor, vermelho pode travar. */
