@@ -80,6 +80,16 @@ for (const rota of ['/', `/contas/${primeiraConta}`, '/contas']) {
   conferir(r.headers.get('cache-control')?.includes('no-store'), '/api/saude sem cache');
 }
 
+// /api/resumo (P2-12): prévia no navegador diz que o envio está desligado e o que falta; envio só pelo agendamento.
+{
+  const r = await fetch(url('/api/resumo'));
+  const html = await r.text();
+  conferir(r.status === 200 && html.includes('Envio desligado') && html.includes('RESEND_API_KEY'), '/api/resumo mostra a prévia e o que falta configurar', `status ${r.status}`);
+  conferir(html.includes('Radar Velora') && !/@/.test(html.replace(/RESUMO_DE|RESUMO_PARA/g, '')), '/api/resumo sem e-mail de pessoa na prévia');
+  const p = await fetch(url('/api/resumo'), { method: 'POST', headers: { 'x-radar-agendado': 'chute' } });
+  conferir(p.status === 403, 'envio do resumo recusa chamada de fora do agendamento', `status ${p.status}`);
+}
+
 // Sem base configurada, o app precisa falhar de forma explícita, nunca cair numa base fictícia.
 const semBase = spawn(path.join(raiz, 'node_modules/.bin/next'), ['start', '-p', String(portaApp + 1), '-H', '127.0.0.1'], {
   cwd: raiz,

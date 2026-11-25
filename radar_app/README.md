@@ -69,6 +69,21 @@ mais os testes do VSCS em Python e a medição do tamanho do Worker (limite de 3
 | Checagem antes de uma apresentação | `/api/saude` com `status: ok` e `frescor: ok` |
 | Modo apresentação | `?apresentacao=1` em qualquer tela (desliga pelo selo ou com `?apresentacao=0`): tira Clima e ICP do menu, mascara e-mails e esconde a nota de relevância |
 
+### Resumo diário por e-mail (desligado)
+
+Todo dia às 7h (Cron Trigger `0 10 * * *` no `wrangler.jsonc`, 10h UTC), o Worker monta um resumo com as contas que
+tiveram fato novo desde a véspera da carga (com fonte e próxima ação), as que viraram Conta Qualificada e, com o
+registro compartilhado ligado, as quentes ainda sem ação do time. Só empresas e fatos, nenhum nome ou e-mail de
+pessoa. Se a base estiver atrasada, o resumo diz isso primeiro.
+
+- **Prévia:** `/api/resumo` no navegador (`?formato=texto` para a versão em texto); diz o que falta configurar.
+- **Para ligar**, no Worker: `RESUMO_DIARIO=1`, `RESUMO_PARA` (e-mails separados por vírgula), `RESUMO_DE`
+  (ex.: `Radar Velora <radar@seu-dominio>`, com o domínio verificado na Resend), `RADAR_URL` (link do app no e-mail)
+  e o segredo `RESEND_API_KEY` (`wrangler secret put RESEND_API_KEY`). A Resend tem plano gratuito de 3.000 e-mails
+  por mês e 100 por dia. Outro provedor com API HTTP troca só `lib/email.ts`.
+- **Para desligar:** tire `RESUMO_DIARIO`. Sem ele, o agendamento não faz nada (nem lê a base).
+- O envio só acontece pelo agendamento: a rota recusa `POST` de fora (token aleatório de uso único no isolate).
+
 ## Onde está cada coisa
 
 | Caminho | O quê |
