@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { ArrowDownRight, ArrowUpRight, CalendarClock, Check, ChevronLeft, Copy, ExternalLink, Minus, SearchX, Send } from 'lucide-react';
 import type { Base, Conta, EstadoSinal, Sinal } from '@/lib/tipos';
-import { ACOES_DE_ABORDAGEM, MATRIZ_ICP, aplicarAvaliacoes, faixaVscs } from '@/lib/avaliacao';
+import { ACOES_DE_ABORDAGEM, MATRIZ_ICP, faixaVscs } from '@/lib/avaliacao';
 import { primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, sentido, status } from '@/lib/contas';
 import { gancho, rascunho } from '@/lib/mensagem';
 import { papelNoComite } from '@/lib/papeis';
@@ -37,7 +37,7 @@ export function TelaConta({ base: baseOriginal, contaId }: { base: Base; contaId
     if (e && ESTADOS.includes(e)) setEstadoTela(e);
   }, []);
   const { estados, salvar, pronto, status: andamentos, salvarStatus, compartilhado } = useEstados();
-  const base = useMemo(() => aplicarAvaliacoes(baseOriginal, estados), [baseOriginal, estados]);
+  const base = baseOriginal; // o score é o do motor: a avaliação de relevância não o recalcula na tela (P1-8)
   const conta = estadoTela === 'vazio' ? undefined : base.contas.find(c => c.id === contaId);
   const sinais = useMemo(() => base.sinais.filter(s => s.contaId === contaId), [base.sinais, contaId]);
   // data real das ações (adiar, acompanhar); a data do snapshot só serve para os cálculos da base

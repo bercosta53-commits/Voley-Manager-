@@ -11,8 +11,7 @@ import { RadarSvg } from './radar-svg';
 import { ControleReplay } from './controle-replay';
 import { PainelConta } from './painel-conta';
 import { Flame, Sparkles } from 'lucide-react';
-import { useEstados } from '@/components/hoje/estado';
-import { ACOES_DE_ABORDAGEM, FAIXAS_VSCS, aplicarAvaliacoes } from '@/lib/avaliacao';
+import { FAIXAS_VSCS } from '@/lib/avaliacao';
 import { PORTES, REGIOES, SEM_UF, porteDe, regiaoDe } from '@/lib/regioes';
 import { MovimentosSemana } from './movimentos-semana';
 import { Panorama } from './panorama';
@@ -46,27 +45,8 @@ function IconeAnel({ anel }: { anel: Anel }) {
 }
 
 export function TelaRadar({ base, proximidade: proximidadeOriginal }: { base: Base; proximidade: BaseProximidade }) {
-  const { estados } = useEstados();
-  // a avaliação de relevância (1/2/3) muda o VSCS da conta; se a ação da matriz ICP × VSCS muda, muda o anel
-  const proximidade = useMemo(() => {
-    const vista = aplicarAvaliacoes(base, estados);
-    if (vista === base) return proximidadeOriginal;
-    const porId = new Map(vista.contas.map(c => [c.id, c]));
-    const contas = proximidadeOriginal.contas.map(c => {
-      const conta = porId.get(c.id);
-      const timing = conta ? conta.score / 100 : c.dimensoes.timing;
-      if (!conta || Math.abs(timing - c.dimensoes.timing) < 0.005) return c;
-      const dimensoes = { ...c.dimensoes, timing };
-      // mesma regra do score_v2.py: ação da matriz ICP × VSCS (ou via rápida de intenção) decide o anel
-      const acao = conta.acaoRecomendada ?? '';
-      const sinalRelevante = ACOES_DE_ABORDAGEM.has(acao) || !!conta.v2?.via_rapida;
-      const anel: Anel = c.anel === 4 ? 4 : sinalRelevante ? (c.acesso.canalVerificado ? 1 : 2) : acao === 'Ampliar pesquisa' ? 2 : 3;
-      const { pesos } = proximidadeOriginal;
-      const prox = dimensoes.fit * pesos.fit + timing * pesos.timing + dimensoes.access * pesos.access + dimensoes.engagement * pesos.engagement;
-      return { ...c, dimensoes, sinalRelevante, anel, proximity: prox };
-    });
-    return { ...proximidadeOriginal, contas };
-  }, [base, estados, proximidadeOriginal]);
+  // o anel vem do motor; a avaliação de relevância não recalcula o score nem move a conta (P1-8)
+  const proximidade = proximidadeOriginal;
   const [bracos, setBracos] = useState<Braco[]>([]);
   const [ufs, setUfs] = useState<UF[]>([]);
   const [sinais, setSinais] = useState<string[]>([]);

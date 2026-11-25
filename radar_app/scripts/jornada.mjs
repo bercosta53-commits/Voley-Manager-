@@ -146,6 +146,18 @@ try {
   conferir((await post({ sinalId: sinalAlvo.id, estado: { acao: 'adiado' } })) === 400, 'API recusa adiar sem data');
 
   // 3f. Visão da liderança (Métricas): lê os cliques do time; a conta abordada sai da lista "sem ação"
+  // P1-8: a nota de relevância é retorno para calibrar o modelo; o score exibido continua o do motor
+  const ph = await navegador.newPage({ viewport: { width: 1440, height: 900 } });
+  vigiar(ph);
+  await ph.goto(app.url('/'), { waitUntil: 'networkidle' });
+  const scoreHoje = () => ph.locator('main [role="img"][aria-label^="Score "]').first().getAttribute('aria-label');
+  const antes = await scoreHoje();
+  await ph.getByRole('radiogroup', { name: 'Relevância do sinal' }).getByRole('radio', { name: '3' }).click();
+  await ph.waitForTimeout(400);
+  const depois = await scoreHoje();
+  conferir(!!antes && antes === depois, 'relevância 3 não muda o score exibido (score único)', `${antes} → ${depois}`);
+  await ph.close();
+
   await pagina.goto(app.url('/metricas'), { waitUntil: 'networkidle' });
   await pagina.locator('#visao-lideranca').waitFor();
   const visao = await pagina.locator('section:has(#visao-lideranca)').innerText();

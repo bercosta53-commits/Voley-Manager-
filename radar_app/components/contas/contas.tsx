@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { ArrowDown, ArrowUp, BookmarkPlus, Download, ExternalLink, Search, SearchX, X } from 'lucide-react';
 import type { Base, Conta, Sinal } from '@/lib/tipos';
-import { aplicarAvaliacoes } from '@/lib/avaliacao';
 import { FAMILIAS, STATUS, familia, hrefConta, primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, status } from '@/lib/contas';
 import { SEM_FILTRO, aplicar, daUrl, mesmosFiltros, temFiltro, type Filtros } from '@/lib/filtros';
 import { SeloQualificada } from '@/components/ui/selo-qualificada';
@@ -54,8 +53,7 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
   const [nomeNovo, setNomeNovo] = useState<string | null>(null);
   const [pronto, setPronto] = useState(false);
   const { estados } = useEstados();
-  // score com as avaliações de relevância (1/2/3) que a pessoa deu aos sinais
-  const base = useMemo(() => aplicarAvaliacoes(baseOriginal, estados), [baseOriginal, estados]);
+  const base = baseOriginal; // score do motor, igual para todos (P1-8)
   const hoje = base.geradoEm;
 
   useEffect(() => {

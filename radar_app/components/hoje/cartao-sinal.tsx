@@ -20,7 +20,7 @@ import { useApresentacao } from '@/components/ui/use-apresentacao';
 import { Evidencia } from '@/components/ui/evidencia';
 import { SeloQualificada } from '@/components/ui/selo-qualificada';
 
-/** "Sinal de alta relevância": 1 mantém o peso, 2 soma 10%, 3 soma 15% — e o score da conta é recalculado. */
+/** "Sinal de alta relevância": retorno do time para calibrar o modelo; não muda o score (P1-8). */
 function SeletorRelevancia({ valor, onMudar }: { valor?: Relevancia; onMudar: (n: Relevancia) => void }) {
   return (
     <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
@@ -68,7 +68,7 @@ interface Props {
   semAcoes?: boolean;
   deslizavel: boolean;
   onAcao: (acao: AcaoCartao) => void;
-  /** relevância que a pessoa dá ao sinal (1 mantém, 2 +10%, 3 +15%) */
+  /** relevância que a pessoa dá ao sinal (1 comum, 2 forte, 3 decisivo), para calibração */
   onAvaliar?: (n: Relevancia) => void;
   onAbrir: () => void;
   onFoco: () => void;

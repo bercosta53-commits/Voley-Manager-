@@ -11,7 +11,7 @@ import { Kbd } from '@/components/ui/kbd';
 import { PainelFlutuante } from '@/components/ui/painel-flutuante';
 import { Abordar } from './abordar';
 import { Agenda } from './agenda';
-import { aplicarAvaliacoes, FAIXAS_VSCS, ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
+import { FAIXAS_VSCS, ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
 import { COR_STATUS_VSCS } from '@/components/ui/selo-vscs';
 import { CartaoSinal, type AcaoCartao } from './cartao-sinal';
 import { LinhaSinal } from './linha-sinal';
@@ -71,8 +71,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
   const dataCarga = (baseOriginal.atualizadoEm ?? baseOriginal.geradoEm).slice(0, 10);
   const hoje = useHoje(dataCarga);
   const { estados, salvar, pronto } = useEstados();
-  // a base como a pessoa a vê: score e pontos já com as avaliações de relevância (1/2/3) dela
-  const base = useMemo(() => aplicarAvaliacoes(baseOriginal, estados), [baseOriginal, estados]);
+  const base = baseOriginal; // score do motor, igual para todos (P1-8)
   // só a caixa: adiados e concluídos saíram da tela (pedido de 2026-11-06); quem foi adiado volta sozinho na data
   const visao: Visao = 'caixa';
   const [foco, setFoco] = useState(0);
