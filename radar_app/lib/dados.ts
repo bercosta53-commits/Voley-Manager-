@@ -4,6 +4,7 @@ import type { Base } from './tipos';
 import type { DadosClima, Indicador, EstadoClima, SetorImpactado } from './clima';
 import type { RegrasIcp } from './icp';
 import clima from '../data/clima.json';
+import { climaEditorial } from '../data/clima-editorial';
 import regras from '../data/icp.json';
 import removidas from '../data/contas-removidas.json';
 
@@ -61,6 +62,7 @@ function indicador(i: Omit<Indicador, 'faixa' | 'tom' | 'cor' | 'setores'> & {
 export async function lerClima(): Promise<DadosClima> {
   return {
     ...clima,
+    edicao: climaEditorial,
     indicadoresEmDia: parNumerico(clima.indicadoresEmDia, 'indicadoresEmDia'),
     brasil: {...clima.brasil, estado: opcao<EstadoClima>(clima.brasil.estado, estados, 'brasil.estado')},
     indicadores: clima.indicadores.map(indicador),
