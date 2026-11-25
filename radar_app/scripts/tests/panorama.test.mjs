@@ -66,3 +66,9 @@ test('tiers', () => {
 test('sem atualizadoEm usa geradoEm', () => {
   assert.equal(panorama({ ...base, atualizadoEm: undefined }, FAIXAS).dataCarga, '2026-11-20');
 });
+
+test('qualificadas: null enquanto o motor não grava o campo; depois, só as "sim"', () => {
+  assert.equal(panorama(base, FAIXAS).qualificadas, null);
+  const comCampo = { ...base, contas: base.contas.map((c, i) => ({ ...c, qualificada: { status: ['sim', 'nao', 'desconhecido', 'sim', 'nao'][i] } })) };
+  assert.equal(panorama(comCampo, FAIXAS).qualificadas, 2);
+});

@@ -76,7 +76,7 @@ export function Panorama({ base }: { base: Base }) {
         <Indicador
           valor={p.emOportunidade}
           rotulo="Em oportunidade"
-          detalhe={`VSCS ${p.pisoOportunidade} ou mais`}
+          detalhe={`VSCS ${p.pisoOportunidade} ou mais${p.qualificadas !== null ? ` · ${numero(p.qualificadas)} qualificadas` : ''}`}
           href={paraUrl({ ...SEM_FILTRO, scoreMin: p.pisoOportunidade })}
         />
         <Indicador valor={tierA} rotulo="Tier A do ICP" detalhe={outrosTiers || undefined} href={paraUrl({ ...SEM_FILTRO, tiers: ['A'] })} />

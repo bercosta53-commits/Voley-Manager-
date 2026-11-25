@@ -5,6 +5,7 @@ import type { PapelAbm } from '@/lib/tipos';
 import type { Tese } from '@/lib/tese';
 import { COR_PAPEL, rotuloPapel } from '@/lib/papeis';
 import { cn, dataCurta, plural } from '@/lib/utils';
+import { SeloQualificada } from '@/components/ui/selo-qualificada';
 
 function Linha({ pergunta, children, vazio }: { pergunta: string; children?: React.ReactNode; vazio?: string }) {
   return (
@@ -24,18 +25,21 @@ const Papel = ({ papel }: { papel?: PapelAbm }) =>
  * base (lib/tese.ts); o que falta aparece como "não identificado", nunca preenchido por inferência.
  */
 export function TeseConta({ tese, nomeConta }: { tese: Tese; nomeConta: string }) {
-  const { empresa, agora, oportunidade, evidencias, fatos90d, quem, comite, acao, scorePendente } = tese;
+  const { empresa, agora, oportunidade, evidencias, fatos90d, quem, comite, acao, scorePendente, qualificada } = tese;
   return (
     <section aria-labelledby="tese-da-conta" className="vr-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="tese-da-conta" className="text-xs font-semibold text-text-3">
           Tese da conta
         </h2>
-        {scorePendente && (
-          <span className="rounded-chip border border-warm bg-warm-bg px-1.5 py-0.5 text-xs text-foreground" title="O motor ainda não certificou o VSCS desta conta">
-            Score pendente de certificação
-          </span>
-        )}
+        <span className="flex flex-wrap items-center gap-1.5">
+          <SeloQualificada conta={{ qualificada }} />
+          {scorePendente && (
+            <span className="rounded-chip border border-warm bg-warm-bg px-1.5 py-0.5 text-xs text-foreground" title="O motor ainda não certificou o VSCS desta conta">
+              Score pendente de certificação
+            </span>
+          )}
+        </span>
       </div>
       <dl className="mt-3 divide-y divide-border">
         <Linha pergunta={`Por que a ${nomeConta}`}>
@@ -46,6 +50,12 @@ export function TeseConta({ tese, nomeConta }: { tese: Tese; nomeConta: string }
                 {empresa.segmento && <span className="font-normal text-text-2"> · {empresa.segmento}</span>}
               </p>
               {empresa.motivos.length > 0 && <p className="mt-0.5 text-text-2">{empresa.motivos.join(' · ')}</p>}
+              {qualificada?.status === 'sim' && (
+                <p className="mt-0.5 text-xs text-ok">
+                  Conta qualificada{qualificada.desde ? ` desde ${dataCurta(qualificada.desde)}` : ''}
+                  {qualificada.motivo ? `: ${qualificada.motivo}` : ''}
+                </p>
+              )}
             </>
           )}
         </Linha>

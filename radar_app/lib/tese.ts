@@ -30,6 +30,8 @@ export interface Tese {
   acao: { titulo: string; texto: string; abordar: boolean; origem?: 'base' | 'matriz' | 'andamento' };
   /** score ainda não certificado pelo motor */
   scorePendente: boolean;
+  /** Conta Qualificada como o motor gravou (CQ-1); ausente quando a base ainda não traz */
+  qualificada?: Conta['qualificada'];
 }
 
 export interface DependenciasTese {
@@ -159,5 +161,6 @@ export function teseDaConta(conta: Conta, sinais: Sinal[], dep: DependenciasTese
     comite: { pessoas: conta.comite.length, faltando: conta.comiteFaltando ?? [] },
     acao,
     scorePendente: !!conta.scorePendente,
+    qualificada: conta.qualificada,
   };
 }

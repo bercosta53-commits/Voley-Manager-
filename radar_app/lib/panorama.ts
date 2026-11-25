@@ -24,6 +24,8 @@ export interface Panorama {
   porCategoria30d: { categoria: string; n: number }[];
   fontes: number;
   fontesOk: number;
+  /** contas com Conta Qualificada = sim; null enquanto o motor não grava o campo */
+  qualificadas: number | null;
 }
 
 const dia = (iso: string) => Date.parse(iso.slice(0, 10) + 'T12:00:00Z') / 86_400_000;
@@ -70,5 +72,6 @@ export function panorama(base: Base, faixas: [number, StatusVscs][]): Panorama {
     porCategoria30d: [...categorias.entries()].map(([categoria, n]) => ({ categoria, n })).sort((a, b) => b.n - a.n),
     fontes: base.fontes.length,
     fontesOk: base.fontes.filter(f => f.status === 'ok').length,
+    qualificadas: base.contas.some(c => c.qualificada) ? base.contas.filter(c => c.qualificada?.status === 'sim').length : null,
   };
 }

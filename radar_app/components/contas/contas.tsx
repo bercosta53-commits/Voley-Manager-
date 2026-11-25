@@ -8,7 +8,8 @@ import { ArrowDown, ArrowUp, BookmarkPlus, Download, ExternalLink, Search, Searc
 import type { Base, Conta, Sinal } from '@/lib/tipos';
 import { aplicarAvaliacoes } from '@/lib/avaliacao';
 import { FAMILIAS, STATUS, familia, hrefConta, primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, status } from '@/lib/contas';
-import { SEM_FILTRO, aplicar, daUrl, temFiltro, type Filtros } from '@/lib/filtros';
+import { SEM_FILTRO, aplicar, daUrl, mesmosFiltros, temFiltro, type Filtros } from '@/lib/filtros';
+import { SeloQualificada } from '@/components/ui/selo-qualificada';
 import { baixarCsv } from '@/lib/exportar-csv';
 import { SeloVscs } from '@/components/ui/selo-vscs';
 import { PerfilContas } from './perfil-contas';
@@ -40,6 +41,7 @@ const FIXOS: Salvo[] = [
   { id: 'ativar', nome: 'Prontas para ativar', filtros: { ...SEM_FILTRO, status: ['ativar'] }, fixo: true },
   { id: 'esquentando', nome: 'Esquentando', filtros: { ...SEM_FILTRO, tendencia: 'sobe' }, fixo: true },
   { id: 'com-sinal', nome: 'Com sinal na caixa', filtros: { ...SEM_FILTRO, comSinal: true }, fixo: true },
+  { id: 'qualificadas', nome: 'Qualificadas', filtros: { ...SEM_FILTRO, qualificadas: true }, fixo: true },
 ];
 const CHAVE_SALVOS = 'vr:contas:filtros:v1';
 
@@ -97,8 +99,10 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
     });
   }, [contas, filtros, ordem, sinaisPorConta]);
 
-  const todosSalvos = [...FIXOS, ...salvos];
-  const ativo = todosSalvos.find(s => JSON.stringify(s.filtros) === JSON.stringify(filtros));
+  // a aba Qualificadas só aparece quando o motor já grava o campo (contrato D12)
+  const comQualificacao = contas.some(c => c.qualificada);
+  const todosSalvos = [...FIXOS.filter(s => s.id !== 'qualificadas' || comQualificacao), ...salvos];
+  const ativo = todosSalvos.find(s => mesmosFiltros(s.filtros, filtros));
   const mudar = (parte: Partial<Filtros>) => setFiltros(f => ({ ...f, ...parte }));
   const contar = (pred: (c: Conta) => boolean) => contas.filter(pred).length;
 
@@ -216,6 +220,7 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
                 onMudar={v => mudar({ subsegmentos: v })}
               />
               {filtros.comSinal && <Pilula onTirar={() => mudar({ comSinal: false })}>Com sinal na caixa</Pilula>}
+              {filtros.qualificadas && <Pilula onTirar={() => mudar({ qualificadas: false })}>Qualificadas</Pilula>}
               {filtros.semContato && <Pilula onTirar={() => mudar({ semContato: false })}>Sem ninguém do comitê</Pilula>}
               {filtros.scoreMin > 0 && <Pilula onTirar={() => mudar({ scoreMin: 0 })}>Score {filtros.scoreMin}+</Pilula>}
               <Button
@@ -328,6 +333,7 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
                                   <Link href={hrefConta(c.id)} className="inline-flex min-h-6 min-w-0 items-center truncate rounded-chip font-semibold text-foreground">
                                     {c.nome}
                                   </Link>
+                                  <SeloQualificada conta={c} />
                                   {c.dominio && (
                                     <a
                                       href={`https://${c.dominio}`}

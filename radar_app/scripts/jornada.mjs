@@ -22,6 +22,9 @@ const acionaveis = base.sinais.filter(s => !s.exemplo && s.tipo !== 'noticia_set
 const porConta = Map.groupBy(acionaveis, s => s.contaId);
 const sinalAlvo = acionaveis.filter(s => porConta.get(s.contaId).length === 1).sort((a, b) => b.pontos - a.pontos)[0];
 const contaAlvo = base.contas.find(c => c.id === sinalAlvo.contaId);
+// Conta Qualificada (D12): o motor grava o campo; aqui a conta da jornada vem qualificada e outra fica pendente
+contaAlvo.qualificada = { status: 'sim', desde: '2026-11-20', motivo: 'VSCS e tier dentro da regra CQ-1', regra_versao: 'cq-1' };
+base.contas.find(c => c.id !== contaAlvo.id).qualificada = { status: 'desconhecido', pendencias: ['decisor não identificado'] };
 
 // registro compartilhado ligado (radar_acoes em memória no Supabase simulado), com um autor de teste
 const AUTOR = 'demo@velora.teste';
@@ -71,6 +74,9 @@ try {
   const resposta = p => linhas.find(([q]) => q.startsWith(p))?.[1] ?? '';
   conferir(resposta('Por que agora').includes(sinalAlvo.porQueAgora), '"Por que agora" mostra o fato mais forte', resposta('Por que agora').slice(0, 80));
   if (sinalAlvo.abordar?.nome) conferir(resposta('Com quem falar').includes(sinalAlvo.abordar.nome), '"Com quem falar" mostra a pessoa citada no fato');
+  const cabecalhoTese = await pagina.locator('section:has(#tese-da-conta) > div').first().innerText();
+  conferir(cabecalhoTese.includes('Qualificada'), 'tese mostra o selo de Conta Qualificada', cabecalhoTese);
+  conferir(resposta('Por que a').includes('Conta qualificada desde 20 nov'), 'tese diz desde quando e por quê', resposta('Por que a').slice(0, 120));
   const fimTese = await pagina.locator('#tese-da-conta').evaluate(el => el.closest('section').getBoundingClientRect().bottom);
   conferir(fimTese <= 900, 'tese cabe sem rolar a 1440×900', `termina em ${Math.round(fimTese)} px`);
   await pagina.screenshot({ path: path.join(SAIDA, '2-tese.png') });
@@ -123,6 +129,13 @@ try {
   conferir((await post({ sinalId: sinalAlvo.id, estado: { acao: 'apagar' } })) === 400, 'API recusa ação desconhecida');
   conferir((await post({ sinalId: 'sinal-que-nao-existe', estado: { acao: 'abordado' } })) === 400, 'API recusa sinal fora da base');
   conferir((await post({ sinalId: sinalAlvo.id, estado: { acao: 'adiado' } })) === 400, 'API recusa adiar sem data');
+
+  // 3e. Aba Qualificadas em Contas: aparece porque a base traz o campo, e lista só a conta qualificada
+  await pagina.goto(app.url('/contas'), { waitUntil: 'networkidle' });
+  await pagina.getByRole('tab', { name: 'Qualificadas', exact: true }).click();
+  await pagina.waitForTimeout(300);
+  const resumoQ = await pagina.locator('main p').first().innerText();
+  conferir(resumoQ.startsWith(`1 de ${base.contas.length}`), 'aba Qualificadas lista só a conta qualificada', resumoQ);
 
   // 4. Decisores no modo apresentação: nenhum e-mail exposto
   await pagina.goto(app.url('/decisores'), { waitUntil: 'networkidle' });

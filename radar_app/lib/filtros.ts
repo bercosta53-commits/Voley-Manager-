@@ -12,6 +12,8 @@ export interface Filtros {
   comSinal: boolean;
   semContato: boolean;
   scoreMin: number;
+  /** só contas com Conta Qualificada = sim (campo gravado pelo motor) */
+  qualificadas?: boolean;
 }
 
 export const SEM_FILTRO: Filtros = { texto: '', familias: [], tiers: [], status: [], tendencia: '', ufs: [], subsegmentos: [], comSinal: false, semContato: false, scoreMin: 0 };
@@ -32,11 +34,15 @@ export function aplicar(contas: Conta[], filtros: Filtros, sinaisPorConta: Map<s
     if (filtros.comSinal && !sinaisPorConta.get(c.id)?.length) return false;
     if (filtros.semContato && c.comite.length) return false;
     if (filtros.scoreMin && c.score < filtros.scoreMin) return false;
+    if (filtros.qualificadas && c.qualificada?.status !== 'sim') return false;
     return true;
   });
 }
 
-export const temFiltro = (f: Filtros) => JSON.stringify(f) !== JSON.stringify(SEM_FILTRO);
+/** Compara com os campos normalizados: filtros salvos antes de um campo novo existir continuam iguais. */
+const normal = (f: Filtros) => JSON.stringify({ ...SEM_FILTRO, ...f, qualificadas: !!f.qualificadas });
+export const temFiltro = (f: Filtros) => normal(f) !== normal(SEM_FILTRO);
+export const mesmosFiltros = (a: Filtros, b: Filtros) => normal(a) === normal(b);
 
 const UFS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
 const ESTADOS: Record<string, string> = {

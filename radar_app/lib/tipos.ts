@@ -135,6 +135,10 @@ export interface Conta {
   acaoRecomendada?: string;
   /** score ainda não certificado pelo motor (a inteligência marca até rodar o VSCS sobre a conta) */
   scorePendente?: boolean;
+  /** Conta Qualificada, regra CQ-1, gravada pelo motor (contrato D12); a tela só exibe */
+  qualificada?: { status: 'sim' | 'nao' | 'desconhecido'; desde?: string | null; motivo?: string; pendencias?: string[]; regra_versao?: string };
+  /** estágio do VSCS na carga anterior, quando comprovável (D12) */
+  estagio_anterior?: StatusVscs | null;
 }
 
 export type StatusVscs = 'Monitoramento' | 'Atenção' | 'Oportunidade emergente' | 'Alta prioridade' | 'Prioridade máxima';

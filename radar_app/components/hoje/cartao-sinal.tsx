@@ -18,6 +18,7 @@ import { COR_PAPEL, COR_TIER, NIVEL_GATILHO, rotuloPapel } from '@/lib/papeis';
 import { ACOES_DE_ABORDAGEM, ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
 import { useApresentacao } from '@/components/ui/use-apresentacao';
 import { Evidencia } from '@/components/ui/evidencia';
+import { SeloQualificada } from '@/components/ui/selo-qualificada';
 
 /** "Sinal de alta relevância": 1 mantém o peso, 2 soma 10%, 3 soma 15% — e o score da conta é recalculado. */
 function SeletorRelevancia({ valor, onMudar }: { valor?: Relevancia; onMudar: (n: Relevancia) => void }) {
@@ -184,6 +185,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                   Tier {conta.tier}
                 </span>
               )}
+              <SeloQualificada conta={conta} />
               {conta.v2?.via_rapida ? (
                 <span className="shrink-0 rounded-chip bg-risk px-1.5 py-0.5 text-xs font-semibold text-white">Via rápida · 48h</span>
               ) : (
