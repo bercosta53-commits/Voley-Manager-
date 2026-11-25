@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Base } from '@/lib/tipos';
 import { hrefConta } from '@/lib/contas';
-import { cn } from '@/lib/utils';
+import { cn, pontos } from '@/lib/utils';
 import { FAIXAS_VSCS, MATRIZ_ICP } from '@/lib/avaliacao';
 
 const CATEGORIAS = [
@@ -9,8 +9,18 @@ const CATEGORIAS = [
   { nome: 'Expansão e investimento', faixa: '75–90', meiaVida: 90, ex: 'Série A+ ~90 · nova filial ~75' },
   { nome: 'Contratações estratégicas', faixa: '65–85', meiaVida: 45, ex: 'Head de Growth/Vendas ~85 · 1 vaga de SDR ~65' },
   { nome: 'Movimentos estratégicos', faixa: '65–85', meiaVida: 60, ex: 'comprou empresa ~85 · fusão ~70 · produto ~65' },
+  { nome: 'Go-to-market', faixa: 'conforme o tipo', meiaVida: 60, ex: 'começou a anunciar' },
+  { nome: 'Contexto', faixa: 'conforme o tipo', meiaVida: 30, ex: 'fato da conta que muda o cenário, sem pedir ação sozinho' },
   { nome: 'Intenção e engajamento', faixa: '75–100', meiaVida: 15, ex: 'pedido de diagnóstico ~100 (via rápida, 48h)' },
   { nome: 'Sinal negativo', faixa: 'até −30', meiaVida: 90, ex: 'foi adquirida: a decisão sobe para a compradora' },
+];
+
+/** Mudanças do modelo, com data comprovada no histórico do repositório ou no alinhamento com a inteligência. */
+const HISTORICO = [
+  { quando: '25/11/2026', oque: 'Especificação do VSCS 3.0 confirmada pela inteligência: constantes, faixas e matriz. A tela passa a mostrar a ação pela matriz quando a base não a traz.' },
+  { quando: '06/11/2026', oque: 'VSCS 3.0: retornos decrescentes, meia-vida contínua, convergência entre categorias e matriz ICP × VSCS.' },
+  { quando: '06/11/2026', oque: 'Score v2.2: um gatilho sozinho não abre conversa.' },
+  { quando: '06/11/2026', oque: 'Score v2.1 passa a ser o score exibido.' },
 ];
 
 const FAIXA_COR = ['bg-secondary text-text-2', 'bg-cool-bg text-cool', 'bg-warm-bg text-warm', 'bg-ok-bg text-ok', 'bg-ok text-white'];
@@ -28,9 +38,14 @@ export function ComoCalcula({ base }: { base: Base }) {
 
   return (
     <section aria-labelledby="como-calcula" className="vr-card mb-6 min-w-0 overflow-hidden p-5 md:p-6">
-      <h2 id="como-calcula" className="text-md font-semibold">
-        Como o score é calculado
-      </h2>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="como-calcula" className="text-md font-semibold">
+          Como o score é calculado
+        </h2>
+        <span className="vr-data text-xs text-text-3">
+          {base.scoreVersao ? `motor ${base.scoreVersao}` : 'VSCS 3.0 · especificação confirmada pela inteligência em 25/11'}
+        </span>
+      </div>
       <p className="mt-1 max-w-2xl text-sm text-text-2">
         O score (VSCS, 0 a 100) é um índice de prioridade pelos fatos observados na conta — não é probabilidade de compra. Ele responde: esta conta está num
         momento de mexer em aquisição e receita agora?
@@ -44,7 +59,8 @@ export function ComoCalcula({ base }: { base: Base }) {
           <p className="mt-1.5">
             <b className="font-medium text-foreground">Base</b>: força do fato para a Velora (tabela abaixo). <b className="font-medium text-foreground">Fonte</b>: 1,00 vaga
             publicada ou site oficial, 0,85 imprensa, 0,60 indício. <b className="font-medium text-foreground">Tempo</b>: cai pela metade a cada meia-vida e zera depois de três.{' '}
-            <b className="font-medium text-foreground">Repetição</b>: o 2º fato da mesma categoria vale 70%, do 3º em diante 50%.
+            <b className="font-medium text-foreground">Repetição</b>: o 2º fato da mesma categoria vale 70%, do 3º em diante 50%. Fato com confiança abaixo de 0,60 não
+            pontua.
           </p>
         </Passo>
         <Passo n={2} titulo="Os fatos se somam, cada um vale menos">
@@ -58,6 +74,10 @@ export function ComoCalcula({ base }: { base: Base }) {
         </Passo>
         <Passo n={3} titulo="O status e o ICP dizem o que fazer">
           <p>O ICP não muda o número, muda a ação. A mesma nota pede abordagem numa conta tier A e só monitoramento numa tier B.</p>
+          <p className="mt-1.5">
+            <b className="font-medium text-foreground">Via rápida</b>: intenção direta de fonte primária, com base 75 ou mais e até 30 dias, pede contato em 48 h mesmo
+            com score baixo.
+          </p>
         </Passo>
       </ol>
 
@@ -128,7 +148,7 @@ export function ComoCalcula({ base }: { base: Base }) {
             <Link href={hrefConta(exemplo.id)} className="font-medium text-foreground underline decoration-border-strong underline-offset-2">
               {exemplo.nome}
             </Link>{' '}
-            · score <span className="vr-data">{exemplo.score}</span> · {exemplo.vscsStatus} · tier {exemplo.v2?.tier ?? exemplo.tier} → {exemplo.acaoRecomendada}
+            · score <span className="vr-data">{pontos(exemplo.score)}</span> · {exemplo.vscsStatus} · tier {exemplo.v2?.tier ?? exemplo.tier} → {exemplo.acaoRecomendada}
           </p>
           <ul className="mt-2 grid gap-1">
             {exemplo.composicao.map((p, i) => (
@@ -145,6 +165,17 @@ export function ComoCalcula({ base }: { base: Base }) {
           </ul>
         </div>
       )}
+      <details className="mt-6 text-sm">
+        <summary className="cursor-pointer text-xs font-semibold text-text-3">Histórico do modelo</summary>
+        <ol className="mt-2 grid gap-1.5 text-text-2">
+          {HISTORICO.map(h => (
+            <li key={h.quando + h.oque} className="grid grid-cols-[88px_minmax(0,1fr)] gap-3">
+              <span className="vr-data text-xs text-text-3">{h.quando}</span>
+              <span>{h.oque}</span>
+            </li>
+          ))}
+        </ol>
+      </details>
     </section>
   );
 }
