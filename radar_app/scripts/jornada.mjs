@@ -86,6 +86,7 @@ try {
   if (sinalAlvo.abordar?.nome) conferir(resposta('Com quem falar').includes(sinalAlvo.abordar.nome), '"Com quem falar" mostra a pessoa citada no fato');
   const cabecalhoTese = await pagina.locator('section:has(#tese-da-conta) > div').first().innerText();
   conferir(cabecalhoTese.includes('Qualificada'), 'tese mostra o selo de Conta Qualificada', cabecalhoTese);
+  conferir(cabecalhoTese.includes('Quente e sem ação do time'), 'cobertura: conta quente ainda sem ação do time ganha o alerta', cabecalhoTese);
   conferir(resposta('Por que a').includes('Conta qualificada desde 20 nov'), 'tese diz desde quando e por quê', resposta('Por que a').slice(0, 120));
   const fimTese = await pagina.locator('#tese-da-conta').evaluate(el => el.closest('section').getBoundingClientRect().bottom);
   conferir(fimTese <= 900, 'tese cabe sem rolar a 1440×900', `termina em ${Math.round(fimTese)} px`);
@@ -181,6 +182,13 @@ try {
   await pagina.waitForTimeout(300);
   const resumoQ = await pagina.locator('main p').first().innerText();
   conferir(resumoQ.startsWith(`1 de ${base.contas.length}`), 'aba Qualificadas lista só a conta qualificada', resumoQ);
+  // P2-11: a conta da jornada já foi trabalhada (abordada), então sai de "Quentes sem ação"; as outras quentes ficam
+  await pagina.getByRole('tab', { name: 'Quentes sem ação', exact: true }).click();
+  await pagina.waitForTimeout(300);
+  const quentesSemAcao = base.contas.filter(c => (c.score >= 55 || c.qualificada?.status === 'sim') && c.id !== contaAlvo.id).length;
+  const resumoS = await pagina.locator('main p').first().innerText();
+  const tabelaS = await pagina.locator('main table').innerText();
+  conferir(resumoS.startsWith(`${quentesSemAcao} de ${base.contas.length}`) && !tabelaS.includes(contaAlvo.nome), 'aba "Quentes sem ação" tira a conta que o time já trabalhou', resumoS);
 
   // 4. Decisores no modo apresentação: nenhum e-mail exposto
   await pagina.goto(app.url('/decisores'), { waitUntil: 'networkidle' });

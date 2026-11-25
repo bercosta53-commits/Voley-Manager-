@@ -1,5 +1,6 @@
 import type { Base, EstadoSinal, Sinal } from './tipos';
 import type { StatusConta } from './acoes';
+import { PISO_QUENTE, ehQuente, teveAcao as acaoNaConta } from './cobertura';
 
 /**
  * Visão da liderança: o que o time fez com o que o Radar trouxe. Só lê o que já existe sem esforço extra:
@@ -49,7 +50,7 @@ export function lideranca(
   base: Base,
   estados: Record<string, EstadoSinal>,
   status: Record<string, { status: StatusConta }>,
-  { pisoOportunidade = 55, limite = 5 }: { pisoOportunidade?: number; limite?: number } = {},
+  { pisoOportunidade = PISO_QUENTE, limite = 5 }: { pisoOportunidade?: number; limite?: number } = {},
 ): Lideranca {
   const dataCarga = (base.atualizadoEm ?? base.geradoEm).slice(0, 10);
   const hoje = dia(dataCarga);
@@ -61,11 +62,10 @@ export function lideranca(
 
   const porConta = new Map<string, Sinal[]>();
   for (const s of acionaveis) porConta.set(s.contaId, [...(porConta.get(s.contaId) ?? []), s]);
-  // "ação" é qualquer clique do fluxo normal num sinal da conta, ou um andamento registrado
-  const teveAcao = (contaId: string) =>
-    !!status[contaId] || (porConta.get(contaId) ?? []).some(s => estados[s.id]?.acao || estados[s.id]?.avaliacao);
+  // mesmas regras da cobertura por conta (lib/cobertura.ts)
+  const teveAcao = (contaId: string) => acaoNaConta(porConta.get(contaId) ?? [], estados, status[contaId]);
 
-  const quentes = base.contas.filter(c => c.score >= pisoOportunidade || c.qualificada?.status === 'sim');
+  const quentes = base.contas.filter(c => ehQuente(c, pisoOportunidade));
   const semAcao = quentes
     .filter(c => !teveAcao(c.id))
     .map(c => {

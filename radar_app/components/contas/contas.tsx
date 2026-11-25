@@ -22,6 +22,7 @@ import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
 import { sentido } from '@/lib/contas';
 import { Aviso, ErroCarregar, SemPermissao } from '@/components/hoje/estados';
 import { useEstados } from '@/components/hoje/estado';
+import { ehQuente, teveAcao } from '@/lib/cobertura';
 import { MenuFiltro } from './menu-filtro';
 
 type Coluna = 'nome' | 'score' | 'tendencia' | 'sinal';
@@ -41,6 +42,7 @@ const FIXOS: Salvo[] = [
   { id: 'esquentando', nome: 'Esquentando', filtros: { ...SEM_FILTRO, tendencia: 'sobe' }, fixo: true },
   { id: 'com-sinal', nome: 'Com sinal na caixa', filtros: { ...SEM_FILTRO, comSinal: true }, fixo: true },
   { id: 'qualificadas', nome: 'Qualificadas', filtros: { ...SEM_FILTRO, qualificadas: true }, fixo: true },
+  { id: 'sub-trabalhadas', nome: 'Quentes sem ação', filtros: { ...SEM_FILTRO, subTrabalhadas: true }, fixo: true },
 ];
 const CHAVE_SALVOS = 'vr:contas:filtros:v1';
 
@@ -52,7 +54,7 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
   const [salvos, setSalvos] = useState<Salvo[]>([]);
   const [nomeNovo, setNomeNovo] = useState<string | null>(null);
   const [pronto, setPronto] = useState(false);
-  const { estados } = useEstados();
+  const { estados, status: andamentos, compartilhado } = useEstados();
   const base = baseOriginal; // score do motor, igual para todos (P1-8)
   const hoje = base.geradoEm;
 
@@ -85,21 +87,33 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
     return m;
   }, [base.sinais, estados, hoje]);
 
+  // cobertura (P2-11): contas com alguma ação do time. Sem o registro compartilhado, cada pessoa só veria as
+  // próprias ações, então "quentes sem ação" não aparece (diria que ninguém trabalhou o que outra pessoa trabalhou)
+  const trabalhadas = useMemo(() => {
+    const ids = new Set<string>();
+    if (!compartilhado) return ids;
+    const todosPorConta = new Map<string, Sinal[]>();
+    for (const s of base.sinais) todosPorConta.set(s.contaId, [...(todosPorConta.get(s.contaId) ?? []), s]);
+    for (const c of base.contas) if (teveAcao(todosPorConta.get(c.id) ?? [], estados, andamentos[c.id])) ids.add(c.id);
+    return ids;
+  }, [base, estados, andamentos, compartilhado]);
+  const subTrabalhada = (c: Conta) => compartilhado && ehQuente(c) && !trabalhadas.has(c.id);
+
   const linhas = useMemo(() => {
     const ult = (c: Conta) => sinaisPorConta.get(c.id)?.[0]?.data ?? c.historico[0]?.data ?? '';
     const valor = (c: Conta): number | string =>
       ordem.col === 'nome' ? c.nome.toLowerCase() : ordem.col === 'score' ? c.score : ordem.col === 'tendencia' ? c.tendencia : ult(c);
-    return aplicar(contas, filtros, sinaisPorConta).sort((a, b) => {
+    return aplicar(contas, filtros, sinaisPorConta, trabalhadas).sort((a, b) => {
       const va = valor(a),
         vb = valor(b);
       const r = va < vb ? -1 : va > vb ? 1 : b.score - a.score;
       return ordem.desc ? -r : r;
     });
-  }, [contas, filtros, ordem, sinaisPorConta]);
+  }, [contas, filtros, ordem, sinaisPorConta, trabalhadas]);
 
   // a aba Qualificadas só aparece quando o motor já grava o campo (contrato D12)
   const comQualificacao = contas.some(c => c.qualificada);
-  const todosSalvos = [...FIXOS.filter(s => s.id !== 'qualificadas' || comQualificacao), ...salvos];
+  const todosSalvos = [...FIXOS.filter(s => (s.id !== 'qualificadas' || comQualificacao) && (s.id !== 'sub-trabalhadas' || compartilhado)), ...salvos];
   const ativo = todosSalvos.find(s => mesmosFiltros(s.filtros, filtros));
   const mudar = (parte: Partial<Filtros>) => setFiltros(f => ({ ...f, ...parte }));
   const contar = (pred: (c: Conta) => boolean) => contas.filter(pred).length;
@@ -219,6 +233,7 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
               />
               {filtros.comSinal && <Pilula onTirar={() => mudar({ comSinal: false })}>Com sinal na caixa</Pilula>}
               {filtros.qualificadas && <Pilula onTirar={() => mudar({ qualificadas: false })}>Qualificadas</Pilula>}
+              {filtros.subTrabalhadas && <Pilula onTirar={() => mudar({ subTrabalhadas: false })}>Quentes sem ação</Pilula>}
               {filtros.semContato && <Pilula onTirar={() => mudar({ semContato: false })}>Sem ninguém do comitê</Pilula>}
               {filtros.scoreMin > 0 && <Pilula onTirar={() => mudar({ scoreMin: 0 })}>Score {filtros.scoreMin}+</Pilula>}
               <Button
@@ -332,6 +347,11 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
                                     {c.nome}
                                   </Link>
                                   <SeloQualificada conta={c} />
+                                  {subTrabalhada(c) && (
+                                    <span className="shrink-0 rounded-chip bg-warm-bg px-1.5 py-0.5 text-xs font-medium text-warm" title="Conta quente e ninguém do time agiu nela ainda">
+                                      sem ação
+                                    </span>
+                                  )}
                                   {c.dominio && (
                                     <a
                                       href={`https://${c.dominio}`}

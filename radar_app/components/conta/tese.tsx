@@ -26,7 +26,7 @@ const Papel = ({ papel }: { papel?: PapelAbm }) =>
  * Tese da conta: as seis perguntas de uma oportunidade numa leitura, antes da ação. Cada resposta vem da
  * base (lib/tese.ts); o que falta aparece como "não identificado", nunca preenchido por inferência.
  */
-export function TeseConta({ tese, nomeConta }: { tese: Tese; nomeConta: string }) {
+export function TeseConta({ tese, nomeConta, semAcaoDoTime = false }: { tese: Tese; nomeConta: string; semAcaoDoTime?: boolean }) {
   const { empresa, agora, oportunidade, evidencias, fatos90d, quem, comite, acao, scorePendente, qualificada } = tese;
   return (
     <section aria-labelledby="tese-da-conta" className="vr-card p-5 md:p-6">
@@ -39,6 +39,11 @@ export function TeseConta({ tese, nomeConta }: { tese: Tese; nomeConta: string }
         </div>
         <span className="flex flex-wrap items-center gap-1.5">
           <SeloQualificada conta={{ qualificada }} />
+          {semAcaoDoTime && (
+            <span className="rounded-chip bg-warm-bg px-1.5 py-0.5 text-xs font-medium text-warm" title="Conta quente e ninguém do time agiu nela ainda (cobertura, P2-11)">
+              Quente e sem ação do time
+            </span>
+          )}
           {scorePendente && (
             <span className="rounded-chip border border-warm bg-warm-bg px-1.5 py-0.5 text-xs text-foreground" title="O motor ainda não certificou o VSCS desta conta">
               Score pendente de certificação

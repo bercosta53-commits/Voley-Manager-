@@ -1,4 +1,5 @@
 import type { Conta, Sinal } from './tipos';
+import { ehQuente } from './cobertura';
 import { FAMILIAS, STATUS, familia, normalizar, sentido, status, type Familia, type Sentido, type Status } from './contas';
 
 export interface Filtros {
@@ -14,11 +15,14 @@ export interface Filtros {
   scoreMin: number;
   /** só contas com Conta Qualificada = sim (campo gravado pelo motor) */
   qualificadas?: boolean;
+  /** só contas quentes sem nenhuma ação do time (P2-11); depende do registro compartilhado */
+  subTrabalhadas?: boolean;
 }
 
 export const SEM_FILTRO: Filtros = { texto: '', familias: [], tiers: [], status: [], tendencia: '', ufs: [], subsegmentos: [], comSinal: false, semContato: false, scoreMin: 0 };
 
-export function aplicar(contas: Conta[], filtros: Filtros, sinaisPorConta: Map<string, Sinal[]>) {
+/** `trabalhadas`: ids das contas com alguma ação do time, para o filtro "quentes sem ação". */
+export function aplicar(contas: Conta[], filtros: Filtros, sinaisPorConta: Map<string, Sinal[]>, trabalhadas: Set<string> = new Set()) {
   const texto = normalizar(filtros.texto.trim());
   return contas.filter(c => {
     if (texto) {
@@ -35,12 +39,13 @@ export function aplicar(contas: Conta[], filtros: Filtros, sinaisPorConta: Map<s
     if (filtros.semContato && c.comite.length) return false;
     if (filtros.scoreMin && c.score < filtros.scoreMin) return false;
     if (filtros.qualificadas && c.qualificada?.status !== 'sim') return false;
+    if (filtros.subTrabalhadas && (!ehQuente(c) || trabalhadas.has(c.id))) return false;
     return true;
   });
 }
 
 /** Compara com os campos normalizados: filtros salvos antes de um campo novo existir continuam iguais. */
-const normal = (f: Filtros) => JSON.stringify({ ...SEM_FILTRO, ...f, qualificadas: !!f.qualificadas });
+const normal = (f: Filtros) => JSON.stringify({ ...SEM_FILTRO, ...f, qualificadas: !!f.qualificadas, subTrabalhadas: !!f.subTrabalhadas });
 export const temFiltro = (f: Filtros) => normal(f) !== normal(SEM_FILTRO);
 export const mesmosFiltros = (a: Filtros, b: Filtros) => normal(a) === normal(b);
 

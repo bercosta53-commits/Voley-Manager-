@@ -9,6 +9,7 @@ import { ACOES_DE_ABORDAGEM, MATRIZ_ICP, faixaVscs } from '@/lib/avaliacao';
 import { primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, sentido, status } from '@/lib/contas';
 import { gancho, rascunho } from '@/lib/mensagem';
 import { papelNoComite } from '@/lib/papeis';
+import { cobertura } from '@/lib/cobertura';
 import { ACAO_DO_ANDAMENTO, teseDaConta } from '@/lib/tese';
 import { TeseConta } from './tese';
 import { cn, dataComAno, dataCurta, moeda, plural, somarDias, pontos } from '@/lib/utils';
@@ -155,7 +156,7 @@ function Detalhe({
 
       <div className="mt-8 grid gap-6 md:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-6">
-          <TeseConta tese={tese} nomeConta={conta.nome} />
+          <TeseConta tese={tese} nomeConta={conta.nome} semAcaoDoTime={compartilhado && cobertura(conta, sinais, estados, andamento).subTrabalhada} />
           <div id="proxima-acao" className="scroll-mt-6 empty:hidden">
             <ProximaAcao conta={conta} sinais={sinais} estados={estados} hoje={hoje} onMudar={onMudar} andamento={andamento} />
           </div>
