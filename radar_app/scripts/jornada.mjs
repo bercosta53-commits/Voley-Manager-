@@ -26,6 +26,16 @@ const contaAlvo = base.contas.find(c => c.id === sinalAlvo.contaId);
 contaAlvo.qualificada = { status: 'sim', desde: '2026-11-20', motivo: 'VSCS e tier dentro da regra CQ-1', regra_versao: 'cq-1' };
 base.contas.find(c => c.id !== contaAlvo.id).qualificada = { status: 'desconhecido', pendencias: ['decisor não identificado'] };
 
+// contribuições do motor nas contas (como na carga real do VSCS 3.0): é o que a nota de relevância recalculava
+// antes do P1-8; com elas, a verificação do score único pega uma volta do recálculo
+for (const c of base.contas) {
+  const doMotor = acionaveis.filter(s => s.contaId === c.id).map(s => ({
+    id: s.id, tipo: s.tipo, categoria: 'lideranca', nivel: 'A', base: 80, fonte: 1, tempo: 0.75, correlacao: 1, s: 60, valor: 0.6,
+    pontos: s.pontos, data: s.data, texto: s.sinal || s.porQueAgora,
+  }));
+  if (doMotor.length) c.v2 = { ...c.v2, contribuicoes: doMotor };
+}
+
 // registro compartilhado ligado (radar_acoes em memória no Supabase simulado), com um autor de teste
 const AUTOR = 'demo@velora.teste';
 const app = await subirApp(base, { env: { RADAR_ACOES: '1', RADAR_AUTOR_TESTE: AUTOR } });

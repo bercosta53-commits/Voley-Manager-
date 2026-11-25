@@ -70,7 +70,7 @@ export function GraficoSinais({ serie, eventos, hoje, className }: { serie: numb
         const d = diasAtras(e.data, hoje);
         const cx = x(d);
         const cy = y(valorNoDia(d));
-        const cor = NIVEL_GATILHO[e.nivel].ponto;
+        const cor = (NIVEL_GATILHO[e.nivel] ?? NIVEL_GATILHO.C).ponto; // um campo fora do contrato não derruba Hoje
         const chave = `${e.data}-${e.rotulo}`;
         return (
           <g key={chave}>
