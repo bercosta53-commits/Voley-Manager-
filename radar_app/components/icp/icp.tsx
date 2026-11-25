@@ -46,7 +46,7 @@ export function TelaIcp({ base, regras }: { base: Base; regras: RegrasIcp }) {
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight">ICP</h1>
           <p className="mt-1 max-w-[820px] text-sm text-text-2">
-            Quem a Velora quer ganhar, o que a base diz sobre isso e o que acontece com o Tier A quando uma regra muda. A regra abaixo reproduz os tiers atuais conta a conta.
+            Quem a Velora quer ganhar, o que a base diz sobre isso e o que acontece com o Tier A quando uma regra muda. O simulador propõe tiers de aderência, separados da qualidade cadastral, das exclusões e da ativação comercial.
           </p>
           <p className="mt-1 text-xs text-text-3">
             Base lida em {base.geradoEm.split('-').reverse().join('/')} · {sim.linhas.length} contas · regras em data/icp.json
@@ -165,10 +165,10 @@ export function TelaIcp({ base, regras }: { base: Base; regras: RegrasIcp }) {
             </div>
           </div>
           <div className="flex gap-4 text-xs text-text-2">
-            {(['A', 'B', 'C'] as const).map(t => (
+            {(['A', 'B', 'C', 'P', 'X'] as const).map(t => (
               <span key={t} className="inline-flex items-center gap-1.5">
                 <span className="size-2.5 rounded-[2px]" style={{ background: COR_TIER_ICP[t] }} />
-                Tier {t}: {t === 'A' ? sim.nA : t === 'B' ? sim.nB : sim.nC}
+                {t === 'P' ? 'Pesquisa' : t === 'X' ? 'Excluídas' : `Tier ${t}`}: {t === 'A' ? sim.nA : t === 'B' ? sim.nB : t === 'C' ? sim.nC : t === 'P' ? sim.nP : sim.nX}
               </span>
             ))}
           </div>

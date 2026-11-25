@@ -4,7 +4,7 @@ import type { Alavancas, RegrasIcp } from '@/lib/icp';
 import type { simular } from '@/lib/icp';
 import { cn } from '@/lib/utils';
 
-export const COR_TIER_ICP = { A: 'var(--vr-ok)', B: 'var(--vr-cool)', C: 'var(--vr-border-strong)' } as const;
+export const COR_TIER_ICP = { A: 'var(--vr-ok)', B: 'var(--vr-cool)', C: 'var(--vr-border-strong)', P: 'var(--vr-surface-3)', X: 'var(--vr-risk)' } as const;
 type Simulacao = ReturnType<typeof simular>;
 
 /** Posição de cada UF num grid 8×10 (cartograma simplificado do Brasil). */
@@ -14,22 +14,22 @@ export function Definicao({ sim, regras, al }: { sim: Simulacao; regras: RegrasI
   const rotuloExcl = { regiao: 'Fora da região', porte: 'Micro e pequena empresa', ramo: 'Ramo sem classificação', b2c: 'B2C, martech e adtech' } as const;
   return (
     <section aria-label="Definição do ICP" className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
-      <Cartao borda="var(--vr-ok)" rotulo="Principal" corRotulo="var(--vr-ok)" n={sim.nA} titulo="Serviços de tecnologia B2B" nota="Contas Tier A no cenário atual do simulador.">
+      <Cartao borda="var(--vr-ok)" rotulo="Tier A · principal" corRotulo="var(--vr-ok)" n={sim.nA} titulo="Serviços de tecnologia B2B" nota="Contas Tier A no cenário atual do simulador.">
         <Chip>ramo principal: serviços</Chip>
         <Chip>sede {al.regiao.join('/') || '—'}</Chip>
         <Chip>faturamento {regras.faturamentoAlvo.split(' (')[0].replace(' por ano', '')}</Chip>
         <Chip forte>{al.minGatilhos ? `≥ ${al.minGatilhos} gatilhos comportamentais` : 'gatilhos comportamentais: opcional'}</Chip>
       </Cartao>
-      <Cartao borda="var(--vr-cool)" rotulo="Secundário · decisão pendente" corRotulo="var(--vr-cool)" n={sim.saasAfetadas} titulo="Software e SaaS B2B maduro" nota={`${Math.round((100 * sim.saasAfetadas) / sim.linhas.length)}% da base está aqui esperando a decisão sobre SaaS. É a maior alavanca do ICP.`}>
+      <Cartao borda="var(--vr-cool)" rotulo="Tier B · secundário" corRotulo="var(--vr-cool)" n={sim.nB} titulo="Tecnologia B2B · aderência secundária" nota="Software, SaaS e serviços com ressalvas. Nutrir e aprofundar a qualificação.">
         <Chip>produto como receita</Chip>
         <Chip>{al.saas ? 'no simulador: conta como principal' : 'hoje fica no Tier B'}</Chip>
       </Cartao>
-      <Cartao tracejado rotulo="Adjacente · fora da base" n={0} titulo="Serviços profissionais e financeiros" nota="Braços definidos no ICP original, sem contas na base enquanto o foco é TI.">
-        <Chip>advocacia full-service</Chip>
-        <Chip>auditoria e tributário</Chip>
-        <Chip>cooperativas, seguros, consórcios</Chip>
+      <Cartao borda="var(--vr-border-strong)" rotulo="Tier C · baixa aderência" n={sim.nC} titulo="Tecnologia B2B periférica" nota="Contas elegíveis para monitoramento, mas de menor aderência à venda consultiva.">
+        <Chip>hardware e equipamentos</Chip>
+        <Chip>telecom, IoT e automação de produto</Chip>
+        <Chip>monitoramento seletivo</Chip>
       </Cartao>
-      <Cartao borda="var(--vr-risk)" rotulo="Exclusões" corRotulo="var(--vr-risk)" n={sim.nC}>
+      <Cartao borda="var(--vr-risk)" rotulo="Exclusões" corRotulo="var(--vr-risk)" n={sim.nX}>
         {sim.exclusoes.map(e => (
           <div key={e.motivo} className="flex w-full justify-between py-0.5 text-sm">
             <span className="text-text-2">{rotuloExcl[e.motivo]}</span>
@@ -37,6 +37,7 @@ export function Definicao({ sim, regras, al }: { sim: Simulacao; regras: RegrasI
           </div>
         ))}
       </Cartao>
+      <div className="col-span-full text-xs text-text-3">Em pesquisa: {sim.nP} contas. Dados insuficientes não significam exclusão. Tiers simulados não liberam disparos.</div>
     </section>
   );
 }
@@ -119,7 +120,7 @@ export function Simulador({
           <p className="mt-0.5 text-sm text-text-3">Mude uma regra e veja o Tier A, a capacidade e o programa ABM se mexerem.</p>
         </div>
         <Interruptor ligado={al.saas} rotulo="Software e SaaS como ramo principal" sub={`Decide a pendência sobre SaaS · ${sim.saasAfetadas} contas afetadas`} onMudar={() => onMudar({ saas: !al.saas })} />
-        <Interruptor ligado={al.sedeNaoConfirmada} rotulo="Aceitar sede ainda não confirmada na Receita" sub="Hoje a sede precisa estar confirmada para virar Tier A" onMudar={() => onMudar({ sedeNaoConfirmada: !al.sedeNaoConfirmada })} />
+        <Interruptor ligado={al.sedeNaoConfirmada} rotulo="Aceitar sede ainda não confirmada na Receita" sub="Permite UF cadastrada na região; confirmação legal continua pendente" onMudar={() => onMudar({ sedeNaoConfirmada: !al.sedeNaoConfirmada })} />
         <Interruptor
           ligado={al.exigirFaturamento}
           rotulo="Exigir faturamento validado para Tier A"
@@ -171,7 +172,7 @@ export function Simulador({
           </div>
           <div className="mt-2 flex gap-3.5 text-[11px] text-text-3">
             <span>número = contas na base</span>
-            <span>· {semUf} contas sem UF ficam no Tier B</span>
+            <span>· {semUf} contas sem UF; confirmar localização</span>
           </div>
         </div>
         <button type="button" onClick={onRestaurar} className="h-9 self-start rounded-control border border-border-strong px-3.5 text-sm hover:bg-[var(--vr-surface-2)]">
@@ -185,7 +186,7 @@ export function Simulador({
             [
               ['A', sim.nA, 'prioridade de ativação', true],
               ['B', sim.nB, 'nutrir e pesquisar', null],
-              ['C', sim.nC, 'fora do ICP', false],
+              ['C', sim.nC, 'monitoramento seletivo', null],
             ] as const
           ).map(([t, n, sub, bomSubir]) => {
             const d = n - atual[t];
@@ -205,16 +206,16 @@ export function Simulador({
           })}
         </div>
         <div>
-          <div className="flex h-7 overflow-hidden rounded-control bg-[var(--vr-surface-3)]" role="img" aria-label={`${sim.nA} Tier A, ${sim.nB} Tier B, ${sim.nC} Tier C`}>
-            {(['A', 'B', 'C'] as const).map(t => (
-              <div key={t} className="transition-[width] duration-300" style={{ width: `${(100 * (t === 'A' ? sim.nA : t === 'B' ? sim.nB : sim.nC)) / total}%`, background: COR_TIER_ICP[t] }} />
+          <div className="flex h-7 overflow-hidden rounded-control bg-[var(--vr-surface-3)]" role="img" aria-label={`${sim.nA} Tier A, ${sim.nB} Tier B, ${sim.nC} Tier C, ${sim.nP} pendentes, ${sim.nX} excluídas`}>
+            {(['A', 'B', 'C', 'P', 'X'] as const).map(t => (
+              <div key={t} className="transition-[width] duration-300" style={{ width: `${(100 * (t === 'A' ? sim.nA : t === 'B' ? sim.nB : t === 'C' ? sim.nC : t === 'P' ? sim.nP : sim.nX)) / total}%`, background: COR_TIER_ICP[t] }} />
             ))}
           </div>
           <div className="mt-1.5 flex gap-4 text-xs text-text-2">
-            {(['A', 'B', 'C'] as const).map(t => (
+            {(['A', 'B', 'C', 'P', 'X'] as const).map(t => (
               <span key={t} className="inline-flex items-center gap-1.5">
                 <span className="size-2.5 rounded-[2px]" style={{ background: COR_TIER_ICP[t] }} />
-                Tier {t}
+                {t === 'P' ? `Pesquisa (${sim.nP})` : t === 'X' ? `Excluídas (${sim.nX})` : `Tier ${t}`}
               </span>
             ))}
           </div>
