@@ -15,6 +15,12 @@ import path from 'node:path';
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const base = JSON.parse(await readFile(path.join(raiz, 'data/contas.exemplo.json'), 'utf8'));
 delete base.ficticia;
+// A base fictícia marca todos os sinais como `exemplo`, e o app descarta sinal de exemplo (lib/dados.ts).
+// Para as telas terem conteúdo no teste, a marca sai aqui; um único sinal continua marcado para provar o descarte.
+const MARCA_FICTICIA = 'SINAL-EXEMPLO-QUE-NAO-PODE-APARECER';
+base.sinais = base.sinais.map(s => ({ ...s, exemplo: false }));
+base.contas = base.contas.map(c => ({ ...c, historico: (c.historico ?? []).map(h => ({ ...h, exemplo: false })) }));
+base.sinais.push({ ...base.sinais[0], id: 'sinal-exemplo-teste', rotulo: MARCA_FICTICIA, sinal: MARCA_FICTICIA, porQueAgora: MARCA_FICTICIA, exemplo: true });
 const primeiraConta = base.contas[0].id;
 const corpo = JSON.stringify([{ payload: base }]);
 
@@ -92,6 +98,28 @@ for (const [rota, esperado, texto] of casos) {
   if (problemas.length) falhas++;
 }
 
+function conferir(ok, descricao, detalhe = '') {
+  console.log(`${ok ? 'ok    ' : 'FALHOU'}  ${descricao}${ok || !detalhe ? '' : '  → ' + detalhe}`);
+  if (!ok) falhas++;
+}
+
+// Sinal marcado como exemplo nunca aparece como real, em nenhuma tela.
+for (const rota of ['/', `/contas/${primeiraConta}`, '/contas']) {
+  const html = await (await fetch(url(rota))).text();
+  conferir(!html.includes(MARCA_FICTICIA), `sinal de exemplo fora de ${rota}`, 'o sinal fictício apareceu');
+}
+
+// /api/saude: contagens, descarte do sinal de exemplo e frescor (a base fictícia é de set/2026, então está velha).
+{
+  const r = await fetch(url('/api/saude'));
+  const s = await r.json().catch(() => ({}));
+  conferir(r.status === 200, '/api/saude responde 200 com a base legível', `status ${r.status}`);
+  conferir(s.contagens?.contas === base.contas.length, '/api/saude conta as contas', JSON.stringify(s.contagens));
+  conferir(s.qualidade?.descartados?.exemplo === 1, '/api/saude registra o sinal de exemplo descartado', JSON.stringify(s.qualidade));
+  conferir(s.status === 'desatualizada' && s.frescor === 'critico', '/api/saude acusa base com mais de 72 h', `${s.status}/${s.frescor}`);
+  conferir(r.headers.get('cache-control')?.includes('no-store'), '/api/saude sem cache');
+}
+
 // Sem base configurada, o app precisa falhar de forma explícita, nunca cair numa base fictícia.
 const semBase = spawn(path.join(raiz, 'node_modules/.bin/next'), ['start', '-p', String(portaApp + 1), '-H', '127.0.0.1'], {
   cwd: raiz,
@@ -104,6 +132,11 @@ for (let i = 0; i < 60 && !semBaseOk; i++) {
     const html = await (await fetch(`http://127.0.0.1:${portaApp + 1}/`)).text();
     semBaseOk = !html.includes(base.contas[0].nome);
     console.log(`${semBaseOk ? 'ok    ' : 'FALHOU'}  sem SUPABASE_URL o app não mostra dados${semBaseOk ? '' : '  → mostrou a base fictícia'}`);
+    const r = await fetch(`http://127.0.0.1:${portaApp + 1}/api/saude`);
+    const s = await r.json().catch(() => ({}));
+    const saudeOk = r.status === 503 && s.motivo === 'nao_configurada';
+    console.log(`${saudeOk ? 'ok    ' : 'FALHOU'}  sem SUPABASE_URL, /api/saude responde 503 nao_configurada${saudeOk ? '' : `  → ${r.status} ${s.motivo}`}`);
+    if (!saudeOk) falhas++;
     break;
   } catch {
     await new Promise(r => setTimeout(r, 500));

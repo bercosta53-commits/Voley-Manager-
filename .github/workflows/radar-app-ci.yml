@@ -38,6 +38,8 @@ jobs:
         run: npm run lint
       - name: Testes do score (VSCS)
         run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+      - name: Testes unitários (lib)
+        run: npm test
       - name: Build do Worker (OpenNext)
         run: npm run build:cloudflare
       - name: Tamanho do Worker (limite do plano gratuito, 3 MiB comprimido)

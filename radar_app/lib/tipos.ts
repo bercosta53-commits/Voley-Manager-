@@ -230,6 +230,16 @@ export interface Base {
   agenda?: EventoAgenda[];
   /** true quando a base é a de exemplo (empresas fictícias) */
   ficticia?: boolean;
+  /** preenchido na leitura (lib/dados.ts), nunca gravado: o que foi retirado e quanto a leitura custou */
+  diagnostico?: DiagnosticoBase;
+}
+
+export interface DiagnosticoBase {
+  lidoEm: string;
+  ms: number;
+  bytes: number;
+  descartados: { exemplo: number; semConta: number; dataInvalida: number; historicoExemplo: number };
+  sinaisSemEvidencia: number;
 }
 
 export type Acao = 'abordado' | 'adiado' | 'arquivado';

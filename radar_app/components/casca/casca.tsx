@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { Base } from '@/lib/tipos';
 import { Comando } from './comando';
 import { NavInferior, NavLateral, TopoCelular } from './navegacao';
+import { AvisoFrescor } from './aviso-frescor';
 
 /** Moldura comum às telas: menu lateral no computador, navegação inferior no celular, e o Cmd+K. */
 export function Casca({ base, novos = 0, children }: { base: Base; novos?: number; children: React.ReactNode }) {
@@ -13,6 +14,7 @@ export function Casca({ base, novos = 0, children }: { base: Base; novos?: numbe
       <NavLateral base={base} novos={novos} onBuscar={() => setBuscar(true)} />
       <div className="md:pl-16 lg:pl-60">
         <TopoCelular ficticia={!!base.ficticia} onBuscar={() => setBuscar(true)} />
+        <AvisoFrescor base={base} />
         {children}
       </div>
       <NavInferior novos={novos} />

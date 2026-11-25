@@ -12,6 +12,7 @@ import { Tooltip } from '@/components/ui/tooltip';
 import { BotaoTema } from '@/components/hoje/tema';
 import type { Base } from '@/lib/tipos';
 import { useAgora } from '@/components/ui/use-agora';
+import { frescor, rotuloCarga } from '@/lib/frescor';
 
 export const SECOES = [
   { href: '/', rotulo: 'Hoje', icone: Inbox },
@@ -58,19 +59,6 @@ function AvisoExemplo({ ficticia }: { ficticia: boolean }) {
   );
 }
 
-/** Data e hora de atualização da base, em linguagem de gente ("hoje, 14:20", "ontem", "3 nov"). */
-function atualizada(iso: string | undefined, hoje: Date | null) {
-  if (!iso) return '—';
-  const d = new Date(iso.length <= 10 ? `${iso}T12:00:00` : iso);
-  // antes de montar no navegador não há "hoje" confiável (a página vem do build): mostra só a data
-  if (!hoje) return d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '');
-  const dias = Math.round((new Date(hoje.toDateString()).getTime() - new Date(d.toDateString()).getTime()) / 86_400_000);
-  const hora = iso.length > 10 ? `, ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : '';
-  if (dias <= 0) return `hoje${hora}`;
-  if (dias === 1) return `ontem${hora}`;
-  return d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' }).replace('.', '');
-}
-
 /**
  * Menu lateral (computador): fixo, sólido, com contagens e o estado da base — de quando é o dado e se as
  * fontes estão de pé. No md vira trilho de ícones; no lg mostra os rótulos.
@@ -84,9 +72,15 @@ export function NavLateral({ base, novos, onBuscar }: { base: Base; novos: numbe
   };
   const fontes = base.fontes ?? [];
   const ok = fontes.filter(f => f.status === 'ok').length;
-  // vermelho só quando nenhuma fonte está de pé; com parte delas funcionando o radar segue útil (âmbar)
-  const tom = fontes.length && ok === 0 ? 'bg-risk' : fontes.some(f => f.status !== 'ok') ? 'bg-warm' : 'bg-ok';
   const agora = useAgora();
+  // vermelho quando nenhuma fonte está de pé ou a base passou de 72 h; âmbar com fonte parada ou base > 36 h
+  const idade = agora ? frescor(base.atualizadoEm ?? base.geradoEm, agora).nivel : 'ok';
+  const tom =
+    (fontes.length && ok === 0) || idade === 'critico' || idade === 'desconhecido'
+      ? 'bg-risk'
+      : fontes.some(f => f.status !== 'ok') || idade === 'atencao'
+        ? 'bg-warm'
+        : 'bg-ok';
   return (
     <aside
       aria-label="Navegação principal"
@@ -145,7 +139,7 @@ export function NavLateral({ base, novos, onBuscar }: { base: Base; novos: numbe
         >
           <span className="flex items-center gap-1.5">
             <span aria-hidden className={cn('size-1.5 rounded-full', tom)} />
-            Base atualizada {atualizada(base.atualizadoEm ?? base.geradoEm, agora)}
+            Dados de {rotuloCarga(base.atualizadoEm ?? base.geradoEm)}
           </span>
           {fontes.length > 0 && (
             <span className="pl-3">

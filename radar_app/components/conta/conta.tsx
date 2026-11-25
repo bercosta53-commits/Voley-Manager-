@@ -20,6 +20,7 @@ import { useEstados } from '@/components/hoje/estado';
 import { Comite } from './comite';
 import { LinhaDoTempo } from './linha-do-tempo';
 import { Decomposicao } from './decomposicao';
+import { useHoje } from '@/components/ui/use-agora';
 
 type EstadoTela = 'normal' | 'carregando' | 'vazio' | 'erro' | 'sem-permissao';
 const ESTADOS: EstadoTela[] = ['carregando', 'vazio', 'erro', 'sem-permissao'];
@@ -34,7 +35,8 @@ export function TelaConta({ base: baseOriginal, contaId }: { base: Base; contaId
   const base = useMemo(() => aplicarAvaliacoes(baseOriginal, estados), [baseOriginal, estados]);
   const conta = estadoTela === 'vazio' ? undefined : base.contas.find(c => c.id === contaId);
   const sinais = useMemo(() => base.sinais.filter(s => s.contaId === contaId), [base.sinais, contaId]);
-  const hoje = base.geradoEm;
+  // data real das ações (adiar, acompanhar); a data do snapshot só serve para os cálculos da base
+  const hoje = useHoje(base.atualizadoEm ?? base.geradoEm);
 
   function mudar(s: Sinal, mudanca: EstadoSinal, aviso: string) {
     const anterior = estados[s.id];

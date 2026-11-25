@@ -44,11 +44,20 @@ export function CaixaVazia({ visao }: { visao: 'caixa' | 'adiados' | 'concluidos
   );
 }
 
-export function ErroCarregar({ onTentar, oque = 'os sinais' }: { onTentar?: () => void; oque?: string }) {
+export function ErroCarregar({ onTentar, oque = 'os sinais', codigo }: { onTentar?: () => void; oque?: string; codigo?: string }) {
   return (
     <Aviso icone={<TriangleAlert className="size-5 text-risk" strokeWidth={1.5} />} titulo={`Não consegui abrir ${oque}`}>
       <p>Pode ser uma falha passageira. Tente de novo em instantes; se continuar, avise quem cuida do Radar.</p>
-      <p className="mt-1 text-xs">Detalhe técnico: a base de contas não pôde ser lida (npm run dados gera de novo).</p>
+      <p className="mt-1 text-xs">
+        A base de contas não pôde ser lida. O motivo aparece em /api/saude e nos logs do Worker
+        {codigo ? (
+          <>
+            {' '}
+            (código <span className="vr-data select-all">{codigo}</span>)
+          </>
+        ) : null}
+        .
+      </p>
       {onTentar && (
         <button onClick={onTentar} className="mt-3 rounded-control border border-border-strong bg-card px-3.5 py-2 text-sm font-semibold text-foreground shadow-1 hover:bg-muted">
           Tentar de novo
