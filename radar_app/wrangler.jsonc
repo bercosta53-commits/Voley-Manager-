@@ -15,5 +15,6 @@
   "previews_enabled": false,
   "observability": {
     "enabled": true
-  }
+  },
+  "keep_vars": true
 }
