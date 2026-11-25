@@ -63,7 +63,7 @@ try {
   // 2. Tese da conta: as seis perguntas, cabendo na primeira tela
   await pagina.goto(app.url(`/contas/${contaAlvo.id}`), { waitUntil: 'networkidle' });
   await pagina.locator('#tese-da-conta').waitFor();
-  const linhas = await pagina.$$eval('#tese-da-conta + dl > div', ds => ds.map(d => [d.querySelector('dt').textContent, d.querySelector('dd').textContent]));
+  const linhas = await pagina.$$eval('section:has(#tese-da-conta) dl > div', ds => ds.map(d => [d.querySelector('dt').textContent, d.querySelector('dd').textContent]));
   const perguntas = linhas.map(([p]) => p);
   conferir(linhas.length === 6, 'tese com as seis perguntas', perguntas.join(' | '));
   const resposta = p => linhas.find(([q]) => q.startsWith(p))?.[1] ?? '';
@@ -78,7 +78,7 @@ try {
   await pagina.getByText('marcado como abordado').waitFor();
   await pagina.reload({ waitUntil: 'networkidle' });
   await pagina.locator('#tese-da-conta').waitFor();
-  const acao = await pagina.$$eval('#tese-da-conta + dl > div', ds => ds.find(d => d.querySelector('dt').textContent === 'Próxima ação')?.querySelector('dd').textContent ?? '');
+  const acao = await pagina.$$eval('section:has(#tese-da-conta) dl > div', ds => ds.find(d => d.querySelector('dt').textContent === 'Próxima ação')?.querySelector('dd').textContent ?? '');
   conferir(acao.startsWith('Acompanhar a abordagem'), 'depois de abordar, a próxima ação é acompanhar (persiste ao recarregar)', acao.slice(0, 60));
 
   // 4. Decisores no modo apresentação: nenhum e-mail exposto
