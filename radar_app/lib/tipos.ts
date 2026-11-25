@@ -165,6 +165,9 @@ export interface Sinal {
   porQueAgora: string;
   /** todos os veículos que noticiaram o mesmo fato (o principal incluído), quando foi mais de um */
   fontes?: { fonte: string; url: string; data: string }[];
+  /** quando a carga diária coletou o fato e quanto confia nele (contrato D2, opcionais) */
+  coletadoEm?: string;
+  confianca?: 'alta' | 'media' | 'baixa';
   /** pessoa do comitê citada na matéria (coletor de veículos) */
   pessoa?: string;
   /** nível (A/B/C) e tipo do VSCS a que o sinal pertence (scripts/score_v2.py --exibir) */

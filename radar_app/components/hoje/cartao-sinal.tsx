@@ -2,7 +2,7 @@
 
 import { forwardRef } from 'react';
 import { motion, useMotionValue, useReducedMotion, useTransform, type PanInfo } from 'motion/react';
-import { Archive, CalendarClock, ExternalLink, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { Archive, CalendarClock, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
 import type { Conta, EstadoSinal, Sinal } from '@/lib/tipos';
 import { cn, dataCurta, diasEntre, quando } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { GraficoSinais, type EventoGrafico } from './grafico-sinais';
 import { COR_PAPEL, COR_TIER, NIVEL_GATILHO, rotuloPapel } from '@/lib/papeis';
 import { ACOES_DE_ABORDAGEM, ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
 import { useApresentacao } from '@/components/ui/use-apresentacao';
+import { Evidencia } from '@/components/ui/evidencia';
 
 /** "Sinal de alta relevância": 1 mantém o peso, 2 soma 10%, 3 soma 15% — e o score da conta é recalculado. */
 function SeletorRelevancia({ valor, onMudar }: { valor?: Relevancia; onMudar: (n: Relevancia) => void }) {
@@ -227,25 +228,8 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                   <time dateTime={sinal.data} className="vr-data text-xs text-text-2">
                     {quando(sinal.data, hoje)}
                   </time>
-                  ·<span>{sinal.fonte}</span>
-                  {sinal.fontes && sinal.fontes.length > 1 && (
-                    <span title={sinal.fontes.map(f => f.fonte).join(', ')}>
-                      +{sinal.fontes.length - 1} {sinal.fontes.length > 2 ? 'fontes' : 'fonte'}
-                    </span>
-                  )}
-                  {sinal.url ? (
-                    <a
-                      href={sinal.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={e => e.stopPropagation()}
-                      className="inline-flex items-center gap-1 rounded-chip text-text-2 underline decoration-border-strong underline-offset-2 hover:text-foreground"
-                    >
-                      ver fonte <ExternalLink className="size-3" strokeWidth={1.5} />
-                    </a>
-                  ) : (
-                    sinal.exemplo && <span className="rounded-chip border border-border px-1 text-xs text-text-3">exemplo</span>
-                  )}
+                  ·
+                  <Evidencia className="contents" fonte={sinal.fonte} url={sinal.url} fontes={sinal.fontes} coletadoEm={sinal.coletadoEm} confianca={sinal.confianca} pararPropagacao />
                 </dd>
               </div>
               <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">

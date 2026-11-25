@@ -1,7 +1,8 @@
-import { Archive, CalendarClock, ExternalLink, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { Archive, CalendarClock, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
 import type { Conta, EstadoSinal, Sinal } from '@/lib/tipos';
 import { cn, dataCurta, quando } from '@/lib/utils';
 import { IconeSinal } from '@/components/hoje/icone-sinal';
+import { Evidencia } from '@/components/ui/evidencia';
 
 interface Item {
   chave: string;
@@ -26,7 +27,7 @@ export function LinhaDoTempo({ conta, sinais, estados, hoje }: { conta: Conta; s
       titulo: s.sinal ?? s.rotulo,
       texto: s.porQueAgora,
       novo: !e?.acao,
-      meta: <Evidencia fonte={s.fonte} url={s.url} exemplo={s.exemplo} extra={!e?.acao ? 'na caixa' : undefined} />,
+      meta: <Evidencia className="mt-0.5 flex text-xs" fonte={s.fonte} url={s.url} fontes={s.fontes} coletadoEm={s.coletadoEm} confianca={s.confianca} extra={!e?.acao ? 'na caixa' : undefined} />,
     });
     if (e?.acao && e.em) {
       const icones = { abordado: Send, adiado: CalendarClock, arquivado: e.avaliacao === 'ruido' ? ThumbsDown : Archive };
@@ -45,7 +46,7 @@ export function LinhaDoTempo({ conta, sinais, estados, hoje }: { conta: Conta; s
       icone: <IconeSinal tipo={h.tipo} className="size-4" />,
       titulo: h.sinal ?? h.rotulo,
       texto: h.porQueAgora,
-      meta: <Evidencia fonte={h.fonte} url={h.url} exemplo={h.exemplo} />,
+      meta: <Evidencia className="mt-0.5 flex text-xs" fonte={h.fonte} url={h.url} />,
     });
   // Ação feita hoje aparece acima do sinal do mesmo dia.
   itens.sort((a, b) => (a.data === b.data ? Number(!!b.acao) - Number(!!a.acao) : b.data.localeCompare(a.data)));
@@ -87,18 +88,3 @@ export function LinhaDoTempo({ conta, sinais, estados, hoje }: { conta: Conta; s
   );
 }
 
-function Evidencia({ fonte, url, exemplo, extra }: { fonte: string; url: string; exemplo: boolean; extra?: string }) {
-  return (
-    <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-text-3">
-      <span className="text-text-2">{fonte}</span>
-      {url ? (
-        <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-chip underline decoration-border-strong underline-offset-2 hover:text-foreground">
-          ver fonte <ExternalLink className="size-3" strokeWidth={1.5} />
-        </a>
-      ) : (
-        exemplo && <span className="rounded-chip border border-border px-1 text-xs">exemplo</span>
-      )}
-      {extra && <span>· {extra}</span>}
-    </p>
-  );
-}
