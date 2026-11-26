@@ -24,7 +24,9 @@ from pathlib import Path
 
 from . import motor32
 from .agrupar import Acontecimento, Documento, Movimento, acontecimentos, movimentos
-from .fontes import _dominio, classificar_fonte, corroborar
+from .adaptador import adaptar
+from .classificar import nivel_cargo, norm
+from .fontes import classificar_fonte, corroborar, testemunhos
 from .tempo import exponencial, janela_lideranca, lideranca_nomeada
 
 AQUI = Path(__file__).resolve().parent
@@ -36,12 +38,53 @@ def parametros() -> tuple[dict, dict]:
     return motor32.parametros(), json.loads((AQUI / "parametros_33.json").read_text(encoding="utf-8"))
 
 
-def _tempo(ac: Acontecimento, hoje: date, p33: dict) -> tuple[float, str | None]:
+MATURAVEIS = {"gerencia", "head", "diretoria_receita", "clevel_receita"}  # mandato de receita com orçamento
+STATUS_SEM_VINCULO = ("BLOQUEADO", "RECONFIRMAR_VINCULO")
+
+
+def vinculo_atual(ac: Acontecimento, conta: dict | None, hoje: date) -> tuple[bool, str]:
+    """O executivo ainda ocupa o cargo de receita? Sem confirmação, a maturação não se aplica.
+    Ordem: revisão/campo vinculoAtual → vinculoConfirmadoEm (até 180 d) → pessoa no comitê da conta com cargo de
+    receita e status que não peça reconfirmação."""
+    ev = ac.docs[0].ev
+    for d in ac.docs:
+        v = d.ev.get("vinculoAtual")
+        if v is not None:
+            return (bool(v), "vínculo confirmado no registro" if v else "registro: executivo não está mais no cargo")
+        em = d.ev.get("vinculoConfirmadoEm")
+        if em and (hoje - date.fromisoformat(str(em)[:10])).days <= 180:
+            return True, f"vínculo confirmado em {str(em)[:10]}"
+    nome = norm(ev.get("pessoa") or "")
+    if nome and conta:
+        for pes in conta.get("comite") or []:
+            if norm(pes.get("nome", "")) != nome:
+                continue
+            st = str(pes.get("statusValidacao") or "").upper()
+            if st.startswith(STATUS_SEM_VINCULO):
+                return False, f"comitê: {st.lower()}"
+            if nivel_cargo(norm(pes.get("cargo", ""))) not in MATURAVEIS:
+                return False, "comitê: cargo atual sem mandato de receita"
+            return True, "no comitê com cargo de receita"
+    return False, "sem confirmação de vínculo atual"
+
+
+def _tempo(ac: Acontecimento, hoje: date, p33: dict, conta: dict | None = None) -> tuple[float, str | None, str | None]:
+    """(fator, janela, maturação). Vaga e fatos em geral: decaimento convencional. Liderança nomeada: dupla janela
+    só com mandato de receita e, depois dos 90 dias, vínculo atual confirmado; senão, decaimento convencional."""
     dias = (hoje - ac.data).days
     if ac.cl.get("nomeacao"):
-        return lideranca_nomeada(dias, p33), janela_lideranca(dias, p33)
+        conv = exponencial("lideranca", dias)
+        janela = janela_lideranca(dias, p33)
+        if ac.cl.get("nivel") not in MATURAVEIS:
+            return conv, None, f"sem maturação: cargo sem mandato de receita ({ac.cl.get('nivel') or 'não identificado'})"
+        if dias <= p33["lideranca_nomeada"]["diagnostico"]["ate_dia"]:
+            return lideranca_nomeada(dias, p33), janela, "janela de diagnóstico"
+        ok, motivo = vinculo_atual(ac, conta, hoje)
+        if not ok:
+            return min(conv, lideranca_nomeada(dias, p33)), janela, f"suspensa: {motivo}"
+        return lideranca_nomeada(dias, p33), janela, f"aplicada: {motivo}"
     antes = 30 if ac.cl["chave"].startswith(("presenca_", "palestra_")) else 0
-    return exponencial(ac.cl["categoria"], dias, antes), None
+    return exponencial(ac.cl["categoria"], dias, antes), None, None
 
 
 def _prod(it):
@@ -52,9 +95,12 @@ def _prod(it):
 
 
 def preparar(eventos: list[dict], hoje: date, empresa: str = "", p32: dict | None = None, p33: dict | None = None,
-             interacoes: list[dict] | None = None) -> tuple[list[Movimento], list[tuple[str, str, str]]]:
+             interacoes: list[dict] | None = None, conta: dict | None = None,
+             revisoes: dict[str, dict] | None = None) -> tuple[list[Movimento], list[tuple[str, str, str]]]:
     if p32 is None or p33 is None:
         p32, p33 = parametros()
+    revisoes = revisoes or {}
+    eventos = [adaptar(e, revisoes.get(str(e.get("id"))), p33) for e in eventos]
     evs = list(eventos) + [{"tipo": i["tipo"], "data": i["data"], "interacao": True, "sinal": i.get("rotulo") or i["tipo"],
                             "id": f'int-{i["tipo"]}-{i["data"]}'} for i in (interacoes or [])]
     docs, operacionais = [], []
@@ -76,14 +122,12 @@ def preparar(eventos: list[dict], hoje: date, empresa: str = "", p32: dict | Non
         nivel, fator = classificar_fonte(ev, p33)
         if fator <= 0:
             continue
-        dominios = {_dominio(x.get("url", "")) for x in (ev.get("fontes") or []) if x.get("url")} | ({_dominio(ev.get("url", ""))} if ev.get("url") else set())
-        dominios.discard("")
-        documentos.append(Documento(ev.get("id") or ev.get("url") or f'{cl["chave"]}-{ev["data"]}', ev, cl,
-                                    date.fromisoformat(ev["data"][:10]), nivel, fator, dominios))
+        did = ev.get("id") or ev.get("url") or f'{cl["chave"]}-{ev["data"]}'
+        documentos.append(Documento(did, ev, cl, date.fromisoformat(ev["data"][:10]), nivel, fator, testemunhos(ev, nivel, did, p33)))
     acs = acontecimentos(documentos, p33["movimento"]["janela_acontecimento_dias"], p33["movimento"]["janela_vinculo_dias"])
     for ac in acs:
-        ac.fonte_nivel, ac.fonte_fator = corroborar([d.fonte_nivel for d in ac.docs], set().union(*(d.dominios for d in ac.docs)), p33)
-        ac.tempo, ac.janela = _tempo(ac, hoje, p33)
+        ac.fonte_nivel, ac.fonte_fator = corroborar([d.fonte_nivel for d in ac.docs], [x for d in ac.docs for x in d.testemunhas], p33)
+        ac.tempo, ac.janela, ac.maturacao = _tempo(ac, hoje, p33, conta)
         ac.s = min(100.0, ac.cl["base"] * ac.fonte_fator * ac.tempo)
     acs = [a for a in acs if a.s > 0]
     if p33["movimento"].get("agrupar", True):
@@ -164,8 +208,11 @@ def requisitos_90(parcelas: list[tuple[Movimento, float]], possiveis: list, pen:
         if any(d.ev.get("dataEstimada") for d in principal.docs):
             falta.append(f"{papel}: data estimada")
         if principal.cl.get("nomeacao"):
-            if principal.janela == "residual":
-                falta.append(f"{papel}: liderança fora das janelas de diagnóstico e implementação")
+            # especificação: só as janelas de diagnóstico e de implementação; transição e residual ficam fora
+            if principal.janela not in ("diagnostico", "implementacao"):
+                falta.append(f"{papel}: liderança em {principal.janela or 'sem janela'}, fora das janelas de diagnóstico e implementação")
+            if (principal.maturacao or "").startswith(("suspensa", "sem maturação")):
+                falta.append(f"{papel}: maturação {principal.maturacao}")
         else:
             janela = p33["janela_acao_dias"].get(principal.cl["tipo"], p33["janela_acao_dias"]["padrao"])
             if (hoje - principal.data).days > janela:
@@ -178,10 +225,12 @@ def requisitos_90(parcelas: list[tuple[Movimento, float]], possiveis: list, pen:
 
 
 def calcular(eventos: list[dict], hoje: date, empresa: str = "", interacoes: list[dict] | None = None,
-             p32: dict | None = None, p33: dict | None = None) -> dict:
+             p32: dict | None = None, p33: dict | None = None, conta: dict | None = None,
+             revisoes: dict[str, dict] | None = None) -> dict:
+    """`conta` só é lida para o comitê (vínculo atual do executivo); o tier nunca entra no cálculo."""
     if p32 is None or p33 is None:
         p32, p33 = parametros()
-    movs, possiveis = preparar(eventos, hoje, empresa, p32, p33, interacoes)
+    movs, possiveis = preparar(eventos, hoje, empresa, p32, p33, interacoes, conta, revisoes)
     principal, contexto, parcelas = agregar(movs, p33)
     pen = max((m.s for m in movs if m.categoria == NEGATIVO), default=0.0)
     v = max(0.0, min(100.0, max(principal, contexto)) - pen)
@@ -207,6 +256,7 @@ def calcular(eventos: list[dict], hoje: date, empresa: str = "", interacoes: lis
             "acontecimentos": [{
                 "id": a.id, "chave": a.cl["chave"], "categoria": a.cl["categoria"], "base": a.cl["base"], "data": a.data.isoformat(),
                 "fonte": a.fonte_nivel, "fator_fonte": a.fonte_fator, "tempo": round(a.tempo, 4), "janela_lideranca": a.janela,
+                "maturacao": a.maturacao, "cargo": a.cl.get("cargo"), "revisado": bool(a.cl.get("revisado")),
                 "s": round(a.s, 2), "documentos": [d.id for d in a.docs], "superado_por": a.superado_por,
             } for a in sorted(m.acontecimentos, key=lambda a: -a.s)],
         } for m in sorted(movs, key=lambda m: -m.s)],

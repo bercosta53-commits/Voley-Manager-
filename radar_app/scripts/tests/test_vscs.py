@@ -10,7 +10,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from vscs import motor32, motor33  # noqa: E402
 from vscs.agrupar import Movimento  # noqa: E402
 from vscs.classificar import nivel_cargo  # noqa: E402
-from vscs.fontes import classificar_fonte  # noqa: E402
+from vscs.fontes import classificar_fonte, corroborar, testemunhos  # noqa: E402
+from vscs import adaptador  # noqa: E402
+from vscs.classificar import cargo_do_evento  # noqa: E402
+from vscs.agrupar import Acontecimento, Documento  # noqa: E402
 from vscs.tempo import exponencial, janela_lideranca, lideranca_nomeada  # noqa: E402
 
 HOJE = date(2026, 11, 26)
@@ -33,7 +36,7 @@ class Test32Cargos(unittest.TestCase):
     def test_tabela_de_cargos(self):
         casos = {"SDR": "sdr_bdr", "Analista de RevOps": "especialista_gtm", "Coordenador de Marketing": "coordenacao",
                  "Gerente de Vendas Enterprise": "gerencia", "Head Comercial": "head", "Diretora de Marketing": "diretoria_receita",
-                 "CRO": "clevel_receita", "VP de Vendas": "clevel_receita", "Customer Success Manager": "sdr_bdr",
+                 "CRO": "clevel_receita", "VP de Vendas": "diretoria_receita", "Customer Success Manager": "sdr_bdr",
                  "Gerente de TI": None, "Diretor Financeiro": None}
         for titulo, nivel in casos.items():
             self.assertEqual(nivel_cargo(titulo), nivel, titulo)
@@ -74,7 +77,7 @@ class Test33Tempo(unittest.TestCase):
 
     def test_vaga_de_head_nao_amadurece_como_head_contratado(self):
         vaga = calc([ev("vaga_lideranca_alvo", 200, "Head Comercial")])
-        nomeado = calc([ev("executivo_chegou", 200, "Fulana assume como Head Comercial")])
+        nomeado = calc([ev("executivo_chegou", 200, "Fulana assume como Head Comercial", vinculoAtual=True)])
         self.assertEqual(vaga["vscs"], 0.0)  # 200 dias > 3 meias-vidas de vaga
         self.assertGreater(nomeado["vscs"], 60)
 
@@ -104,7 +107,7 @@ class Test33Agrupamento(unittest.TestCase):
         self.assertEqual(r["movimentos"][0]["acontecimentos"][0]["data"], (HOJE - timedelta(days=120)).isoformat())
 
     def test_execucao_reforca_com_teto(self):
-        r = calc([ev("executivo_chegou", 200, "Nova Diretora de Marketing assume"), ev("vaga_area_alvo", 100, "Analista de Marketing"),
+        r = calc([ev("executivo_chegou", 200, "Nova Diretora de Marketing assume", vinculoAtual=True), ev("vaga_area_alvo", 100, "Analista de Marketing"),
                   ev("vaga_lideranca_alvo", 100, "Coordenador de Marketing")])
         m = r["movimentos"][0]
         s1 = max(a["s"] for a in m["acontecimentos"] if not a["superado_por"])
@@ -123,7 +126,7 @@ class Test33Agrupamento(unittest.TestCase):
 
 class Test33Faixa90(unittest.TestCase):
     def forte(self):
-        return [ev("executivo_chegou", 220, "Nova CRO assume a área de receita"),
+        return [ev("executivo_chegou", 220, "Nova CRO assume a área de receita", vinculoAtual=True),
                 ev("vaga_expansao_comercial", 5, "Contrata 6 executivos comerciais para nova operação")]
 
     def test_dois_movimentos_fortes_independentes_e_primarios_chegam_a_90(self):
@@ -144,8 +147,8 @@ class Test33Faixa90(unittest.TestCase):
             self.assertLess(calc([e])["vscs"], 90)
 
     def test_penalidade_nunca_some_dentro_de_um_movimento(self):
-        so = calc([ev("executivo_chegou", 200, "Fulana assume como Head Comercial")])
-        com = calc([ev("executivo_chegou", 200, "Fulana assume como Head Comercial"), ev("fusao_aquisicao", 30, "Foi adquirida pelo grupo Beta")])
+        so = calc([ev("executivo_chegou", 200, "Fulana assume como Head Comercial", vinculoAtual=True)])
+        com = calc([ev("executivo_chegou", 200, "Fulana assume como Head Comercial", vinculoAtual=True), ev("fusao_aquisicao", 30, "Foi adquirida pelo grupo Beta")])
         self.assertGreater(com["penalidade"], 0)
         self.assertAlmostEqual(com["vscs"], round(so["vscs"] - com["penalidade"], 2), places=1)
 
@@ -160,13 +163,12 @@ class Test33Fonte(unittest.TestCase):
         casos = [({"sinal": "x", "fonte": "Site da empresa"}, "institucional"),
                  ({"sinal": "x", "fonte": "Entrevista do executivo"}, "declaracao_direta"),
                  ({"sinal": "x", "fonte": "Valor Econômico"}, "imprensa_reputada"),
-                 ({"sinal": "x", "fonte": "Blog", "fontes": [{"fonte": "A", "url": "https://a.com/1"}, {"fonte": "B", "url": "https://b.com/2"}]}, "secundaria_corroborada"),
                  ({"sinal": "x", "fonte": "Blog"}, "secundaria"),
                  ({"sinal": "x", "fonte": "Blog", "classification_confidence": 0.7}, "indicio"),
                  ({"sinal": "x", "fonte": "Blog", "classification_confidence": 0.5}, "descartado"),
-                 ({"sinal": "x", "fonte": "Blog", "release": True, "fontes": [{"url": "https://a.com/1"}, {"url": "https://b.com/2"}]}, "secundaria")]
+                 ({"sinal": "x", "fonte": "Blog", "fontes": [{"fonte": "A", "url": "https://a.com/1"}, {"fonte": "B", "url": "https://b.com/2"}]}, "secundaria")]
         for e, nivel in casos:
-            self.assertEqual(classificar_fonte(e, P33)[0], nivel, e)
+            self.assertEqual(classificar_fonte(e, P33)[0], nivel, e)  # o documento sozinho nunca se promove
 
 
 class Test33Propriedades(unittest.TestCase):
@@ -195,6 +197,152 @@ class Test33Propriedades(unittest.TestCase):
 
     def test_independe_do_tier(self):
         self.assertNotIn("tier", motor33.calcular.__code__.co_varnames)
+
+
+# ---------------------------------------------------------------- correções pedidas em 26/11 (segunda rodada)
+
+
+def _corrob(*evs):
+    docs = []
+    for i, e in enumerate(evs):
+        n, _ = classificar_fonte(e, P33)
+        docs.append((n, testemunhos(e, n, f"d{i}", P33)))
+    return corroborar([n for n, _ in docs], [x for _, ts in docs for x in ts], P33)[0]
+
+
+class TestCorrecoes26(unittest.TestCase):
+    # 1. scoreModelo e revisoesPorSinal
+    def test_scoremodelo_sobrepoe_parametros_e_reporta_diferencas(self):
+        modelo = {"K": 0.5, "cargosReceita": {"head": 82}, "chaveNova": 1, "revisoesPorSinal": {"s1": {"base": 10}}}
+        p, difs, sobras = adaptador.parametros_do_modelo(modelo, P32)
+        self.assertEqual(p["cargos_receita"]["head"], 82)
+        self.assertIn(("cargos_receita.head", 80, 82), difs)
+        self.assertIn("chaveNova", sobras)
+        self.assertEqual(P32["cargos_receita"]["head"], 80)  # o original não muda
+
+    def test_reconciliador_le_scoremodelo_e_revisoes_do_payload(self):
+        import io, json, tempfile, contextlib
+        from vscs import reconciliar
+        payload = {"geradoEm": "2026-11-26", "scoreVersao": "teste",
+                   "scoreModelo": {"cargosReceita": {"head": 80}, "revisoesPorSinal": {"s1": {"pontua": False}, "fantasma": {"base": 1}}},
+                   "contas": [{"id": "c", "nome": "Conta Sintética", "tier": "A", "score": 0.0, "v2": {"contribuicoes": []}}],
+                   "sinais": [dict(ev("vaga_lideranca_alvo", 1, "Head Comercial", id="s1"), contaId="c")]}
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            json.dump({"payload": payload}, f)
+        saida = io.StringIO()
+        with contextlib.redirect_stdout(saida):
+            sys.argv = ["reconciliar", "--snapshot", f.name]
+            reconciliar.main()
+        txt = saida.getvalue()
+        self.assertIn("2 revisões · 1 sem sinal correspondente", txt)
+        self.assertIn("1 de 1 contas batem", txt)  # o sinal revisado com pontua=False não pontua: 0 = 0
+
+    def test_revisoes_por_sinal_aceitam_dict_ou_lista_e_guardam_chaves_desconhecidas(self):
+        por_dict = adaptador.revisoes({"revisoesPorSinal": {"s1": {"tipoSpec": "nomeacao_head", "baseScore": 75, "x": 1}}})
+        self.assertEqual(por_dict["s1"]["chave"], "nomeacao_head")
+        self.assertEqual(por_dict["s1"]["base"], 75)
+        self.assertEqual(por_dict["s1"]["_desconhecidas"], ["x"])
+        por_lista = adaptador.revisoes({"revisoesPorSinal": [{"sinalId": "s2", "pontua": False}]})
+        self.assertFalse(por_lista["s2"]["pontua"])
+
+    # 2. revisão individual preservada
+    def test_revisao_individual_prevalece_sobre_a_inferencia(self):
+        e = ev("executivo_chegou", 10, "Novo CRO assume", id="s1")
+        sem = calc([e])
+        com = motor33.calcular([e], HOJE, "Empresa Exemplo", None, P32, P33, None, {"s1": {"chave": "nomeacao_head", "base": 80}})
+        a = com["movimentos"][0]["acontecimentos"][0]
+        self.assertEqual((a["chave"], a["base"], a["revisado"]), ("nomeacao_head", 80, True))
+        self.assertLess(com["vscs"], sem["vscs"])
+        fora = motor33.calcular([e], HOJE, "Empresa Exemplo", None, P32, P33, None, {"s1": {"pontua": False}})
+        self.assertEqual(fora["vscs"], 0.0)
+
+    # 2. cargo do ocupante ou da vaga, não palavras soltas
+    def test_cargo_vem_do_papel_no_fato(self):
+        self.assertEqual(nivel_cargo(cargo_do_evento({"tipo": "executivo_chegou", "sinal": "Ex-CRO da Beta assume como gerente de parcerias"})[0]), "gerencia")
+        self.assertEqual(nivel_cargo(cargo_do_evento({"tipo": "executivo_chegou", "sinal": "Ex-VP da Oracle assume diretoria de vendas"})[0]), "diretoria_receita")
+        vaga = {"tipo": "vaga_area_alvo", "sinal": "Vaga de SDR", "porQueAgora": "O time reporta ao CRO e ao Head de Growth"}
+        self.assertEqual(nivel_cargo(cargo_do_evento(vaga)[0]), "sdr_bdr")
+        self.assertEqual(cargo_do_evento({"tipo": "executivo_chegou", "sinal": "x", "cargo": "Diretora de Marketing"}), ("diretora de marketing", "cargo"))
+        self.assertEqual(cargo_do_evento({"tipo": "executivo_chegou", "sinal": "Nova Diretora de Marketing assume"})[0], "diretora de marketing")
+
+    # 3. VP de receita = diretoria executiva (85), salvo evidência de C-level
+    def test_vp_de_receita_e_diretoria_salvo_evidencia_clevel(self):
+        r = calc([ev("executivo_chegou", 10, "Maria é a nova VP de Vendas")])
+        self.assertEqual(r["movimentos"][0]["acontecimentos"][0]["base"], 85)
+        r = calc([ev("executivo_chegou", 10, "Maria é a nova VP de Vendas", responsabilidadeClevel=True)])
+        self.assertEqual(r["movimentos"][0]["acontecimentos"][0]["base"], 95)
+
+    # 4. corroborar: replicação, release e confiança
+    def test_corroboracao_respeita_independencia_e_confianca(self):
+        a = {"sinal": "x", "fonte": "Blog A", "url": "https://a.com/1"}
+        b = {"sinal": "x", "fonte": "Blog B", "url": "https://b.com/2"}
+        self.assertEqual(_corrob(a, b), "secundaria_corroborada")
+        self.assertEqual(_corrob(a, dict(b, url="https://a.com/outra")), "secundaria")  # mesmo domínio
+        self.assertEqual(_corrob(dict(a, release=True), dict(b, release=True), dict(b, url="https://c.com/3", release=True)), "secundaria")  # mesmo release
+        self.assertEqual(_corrob(a, dict(b, release=True), dict(b, url="https://c.com/3", release=True)), "secundaria_corroborada")  # apuração própria + release
+        rel = dict(a, release=True, fontes=[{"fonte": "B", "url": "https://b.com/2"}, {"fonte": "C", "url": "https://c.com/3"}])
+        self.assertEqual(_corrob(rel), "secundaria")
+        rep = dict(a, fontes=[{"fonte": "B", "url": "https://b.com/2", "replicado": True}])
+        self.assertEqual(_corrob(rep), "secundaria")
+        baixa = dict(b, classification_confidence=0.7)
+        self.assertEqual(_corrob(a, baixa), "secundaria")  # indício não testemunha
+        self.assertEqual(_corrob(dict(a, classification_confidence=0.7), baixa), "indicio")  # indício nunca é promovido
+        com_fontes = dict(a, fontes=[{"fonte": "B", "url": "https://b.com/2"}])
+        self.assertEqual(_corrob(com_fontes), "secundaria_corroborada")  # duas fontes independentes listadas no mesmo registro
+
+    # 5. liderança em transição fora da faixa 90+
+    def test_lideranca_em_transicao_nao_e_elegivel_a_90(self):
+        def mov(i, s, janela, nomeacao, mat="aplicada: x"):
+            d = Documento(i, {"sinal": "x"}, {}, HOJE, "institucional", 1.0, [])
+            cl = {"chave": "nomeacao_clevel_receita" if nomeacao else "expansao_comercial", "tipo": "troca_lideranca" if nomeacao else "expansao_comercial",
+                  "categoria": "lideranca" if nomeacao else "expansao", "base": 95, "nomeacao": nomeacao}
+            a = Acontecimento(i, [d], cl, HOJE - timedelta(days=5), "institucional", 1.0, None, s, 1.0, janela, mat if nomeacao else None)
+            return Movimento(i, [a], s=s, categoria=cl["categoria"])
+        for janela, esperado in (("transicao", True), ("residual", True), ("implementacao", False), ("diagnostico", False)):
+            falta = motor33.requisitos_90([(mov("a", 95, janela, True), 80.0), (mov("b", 85, None, False), 10.0)], [], 0.0, HOJE, P33)
+            self.assertEqual(any("transicao" in f or "residual" in f for f in falta), esperado, (janela, falta))
+
+    # 6. adaptador dos sinais históricos
+    def test_adaptador_interpreta_precisao_confianca_e_fontes(self):
+        e = adaptador.adaptar({"id": "h1", "tipo": "vaga_expansao_comercial", "sinal": "x", "data": "2026-11-01", "dataPrecisao": "mes", "confianca": "baixa"}, None, P33)
+        self.assertTrue(e["dataEstimada"])
+        self.assertEqual(classificar_fonte(e, P33)[0], "indicio")
+        self.assertNotIn("dataEstimada", adaptador.adaptar({"dataPrecisao": "dia"}, None, P33))
+        self.assertEqual(adaptador.adaptar({"confianca": 0.9}, None, P33)["classification_confidence"], 0.9)
+        self.assertEqual(adaptador.adaptar({"confianca": 72}, None, P33)["classification_confidence"], 0.72)
+        r = calc([dict(ev("vaga_expansao_comercial", 5, "Contrata 6 executivos comerciais"), dataPrecisao="estimada"),
+                  ev("executivo_chegou", 220, "Nova CRO assume a área de receita", vinculoAtual=True)])
+        self.assertTrue(any("data estimada" in f for f in r["requisitos_90_pendentes"]))
+
+    # 7. maturação: vínculo atual, mandato de receita e relevância comercial
+    def test_maturacao_exige_vinculo_atual_confirmado(self):
+        e = ev("executivo_chegou", 300, "Fulano assume como Diretor Comercial", pessoa="Fulano de Tal")
+        sem = calc([e])
+        a = sem["movimentos"][0]["acontecimentos"][0] if sem["movimentos"] else None
+        self.assertTrue(a is None or a["maturacao"].startswith("suspensa"))
+        conta_ok = {"comite": [{"nome": "Fulano de Tal", "cargo": "Diretor Comercial"}]}
+        ok = motor33.calcular([e], HOJE, "Empresa Exemplo", None, P32, P33, conta_ok)
+        self.assertTrue(ok["movimentos"][0]["acontecimentos"][0]["maturacao"].startswith("aplicada"))
+        self.assertGreater(ok["vscs"], 70)
+        reconfirmar = {"comite": [{"nome": "Fulano de Tal", "cargo": "Diretor Comercial", "statusValidacao": "RECONFIRMAR_VINCULO"}]}
+        self.assertLess(motor33.calcular([e], HOJE, "Empresa Exemplo", None, P32, P33, reconfirmar)["vscs"], 10)
+        mudou = {"comite": [{"nome": "Fulano de Tal", "cargo": "Conselheiro"}]}
+        self.assertLess(motor33.calcular([e], HOJE, "Empresa Exemplo", None, P32, P33, mudou)["vscs"], 10)
+        saiu = calc([dict(e, vinculoAtual=False)])
+        self.assertLess(saiu["vscs"], 10)
+
+    def test_sem_mandato_de_receita_nao_amadurece(self):
+        for titulo in ("Novo CEO assume", "Nova CFO assume", "Fulana assume como Coordenadora de Marketing"):
+            r = calc([ev("executivo_chegou", 300, titulo, vinculoAtual=True)])
+            for m in r["movimentos"]:
+                for a in m["acontecimentos"]:
+                    self.assertTrue(a["maturacao"].startswith("sem maturação"), (titulo, a["maturacao"]))
+            self.assertLess(r["vscs"], 10, titulo)
+
+    def test_contexto_limitado_e_noticia_setorial_zero(self):
+        self.assertEqual(calc([ev("noticia_setorial", 2, "Setor de software cresce 10%")])["vscs"], 0.0)
+        ctx = calc([ev("presenca_evento", 2, "Patrocina evento", evento={"papel": "patrocinador"})])
+        self.assertLessEqual(ctx["vscs"], 0.85 * 45 + 1e-6)
 
 
 if __name__ == "__main__":

@@ -42,7 +42,7 @@ class Documento:
     data: date
     fonte_nivel: str
     fonte_fator: float
-    dominios: set[str]
+    testemunhas: list[tuple[str, str]]
 
 
 @dataclass
@@ -57,6 +57,7 @@ class Acontecimento:
     s: float = 0.0
     tempo: float = 0.0
     janela: str | None = None
+    maturacao: str | None = None
 
     @property
     def texto(self) -> str:

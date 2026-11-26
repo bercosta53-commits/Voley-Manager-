@@ -21,10 +21,13 @@ CENARIOS = [
     ("Vaga de Head Comercial aberta há 10 d", [ev("vaga_lideranca_alvo", 10, "Head Comercial")]),
     ("Vaga de Head Comercial aberta há 120 d", [ev("vaga_lideranca_alvo", 120, "Head Comercial")]),
     ("Head Comercial nomeado há 10 d (diagnóstico)", [ev("executivo_chegou", 10, "Fulana assume como Head Comercial")]),
-    ("Head Comercial nomeado há 120 d (transição)", [ev("executivo_chegou", 120, "Fulana assume como Head Comercial")]),
-    ("Head Comercial nomeado há 300 d (implementação)", [ev("executivo_chegou", 300, "Fulana assume como Head Comercial")]),
+    ("Head Comercial nomeado há 120 d (transição), vínculo confirmado", [ev("executivo_chegou", 120, "Fulana assume como Head Comercial", vinculoAtual=True)]),
+    ("Head Comercial nomeado há 300 d, vínculo confirmado", [ev("executivo_chegou", 300, "Fulana assume como Head Comercial", vinculoAtual=True)]),
+    ("Head Comercial nomeado há 300 d, SEM confirmação de vínculo", [ev("executivo_chegou", 300, "Fulana assume como Head Comercial")]),
+    ("CEO nomeado há 300 d (sem mandato de receita)", [ev("executivo_chegou", 300, "Novo CEO assume", vinculoAtual=True)]),
+    ("VP de Vendas nomeado há 10 d (diretoria, 85)", [ev("executivo_chegou", 10, "Maria é a nova VP de Vendas")]),
     ("Vaga de Head há 90 d + Head nomeado há 10 d (mesmo movimento)", [ev("vaga_lideranca_alvo", 90, "Head Comercial"), ev("executivo_chegou", 10, "Fulana assume como Head Comercial")]),
-    ("CRO nomeado há 200 d, imprensa reputada", [ev("executivo_chegou", 200, "Novo CRO assume", fonte="Valor Econômico")]),
+    ("CRO nomeado há 200 d, imprensa reputada, vínculo confirmado", [ev("executivo_chegou", 200, "Novo CRO assume", fonte="Valor Econômico", vinculoAtual=True)]),
     ("Meta de crescimento de 67% (declaração)", [ev("expansao_mercado", 5, "Empresa projeta crescer 67% e planeja meta de R$ 50 mi")]),
     ("Expansão comercial efetiva (6 executivos)", [ev("vaga_expansao_comercial", 5, "Contrata 6 executivos comerciais")]),
     ("México: declaração + escritório + 2 vagas (um movimento)", [ev("expansao_mercado", 40, "Planeja expansão para o México"), ev("nova_unidade", 20, "Abre escritório no México"),
@@ -33,12 +36,16 @@ CENARIOS = [
     ("Mesmo fato em dois veículos secundários", [ev("expansao_mercado", 5, "Chega a Curitiba com equipe comercial", fonte="Blog X", url="https://blogx.com/a"),
                                                  ev("expansao_mercado", 4, "Chega a Curitiba com equipe comercial", fonte="Jornal Y", url="https://jornaly.com/b")]),
     ("Série B + 8 executivos sem citar o aporte (possível vínculo)", [ev("captacao", 30, "Recebe Série B de R$ 120 milhões"), ev("vaga_expansao_comercial", 5, "Contrata 8 executivos comerciais")]),
-    ("CRO há 220 d + expansão efetiva (independentes, primários)", [ev("executivo_chegou", 220, "Nova CRO assume a área de receita"), ev("vaga_expansao_comercial", 5, "Contrata 6 executivos comerciais para nova operação")]),
-    ("Idem, expansão com data estimada", [ev("executivo_chegou", 220, "Nova CRO assume a área de receita"), ev("vaga_expansao_comercial", 5, "Contrata 6 executivos comerciais para nova operação", dataEstimada=True)]),
-    ("Idem, expansão só em blog", [ev("executivo_chegou", 220, "Nova CRO assume a área de receita"), ev("vaga_expansao_comercial", 5, "Contrata 6 executivos comerciais para nova operação", fonte="Blog X")]),
-    ("Head nomeado + aquisição pela controladora", [ev("executivo_chegou", 200, "Fulana assume como Head Comercial"), ev("fusao_aquisicao", 30, "Foi adquirida pelo grupo Beta")]),
+    ("CRO há 220 d + expansão efetiva (independentes, primários)", [ev("executivo_chegou", 220, "Nova CRO assume a área de receita", vinculoAtual=True), ev("vaga_expansao_comercial", 5, "Contrata 6 executivos comerciais para nova operação")]),
+    ("Idem, expansão com data estimada", [ev("executivo_chegou", 220, "Nova CRO assume a área de receita", vinculoAtual=True), ev("vaga_expansao_comercial", 5, "Contrata 6 executivos comerciais para nova operação", dataEstimada=True)]),
+    ("Idem, expansão só em blog", [ev("executivo_chegou", 220, "Nova CRO assume a área de receita", vinculoAtual=True), ev("vaga_expansao_comercial", 5, "Contrata 6 executivos comerciais para nova operação", fonte="Blog X")]),
+    ("Head nomeado + aquisição pela controladora", [ev("executivo_chegou", 200, "Fulana assume como Head Comercial", vinculoAtual=True), ev("fusao_aquisicao", 30, "Foi adquirida pelo grupo Beta")]),
     ("Quatro notícias médias independentes", [ev("parceria", 10, "Parceria com Alfa"), ev("presenca_evento", 5, "Expositor no evento", evento={"papel": "patrocinador"}),
                                               ev("lancamento_produto", 15, "Lança módulo de relatórios"), ev("premio", 20, "Recebe prêmio de inovação")]),
+    ("CRO há 140 d (transição) + expansão efetiva", [ev("executivo_chegou", 140, "Nova CRO assume a área de receita", vinculoAtual=True), ev("vaga_expansao_comercial", 5, "Contrata 6 executivos comerciais para nova operação")]),
+    ("Mesmo release em três veículos", [ev("expansao_mercado", 5, "Chega a Curitiba com equipe comercial", fonte="Blog X", url="https://blogx.com/a", release=True),
+                                        ev("expansao_mercado", 5, "Chega a Curitiba com equipe comercial", fonte="Jornal Y", url="https://jornaly.com/b", release=True),
+                                        ev("expansao_mercado", 5, "Chega a Curitiba com equipe comercial", fonte="Portal Z", url="https://portalz.com/c", release=True)]),
     ("Pedido de diagnóstico (intenção direta)", [], [{"tipo": "pedido_diagnostico", "data": (HOJE - timedelta(days=2)).isoformat()}]),
 ]
 
@@ -55,7 +62,7 @@ def main() -> None:
         linha = [nome, f2(motor32.calcular(evs, HOJE, p32, inter)["vscs"])]
         pend = ""
         for k, pv in vs.items():
-            r = motor33.calcular(evs, HOJE, "Empresa Exemplo", inter, p32, pv)
+            r = motor33.calcular(evs, HOJE, "Empresa Exemplo", inter, p32, pv)  # sem comitê: vínculo só pelo campo do sinal
             linha.append(f2(r["vscs"]))
             if k == "DC + dupla janela (3.3)":
                 pend = "; ".join(r["requisitos_90_pendentes"]) or ("—" if r["vscs"] < 90 else "cumpridas")

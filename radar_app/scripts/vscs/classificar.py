@@ -21,9 +21,10 @@ AREA_RECEITA = r"(marketing|vendas|comercial|growth|receita|revenue|negocios|par
 OPERACIONAL_COM_MANAGER = re.compile(r"\b(customer success manager|account manager|key account manager|success manager|csm|kam)\b")
 
 REGRAS_CARGO: list[tuple[str, re.Pattern]] = [
-    ("clevel_receita", re.compile(r"\b(cro|cmo|cco|cso|chief (revenue|marketing|commercial|sales|growth) officer|chief (revenue|marketing|commercial|sales|growth))\b"
-                                  r"|\b(vp|vice-presidente|vice presidente)\s+(de\s+|of\s+)?" + AREA_RECEITA + r"\b")),
-    ("diretoria_receita", re.compile(r"\bdiret(or|ora|oria)\s+(executiv[oa]\s+)?(de\s+|of\s+)?" + AREA_RECEITA + r"\b|\b" + AREA_RECEITA + r"\s+director\b")),
+    ("clevel_receita", re.compile(r"\b(cro|cmo|cco|cso|c-level|chief (revenue|marketing|commercial|sales|growth) officer|chief (revenue|marketing|commercial|sales|growth))\b")),
+    # VP de receita é diretoria executiva (85), salvo evidência de responsabilidade C-level (decisão de 26/11)
+    ("diretoria_receita", re.compile(r"\bdiret(or|ora|oria)\s+(executiv[oa]\s+)?(de\s+|of\s+)?" + AREA_RECEITA + r"\b|\b" + AREA_RECEITA + r"\s+director\b"
+                                     r"|\b(vp|vice-presidente|vice presidente|vice-president|vice president)\s+(de\s+|of\s+)?" + AREA_RECEITA + r"\b")),
     ("head", re.compile(r"\bhead\s+(de\s+|of\s+)?" + AREA_RECEITA + r"\b")),
     ("gerencia", re.compile(r"\b(gerente|gerencia|manager)\b(?!\s+de\s+contas)(?!.*\baccount manager\b)")),
     ("coordenacao", re.compile(r"\b(coordenador|coordenadora|coordenacao|coordinator|supervisor|supervisora|lider de equipe|team lead)\b")),
@@ -72,3 +73,42 @@ def base_bloco(qtd: int, p: dict) -> int:
     if qtd == 2:
         return b["duas"]
     return b["uma"]
+
+
+# ---------------------------------------------------------------- cargo do ocupante ou da vaga
+
+# o cargo vem do PAPEL do fato, não de qualquer palavra do texto: "ex-CRO da Y assume como gerente de parcerias" é gerência
+GATILHO_NOMEACAO = re.compile(
+    r"\b(?:assume|assumiu|assumira|assumir|nomead[oa]|promovid[oa]|contratad[oa]|anunciad[oa]|empossad[oa]|eleit[oa]|chega|chegou"
+    r"|e o novo|e a nova|e o nova|o novo|a nova|novo|nova)\s+(?:como\s+|o cargo de\s+|a posicao de\s+|a cadeira de\s+|para\s+(?:o cargo de\s+|a\s+)?|a\s+)?"
+    r"(?P<cargo>[a-z0-9&/ -]{2,80}?)(?=$|[,;.(]|\s+(?:da|do|na|no|em|para|apos|com|e|que|a partir)\s)")
+PREFIXO_VAGA = re.compile(r"^(?:vaga[s]?\s+(?:de|para)\s+|abre\s+vaga[s]?\s+(?:de|para)\s+|contrata(?:ndo)?\s+|procura\s+)")
+VERBO_FINAL = re.compile(r"(\s+(assume|assumiu|assumira|chega|chegou|e anunciad[oa]|e nomead[oa]|toma posse|estreia))+\s*$")
+CAMPOS_CARGO = ("cargo", "cargoOcupante", "cargoVaga", "cargo_ocupante", "cargo_vaga")
+
+
+def cargo_do_evento(ev: dict) -> tuple[str, str]:
+    """(cargo, origem). Ordem: revisão registrada → campo explícito → título da vaga → cargo após o gatilho da
+    nomeação no título curto (sinal) → o título curto inteiro. Nunca o texto de contexto (porQueAgora), que cita
+    outros cargos ("reporta ao CRO", "ex-VP da Oracle")."""
+    rev = ev.get("_revisao") or {}
+    if rev.get("cargo"):
+        return norm(rev["cargo"]), "revisao"
+    for k in CAMPOS_CARGO:
+        if ev.get(k):
+            return norm(ev[k]), k
+    for k in ("executivo", "vaga"):
+        if isinstance(ev.get(k), dict) and (ev[k].get("cargo") or ev[k].get("titulo")):
+            return norm(ev[k].get("cargo") or ev[k].get("titulo")), f"{k}.cargo"
+    titulo = norm(ev.get("sinal") or ev.get("titulo") or "")
+    if ev.get("tipo", "").startswith("vaga"):
+        return PREFIXO_VAGA.sub("", titulo).strip(), "titulo_da_vaga"
+    m = GATILHO_NOMEACAO.search(titulo)
+    if m:
+        return VERBO_FINAL.sub("", m.group("cargo")).strip(), "apos_gatilho"
+    return titulo, "titulo"
+
+
+def evidencia_clevel(ev: dict) -> bool:
+    rev = ev.get("_revisao") or {}
+    return bool(rev.get("responsabilidadeClevel") or ev.get("responsabilidadeClevel"))

@@ -25,7 +25,7 @@
 
 Usa a mesma agregação da 3.0: `100·[1 − Π(1 − 0,5·s/100)] + bônus (+5/+8) − maior penalidade`. Também mantém o mesmo decaimento exponencial por categoria. O que muda é a classificação.
 
-- **Vaga ou nomeação de receita.** A base vem da senioridade. Áreas de receita: marketing, vendas, growth, parcerias, RevOps e CS.
+- **Vaga ou nomeação de receita.** A base vem da senioridade **do cargo do ocupante ou da vaga**, e não de qualquer palavra do texto (seção 3.7, item 3). Áreas de receita: marketing, vendas, growth, parcerias, RevOps e CS.
 
   | Senioridade | Base |
   |---|---:|
@@ -34,8 +34,8 @@ Usa a mesma agregação da 3.0: `100·[1 − Π(1 − 0,5·s/100)] + bônus (+5/
   | Coordenação | 55 |
   | Gerência | 70 |
   | Head | 80 |
-  | Diretoria de receita | 85 |
-  | C-level de receita | 95 |
+  | Diretoria de receita, inclusive VP de receita | 85 |
+  | C-level de receita (CRO, CMO, CCO, CSO, Chief …; VP só com evidência de responsabilidade C-level) | 95 |
 
   Não pontuam como receita: diretor financeiro ou técnico, gerente de TI, "Customer Success Manager" e "Account Manager", que são operacionais.
 - **Vagas operacionais distintas em até 30 dias formam um bloco**, que **substitui** as vagas que o compõem. Duas vagas valem 30, três a quatro valem 50 e cinco ou mais valem 70. Um especialista sozinho (35) vale mais que um bloco de duas.
@@ -113,7 +113,7 @@ Valem todas. O modelo não define nenhuma quantidade mínima de contas nessa fai
 
 1. **Independência.** Dominante e corroborador são movimentos distintos, sem vínculo nem possível vínculo entre eles.
 2. **Materialidade.** Cada um tem `s_movimento` ≥ 70.
-3. **Atualidade.** O fato principal de cada movimento está dentro da janela de ação do seu tipo. Liderança nomeada precisa estar na janela de diagnóstico ou de implementação.
+3. **Atualidade.** O fato principal de cada movimento está dentro da janela de ação do seu tipo. Liderança nomeada precisa estar na janela de diagnóstico ou de implementação: **transição e residual ficam fora**. A maturação também precisa estar aplicada, com vínculo atual e mandato de receita.
 4. **Fonte.** O dominante tem fonte ≥ 0,95 (institucional, declaração direta ou imprensa corroborada) e o corroborador ≥ 0,90. Nenhum dos dois tem data estimada.
 5. **Conexão com Growth, Vendas ou GTM.** As categorias são liderança, expansão, contratação, GTM ou intenção. Contexto e C-level fora de receita não servem.
 6. **Sem penalidade ativa.**
@@ -126,7 +126,7 @@ Um fato sozinho não chega a 90: o teto de um movimento é 85. O caso típico qu
 |---|---:|---|
 | institucional | 1,00 | Site, comunicado ou RI da empresa, carreiras, registro público, página do evento, interação direta |
 | declaração direta | 0,95 | O próprio executivo, com nome e cargo (`fonteTipo: "declaracao_executivo"` ou fonte da lista) |
-| secundária corroborada | 0,95 | Dois ou mais veículos independentes (domínios diferentes). Release replicado (`release: true`) não conta |
+| secundária corroborada | 0,95 | Decidido só em `corroborar()`, nunca pelo documento sozinho. Exige duas ou mais testemunhas independentes, cada uma com nível de pelo menos secundária. Mesmo domínio conta uma vez. Cópias de release (`release: true`) colapsam numa testemunha. Entradas `replicado` não contam. Indício não testemunha e nunca é promovido |
 | imprensa reputada | 0,90 | Veículo da lista curada em `parametros_33.json` (a lista precisa ser confirmada) |
 | secundária | 0,80 | Demais veículos |
 | indício | 0,60 | Confiança de classificação entre 0,60 e 0,85 |
@@ -148,6 +148,36 @@ Confiança do classificador e fonte são coisas diferentes: a confiança limita 
 
 Para publicar, o mapeamento para `v2.contribuicoes` é: um registro por acontecimento, com `pontos` = parcela do movimento distribuída entre os acontecimentos dele. Série e tendência precisam ser recalculadas reexecutando os eventos datados com a nova fórmula, marcadas com `serie_recalculada`. Histórico não pode ser interpolado.
 
+### 3.7 Revisão de 26/11 (segunda rodada): correções antes da publicação
+
+1. **`payload.scoreModelo` é a fonte dos parâmetros efetivos.**
+   - `reconciliar.py` lê o `scoreModelo` e sobrepõe o `parametros_32.json` pelo nome do campo (camelCase ou snake_case).
+   - Lista as diferenças e as chaves sem correspondência.
+   - Lê também `revisoesPorSinal`, como dict por id ou como lista. Mostra campos reconhecidos, campos desconhecidos e revisões sem sinal.
+2. **Revisões individuais prevalecem** (`adaptador.revisoes` e `motor32._da_revisao`). Campos: `chave`, `base`, `categoria`, `nivel`, `cargo`, `pontua` (`false` = não pontua), fonte, data, precisão, confiança, `vinculoAtual`, `responsabilidadeClevel`, `movimentoId` e `acontecimentoId`.
+3. **Cargo do ocupante ou da vaga** (`classificar.cargo_do_evento`). A ordem de leitura é:
+   1. revisão;
+   2. campo explícito (`cargo`, `cargoOcupante`, `cargoVaga`);
+   3. título da vaga;
+   4. cargo após o gatilho da nomeação no título curto;
+   5. título curto inteiro.
+
+   O texto de contexto (`porQueAgora`) **não** é lido. Exemplo: em "Ex-CRO da Beta assume como gerente de parcerias", o cargo é gerência.
+4. **VP de receita = diretoria executiva (85).** Só vira C-level (95) com `responsabilidadeClevel` registrado.
+5. **`corroborar()` corrigida** (seção 3.5): independência por domínio, release colapsado, réplicas ignoradas, teto de confiança preservado.
+6. **Transição e residual** fora da elegibilidade para a faixa 90+ (seção 3.4).
+7. **Adaptador dos sinais históricos** (`adaptador.adaptar`):
+   - `dataPrecisao` diferente de dia ou exata → `dataEstimada`;
+   - `confianca` (alta 0,95 · média 0,85 · baixa 0,65, ou número de 0–1 ou 0–100) → `classification_confidence`;
+   - `fontes[]` vai para `corroborar()`.
+8. **Maturação com salvaguardas.** Só se aplica a gerência, head, diretoria e C-level de receita. Depois dos 90 dias, exige **vínculo atual confirmado**, verificado nesta ordem:
+   1. `vinculoAtual` na revisão;
+   2. `vinculoConfirmadoEm` com até 180 d;
+   3. pessoa no comitê da conta com cargo de receita, sem status `RECONFIRMAR_VINCULO` ou `BLOQUEADO`.
+
+   Sem isso, vale o decaimento convencional, e o acontecimento grava `maturacao: "suspensa: …"`. CEO/sócio (70) e C-level fora de receita (50) não amadurecem. A simulação traz uma **auditoria da maturação**: ganho de cada liderança contra o decaimento convencional, para revisão manual dos maiores ganhos.
+9. **Contexto e notícia setorial.** Contexto tem contribuição limitada: base ≤ 45 e não corrobora. Notícia setorial genérica vale 0.
+
 ## 4. Como reproduzir sobre a base real (somente leitura)
 
 ```bash
@@ -155,19 +185,16 @@ cd radar_app/scripts
 python3 -m vscs.reconciliar --snapshot ~/privado/payload.json --hoje 2026-11-26 > ~/privado/reconciliacao.md
 python3 -m vscs.simular     --snapshot ~/privado/payload.json --hoje 2026-11-26 > ~/privado/simulacao-33.md
 python3 -m vscs.casos                                                             # contrafactuais sintéticos
-python3 -m unittest discover -s tests -p 'test_*.py'                              # 59 testes
+python3 -m unittest discover -s tests -p 'test_*.py'                              # 71 testes
 ```
 
 O payload é o JSON do campo `payload` de `radar_snapshots` (`id = 'current'`), exportado por quem tem acesso. Ele e as saídas **ficam fora do repositório**.
 
 ## 5. Decisões pendentes (humanas)
 
-1. Confirmar a tabela de bases da 3.2 contra o registro do Supabase (`reconciliar.py`), em especial liderança fora de receita e a pontuação de contexto.
+1. Confirmar a tabela de bases da 3.2 contra `payload.scoreModelo` (`reconciliar.py`). Liderança fora de receita (70/50) e contexto foram decididos em 26/11.
 2. Lista de veículos reputados.
-3. Parâmetros da dupla janela: fator 0,85 na janela de diagnóstico e a profundidade do vale de 90–180 d. São hipóteses a validar com a rotulagem de especialistas.
-4. γ e teto de execução (0,25 e +10).
-5. Se `uso_do_capital` sem citação deve agrupar, como medida conservadora, ou ficar como possível vínculo (proposta atual).
-6. Cortes de CQ-1 sobre a nova escala: proposta de manter A ≥ 55 e B ≥ 70.
+3. Profundidade do vale de 90–180 d da dupla janela, a validar com a rotulagem de especialistas. Aprovados para teste em 26/11: fator 0,85 na janela de diagnóstico; γ 0,25 com teto +10; captação sem vínculo comprovado = possível vínculo; cortes de CQ-1 mantidos.
 
 ## 6. Não publicar
 

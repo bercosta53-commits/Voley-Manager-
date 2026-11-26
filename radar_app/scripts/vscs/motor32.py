@@ -19,7 +19,8 @@ AQUI = Path(__file__).resolve().parent
 sys.path.insert(0, str(AQUI.parent))
 import score_v2 as s30  # noqa: E402
 
-from .classificar import FORA_DE_RECEITA, LIDERANCA, OPERACIONAL, base_bloco, familia_cargo, nivel_cargo, norm  # noqa: E402
+from .classificar import (FORA_DE_RECEITA, LIDERANCA, OPERACIONAL, base_bloco, cargo_do_evento, evidencia_clevel, familia_cargo,
+                          nivel_cargo, norm)  # noqa: E402
 
 VERSAO = "vscs-3.2-contexto-cargos"
 
@@ -28,30 +29,39 @@ def parametros(caminho: Path | None = None) -> dict:
     return json.loads((caminho or AQUI / "parametros_32.json").read_text(encoding="utf-8"))
 
 
-def _texto(ev: dict) -> str:
-    return f'{ev.get("sinal", "")} {ev.get("porQueAgora", "")} {ev.get("titulo", "")}'
+def _nivel(ev: dict) -> tuple[str | None, str, str]:
+    """(nível, cargo, origem) pelo cargo do ocupante ou da vaga; VP só vira C-level com evidência registrada."""
+    cargo, origem = cargo_do_evento(ev)
+    nivel = nivel_cargo(cargo)
+    if nivel == "diretoria_receita" and evidencia_clevel(ev):
+        nivel = "clevel_receita"
+    return nivel, cargo, origem
 
 
 def classificar(ev: dict, p: dict) -> dict | None:
     """Evento → {chave, tipo, categoria, base, operacional, nivel, familia} ou None (não pontua)."""
     tipo = ev["tipo"]
-    texto = _texto(ev)
+    rev = ev.get("_revisao") or {}
+    if rev.get("pontua") is False:
+        return None  # revisão individual: o sinal não pontua
+    if rev.get("chave") and (rev.get("base") is not None or rev["chave"] in s30.P):
+        return _da_revisao(ev, rev, p)
     if tipo in ("vaga_area_alvo", "vaga_lideranca_alvo"):
-        nivel = nivel_cargo(texto)
+        nivel, texto, _ = _nivel(ev)
         if nivel is None:
-            if FORA_DE_RECEITA.search(norm(texto)):
+            if FORA_DE_RECEITA.search(texto):
                 return None  # vaga de CFO, CTO, TI: não é contratação de receita
             nivel = "head" if tipo == "vaga_lideranca_alvo" else "sdr_bdr"
         base = p["cargos_receita"][nivel]
         return {"chave": f"vaga_{nivel}", "tipo": "vaga_lideranca_alvo" if nivel in LIDERANCA else "vaga_area_alvo",
                 "categoria": "contratacao", "base": base, "operacional": nivel in OPERACIONAL, "nivel": nivel,
-                "familia": familia_cargo(texto), "vaga": True}
+                "familia": familia_cargo(texto), "vaga": True, "cargo": texto}
     if tipo in ("executivo_chegou", "troca_lideranca", "troca_diretoria", "novo_cmo"):
-        nivel = nivel_cargo(texto)
+        nivel, texto, _ = _nivel(ev)
         if nivel in LIDERANCA:
             return {"chave": f"nomeacao_{nivel}", "tipo": "troca_lideranca", "categoria": "lideranca",
                     "base": p["cargos_receita"][nivel], "operacional": False, "nivel": nivel, "familia": familia_cargo(texto),
-                    "nomeacao": True}
+                    "nomeacao": True, "cargo": texto}
         chave = s30.nivelar(ev) if tipo == "executivo_chegou" else None
         if chave == "troca_lideranca_ceo":
             return {"chave": chave, "tipo": "troca_lideranca", "categoria": "lideranca",
@@ -66,6 +76,20 @@ def classificar(ev: dict, p: dict) -> dict | None:
     pr = s30.P[chave]
     base = p["bases_30"].get(chave, pr.base)
     return {"chave": chave, "tipo": pr.tipo, "categoria": pr.categoria, "base": base, "operacional": False, "nivel": None, "familia": None}
+
+
+def _da_revisao(ev: dict, rev: dict, p: dict) -> dict:
+    """Revisão individual registrada no Supabase (scoreModelo.revisoesPorSinal): prevalece sobre a inferência."""
+    chave = rev["chave"]
+    pr = s30.P.get(chave)
+    nivel = rev.get("nivel") or (chave.split("_", 1)[1] if chave.startswith(("vaga_", "nomeacao_")) else None)
+    categoria = rev.get("categoria") or (pr.categoria if pr else ("lideranca" if chave.startswith("nomeacao_") else "contratacao"))
+    tipo = pr.tipo if pr else ("troca_lideranca" if chave.startswith("nomeacao_") else "vaga_area_alvo")
+    base = rev["base"] if rev.get("base") is not None else (pr.base if pr else p["cargos_receita"].get(nivel or "", 0))
+    cargo = norm(rev.get("cargo") or "")
+    return {"chave": chave, "tipo": tipo, "categoria": categoria, "base": base, "operacional": nivel in OPERACIONAL,
+            "nivel": nivel, "familia": familia_cargo(cargo) if cargo else "receita", "cargo": cargo,
+            "vaga": chave.startswith("vaga_"), "nomeacao": chave.startswith("nomeacao_") or categoria == "lideranca", "revisado": True}
 
 
 def _blocos(itens: list[tuple[dict, dict]], p: dict) -> list[tuple[dict, dict]]:
@@ -191,7 +215,11 @@ def _prod(it):
     return r
 
 
-def calcular(eventos: list[dict], hoje: date, p: dict | None = None, interacoes: list[dict] | None = None) -> dict:
+def calcular(eventos: list[dict], hoje: date, p: dict | None = None, interacoes: list[dict] | None = None,
+             revisoes: dict[str, dict] | None = None) -> dict:
+    """`revisoes` = scoreModelo.revisoesPorSinal normalizado (adaptador.revisoes): a revisão individual prevalece."""
     p = p or parametros()
+    if revisoes:
+        eventos = [dict(e, _revisao=revisoes[str(e.get("id"))]) if str(e.get("id")) in revisoes else e for e in eventos]
     cs = contribuicoes(eventos, hoje, p, interacoes)
     return vscs(cs, p) | {"contribuicoes": [replace(c).__dict__ | {"s": round(c.s, 2), "pontos": round(c.marginal, 2)} for c in cs]}

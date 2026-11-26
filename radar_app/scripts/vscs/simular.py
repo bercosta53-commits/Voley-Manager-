@@ -19,7 +19,7 @@ import statistics
 from datetime import date
 
 from . import motor32, motor33
-from .reconciliar import carregar, eventos_da_conta
+from .reconciliar import carregar, eventos_da_conta, modelo_e_revisoes
 
 FAIXAS = [(0, 19.99), (20, 39.99), (40, 54.99), (55, 69.99), (70, 84.99), (85, 89.99), (90, 100)]
 CQ1 = {"A": 55, "B": 70}
@@ -78,14 +78,15 @@ def main() -> None:
     base = carregar(a.snapshot)
     hoje = date.fromisoformat(a.hoje or str(base.get("geradoEm", date.today().isoformat()))[:10])
     p32, p33 = motor33.parametros()
+    p32, revs, _, _ = modelo_e_revisoes(base, p32)  # scoreModelo prevalece; revisões individuais preservadas
     vs = variantes(p33)
     linhas = []
     for c in base["contas"]:
         evs = eventos_da_conta(c, base.get("sinais", []))
-        r = {"gravado": float(c.get("score") or 0), "3.2 canônica": motor32.calcular(evs, hoje, p32, c.get("interacoes"))["vscs"]}
+        r = {"gravado": float(c.get("score") or 0), "3.2 canônica": motor32.calcular(evs, hoje, p32, c.get("interacoes"), revs)["vscs"]}
         detalhe = None
         for nome, pv in vs.items():
-            res = motor33.calcular(evs, hoje, c.get("nome", ""), c.get("interacoes"), p32, pv)
+            res = motor33.calcular(evs, hoje, c.get("nome", ""), c.get("interacoes"), p32, pv, c, revs)
             r[nome] = res["vscs"]
             if nome == "DC + dupla janela (3.3)":
                 detalhe = res
@@ -122,6 +123,22 @@ def main() -> None:
     for c, r, d in ab:
         if d["vscs_base"] >= 90:
             out.append(f"- {c.get('nome')} ({c.get('tier')}): {f2(d['vscs'])} · pendências: {'; '.join(d['requisitos_90_pendentes']) or 'nenhuma'}")
+    out += ["", "## Auditoria da maturação de liderança (revisar vínculo atual, mandato de receita e relevância comercial)", "",
+            "Ganho = s com a dupla janela − s com decaimento convencional. Ordenado pelo ganho; inclui as suspensas.", "",
+            "| conta | tier | cargo | dias | janela | maturação | s 3.3 | s convencional | ganho |", "|---|---|---|---:|---|---|---:|---:|---:|"]
+    from .tempo import exponencial
+    auditoria = []
+    for c, r, d in linhas:
+        for m in d["movimentos"]:
+            for a in m["acontecimentos"]:
+                if a.get("janela_lideranca") is None and not (a.get("maturacao") or "").startswith(("suspensa", "sem maturação")):
+                    continue
+                dias = (hoje - date.fromisoformat(a["data"])).days
+                conv = a["base"] * a["fator_fonte"] * exponencial("lideranca", dias)
+                auditoria.append((a["s"] - conv, c, a, dias, conv))
+    for ganho, c, a, dias, conv in sorted(auditoria, key=lambda x: -x[0])[:40]:
+        out.append(f"| {c.get('nome')} | {c.get('tier')} | {a.get('cargo') or a['chave']} | {dias} | {a.get('janela_lideranca') or '—'} | "
+                   f"{a.get('maturacao') or '—'} | {f2(a['s'])} | {f2(conv)} | {f2(ganho)} |")
     out += ["", "## Cortes numéricos de CQ-1 (A ≥ 55, B ≥ 70) — elegibilidade exige as demais regras", "", "| modelo | cruzam | com contato bloqueado |", "|---|---:|---:|"]
     for m in modelos:
         cruzam = [c for c, r, _ in ab if r[m] >= CQ1[c["tier"]]]

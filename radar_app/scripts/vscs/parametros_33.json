@@ -1,13 +1,37 @@
 {
   "versao": "vscs-3.3-dc",
-  "estado": "proposta em teste; não publicar",
-  "dc": {"a": 0.85, "b": 0.60, "max_corroboradores": 2, "mesma_categoria": 0.7, "nao_corrobora": ["contexto"]},
-  "movimento": {"gamma_execucao": 0.25, "teto_execucao": 10, "janela_vinculo_dias": 180, "janela_acontecimento_dias": 21},
+  "estado": "proposta em teste; não publicar. Decisões de 26/11: fator 0,85 na janela de diagnóstico; gamma 0,25 e teto +10; captação sem vínculo comprovado = possível vínculo; cortes de CQ-1 mantidos",
+  "dc": {
+    "a": 0.85,
+    "b": 0.6,
+    "max_corroboradores": 2,
+    "mesma_categoria": 0.7,
+    "nao_corrobora": [
+      "contexto"
+    ]
+  },
+  "movimento": {
+    "gamma_execucao": 0.25,
+    "teto_execucao": 10,
+    "janela_vinculo_dias": 180,
+    "janela_acontecimento_dias": 21
+  },
   "lideranca_nomeada": {
-    "diagnostico": {"ate_dia": 90, "fator": 0.85},
-    "transicao": {"ate_dia": 150, "fator_fim": 0.65},
-    "subida": {"ate_dia": 180},
-    "implementacao": {"ate_dia": 450, "fator": 1.0},
+    "diagnostico": {
+      "ate_dia": 90,
+      "fator": 0.85
+    },
+    "transicao": {
+      "ate_dia": 150,
+      "fator_fim": 0.65
+    },
+    "subida": {
+      "ate_dia": 180
+    },
+    "implementacao": {
+      "ate_dia": 450,
+      "fator": 1.0
+    },
     "meia_vida_depois": 90,
     "expira_dia": 720
   },
@@ -15,26 +39,102 @@
     "institucional": 1.0,
     "declaracao_direta": 0.95,
     "secundaria_corroborada": 0.95,
-    "imprensa_reputada": 0.90,
-    "secundaria": 0.80,
-    "indicio": 0.60,
+    "imprensa_reputada": 0.9,
+    "secundaria": 0.8,
+    "indicio": 0.6,
     "confianca_minima": 0.6,
     "confianca_indicio": 0.85,
-    "institucionais": ["Página de carreiras", "Indeed", "Site da empresa", "Comunicado", "Página do evento", "Relações com investidores", "Diário Oficial", "CVM", "Junta Comercial"],
-    "declaracao": ["Entrevista do executivo", "LinkedIn do executivo", "Post do executivo"],
-    "reputadas": ["Valor Econômico", "Pipeline Valor", "Estadão", "Folha de S.Paulo", "O Globo", "Exame", "NeoFeed", "Brazil Journal", "InfoMoney", "Época Negócios", "Forbes Brasil", "Bloomberg Línea", "Reuters", "Startups", "Baguete", "IT Forum", "Meio & Mensagem"],
+    "institucionais": [
+      "Página de carreiras",
+      "Indeed",
+      "Site da empresa",
+      "Comunicado",
+      "Página do evento",
+      "Relações com investidores",
+      "Diário Oficial",
+      "CVM",
+      "Junta Comercial"
+    ],
+    "declaracao": [
+      "Entrevista do executivo",
+      "LinkedIn do executivo",
+      "Post do executivo"
+    ],
+    "reputadas": [
+      "Valor Econômico",
+      "Pipeline Valor",
+      "Estadão",
+      "Folha de S.Paulo",
+      "O Globo",
+      "Exame",
+      "NeoFeed",
+      "Brazil Journal",
+      "InfoMoney",
+      "Época Negócios",
+      "Forbes Brasil",
+      "Bloomberg Línea",
+      "Reuters",
+      "Startups",
+      "Baguete",
+      "IT Forum",
+      "Meio & Mensagem"
+    ],
     "lista_reputadas_confirmar": true
   },
   "faixa_90": {
     "materialidade_minima": 70,
     "fonte_minima_dominante": 0.95,
-    "fonte_minima_corroborador": 0.90,
+    "fonte_minima_corroborador": 0.9,
     "teto_sem_requisitos": 89.9,
-    "categorias_gtm": ["lideranca", "expansao", "contratacao", "gtm", "intencao"]
+    "categorias_gtm": [
+      "lideranca",
+      "expansao",
+      "contratacao",
+      "gtm",
+      "intencao"
+    ]
   },
   "janela_acao_dias": {
-    "lancamento_produto": 45, "vaga_area_alvo": 30, "vaga_bloco": 30, "nova_parceria": 60, "nova_filial": 90,
-    "vaga_lideranca_alvo": 90, "captacao": 90, "expansao_comercial": 60, "declaracao_expansao": 45,
-    "aquisicao_feita": 60, "fusao": 60, "intencao": 15, "padrao": 60
+    "lancamento_produto": 45,
+    "vaga_area_alvo": 30,
+    "vaga_bloco": 30,
+    "nova_parceria": 60,
+    "nova_filial": 90,
+    "vaga_lideranca_alvo": 90,
+    "captacao": 90,
+    "expansao_comercial": 60,
+    "declaracao_expansao": 45,
+    "aquisicao_feita": 60,
+    "fusao": 60,
+    "intencao": 15,
+    "padrao": 60
+  },
+  "maturacao": {
+    "niveis": [
+      "gerencia",
+      "head",
+      "diretoria_receita",
+      "clevel_receita"
+    ],
+    "vinculo_confirmado_valido_dias": 180,
+    "status_sem_vinculo": [
+      "BLOQUEADO",
+      "RECONFIRMAR_VINCULO"
+    ]
+  },
+  "adaptador": {
+    "confianca": {
+      "alta": 0.95,
+      "media": 0.85,
+      "média": 0.85,
+      "baixa": 0.65
+    },
+    "precisao_exata": [
+      "dia",
+      "exata",
+      "exato",
+      "data_exata",
+      "confirmada"
+    ]
   }
 }
