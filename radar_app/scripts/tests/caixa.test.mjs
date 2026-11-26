@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  SEM_FILTROS_CAIXA, contarOpcoes, dentroDaJanela, filtrarCaixa, forcaDe, ordenarCaixa, porEstagio, pontosInteiros, textoVariacao, variacao,
+  SEM_FILTROS_CAIXA, contarOpcoes, dentroDaJanela, janelaDe, filtrarCaixa, forcaDe, ordenarCaixa, porEstagio, pontosInteiros, textoVariacao, variacao,
 } from '../../lib/caixa.ts';
 
 const conta = (id, extra = {}) => ({ id, score: 50, tier: 'B', uf: 'SC', segmento: 'Fintech', vscsStatus: 'Monitoramento', serie: [], tendencia: 0, ...extra });
@@ -72,4 +72,15 @@ test('2.2: OU dentro do filtro, E entre filtros; janela; contagem por opção', 
   assert.deepEqual(ids({ ufs: ['SP'] }), ['1']);
   assert.deepEqual(contarOpcoes(l, { ...SEM_FILTROS_CAIXA, tiers: ['B'] }, contas, CARGA, 'tipos'), [['Lançamento de produto', 1], ['Nova parceria', 1]]);
   assert.deepEqual(contarOpcoes(l, { ...SEM_FILTROS_CAIXA, tiers: ['B'] }, contas, CARGA, 'tiers'), [['B', 2], ['A', 1]]); // o próprio grupo não se filtra
+});
+
+test('variantes dos coletores herdam a janela da raiz (liderança 135 dias, D7)', () => {
+  assert.equal(janelaDe({ tipo: 'troca_lideranca_ceo' }), 135);
+  assert.equal(janelaDe({ tipo: 'vaga_lideranca_growth' }), 135);
+  assert.equal(janelaDe({ tipo: 'lancamento_ia' }), 45);
+  assert.equal(janelaDe({ tipo: 'vaga_area_time' }), 30);
+  assert.equal(janelaDe({ tipo: 'fusao_aquisicao' }), 60);
+  assert.equal(janelaDe({ tipo: 'captacao_seed' }), 90);
+  assert.equal(janelaDe({ tipo: 'intencao_site' }), 15);
+  assert.equal(janelaDe({ tipo: 'tipo_desconhecido' }), 60);
 });

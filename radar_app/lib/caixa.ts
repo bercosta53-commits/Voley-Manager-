@@ -34,8 +34,41 @@ export const JANELA_CAIXA_DIAS: Record<string, number> = {
   palestra_lideranca: 30,
   premio: 30,
 };
+/**
+ * Variantes dos coletores (troca_lideranca_ceo, lancamento_ia, vaga_lideranca_growth…) herdam a janela da raiz:
+ * vale a chave mais longa que for prefixo do tipo.
+ */
+const RAIZES_JANELA: [string, number][] = [
+  ['lancamento', 45],
+  ['vaga_lideranca', 135],
+  ['vaga_area', 30],
+  ['vaga_expansao_comercial', 60],
+  ['vaga_marketing', 30],
+  ['vaga_comercial', 30],
+  ['troca_lideranca', 135],
+  ['troca_diretoria', 135],
+  ['novo_cmo', 135],
+  ['socio_entrou', 135],
+  ['nova_unidade', 90],
+  ['expansao_mercado', 90],
+  ['parceria', 60],
+  ['fusao', 60],
+  ['aquisicao', 60],
+  ['captacao', 90],
+  ['declaracao', 45],
+  ['intencao', 15],
+  ['pedido', 15],
+  ['visita', 15],
+  ['presenca', 30],
+];
 export const JANELA_PADRAO_DIAS = 60;
-export const janelaDe = (s: Pick<Sinal, 'tipo'>) => JANELA_CAIXA_DIAS[s.tipo] ?? JANELA_PADRAO_DIAS;
+export function janelaDe(s: Pick<Sinal, 'tipo'>): number {
+  const exata = JANELA_CAIXA_DIAS[s.tipo];
+  if (exata !== undefined) return exata;
+  let melhor: [string, number] | undefined;
+  for (const r of RAIZES_JANELA) if (s.tipo.startsWith(r[0]) && (!melhor || r[0].length > melhor[0].length)) melhor = r;
+  return melhor?.[1] ?? JANELA_PADRAO_DIAS;
+}
 
 const dia = (iso: string) => Date.parse(iso.slice(0, 10) + 'T12:00:00Z') / 86_400_000;
 export const idadeDias = (s: Pick<Sinal, 'data'>, dataCarga: string) => Math.round(dia(dataCarga) - dia(s.data));
