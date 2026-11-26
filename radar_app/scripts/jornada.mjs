@@ -243,7 +243,7 @@ try {
   conferir((await menu(pagina)).includes('Clima'), 'o selo desliga o modo apresentação');
 
   // 6. Régua de acabamento nas telas da demo, a 1440 e a 360 px
-  const rotas = ['/', '/radar', '/contas', `/contas/${contaAlvo.id}`, '/decisores', '/fontes', '/metricas'];
+  const rotas = ['/', '/radar', '/contas', `/contas/${contaAlvo.id}`, '/decisores', '/aquisicao', '/fontes', '/metricas'];
   for (const largura of [1440, 360]) {
     const p = await navegador.newPage({ viewport: { width: largura, height: 800 } });
     vigiar(p);
