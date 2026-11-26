@@ -112,11 +112,11 @@ pessoa. Se a base estiver atrasada, o resumo diz isso primeiro.
 | `lib/frescor.ts`, `lib/panorama.ts`, `lib/tese.ts`, `lib/cobertura.ts`, `lib/lideranca.ts`, `lib/resumo.ts`, `lib/papeis.ts`, `lib/filtros.ts` | regras puras, com testes em `scripts/tests/*.test.mjs` |
 | `lib/avaliacao.ts` | faixas do VSCS e matriz ICP × VSCS usadas na tela (o score exibido é sempre o do motor, P1-8) |
 | `lib/email.ts`, `app/api/resumo` | resumo diário das 7h (desligado até configurar; ver acima) |
-| `scripts/score_v2.py` | motor do VSCS (3.1: liderança e contratação de head amadurecem; ver `docs/vscs-3-1-maturacao-lideranca.md`) |
+| `scripts/score_v2.py` | motor do VSCS 3.0 (a proposta 3.1, em que liderança e contratação de head amadurecem, está no PR #44 e entra depois do alinhamento com a inteligência) |
 | `scripts/tests/` | testes de lib (`*.test.mjs`, com `resolver.mjs`) e do motor (`test_*.py`) |
 | `scripts/smoke.mjs`, `scripts/jornada.mjs`, `scripts/medir-rotas.mjs` | teste de fumaça, jornada da demo no navegador e medição de peso por tela |
 | `db/` | migrações propostas para o Supabase (aplicar só depois do alinhamento com a carga diária) |
-| `docs/` | contrato de dados (`contrato-radar-acoes.md`), VSCS 3.1 e histórico da migração para a Cloudflare |
+| `docs/` | contrato de dados (`contrato-radar-acoes.md`, PR #14), maturidade de aquisição e histórico da migração para a Cloudflare |
 | `scripts/gerar_dados.py` e demais `scripts/*.py` | coletores e classificadores da fase anterior (planilha e base local). A carga de produção hoje é a pesquisa diária gravando direto no Supabase |
 
 ## Contrato com a carga diária
