@@ -1,7 +1,8 @@
 import type { Base } from './tipos';
 import { analisarConta, NIVEIS, type DadosAquisicao } from './aquisicao-maturidade';
-import { dimensaoClima, dimensaoDigital, dimensaoIcp, dimensaoSinais, visaoIntegrada, type AuditoriaDigital, type VisaoIntegradaConta } from './prioridade';
-import type { LinhaPrioridade } from './prioridade-filtros';
+import { dimensaoClima, dimensaoDigital, dimensaoIcp, dimensaoSinais, type AuditoriaDigital } from './prioridade';
+import { DIMENSOES } from './prioridade-config';
+import { compactarDimensao, type LinhaTransporte } from './prioridade-transporte';
 
 /**
  * Monta as linhas da tela Prioridade de contas no servidor: só o que a tela usa, em vez da base inteira
@@ -25,7 +26,7 @@ export function auditoriasPorDominio(dados: DadosAquisicao): Map<string, Auditor
   return m;
 }
 
-export function linhasPrioridade(base: Base, auditorias: Map<string, AuditoriaDigital>, agora: Date): LinhaPrioridade[] {
+export function linhasPrioridade(base: Base, auditorias: Map<string, AuditoriaDigital>, agora: Date): LinhaTransporte[] {
   const fatos = new Map<string, Base['sinais']>();
   for (const s of base.sinais) if (s.tipo !== 'noticia_setorial' && !s.exemplo) fatos.set(s.contaId, [...(fatos.get(s.contaId) ?? []), s]);
   return base.contas.map(c => {
@@ -47,22 +48,7 @@ export function linhasPrioridade(base: Base, auditorias: Map<string, AuditoriaDi
       evidencia: forte ? { texto: forte.sinal || forte.porQueAgora || forte.rotulo, fonte: forte.fonte || null, url: /^https?:\/\//i.test(forte.url) ? forte.url : null, data: forte.data } : null,
       acaoOficial: c.acaoRecomendada ?? null,
       acaoDaMatriz: !!c.acaoDaMatriz,
-      visao: compactar(visaoIntegrada(c.id, dims)),
+      dims: Object.fromEntries(DIMENSOES.map(d => [d, compactarDimensao(d, dims[d])])) as LinhaTransporte['dims'],
     };
   });
-}
-
-/**
- * S-1: o navegador recebe uma linha por conta, então tira o que é igual em todas e já está na configuração
- * (origem de cada nota, motivo fixo do Clima) e o motivo de exclusão quando repete o resumo.
- */
-function compactar(v: VisaoIntegradaConta): VisaoIntegradaConta {
-  const dimensoes = Object.fromEntries(
-    Object.entries(v.dimensoes).map(([d, x]) => {
-      const { origem: _, ...resto } = x;
-      const fixo = d === 'clima' && x.motivoSemNota === 'metodo_nao_mapeado';
-      return [d, { ...resto, resumo: fixo ? null : x.resumo, motivoExclusao: fixo || x.motivoExclusao === x.resumo ? null : x.motivoExclusao }];
-    }),
-  ) as VisaoIntegradaConta['dimensoes'];
-  return { ...v, dimensoes };
 }

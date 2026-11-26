@@ -69,6 +69,14 @@ mais os testes do VSCS em Python e a medição do tamanho do Worker (limite de 3
 | Checagem antes de uma apresentação | `/api/saude` com `status: ok` e `frescor: ok` |
 | Modo apresentação | `?apresentacao=1` em qualquer tela (desliga pelo selo ou com `?apresentacao=0`): tira Clima e ICP do menu, mascara e-mails e esconde a nota de relevância |
 
+### Medir o peso de cada tela (P0-8 / P1-12)
+
+`node scripts/medir-rotas.mjs` (depois de `npm run build`) mostra o tamanho do HTML com o payload que vai ao
+navegador e o tempo de resposta de cada tela, com a base fictícia de 350 contas. Com o snapshot real exportado
+(`node scripts/medir-rotas.mjs /tmp/snapshot.json`), mede a base de verdade. O snapshot real nunca vai para o
+repositório: guarde fora dele e apague depois. O tempo é do `next start` local, bom para comparar telas e versões;
+a CPU do Worker se confirma no painel da Cloudflare.
+
 ### Resumo diário por e-mail (desligado)
 
 Todo dia às 7h (Cron Trigger `0 10 * * *` no `wrangler.jsonc`, 10h UTC), o Worker monta um resumo com as contas que

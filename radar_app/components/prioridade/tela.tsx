@@ -5,7 +5,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Link2, Search, SlidersHorizontal } from 'lucide-react';
 import type { BaseCasca } from '@/lib/casca-dados';
 import { CLASSES, DIMENSOES, ROTULO_CURTO, ROTULO_DIMENSAO, type Dimensao } from '@/lib/prioridade-config';
-import { visaoIntegrada, type SituacaoSweetSpot } from '@/lib/prioridade';
+import type { SituacaoSweetSpot } from '@/lib/prioridade';
+import { expandirLinhas, type LinhaTransporte } from '@/lib/prioridade-transporte';
 import {
   ATALHOS_ROTULO, SEGMENTOS, SEM_FILTROS, SEM_SETOR, aplicarTudo, coberturaDe, faixa, filtrosEmTexto, sugestoes, temFiltro,
   type Atalho, type ColunaOrdem, type FiltrosPrioridade, type LinhaPrioridade, type Segmento,
@@ -39,6 +40,7 @@ const COLUNAS_OPCIONAIS: { id: ColunaOpcional; rotulo: string }[] = [
   { id: 'data', rotulo: 'Data da última avaliação' },
 ];
 const COLUNAS_PADRAO: ColunaOpcional[] = ['proximidade', 'evidencia'];
+const LOTE = 100;
 
 interface EstadoUrl {
   f: FiltrosPrioridade;
@@ -130,11 +132,13 @@ function Proximidade({ l }: { l: LinhaPrioridade }) {
   return <span className="text-xs text-text-3">{v.motivosClassificacao.join(' · ')}</span>;
 }
 
-export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCasca; linhas: LinhaPrioridade[] }) {
+export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCasca; linhas: LinhaTransporte[] }) {
   const apresentacao = useApresentacao();
   const [estado, setEstado] = useState<EstadoUrl>(INICIAL);
   const [folha, setFolha] = useState(false);
   const [recolhidos, setRecolhidos] = useState<Set<string>>(new Set());
+  // S-1: a lista sem agrupar desenha as primeiras linhas e mostra o resto sob pedido (com a contagem, nada some)
+  const [limite, setLimite] = useState(LOTE);
   const [pronto, setPronto] = useState(false);
   const [sugerir, setSugerir] = useState(false);
   const [indice, setIndice] = useState(0);
@@ -161,14 +165,13 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
   }, []);
 
   // no modo apresentação o Clima fica oculto; conta como faltante para a classe não revelar o valor (hoje já é nulo)
-  const linhas = useMemo(
-    () => (apresentacao ? linhasServidor.map(l => ({ ...l, visao: visaoIntegrada(l.contaId, l.visao.dimensoes, { ocultas: ['clima'] }) })) : linhasServidor),
-    [linhasServidor, apresentacao],
-  );
+  // S-1: o servidor manda só as dimensões; a classe é recalculada aqui com as mesmas regras (lib/prioridade.ts)
+  const linhas = useMemo(() => expandirLinhas(linhasServidor, apresentacao ? ['clima'] : []), [linhasServidor, apresentacao]);
   const { f, o } = estado;
   const mudar = (parte: Partial<FiltrosPrioridade>) => setEstado(e => ({ ...e, f: { ...e.f, ...parte } }));
   const { visiveis, semNotaNoFiltro, naBuscaFora } = useMemo(() => aplicarTudo(linhas, f), [linhas, f]);
   const ordenadas = useMemo(() => ordenarMulti(visiveis, o), [visiveis, o]);
+  useEffect(() => setLimite(LOTE), [f, o]);
   const grupos = useMemo(() => (estado.g === 'nenhum' ? null : agrupar(ordenadas, estado.g)), [ordenadas, estado.g]);
   const col = (c: ColunaOpcional) => estado.cols.includes(c);
   const nFiltros = filtrosEmTexto(f) ? filtrosEmTexto(f).split(', E ').length : 0;
@@ -609,9 +612,22 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
                   );
                 })
               ) : (
-                <tbody className="divide-y divide-border">{ordenadas.map(linhaConta)}</tbody>
+                <tbody className="divide-y divide-border">{ordenadas.slice(0, limite).map(linhaConta)}</tbody>
               )}
             </table>
+            {!grupos && ordenadas.length > limite && (
+              <div className="flex flex-wrap items-center justify-center gap-3 border-t border-border px-3 py-3 text-sm">
+                <span className="text-text-3">
+                  Mostrando {limite} de {ordenadas.length}
+                </span>
+                <button type="button" onClick={() => setLimite(l => l + LOTE)} className="font-semibold underline decoration-border-strong underline-offset-4">
+                  Mostrar mais {Math.min(LOTE, ordenadas.length - limite)}
+                </button>
+                <button type="button" onClick={() => setLimite(ordenadas.length)} className="text-text-2 underline decoration-border-strong underline-offset-4">
+                  Mostrar todas
+                </button>
+              </div>
+            )}
             {estado.g === 'faltante' && <p className="px-3 py-2 text-xs text-text-3">Uma conta com duas dimensões faltando aparece nos dois grupos.</p>}
           </div>
         )}
