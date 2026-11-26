@@ -9,8 +9,8 @@ import { dentroDaJanela, idadeDias, janelaDe } from './caixa';
  *   co-ocorrência. Ele substitui a leitura do sinal isolado e diz o que fazer: leitura, quem procurar, ângulo,
  *   o que não dizer, a pergunta de descoberta, a sequência e o que a Velora oferece.
  *
- * Só lê os sinais que já vêm na carga: não muda score, contrato nem banco. Conteúdo é proposta inicial, a validar
- * com o comercial da Velora. Fica de fora por enquanto:
+ * Só lê os sinais que já vêm na carga: não muda score, contrato nem banco. Textos aprovados pelo comercial
+ * da Velora em 26/11/2026. Fica de fora por enquanto:
  * - E. "Lançamento sem braço comercial": depende de saber que a cobertura de vagas da conta é confiável
  *   (condição negativa), e a carga ainda não diz isso.
  * - Efeito no estágio de compra (fase 2) e registro de eventos por playbook (contrato radar_acoes, PR 14).

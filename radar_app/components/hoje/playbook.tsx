@@ -255,7 +255,7 @@ export function BlocoPlaybook({ ativacao, conta, className }: { ativacao: Ativac
         {verMensagem && <p className="mt-4 rounded-control border border-border bg-muted/40 p-3 text-sm whitespace-pre-line">{mensagem}</p>}
         <p className="mt-4 flex items-center gap-1.5 text-xs text-text-3">
           <Info aria-hidden className="size-3.5 shrink-0" strokeWidth={1.5} />
-          Proposta inicial, a validar com o comercial. A mensagem é rascunho: cita o mercado, não o sinal.
+          A mensagem é rascunho: cita o mercado, não o sinal. Revise antes de enviar.
         </p>
       </footer>
     </section>
