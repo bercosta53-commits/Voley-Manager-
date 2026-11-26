@@ -44,7 +44,7 @@ function SeloApresentacao() {
   const apresentacao = useApresentacao();
   if (!apresentacao) return null;
   return (
-    <Tooltip lado="bottom" conteudo="Clima e ICP fora do menu, e-mails mascarados, nota de relevância oculta. Clique para desligar.">
+    <Tooltip lado="bottom" conteudo="Clima, ICP e Fontes fora do menu, e-mails mascarados, nota de relevância oculta. Clique para desligar.">
       <button
         type="button"
         onClick={() => definirApresentacao(false)}
@@ -101,7 +101,9 @@ export function NavLateral({ base, novos, onBuscar }: { base: BaseCasca; novos: 
     '/contas': base.contas.length,
     '/decisores': base.contas.reduce((n, c) => n + c.comite.length, 0),
   };
-  const fontes = base.fontes ?? [];
+  const apresentacao = useApresentacao();
+  // no modo apresentação o estado dos coletores não aparece (Fontes sai do menu): o rodapé mostra só o frescor
+  const fontes = apresentacao ? [] : (base.fontes ?? []);
   const ok = fontes.filter(f => f.status === 'ok').length;
   const agora = useAgora();
   // vermelho quando nenhuma fonte está de pé ou a base passou de 72 h; âmbar com fonte parada ou base > 36 h
@@ -176,7 +178,7 @@ export function NavLateral({ base, novos, onBuscar }: { base: BaseCasca; novos: 
 
       <div className="mt-auto border-t border-border px-2.5 py-3 lg:px-4">
         <Link
-          href="/fontes"
+          href={apresentacao ? '/' : '/fontes'}
           className="hidden flex-col gap-1 rounded-control px-1 py-1 text-xs text-text-3 transition-colors hover:text-foreground lg:flex"
         >
           <span className="flex items-center gap-1.5">

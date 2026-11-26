@@ -67,7 +67,7 @@ mais os testes do VSCS em Python e a medição do tamanho do Worker (limite de 3
 | Saúde da base: status, idade, contagens, descartes, custo da leitura | `/api/saude` (protegido pelo Access; 503 com o motivo quando a base não pode ser lida) |
 | Logs | Observabilidade do Worker; eventos JSON `radar.base.lida` e `radar.base.erro` |
 | Checagem antes de uma apresentação | `/api/saude` com `status: ok` e `frescor: ok` |
-| Modo apresentação | `?apresentacao=1` em qualquer tela (desliga pelo selo ou com `?apresentacao=0`): tira Clima e ICP do menu, mascara e-mails e esconde a nota de relevância |
+| Modo apresentação | `?apresentacao=1` em qualquer tela (desliga pelo selo ou com `?apresentacao=0`): tira Clima, ICP e Fontes do menu (e a contagem de fontes do rodapé), mascara e-mails e esconde a nota de relevância |
 
 ### Medir o peso de cada tela (P0-8 / P1-12)
 
