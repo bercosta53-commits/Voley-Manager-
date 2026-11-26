@@ -118,7 +118,8 @@ def main() -> None:
     top_ref = {c["id"] for c, _, _ in sorted(ab, key=lambda x: -x[1][ref])[:20]}
     for m in modelos:
         top = {c["id"] for c, _, _ in sorted(ab, key=lambda x: -x[1][m])[:20]}
-        out.append(f"| {m} | {len(top & top_ref)}/20 | {f2(spearman([r[ref] for _, r, _ in ab], [r[m] for _, r, _ in ab]))} |")
+        rho = spearman([r[ref] for _, r, _ in ab], [r[m] for _, r, _ in ab])
+        out.append(f"| {m} | {len(top & top_ref)}/20 | {f'{rho:.3f}'.replace('.', ',')} |")
     out += ["", "## Faixa 90+ na proposta: contas que chegaram a 90 ou ficaram retidas em 89,9", ""]
     for c, r, d in ab:
         if d["vscs_base"] >= 90:

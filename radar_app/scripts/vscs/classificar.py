@@ -130,6 +130,7 @@ LEGADO = {
     "vaga_lideranca_growth": "vaga_head",
     "vaga_lideranca_alvo": "vaga_head",
     "vaga_area_time": "vaga_bloco",
+    "vaga_area_alvo": "vaga_sdr_bdr",  # vaga operacional isolada da 3.0 = SDR/BDR na 3.2 (base 20)
 }
 
 

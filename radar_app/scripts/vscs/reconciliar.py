@@ -80,9 +80,21 @@ def main() -> None:
     out += ["## 3. Bases usadas nas contribuições gravadas × parâmetros efetivos", "",
             "| chave | bases gravadas (ocorrências) | parâmetro | confere |", "|---|---|---:|---|"]
     for chave, cont in sorted(usadas.items()):
-        par = esperado.get(chave)
+        par = esperado.get(chave, esperado.get(chave_canonica(chave)))
+        if chave in ("troca_lideranca_ceo", "troca_lideranca_clevel"):
+            par = p["lideranca_fora_de_receita"]["ceo_socio" if chave.endswith("ceo") else "clevel_outro"]
+        if chave_canonica(chave) == "vaga_bloco":
+            par = None  # bloco: base depende da quantidade (2 = 30, 3–4 = 50, 5+ = 70)
+            ok_bloco = set(cont) <= {p["blocos_operacionais"][k] for k in ("duas", "tres_a_quatro", "cinco_ou_mais")}
+        if chave == "vaga_area_alvo":
+            par = p["cargos_receita"]["sdr_bdr"]
         bases = ", ".join(f"{b} ({n})" for b, n in cont.most_common())
-        ok = "sim" if par is not None and set(cont) == {par} else ("sem parâmetro" if par is None else "NÃO (ver revisões)")
+        if chave_canonica(chave) == "vaga_bloco":
+            ok = "sim (bloco por quantidade)" if ok_bloco else "NÃO (ver quantidades)"
+        else:
+            ok = "sim" if par is not None and set(cont) == {par} else ("sem parâmetro" if par is None else "NÃO (ver revisões)")
+        if chave != chave_canonica(chave):
+            chave = f"{chave} → {chave_canonica(chave)}"
         out.append(f"| {chave} | {bases} | {par if par is not None else '—'} | {ok} |")
     out.append("")
 

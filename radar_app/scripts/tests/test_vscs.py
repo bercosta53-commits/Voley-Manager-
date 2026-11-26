@@ -438,6 +438,19 @@ class TestRegressoes26b(unittest.TestCase):
         c = motor32.calcular([e], HOJE, P32, None, None, reg)["contribuicoes"][0]
         self.assertLess(c["tempo"], 1.0)  # o tempo é recalculado na data de referência; s gravado não vira peso permanente
 
+    def test_calibracao_registrada_no_sinal(self):
+        absorvida = dict(ev("vaga_area_alvo", 3, "Analista de pré-vendas"), calibracao={"base": 0, "agrupadoEm": "bloco-1"})
+        dupla = dict(ev("expansao_mercado", 60, "Planeja expansão internacional"), calibracao={"base": 0, "motivo": "sem dupla contagem"})
+        contexto = dict(ev("palestra_lideranca", 3, "CEO palestra no evento"), calibracao={"motivo": "Aceito como contexto; sem pontuação automática."})
+        for e in (absorvida, dupla, contexto):
+            self.assertEqual(motor32.calcular([e], HOJE, P32)["contribuicoes"], [], e["sinal"])
+        decidida = dict(ev("lancamento_produto", 3, "Lança módulo"), calibracao={"base": 50, "versao": "vscs-3.2-contexto-cargos"})
+        self.assertEqual(motor32.calcular([decidida], HOJE, P32)["contribuicoes"][0]["base"], 50)
+        vaga = dict(ev("vaga_area_alvo", 3, "SDR"), calibracao={"base": 35})
+        self.assertEqual(motor32.calcular([vaga], HOJE, P32)["contribuicoes"][0]["base"], 35)
+        r33 = motor33.calcular([absorvida, dupla, contexto], HOJE, "x", None, P32, P33)
+        self.assertEqual(r33["vscs"], 0.0)
+
     def test_10_declaracao_so_e_encerrada_pela_mesma_decisao(self):
         meta = ev("expansao_mercado", 60, "Planeja crescer 50% e abrir operação no México em 2027")
         vaga = ev("vaga_lideranca_alvo", 10, "Head de Marketing")

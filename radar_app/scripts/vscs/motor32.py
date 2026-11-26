@@ -77,6 +77,8 @@ def _base_da_chave(chave: str, p: dict) -> float:
 def classificar(ev: dict, p: dict) -> dict | None:
     """Evento → classificação ou None (não pontua). Ordem de autoridade:
     1. revisão individual (scoreModelo.revisoesPorSinal), inclusive pontua=false;
+    1b. calibração registrada no próprio sinal (sinal.calibracao): base 0, ou só motivo, = não pontua;
+        base > 0 = base decidida para o sinal;
     2. classificação registrada no snapshot (v2.contribuicoes: chave, base, categoria, fonte, data);
     3. decisão registrada de não pontuar (sinal com tipoSpec, categoria e nivel nulos gravados pelo motor);
     4. inferência pelo texto, só para sinal nunca classificado."""
@@ -87,6 +89,11 @@ def classificar(ev: dict, p: dict) -> dict | None:
     if rev.get("chave"):
         base = rev["base"] if rev.get("base") is not None else _base_da_chave(rev["chave"], p)
         return _montar(rev["chave"], base, p, rev.get("categoria"), norm(rev.get("cargo") or ""), "revisao")
+    cal = ev.get("calibracao") if isinstance(ev.get("calibracao"), dict) else {}
+    if cal and (cal.get("base") == 0 or ("base" not in cal and cal.get("motivo"))):
+        # decisão de calibração registrada no sinal: absorvido num bloco (agrupadoEm), dupla contagem, contexto
+        # aceito sem pontuação automática ou fora da janela — não pontua
+        return None
     reg = ev.get("_registro") or {}
     if reg.get("chave"):
         base = reg["base"] if reg.get("base") is not None else _base_da_chave(reg["chave"], p)
@@ -99,6 +106,8 @@ def classificar(ev: dict, p: dict) -> dict | None:
             if FORA_DE_RECEITA.search(texto):
                 return None  # vaga de CFO, CTO, TI: não é contratação de receita
             nivel = "head" if tipo == "vaga_lideranca_alvo" else "sdr_bdr"
+        if cal.get("base"):
+            return _montar(f"vaga_{nivel}", cal["base"], p, cargo=texto, origem="registro")
         return _montar(f"vaga_{nivel}", p["cargos_receita"][nivel], p, cargo=texto)
     if tipo in ("executivo_chegou", "troca_lideranca", "troca_diretoria", "novo_cmo"):
         nivel, texto, _ = _nivel(ev)
@@ -115,6 +124,9 @@ def classificar(ev: dict, p: dict) -> dict | None:
     chave = s30.nivelar(ev)
     if not chave or chave not in s30.P:
         return None
+    if cal.get("base"):  # base decidida na calibração do sinal prevalece sobre a da tabela
+        cl = _montar(chave, cal["base"], p, origem="registro")
+        return cl
     if chave == "declaracao_meta" and marco_historico(f'{ev.get("sinal", "")} {ev.get("porQueAgora", "")}'):
         chave = "declaracao_generica"  # número de resultado passado não é meta futura
     cl = _montar(chave, _base_da_chave(chave, p), p)
