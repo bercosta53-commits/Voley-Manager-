@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { ArrowDownRight, ArrowUpRight, CalendarClock, Check, ChevronLeft, Copy, ExternalLink, Minus, SearchX, Send } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, CalendarClock, Check, ChevronLeft, Copy, ExternalLink, FileText, Minus, SearchX, Send } from 'lucide-react';
 import type { Conta, EstadoSinal, Sinal } from '@/lib/tipos';
 import type { BaseCasca } from '@/lib/casca-dados';
 import { ACOES_DE_ABORDAGEM, MATRIZ_ICP, faixaVscs } from '@/lib/avaliacao';
-import { primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, sentido, status } from '@/lib/contas';
+import { hrefConta, primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, sentido, status } from '@/lib/contas';
 import { gancho, rascunho } from '@/lib/mensagem';
 import { papelNoComite } from '@/lib/papeis';
 import { cobertura } from '@/lib/cobertura';
@@ -158,6 +158,13 @@ function Detalhe({
             <div className="mt-2 flex flex-wrap gap-1.5">
               <span className="rounded-chip border border-border px-1.5 py-0.5 text-xs text-text-2">Tier {conta.tier}</span>
               <span className="rounded-chip border border-border px-1.5 py-0.5 text-xs text-text-2">{rotuloStatus(conta)}</span>
+              <Link
+                href={`${hrefConta(conta.id)}/briefing`}
+                className="inline-flex items-center gap-1 rounded-chip border border-border-strong bg-card px-1.5 py-0.5 text-xs font-medium text-foreground hover:bg-muted"
+              >
+                <FileText aria-hidden className="size-3.5" strokeWidth={1.5} />
+                Briefing de reunião
+              </Link>
             </div>
           </div>
         </div>
