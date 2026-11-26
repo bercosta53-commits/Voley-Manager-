@@ -158,5 +158,21 @@
     },
     "validade_dias": 365,
     "confirma_vinculo_dias": 180
+  },
+  "missao": {
+    "_sobre": "Missão declarada da nova liderança (pesos aprovados em 26/11). Atributo da nomeação: amplifica a força, não corrobora e não ajuda a chegar à faixa 90+. Vaga com missão não pesa (proposta, decisão pendente). A missão segue as janelas da nomeação (proposta, decisão pendente).",
+    "alcance": "nomeacao",
+    "niveis": [
+      "gerencia",
+      "head",
+      "diretoria_receita",
+      "clevel_receita"
+    ],
+    "fatores": {
+      "generica": 1.0,
+      "especifica": 1.15,
+      "especifica_com_meta_ou_praca": 1.2
+    },
+    "confianca_minima": 0.6
   }
 }

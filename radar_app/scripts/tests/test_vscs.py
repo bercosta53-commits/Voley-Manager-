@@ -515,9 +515,6 @@ class TestRelacionamento(unittest.TestCase):
         self.assertEqual(r["movimentos"][0]["acontecimentos"][0]["relacionamento"]["fator"], 1.30)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class TestClassificadorTexto(unittest.TestCase):
     """Regressões medidas contra sinais já validados (registro × inferência). Textos sintéticos, sem empresas reais."""
@@ -568,3 +565,62 @@ class TestClassificadorTexto(unittest.TestCase):
     def test_resultado_passado_nao_e_meta(self):
         self.assertEqual(self.cl("resultados_crescimento", "Empresa relata crescimento de 300% no MRR",
                                  "Resultados dos 12 meses anteriores; não são meta futura."), "declaracao_generica")
+
+
+class Test33Missao(unittest.TestCase):
+    """Missão declarada da nova liderança: ×1,00 genérica, ×1,15 específica, ×1,20 com meta ou praça (aprovado em 26/11)."""
+
+    def nom(self, sinal, pq=None, tipo="executivo_chegou", **x):
+        e = ev(tipo, 36, sinal, fonte="Valor Econômico", **x)
+        if pq is not None:
+            e["porQueAgora"] = pq
+        return e
+
+    def ac(self, evs, rels=None):
+        r = motor33.calcular(evs, HOJE, "Empresa", None, P32, P33, None, None, rels)
+        return r, r["movimentos"][0]["acontecimentos"][0]
+
+    def test_pesos(self):
+        _, sem = self.ac([self.nom("Fulana assume como CRO")])
+        _, gen = self.ac([self.nom("Fulana assume como CRO para liderar o crescimento da empresa")])
+        _, esp = self.ac([self.nom("Fulana assume como CRO para entrar no mercado de engenharia")])
+        _, pra = self.ac([self.nom("Fulana assume como CRO para abrir grandes contas na América do Norte")])
+        self.assertIsNone(sem["missao"])
+        self.assertEqual(gen["missao"]["fator"], 1.0)
+        self.assertAlmostEqual(gen["s"], sem["s"], places=2)
+        self.assertEqual(esp["missao"]["fator"], 1.15)
+        self.assertAlmostEqual(esp["s"], sem["s"] * 1.15, places=1)
+        self.assertEqual(pra["missao"]["fator"], 1.20)
+        self.assertEqual(pra["missao"]["texto"], "abrir grandes contas na america do norte")
+
+    def test_campo_registrado_prevalece_e_confianca_baixa_nao_pesa(self):
+        m = {"tipo": "grandes_contas", "texto": "abrir grandes contas", "especifica": True, "meta": None, "praca": None, "confianca": 0.9}
+        _, a = self.ac([self.nom("Fulana assume como CRO", missao=m)])
+        self.assertEqual((a["missao"]["fator"], a["missao"]["origem"]), (1.15, "registro"))
+        _, b = self.ac([self.nom("Fulana assume como CRO", missao=dict(m, confianca=0.4))])
+        self.assertEqual(b["missao"]["fator"], 1.0)
+
+    def test_so_nomeacao_de_lideranca_de_receita(self):
+        _, vaga = self.ac([self.nom("Empresa contrata Head Comercial para abrir grandes contas", tipo="vaga_lideranca_alvo")])
+        self.assertIsNone(vaga["missao"])
+        _, coord = self.ac([self.nom("Fulano assume como coordenador comercial para abrir grandes contas")])
+        self.assertIsNone(coord["missao"])
+
+    def test_missao_nao_corrobora_e_nao_leva_a_90(self):
+        r, _ = self.ac([self.nom("Fulana assume como CRO para dobrar a receita enterprise até 2027")])
+        self.assertEqual(len(r["movimentos"]), 1)
+        self.assertLessEqual(r["vscs"], 85.0)
+        self.assertFalse(r["excepcional"])
+
+    def test_combina_com_relacionamento_respeitando_teto(self):
+        _, a = self.ac([self.nom("Fulana assume como CRO para abrir grandes contas na América do Norte", pessoa="Fulana de Tal")],
+                       {"Fulana de Tal": {"nota": 5, "em": "2026-11-01"}})
+        self.assertEqual(a["s"], 100.0)
+
+    def test_citacao_sem_mandato_nao_e_missao(self):
+        _, a = self.ac([self.nom("Fulana assume como CRO", "Ex-CRO de outra empresa; reporta ao CEO.")])
+        self.assertIsNone(a["missao"])
+
+
+if __name__ == "__main__":
+    unittest.main()

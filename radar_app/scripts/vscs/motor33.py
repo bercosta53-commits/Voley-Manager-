@@ -25,6 +25,7 @@ from pathlib import Path
 from . import motor32
 from .agrupar import Acontecimento, Documento, Movimento, acontecimentos, movimentos
 from .adaptador import adaptar, registro_por_sinal
+from .missao import missao as missao_da_nomeacao
 from .classificar import nivel_cargo, norm
 from .fontes import classificar_fonte, corroborar, testemunhos
 from .tempo import exponencial, janela_lideranca, lideranca_nomeada
@@ -175,8 +176,10 @@ def preparar(eventos: list[dict], hoje: date, empresa: str = "", p32: dict | Non
         ac.relacionamento = relacionamento(ac, conta, relacionamentos, hoje, p33)
         ac.tempo, ac.janela, ac.maturacao = _tempo(ac, hoje, p33, conta, ac.relacionamento)
         fator_rel = ac.relacionamento["fator"] if ac.relacionamento else 1.0
-        # a relação só amplifica um fato que já existe (s = 0 continua 0) e não vira corroboração independente
-        ac.s = min(100.0, ac.cl["base"] * ac.fonte_fator * ac.tempo * fator_rel)
+        ac.missao = missao_da_nomeacao(ac.cl, [d.ev for d in ac.docs], p33.get("missao") or {})
+        fator_missao = ac.missao["fator"] if ac.missao else 1.0
+        # relação e missão só amplificam um fato que já existe (s = 0 continua 0) e não viram corroboração independente
+        ac.s = min(100.0, ac.cl["base"] * ac.fonte_fator * ac.tempo * fator_rel * fator_missao)
     acs = [a for a in acs if a.s > 0]
     if p33["movimento"].get("agrupar", True):
         movs, possiveis = movimentos(acs, empresa, p33["movimento"]["janela_vinculo_dias"])
@@ -307,6 +310,7 @@ def calcular(eventos: list[dict], hoje: date, empresa: str = "", interacoes: lis
                 "maturacao": a.maturacao, "cargo": a.cl.get("cargo"), "revisado": bool(a.cl.get("revisado")),
                 # só nota, fator e data: quem registrou fica na tabela privada
                 "relacionamento": ({k: a.relacionamento[k] for k in ("nota", "fator", "em", "rotulo")} if a.relacionamento else None),
+                "missao": a.missao,
                 "s": round(a.s, 2), "documentos": [d.id for d in a.docs], "superado_por": a.superado_por,
             } for a in sorted(m.acontecimentos, key=lambda a: -a.s)],
         } for m in sorted(movs, key=lambda m: -m.s)],

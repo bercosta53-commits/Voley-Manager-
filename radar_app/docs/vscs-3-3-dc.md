@@ -263,6 +263,27 @@ O classificador de texto só decide sinais **nunca classificados**. Revisão, ca
 
 Ficam para decisão humana, porque o registro reflete um julgamento caso a caso: Head sem gestão de equipe comprovada registrado como especialista, analista de CS enterprise, declaração com plano datado registrada como genérica, e lançamento em vertical nova × comum. Testes sintéticos em `scripts/tests/test_vscs.py` (`TestClassificadorTexto`).
 
+### 3.11 Missão declarada da nova liderança (pesos aprovados em 26/11)
+
+A missão anunciada com uma nomeação de liderança de receita (gerência, head, diretoria ou C-level de receita) multiplica a força da nomeação, depois da fonte e do tempo e junto com o relacionamento. Os tetos continuam valendo: força até 100 e um fato sozinho até 85 no DC.
+
+| Missão | Fator |
+|---|---:|
+| Nenhuma ou genérica ("liderar o crescimento da empresa") | ×1,00 |
+| Específica, ligada a GTM ("abrir grandes contas", "entrar no mercado de engenharia") | ×1,15 |
+| Específica com meta ou praça ("dobrar a receita enterprise até 2027", "América do Norte") | ×1,20 |
+
+- **Atributo da nomeação, não sinal novo:** não conta como corroboração independente e não ajuda a chegar à faixa 90+.
+- **Origem:** primeiro a revisão (`missao` na revisão do sinal), depois o campo `missao` gravado pelo classificador (`tipo`, `texto`, `especifica`, `meta`, `praca`, `confianca`; abaixo de 0,6 não pesa), e por fim uma leitura conservadora do título e do contexto, só em construções de mandato ("para abrir…", "com a missão de…", "responsável por expandir…"). Na dúvida, ×1,00.
+- **Texto literal:** `texto` é sempre o trecho literal do anúncio, nunca paráfrase. Sai em `acontecimentos[].missao = {tipo, texto, fator, origem}`.
+- **Tipos:** `grandes_contas`, `expansao_geografica`, `conversao_eficiencia`, `novo_mercado`, `estruturar_time_canal`, `lancamento_produto` ou `generica`.
+- **Ainda em proposta, decisões pendentes:**
+  - vaga de liderança com missão não pesa;
+  - a missão segue as janelas da nomeação;
+  - a tabela que liga cada tipo de missão a uma oferta e a um ângulo de conversa (para playbooks e tela) ainda não foi aplicada.
+
+Código em `scripts/vscs/missao.py` e parâmetros em `parametros_33.json` (`missao`). Testes em `Test33Missao`. Simulação sobre a base real feita fora do repositório.
+
 ## 4. Como reproduzir sobre a base real (somente leitura)
 
 ```bash

@@ -59,6 +59,7 @@ class Acontecimento:
     janela: str | None = None
     maturacao: str | None = None
     relacionamento: dict | None = None
+    missao: dict | None = None
 
     @property
     def texto(self) -> str:
