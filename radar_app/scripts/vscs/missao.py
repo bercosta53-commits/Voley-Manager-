@@ -1,6 +1,7 @@
 """Mandato declarado: atributo do acontecimento, nunca documento ou movimento adicional."""
 from __future__ import annotations
 import re
+from datetime import date
 from .classificar import norm
 
 TIPOS = {
@@ -16,7 +17,7 @@ TIPOS = {
     "recuperacao_crescimento": ("Diagnóstico + Estratégia de Growth", "Identificar gargalos e recuperar tração"),
     "generica": (None, None),
 }
-ELEGIVEIS = {"gerencia", "head", "diretoria_receita", "clevel_receita"}
+ELEGIVEIS = {"coordenacao", "gerencia", "head", "diretoria_receita", "clevel_receita"}
 FATORES = {"generica": 1.0, "especifica": 1.15, "meta_praca": 1.20}
 
 # Fallback restrito a texto explicitamente literal do anúncio. Resumos internos
@@ -85,14 +86,30 @@ def extrair(ev: dict) -> dict | None:
                 return res
     return None
 
-def selecionar(ac, habilitado: bool) -> dict | None:
-    if not habilitado or ac.cl.get("nivel") not in ELEGIVEIS or not (ac.cl.get("nomeacao") or ac.cl.get("vaga")):
+def ingresso_confirmado(ev: dict, hoje: date) -> bool:
+    """Confirmação da entrada efetiva, não mera intenção de contratar ou anúncio futuro."""
+    if ev.get("ingressoConfirmado") is not True:
+        return False
+    url = ev.get("ingressoFonteUrl")
+    if not isinstance(url, str) or not url.startswith(("https://", "http://")):
+        return False
+    if ev.get("ingressoEm"):
+        try:
+            if date.fromisoformat(str(ev["ingressoEm"])[:10]) > hoje:
+                return False
+        except ValueError:
+            return False
+    return True
+
+def selecionar(ac, habilitado: bool, hoje: date) -> dict | None:
+    if not habilitado or ac.cl.get("nivel") not in ELEGIVEIS or not ac.cl.get("nomeacao") or ac.cl.get("vaga"):
         return None
-    candidatos = [m for d in ac.docs if (m := extrair(d.ev)) is not None]
+    # Só documentos de nomeação, nunca o anúncio de vaga agrupado ao mesmo fato.
+    docs = [d for d in ac.docs if d.cl.get("nomeacao") and not d.cl.get("vaga")]
+    if not any(ingresso_confirmado(d.ev, hoje) for d in docs):
+        return None
+    candidatos = [m for d in docs if (m := extrair(d.ev)) is not None]
     if not candidatos:
         return None
     # Nunca acumular mandatos. Empate: evidência mais confiável e ordenação determinística.
-    m = dict(max(candidatos, key=lambda x: (x["fator"], x["confianca"], x["texto"])))
-    if not ac.cl.get("nomeacao"):
-        m["fator"] = 1.0
-    return m
+    return dict(max(candidatos, key=lambda x: (x["fator"], x["confianca"], x["texto"])))
