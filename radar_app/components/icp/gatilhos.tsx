@@ -81,18 +81,18 @@ export function Gatilhos({
             Gatilhos comportamentais
           </h2>
           <p className="mt-0.5 max-w-[760px] text-sm text-text-3">
-            Como a empresa vende hoje, não só o que ela é. Cada gatilho é uma dor que o diagnóstico da Velora resolve. Clique num gatilho para ver as contas que batem.
+            Como a empresa vende hoje, não só o que ela é. Gatilhos favoráveis vêm das evidências da requalificação. Dados ausentes não contam. Clique para ver as contas que batem.
           </p>
         </div>
-        <Alternar rotulo="Escopo dos gatilhos" valor={escopo} onMudar={onEscopo} opcoes={[['A', 'Tier A simulado'], ['AB', 'Tiers A e B'], ['all', 'Toda a base']]} />
+        <Alternar rotulo="Escopo dos gatilhos" valor={escopo} onMudar={onEscopo} opcoes={[['A', 'Tier A do cenário'], ['AB', 'Tiers A e B'], ['all', 'Toda a base']]} />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {GATILHOS.map(g => {
           const n = pool.filter(a => a.gatilhos.has(g.id)).length;
           const baixo = pool.filter(a => a.incompletos.has(g.id)).length / tot;
-          const conf = g.id === 3 ? 'média · deduzido da oferta' : baixo > 0.4 ? `baixa · ${Math.round(baixo * 100)}% sem dado completo` : baixo > 0.15 ? `média · ${Math.round(baixo * 100)}% sem dado completo` : 'alta';
-          const corConf = conf.startsWith('baixa') ? 'var(--vr-risk)' : conf.startsWith('média') ? 'var(--vr-warm)' : 'var(--vr-ok)';
+          const conf = baixo > 0 ? `${Math.round(baixo * 100)}% sem conclusão favorável ou contrária` : 'cobertura completa (não significa certeza)';
+          const corConf = baixo > 0 ? 'var(--vr-warm)' : 'var(--vr-text-3)';
           const on = sel === g.id;
           return (
             <button
@@ -121,7 +121,7 @@ export function Gatilhos({
                 <span className="font-semibold text-foreground">Como medimos:</span> {g.como}
               </span>
               <span className="text-xs" style={{ color: corConf }}>
-                Confiança {conf}
+                Cobertura: {conf}
               </span>
             </button>
           );
@@ -154,7 +154,7 @@ export function Gatilhos({
               );
             })}
             <text x={193} y={226} textAnchor="middle" className="fill-text-3 text-[11px]">
-              nº de gatilhos (cor = tier no simulador)
+              nº de gatilhos (cor = tier do cenário)
             </text>
           </svg>
         </div>
@@ -177,7 +177,7 @@ export function Gatilhos({
 
       <div className="flex flex-col gap-3.5 rounded-card bg-[var(--vr-surface-2)] p-4.5">
         <div>
-          <div className="text-md font-bold">G3 por dentro: a oferta define as barreiras de compra</div>
+          <div className="text-md font-bold">G3 por dentro: barreiras típicas da oferta (hipótese)</div>
           <div className="text-sm text-text-3">
             Outsourcing exige homologação do fornecedor; cibersegurança exige compliance forte do parceiro. Cliente regulado, enterprise ou governo soma barreiras e alonga o ciclo.
           </div>

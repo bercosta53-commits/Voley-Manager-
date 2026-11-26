@@ -103,6 +103,20 @@ export interface Conta {
   ufFonte?: 'receita' | 'site' | 'pesquisa';
   /** tier de ICP (A/B/C, padrão HubSpot) com os motivos */
   icp?: { tier: 'A' | 'B' | 'C'; motivos: string[] };
+  /** Evidência de ICP persistida; o simulador não substitui a pesquisa registrada. */
+  icpEvidencia?: {
+    requalificacao2G?: {
+      versao?: string;
+      data?: string;
+      status?: string;
+      sede?: { uf?: string; url?: string; cidade?: string };
+      ramoAvaliado?: string;
+      modeloAvaliado?: string;
+      faturamento?: { status?: string };
+      pendencias?: string[];
+      gatilhos?: Record<string, { status?: string; contaParaTierA?: boolean; justificativa?: string; fonte?: string | null }>;
+    };
+  };
   /** papéis do comitê que ainda não têm ninguém mapeado */
   comiteFaltando?: string[];
   /** VSCS 3.0 (scripts/score_v2.py): índice 0–100, status, ação da matriz ICP × VSCS, anel 1-4 (null = fora do radar) */
