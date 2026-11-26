@@ -362,6 +362,13 @@ try {
   await pagina.getByRole('button', { name: /Modo apresentação/ }).first().click();
   conferir((await menu(pagina)).includes('Clima'), 'o selo desliga o modo apresentação');
 
+  // 5b. Cobertura da varredura: a soma dos estados é a base inteira
+  await pagina.goto(app.url('/fontes'), { waitUntil: 'networkidle' });
+  const cob = pagina.locator('section[aria-labelledby="cobertura-titulo"]');
+  conferir((await cob.count()) === 1, 'Fontes mostra a cobertura das contas');
+  const somaCob = await cob.locator('li .vr-data.text-xl').evaluateAll(es => es.reduce((n, e) => n + Number(e.textContent), 0));
+  conferir(somaCob === base.contas.length, 'cobertura: com fato + sem fato + vencida + nunca varrida = total', `${somaCob} de ${base.contas.length}`);
+
   // 6. Régua de acabamento nas telas da demo, a 1440 e a 360 px
   const rotas = ['/', '/radar', '/contas', `/contas/${contaAlvo.id}`, '/decisores', '/aquisicao', '/icp', '/clima', '/fontes', '/metricas', `/contas/${contaAlvo.id}/briefing`];
   for (const largura of [1440, 360]) {

@@ -3,7 +3,8 @@
 
 uso: python3 scripts/importar_chatgpt.py resposta_01.txt [resposta_02.txt …] [--sem-receita]
 
-Cada arquivo é a resposta do chat, com os blocos CSV "EMPRESAS" e "CONTATOS" (separador ;). Regras:
+Cada arquivo é a resposta do chat, com os blocos CSV "EMPRESAS", "CONTATOS" e, opcionalmente, "VARREDURAS"
+(separador ;). Regras:
 - linha sem fonte_url é ignorada; CNPJ só entra se a Receita (BrasilAPI) confirmar — aí UF, cidade, porte,
   CNAE e data de abertura vêm da Receita, não do chat;
 - só preenche campo vazio: nada que já está confirmado na base é sobrescrito;
@@ -25,6 +26,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from coletar_cnpj import aplicar_enriquecimento, consultar_brasilapi  # noqa: E402
+from varreduras import registrar as registrar_varredura  # noqa: E402
 
 RAIZ = Path(__file__).resolve().parent.parent
 DESTINO = RAIZ / "data" / "contas.local.json"
@@ -41,7 +43,7 @@ def norm(t: str) -> str:
 
 def blocos(texto: str) -> dict[str, list[dict]]:
     """Acha os blocos EMPRESAS e CONTATOS (dentro ou fora de ```), cada um com cabeçalho na linha seguinte."""
-    out: dict[str, list[dict]] = {"EMPRESAS": [], "CONTATOS": []}
+    out: dict[str, list[dict]] = {"EMPRESAS": [], "CONTATOS": [], "VARREDURAS": []}
     linhas = [l.strip() for l in texto.replace("\r", "").split("\n")]
     i = 0
     while i < len(linhas):
@@ -135,6 +137,19 @@ def main() -> None:
                 pessoa["papelAbm"] = PAPEL_ABM[r["papel"]]
             c["comite"].append(pessoa)
             rel["pessoas"] += 1
+
+        # VARREDURAS: id;fonte;data;resultado;itens;consulta — conta olhada, com ou sem fato (docs/varreduras.md)
+        for r in b["VARREDURAS"]:
+            r = {k.strip(): (v or "").strip() for k, v in r.items() if k}
+            if r.get("id", "") not in contas:
+                rel["id_desconhecido"] += 1
+                continue
+            if r.get("resultado") not in ("com_fato", "sem_fato", "erro") or not re.fullmatch(r"\d{4}-\d{2}-\d{2}.*", r.get("data", "")) or not r.get("fonte"):
+                rel["varredura_invalida"] = rel.get("varredura_invalida", 0) + 1
+                continue
+            itens = int(r["itens"]) if r.get("itens", "").isdigit() else 0
+            registrar_varredura(base, r["id"], r["fonte"], r["resultado"], itens, em=r["data"], consulta=r.get("consulta") or None)
+            rel["varreduras"] = rel.get("varreduras", 0) + 1
 
     DESTINO.write_text(json.dumps(base, ensure_ascii=False, indent=1), encoding="utf-8")
     print(" · ".join(f"{k}: {v}" for k, v in rel.items()))

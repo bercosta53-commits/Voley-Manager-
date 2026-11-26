@@ -35,6 +35,9 @@ from pathlib import Path
 from coletar_noticias import (HOMONIMOS_LIMITE, JANELA_CAIXA_DIAS, escolher_abordar, nome_curto_demais,
                               normalizar, variantes_nome)
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from varreduras import registrar as registrar_varredura  # noqa: E402
+
 RAIZ = Path(__file__).resolve().parent.parent
 DESTINO = RAIZ / "data" / "contas.local.json"
 TIMEOUT_SEGUNDOS = 15
@@ -162,6 +165,7 @@ def main() -> None:
         padroes = padroes_da_conta(conta)
         if not padroes:
             continue
+        antes = novos
         for m in materias:
             if m["link"] in conhecidos:
                 continue
@@ -183,6 +187,8 @@ def main() -> None:
             base["sinais"].append(sinal)
             novos += 1
             por_motivo["pessoa" if motivo.startswith("pessoa:") else motivo] += 1
+        if not erros or len(erros) < len(FEEDS):  # leu ao menos um feed: a conta foi olhada nesta fonte
+            registrar_varredura(base, conta["id"], "veiculos", "com_fato" if novos > antes else "sem_fato", novos - antes)
 
     base["sinais"].sort(key=lambda s: (s["data"], s["pontos"]), reverse=True)
     DESTINO.write_text(json.dumps(base, ensure_ascii=False, indent=1), encoding="utf-8")
