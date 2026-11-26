@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { BARREIRAS, FAIXAS_CICLO, GATILHOS, type simular } from '@/lib/icp';
 import { hrefConta } from '@/lib/contas';
-import { cn, pontos } from '@/lib/utils';
+import { cn, plural, pontos } from '@/lib/utils';
 import { COR_TIER_ICP } from './simulador';
 
 type Linha = ReturnType<typeof simular>['linhas'][number];
@@ -55,6 +55,9 @@ export function Gatilhos({
   const tot = Math.max(1, pool.length);
   const pct = (n: number) => `${Math.round((100 * n) / tot)}%`;
   // histograma: contas por nº de gatilhos, empilhado por tier
+  // gatilho sem nenhuma conta no escopo não ganha cartão nem coluna: vira uma linha discreta
+  const comDado = GATILHOS.filter(g => pool.some(a => a.gatilhos.has(g.id)));
+  const semDado = GATILHOS.filter(g => !comDado.includes(g));
   const hist = [0, 1, 2, 3, 4, 5].map(k => {
     const l = pool.filter(a => a.gatilhos.size === k);
     return { k, n: l.length, A: l.filter(a => a.tier === 'A').length, B: l.filter(a => a.tier === 'B').length, C: l.filter(a => a.tier === 'C').length };
@@ -87,8 +90,8 @@ export function Gatilhos({
         <Alternar rotulo="Escopo dos gatilhos" valor={escopo} onMudar={onEscopo} opcoes={[['A', 'Tier A do cenário'], ['AB', 'Tiers A e B'], ['all', 'Toda a base']]} />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        {GATILHOS.map(g => {
+      <div className={cn('grid gap-3 sm:grid-cols-2', comDado.length >= 5 ? 'xl:grid-cols-5' : comDado.length === 4 ? 'xl:grid-cols-4' : 'xl:grid-cols-3')}>
+        {comDado.map(g => {
           const n = pool.filter(a => a.gatilhos.has(g.id)).length;
           const baixo = pool.filter(a => a.incompletos.has(g.id)).length / tot;
           const conf = baixo > 0 ? `${Math.round(baixo * 100)}% sem conclusão favorável ou contrária` : 'cobertura completa (não significa certeza)';
@@ -127,10 +130,33 @@ export function Gatilhos({
           );
         })}
       </div>
+      {semDado.length > 0 && (
+        <p className="-mt-2 text-xs text-text-3">
+          Sem evidência no escopo ainda:{' '}
+          {semDado.map((g, i) => (
+            <span key={g.id}>
+              {i > 0 && ' · '}
+              <button type="button" onClick={() => onSel(g.id)} className="underline decoration-border-strong underline-offset-2 hover:text-foreground">
+                {g.nome}
+              </button>
+            </span>
+          ))}
+          . A cobertura desses gatilhos ainda é incompleta.
+        </p>
+      )}
 
       <div className="flex flex-wrap gap-6">
         <div className="flex min-w-0 flex-[1_1_340px] flex-col gap-2.5">
           <div className="text-sm font-bold">Quantos gatilhos cada conta acumula</div>
+          {hist.filter(h => h.n > 0).length <= 1 ? (
+            <p className="text-sm text-text-2">
+              {hist.filter(h => h.n > 0).map(h => (
+                <span key={h.k}>
+                  <span className="vr-data text-2xl font-semibold text-foreground">{h.n}</span> contas do escopo com {plural(h.k, 'gatilho', 'gatilhos')} favoráveis.
+                </span>
+              ))}
+            </p>
+          ) : (
           <svg viewBox="0 0 360 230" className="w-full" role="img" aria-label={`Contas por número de gatilhos: ${hist.map(h => `${h.k} gatilhos ${h.n}`).join(', ')}`}>
             <line x1={30} y1={190} x2={356} y2={190} stroke="var(--vr-border-strong)" />
             {hist.map((h, i) => {
@@ -157,22 +183,25 @@ export function Gatilhos({
               nº de gatilhos (cor = tier do cenário)
             </text>
           </svg>
+          )}
         </div>
+        {comDado.length >= 2 && (
         <div className="flex min-w-0 flex-[1_1_340px] flex-col gap-2.5">
           <div className="text-sm font-bold">Quais gatilhos andam juntos</div>
-          <div className="grid gap-[3px] text-xs" style={{ gridTemplateColumns: '120px repeat(5, minmax(0, 1fr))' }}>
+          <div className="grid gap-[3px] text-xs" style={{ gridTemplateColumns: `120px repeat(${comDado.length}, minmax(0, 1fr))` }}>
             <div />
-            {GATILHOS.map(g => (
+            {comDado.map(g => (
               <div key={g.id} className="py-1 text-center font-semibold text-text-3">
                 {g.curto}
               </div>
             ))}
-            {GATILHOS.map(r => (
-              <Linhas key={r.id} r={r} pool={pool} comax={comax} />
+            {comDado.map(r => (
+              <Linhas key={r.id} r={r} colunas={comDado} pool={pool} comax={comax} />
             ))}
           </div>
           <div className="text-xs text-text-3">Diagonal = contas com o gatilho. Fora dela = contas com os dois.</div>
         </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-3.5 rounded-card bg-[var(--vr-surface-2)] p-4.5">
@@ -251,11 +280,11 @@ export function Gatilhos({
   );
 }
 
-function Linhas({ r, pool, comax }: { r: (typeof GATILHOS)[number]; pool: Linha[]; comax: number }) {
+function Linhas({ r, colunas, pool, comax }: { r: (typeof GATILHOS)[number]; colunas: (typeof GATILHOS)[number][]; pool: Linha[]; comax: number }) {
   return (
     <>
       <div className="flex items-center font-semibold text-text-2">{r.curto}</div>
-      {GATILHOS.map(c => {
+      {colunas.map(c => {
         const n = pool.filter(a => a.gatilhos.has(r.id) && a.gatilhos.has(c.id)).length;
         const t = Math.sqrt(n / comax);
         const diag = r.id === c.id;

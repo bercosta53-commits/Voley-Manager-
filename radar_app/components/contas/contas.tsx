@@ -47,6 +47,8 @@ const FIXOS: Salvo[] = [
 ];
 const CHAVE_SALVOS = 'vr:contas:filtros:v1';
 
+const POR_PAGINA = 50;
+
 export function TelaContas({ base: baseOriginal }: { base: Base }) {
   const router = useRouter();
   const [estadoTela, setEstadoTela] = useState<EstadoTela>('normal');
@@ -55,6 +57,9 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
   const [salvos, setSalvos] = useState<Salvo[]>([]);
   const [nomeNovo, setNomeNovo] = useState<string | null>(null);
   const [pronto, setPronto] = useState(false);
+  // lista longa tem fim: 50 por vez; mudar filtro ou ordem volta ao começo
+  const [limite, setLimite] = useState(POR_PAGINA);
+  useEffect(() => setLimite(POR_PAGINA), [filtros, ordem]);
   const { estados, status: andamentos, compartilhado } = useEstados();
   const base = baseOriginal; // score do motor, igual para todos (P1-8)
   const hoje = base.geradoEm;
@@ -327,7 +332,7 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {linhas.map(c => {
+                    {linhas.slice(0, limite).map(c => {
                       const s = sinaisPorConta.get(c.id)?.[0];
                       const h = c.historico[0];
                       return (
@@ -410,6 +415,15 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
                     })}
                   </tbody>
                 </table>
+                {linhas.length > limite && (
+                  <button
+                    type="button"
+                    onClick={() => setLimite(l => l + POR_PAGINA)}
+                    className="w-full border-t border-border px-4 py-3 text-sm font-medium text-text-2 hover:bg-muted hover:text-foreground"
+                  >
+                    Mostrar mais {Math.min(POR_PAGINA, linhas.length - limite)} · {limite} de {linhas.length}
+                  </button>
+                )}
               </div>
             )}
           </>

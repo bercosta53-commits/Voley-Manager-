@@ -6,7 +6,7 @@ import type { Base, EstadoSinal } from '@/lib/tipos';
 import type { StatusConta } from '@/lib/acoes';
 import { lideranca } from '@/lib/lideranca';
 import { hrefConta } from '@/lib/contas';
-import { plural, pontos } from '@/lib/utils';
+import { cn, plural, pontos } from '@/lib/utils';
 import { SeloQualificada } from '@/components/ui/selo-qualificada';
 import { Rotulo } from '@/components/ui/rotulo';
 
@@ -57,10 +57,15 @@ export function VisaoLideranca({
         <p className="text-xs text-text-3">Só lê os fatos da carga e os cliques que já fazem parte do fluxo. Nada aqui pede preenchimento.</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 [&>*:not(:last-child)]:border-r [&>*]:border-border">
+      {/* só números com dado: sem registro compartilhado, as medidas de ação do time não aparecem */}
+      <div className={cn('grid grid-cols-2 [&>*:not(:last-child)]:border-r [&>*]:border-border', compartilhado ? 'md:grid-cols-4' : 'md:grid-cols-2')}>
         <Numero valor={String(l.fatosSemana)} rotulo="Fatos novos na semana" detalhe={plural(l.contasComFatoSemana, 'empresa', 'empresas')} />
-        <Numero valor={String(l.quentes)} rotulo="Empresas em oportunidade" detalhe="VSCS 55 ou mais, ou qualificadas" />
-        {compartilhado ? (
+        {l.quentes > 0 ? (
+          <Numero valor={String(l.quentes)} rotulo="Empresas em oportunidade" detalhe="VSCS 55 ou mais, ou qualificadas" />
+        ) : (
+          <Numero valor={String(l.contasComFatoSemana)} rotulo="Empresas com fato na semana" detalhe="leitura nova para o time" />
+        )}
+        {compartilhado && (
           <>
             <Numero valor={String(l.quentesComAcao)} rotulo="Já trabalhadas pelo time" detalhe={`${l.quentesSemAcaoTotal} ainda sem nenhuma ação`} />
             <Numero
@@ -69,15 +74,10 @@ export function VisaoLideranca({
               detalhe={l.sinaisComAcao ? `mediana de ${plural(l.sinaisComAcao, 'sinal', 'sinais')}` : 'nenhuma ação ainda'}
             />
           </>
-        ) : (
-          // sem o registro compartilhado, dois traços grandes pareceriam defeito: um aviso só, no lugar dos dois números
-          <div className="col-span-2 flex flex-col justify-center gap-0.5 px-4 py-3">
-            <span className="text-sm font-medium">Já trabalhadas pelo time · do aviso à primeira ação</span>
-            <span className="text-xs text-text-3">Aparecem quando o registro compartilhado estiver ligado: hoje cada pessoa só vê o que ela mesma marcou.</span>
-          </div>
         )}
       </div>
 
+      {compartilhado && (
       <div className="grid gap-4 border-t border-border px-4 py-3 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-8">
         <div className="min-w-0">
           <Rotulo como="h3">Em oportunidade e ainda sem nenhuma ação</Rotulo>
@@ -129,6 +129,7 @@ export function VisaoLideranca({
           )}
         </div>
       </div>
+      )}
     </section>
   );
 }
