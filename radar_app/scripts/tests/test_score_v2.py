@@ -72,13 +72,31 @@ class Combinacao(unittest.TestCase):
 
 class Sinal(unittest.TestCase):
     def test_meia_vida_continua_e_corte_em_3_meias_vidas(self):
-        p = s.P["troca_lideranca_owner"]  # liderança: meia-vida 60
+        p = s.P["aquisicao_feita"]  # movimento estratégico: meia-vida 60
         self.assertEqual(s.fator_temporal(p, 0), 1.0)
         self.assertAlmostEqual(s.fator_temporal(p, 30), 0.707, places=3)
         self.assertAlmostEqual(s.fator_temporal(p, 60), 0.5)
         self.assertAlmostEqual(s.fator_temporal(p, 180), 0.125)
         self.assertEqual(s.fator_temporal(p, 181), 0.0)
         self.assertAlmostEqual(s.fator_temporal(s.P["vaga_lideranca_growth"], 30), 0.63, places=2)
+
+    def test_lideranca_amadurece_antes_de_envelhecer(self):
+        """VSCS 3.1: diretor novo vale 60% nos 3 primeiros meses, chega a 100% em 1 ano, fica até 15 meses e só
+        então cai pela metade a cada 90 dias, zerando depois de 3 meias-vidas (720 dias)."""
+        p = s.P["troca_lideranca_owner"]
+        self.assertEqual(s.fator_temporal(p, 0), 0.6)
+        self.assertEqual(s.fator_temporal(p, 89), 0.6)
+        self.assertAlmostEqual(s.fator_temporal(p, 90), 0.6)
+        self.assertAlmostEqual(s.fator_temporal(p, 227.5), 0.8)  # metade da subida
+        self.assertEqual(s.fator_temporal(p, 365), 1.0)
+        self.assertEqual(s.fator_temporal(p, 450), 1.0)
+        self.assertAlmostEqual(s.fator_temporal(p, 540), 0.5)
+        self.assertAlmostEqual(s.fator_temporal(p, 720), 0.125)
+        self.assertEqual(s.fator_temporal(p, 721), 0.0)
+        # mais valor depois de 6 meses do que na chegada: o fato amadurece, não envelhece
+        self.assertGreater(s.fator_temporal(p, 180), s.fator_temporal(p, 0))
+        # só liderança matura; as outras categorias seguem a meia-vida
+        self.assertEqual(s.fator_temporal(s.P["vaga_lideranca_growth"], 0), 1.0)
 
     def test_evento_futuro_conta_ate_30_dias_antes(self):
         p = s.P["presenca_patrocinador"]

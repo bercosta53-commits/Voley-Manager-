@@ -6,7 +6,7 @@ import { cn, pontos } from '@/lib/utils';
 import { FAIXAS_VSCS, MATRIZ_ICP } from '@/lib/avaliacao';
 
 const CATEGORIAS = [
-  { nome: 'Mudança de liderança', faixa: '70–95', meiaVida: 60, ex: 'CMO/CRO novo ~95 · diretor comercial ~85' },
+  { nome: 'Mudança de liderança', faixa: '70–95', meiaVida: 'amadurece', ex: 'CMO/CRO novo ~95 · diretor comercial ~85 · 60% até 3 meses, 100% de 1 ano a 15 meses' },
   { nome: 'Expansão e investimento', faixa: '75–90', meiaVida: 90, ex: 'Série A+ ~90 · nova filial ~75' },
   { nome: 'Contratações estratégicas', faixa: '65–85', meiaVida: 45, ex: 'Head de Growth/Vendas ~85 · 1 vaga de SDR ~65' },
   { nome: 'Movimentos estratégicos', faixa: '65–85', meiaVida: 60, ex: 'comprou empresa ~85 · fusão ~70 · produto ~65' },
@@ -18,6 +18,10 @@ const CATEGORIAS = [
 
 /** Mudanças do modelo, com data comprovada no histórico do repositório ou no alinhamento com a inteligência. */
 const HISTORICO = [
+  {
+    quando: '26/11/2026',
+    oque: 'VSCS 3.1 (proposta de Bernardo, a alinhar com a inteligência): sinal de liderança amadurece em vez de envelhecer. 60% nos 3 primeiros meses, sobe até 100% em 1 ano, fica até 15 meses e só então cai pela metade a cada 90 dias.',
+  },
   { quando: '25/11/2026', oque: 'Especificação do VSCS 3.0 confirmada pela inteligência: constantes, faixas e matriz. A tela passa a mostrar a ação pela matriz quando a base não a traz.' },
   { quando: '06/11/2026', oque: 'VSCS 3.0: retornos decrescentes, meia-vida contínua, convergência entre categorias e matriz ICP × VSCS.' },
   { quando: '06/11/2026', oque: 'Score v2.2: um gatilho sozinho não abre conversa.' },
@@ -56,7 +60,7 @@ export function ComoCalcula({ base }: { base: Base }) {
           </p>
           <p className="mt-1.5">
             <b className="font-medium text-foreground">Base</b>: força do fato para a Velora (tabela abaixo). <b className="font-medium text-foreground">Fonte</b>: 1,00 vaga
-            publicada ou site oficial, 0,85 imprensa, 0,60 indício. <b className="font-medium text-foreground">Tempo</b>: cai pela metade a cada meia-vida e zera depois de três.{' '}
+            publicada ou site oficial, 0,85 imprensa, 0,60 indício. <b className="font-medium text-foreground">Tempo</b>: cai pela metade a cada meia-vida e zera depois de três; mudança de liderança amadurece antes de cair (60% nos 3 primeiros meses, 100% de 1 ano a 15 meses).{' '}
             <b className="font-medium text-foreground">Repetição</b>: o 2º fato da mesma categoria vale 70%, do 3º em diante 50%. Fato com confiança abaixo de 0,60 não
             pontua.
           </p>
@@ -98,7 +102,7 @@ export function ComoCalcula({ base }: { base: Base }) {
                     <span className="block text-xs text-text-3">{c.ex}</span>
                   </td>
                   <td className="vr-data py-1.5 pr-2 text-xs whitespace-nowrap">{c.faixa}</td>
-                  <td className="vr-data py-1.5 text-xs whitespace-nowrap">{c.meiaVida} d</td>
+                  <td className="vr-data py-1.5 text-xs whitespace-nowrap">{typeof c.meiaVida === 'number' ? `${c.meiaVida} d` : c.meiaVida}</td>
                 </tr>
               ))}
             </tbody>

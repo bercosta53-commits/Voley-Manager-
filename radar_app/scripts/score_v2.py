@@ -32,7 +32,7 @@ from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
 DESTINO = RAIZ / "data" / "contas.local.json"
-VERSAO = "vscs-3.0"
+VERSAO = "vscs-3.1"
 
 # ---------------------------------------------------------------- parâmetros (VSCS 3.0, seções 2 e 3) — editáveis
 
@@ -53,6 +53,21 @@ class Param:
 # modelo, mas a base tem esses fatos — entram com score_base baixo e meia-vida curta, como contexto.
 MEIA_VIDA = {"lideranca": 60, "expansao": 90, "gtm": 60, "contratacao": 45, "estrategia": 60, "intencao": 15, "contexto": 30,
              "negativo": 90}
+# VSCS 3.1 (proposta de Bernardo, 26/11): sinal de liderança não envelhece como notícia. Um diretor ou gerente
+# novo quase não mexe no orçamento nos primeiros 3 meses e vai ganhando domínio dele até um ano e pouco; só depois
+# o fato começa a perder força. Curva: valor `inicio` até `carencia` dias, sobe em linha até 1,0 no `pico`, fica
+# em 1,0 até `plato_ate` e então cai pela metade a cada `meia_vida` dias, zerando depois de três meias-vidas.
+@dataclass(frozen=True)
+class Maturacao:
+    inicio: float
+    carencia: int
+    pico: int
+    plato_ate: int
+    meia_vida: int
+
+
+MATURACAO = {"lideranca": Maturacao(inicio=0.6, carencia=90, pico=365, plato_ate=450, meia_vida=90)}
+
 CATEGORIA_ROTULO = {"lideranca": "Mudança de liderança", "expansao": "Expansão e investimento",
                     "gtm": "Transformação comercial", "contratacao": "Contratações estratégicas",
                     "estrategia": "Movimentos estratégicos", "intencao": "Intenção e engajamento", "contexto": "Contexto",
@@ -247,9 +262,20 @@ def nivelar(ev: dict) -> str | None:
 
 
 def fator_temporal(p: Param, dias: int) -> float:
-    """dias = hoje - data do fato (negativo = evento futuro). 0.5^(idade/meia-vida), zero depois de 3 meias-vidas."""
+    """dias = hoje - data do fato (negativo = evento futuro). 0.5^(idade/meia-vida), zero depois de 3 meias-vidas.
+    Categorias com maturação (MATURACAO, hoje só liderança) sobem antes de cair."""
     if dias < 0:
         return 1.0 if -dias <= p.antes else 0.0
+    m = MATURACAO.get(p.categoria)
+    if m:
+        if dias < m.carencia:
+            return m.inicio
+        if dias < m.pico:
+            return m.inicio + (1 - m.inicio) * (dias - m.carencia) / (m.pico - m.carencia)
+        if dias <= m.plato_ate:
+            return 1.0
+        depois = dias - m.plato_ate
+        return 0.0 if depois > 3 * m.meia_vida else 0.5 ** (depois / m.meia_vida)
     mv = MEIA_VIDA[p.categoria]
     if dias > 3 * mv:
         return 0.0
