@@ -61,3 +61,12 @@ class TestMissao(unittest.TestCase):
         self.assertEqual(extrair(ev(mandato(meta="dobrar")) )["fator"],1.15)
     def test_substituida(self):
         self.assertIsNone(extrair(ev(mandato(ativa=False))))
+
+    def test_mandato_nominal_e_elegibilidade_pendente(self):
+        m=mandato(texto="expansão do portfólio de clientes enterprise")
+        self.assertEqual(extrair(ev(m))["fator"],1.15)
+        self.assertEqual(extrair(ev(m,missaoRevisao={"status":"confirmada_pendente_elegibilidade"}))["fator"],1)
+    def test_hipoteses_nao_pontuam(self):
+        m=mandato(tensaoExecucao={"nivel":"alta"},aderenciaVelora={"nivel":"muito_alta"})
+        self.assertEqual(extrair(ev(m))["fator"],1.15)
+        self.assertEqual(extrair(ev(m))["tensaoExecucao"]["nivel"],"alta")
