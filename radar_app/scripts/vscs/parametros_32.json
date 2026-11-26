@@ -1,0 +1,29 @@
+{
+  "versao": "vscs-3.2-contexto-cargos",
+  "origem": "Documento de calibração de 26/11/2026 (seção 6) sobre o motor 3.0 (score_v2.py). Itens com confirmar=true precisam bater com o registro do Supabase: rode reconciliar.py sobre o payload antes de usar.",
+  "K": 0.5,
+  "correlacao": [1.0, 0.7, 0.5],
+  "convergencia": {"janela_dias": 45, "s_minimo": 40, "bonus_duas": 5, "bonus_tres_ou_mais": 8},
+  "meia_vida": {"lideranca": 60, "expansao": 90, "gtm": 60, "contratacao": 45, "estrategia": 60, "intencao": 15, "contexto": 30, "negativo": 90},
+  "fonte": {"primaria": 1.0, "secundaria": 0.85, "indicio": 0.6, "confianca_minima": 0.6, "confianca_indicio": 0.85},
+  "cargos_receita": {
+    "sdr_bdr": 20,
+    "especialista_gtm": 35,
+    "coordenacao": 55,
+    "gerencia": 70,
+    "head": 80,
+    "diretoria_receita": 85,
+    "clevel_receita": 95
+  },
+  "blocos_operacionais": {"janela_dias": 30, "uma": 20, "duas": 30, "tres_a_quatro": 50, "cinco_ou_mais": 70},
+  "lideranca_fora_de_receita": {"ceo_socio": 70, "clevel_outro": 50, "confirmar": true},
+  "bases_30": {
+    "captacao_a": 90, "captacao_seed": 70, "expansao_comercial": 85, "nova_filial": 75,
+    "declaracao_meta": 65, "declaracao_especifica": 55, "declaracao_generica": 30,
+    "aquisicao_feita": 85, "aquisicao_planejada": 65, "fusao": 70, "foi_adquirida": 30,
+    "lancamento_novo_vertical": 75, "lancamento_comum": 65, "nova_parceria": 50, "reestruturacao": 40,
+    "presenca_patrocinador": 45, "presenca_expositor": 40, "presenca_startup": 25, "palestra_lideranca": 35, "premio": 20,
+    "intencao_diagnostico": 100, "intencao_download": 80, "intencao_servicos": 75, "intencao_linkedin": 60, "intencao_site": 50, "intencao_email": 50
+  },
+  "confirmar": ["lideranca_fora_de_receita", "contexto pontua com as bases 3.0 ou zera (o nome 'contexto-cargos' sugere mudança)"]
+}
