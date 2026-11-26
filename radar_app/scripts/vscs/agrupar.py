@@ -58,6 +58,7 @@ class Acontecimento:
     tempo: float = 0.0
     janela: str | None = None
     maturacao: str | None = None
+    relacionamento: dict | None = None
 
     @property
     def texto(self) -> str:

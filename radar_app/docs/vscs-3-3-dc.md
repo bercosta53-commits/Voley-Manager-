@@ -199,6 +199,51 @@ A reconciliação preliminar mostrou que o problema principal não era aritméti
 
 O reconciliador recalcula cada conta na data `v2.calculadoEm`, para o tempo não criar divergência falsa. Para cada conta divergente, ele explica a causa sinal a sinal: gravada sem recálculo, pontuada sem registro, base, fonte, tempo, correlação, bônus ou penalidade. Também mostra a tabela **registro × inferência pelo texto**, que mede onde o classificador erraria em sinais novos. O objetivo é 100% das contas explicadas, com cada diferença marcada como correção válida ou regressão.
 
+### 3.9 Reconhecimento de uma nova liderança (decisão de 26/11)
+
+A proximidade da Velora com a **pessoa nomeada** multiplica a força da nomeação. A regra só amplifica: não cria sinal e não conta como corroboração independente, porque é o mesmo acontecimento.
+
+| Nota | Relação | Fator na força da nomeação |
+|---:|---|---:|
+| 0 | Sem relação | ×1,00 |
+| 1 | Conexão no LinkedIn ou conhecido de mercado | ×1,05 |
+| 2 | Contato prévio | ×1,10 |
+| 3 | Relação profissional | ×1,20 |
+| 4 | Acesso direto | ×1,30 |
+| 5 | Amigo profissional, com entrada | ×1,40 |
+
+- **Alcance:** só nomeações de liderança, casadas pelo nome da pessoa (`pessoa` ou `abordar.nome` do sinal) com a tabela de relacionamentos ou com `comite[].relacionamento`.
+- **Teto:** a força continua limitada a 100, e um fato sozinho continua limitado a 85 no DC. A faixa 90+ segue exigindo dois movimentos independentes.
+- **Validade:** registro com mais de 365 dias não vale.
+- **Vínculo atual:** um registro com nota ≥ 1 e até 180 dias também confirma o vínculo atual da pessoa no cargo. Com isso, a maturação passa a valer para ela.
+- **Saída do motor:** `acontecimentos[].relacionamento = {nota, fator, em, rotulo}`. Quem registrou não sai do motor.
+
+Exemplo sintético: CRO nomeada há 36 dias, em imprensa reputada.
+
+| Relação | Score 3.3 |
+|---|---:|
+| Sem relação | 61,8 |
+| Nota 3 | 74,1 |
+| Nota 5 | 85,0 (teto de um fato) |
+
+**Tabela privada proposta**, a criar no Supabase com aprovação. Fica fora do snapshot exportado e do GitHub:
+
+```sql
+create table if not exists public.radar_relacionamentos (
+  id          uuid primary key default gen_random_uuid(),
+  conta_id    text not null,
+  pessoa      text not null,              -- nome como está no comitê/sinal
+  nota        smallint not null check (nota between 0 and 5),
+  registrado_em date not null default current_date,
+  autor       text not null,              -- e-mail do Cloudflare Access de quem registrou
+  observacao  text,
+  unique (conta_id, pessoa, autor)
+);
+alter table public.radar_relacionamentos enable row level security;  -- sem política para anon: só o servidor lê
+```
+
+Para a simulação, exporte `{contaId: {pessoa: {nota, em}}}` (sem autor) e passe com `--relacionamentos`. No modo apresentação, a tela mostra só o selo "via quente", sem nome de quem conhece nem a nota.
+
 ## 4. Como reproduzir sobre a base real (somente leitura)
 
 ```bash
@@ -206,7 +251,7 @@ cd radar_app/scripts
 python3 -m vscs.reconciliar --snapshot ~/privado/payload.json --hoje 2026-11-26 > ~/privado/reconciliacao.md
 python3 -m vscs.simular     --snapshot ~/privado/payload.json --hoje 2026-11-26 > ~/privado/simulacao-33.md
 python3 -m vscs.casos                                                             # contrafactuais sintéticos
-python3 -m unittest discover -s tests -p 'test_*.py'                              # 82 testes
+python3 -m unittest discover -s tests -p 'test_*.py'                              # 89 testes
 ```
 
 O payload é o JSON do campo `payload` de `radar_snapshots` (`id = 'current'`), exportado por quem tem acesso. Ele e as saídas **ficam fora do repositório**.

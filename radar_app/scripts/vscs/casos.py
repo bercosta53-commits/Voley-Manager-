@@ -46,6 +46,9 @@ CENARIOS = [
     ("Mesmo release em três veículos", [ev("expansao_mercado", 5, "Chega a Curitiba com equipe comercial", fonte="Blog X", url="https://blogx.com/a", release=True),
                                         ev("expansao_mercado", 5, "Chega a Curitiba com equipe comercial", fonte="Jornal Y", url="https://jornaly.com/b", release=True),
                                         ev("expansao_mercado", 5, "Chega a Curitiba com equipe comercial", fonte="Portal Z", url="https://portalz.com/c", release=True)]),
+    ("CRO nomeada há 36 d, sem relação", [ev("executivo_chegou", 36, "Fulana assume como CRO", fonte="Valor Econômico", pessoa="Fulana de Tal")]),
+    ("CRO nomeada há 36 d, relação 3 (profissional)", [ev("executivo_chegou", 36, "Fulana assume como CRO", fonte="Valor Econômico", pessoa="Fulana de Tal")], None, {"Fulana de Tal": {"nota": 3, "em": "2026-11-20"}}),
+    ("CRO nomeada há 36 d, relação 5 (amigo profissional)", [ev("executivo_chegou", 36, "Fulana assume como CRO", fonte="Valor Econômico", pessoa="Fulana de Tal")], None, {"Fulana de Tal": {"nota": 5, "em": "2026-11-20"}}),
     ("Pedido de diagnóstico (intenção direta)", [], [{"tipo": "pedido_diagnostico", "data": (HOJE - timedelta(days=2)).isoformat()}]),
 ]
 
@@ -59,10 +62,11 @@ def main() -> None:
     for item in CENARIOS:
         nome, evs = item[0], item[1]
         inter = item[2] if len(item) > 2 else None
+        rels = item[3] if len(item) > 3 else None
         linha = [nome, f2(motor32.calcular(evs, HOJE, p32, inter)["vscs"])]
         pend = ""
         for k, pv in vs.items():
-            r = motor33.calcular(evs, HOJE, "Empresa Exemplo", inter, p32, pv)  # sem comitê: vínculo só pelo campo do sinal
+            r = motor33.calcular(evs, HOJE, "Empresa Exemplo", inter, p32, pv, None, None, rels)
             linha.append(f2(r["vscs"]))
             if k == "DC + dupla janela (3.3)":
                 pend = "; ".join(r["requisitos_90_pendentes"]) or ("—" if r["vscs"] < 90 else "cumpridas")

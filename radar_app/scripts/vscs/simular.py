@@ -74,8 +74,14 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--snapshot", required=True)
     ap.add_argument("--hoje")
+    ap.add_argument("--relacionamentos", help="JSON privado {contaId: {nome da pessoa: {nota, em}}} exportado de radar_relacionamentos")
     a = ap.parse_args()
     base = carregar(a.snapshot)
+    rels = {}
+    if a.relacionamentos:
+        import json
+        with open(a.relacionamentos, encoding="utf-8") as f:
+            rels = json.load(f)
     hoje = date.fromisoformat(a.hoje or str(base.get("geradoEm", date.today().isoformat()))[:10])
     p32, p33 = motor33.parametros()
     p32, revs, _, _ = modelo_e_revisoes(base, p32)  # scoreModelo prevalece; revisões individuais preservadas
@@ -86,7 +92,7 @@ def main() -> None:
         r = {"gravado": float(c.get("score") or 0), "3.2 canônica": motor32.calcular(evs, hoje, p32, c.get("interacoes"), revs, c)["vscs"]}
         detalhe = None
         for nome, pv in vs.items():
-            res = motor33.calcular(evs, hoje, c.get("nome", ""), c.get("interacoes"), p32, pv, c, revs)
+            res = motor33.calcular(evs, hoje, c.get("nome", ""), c.get("interacoes"), p32, pv, c, revs, rels.get(c["id"]))
             r[nome] = res["vscs"]
             if nome == "DC + dupla janela (3.3)":
                 detalhe = res

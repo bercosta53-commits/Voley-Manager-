@@ -136,5 +136,27 @@
       "data_exata",
       "confirmada"
     ]
+  },
+  "relacionamento": {
+    "_sobre": "Reconhecimento de uma nova liderança (decisão de Bernardo, 26/11): a proximidade da Velora com a pessoa nomeada multiplica a força da nomeação. Só amplifica; não cria sinal nem conta como corroboração independente.",
+    "alcance": "nomeacao",
+    "fatores": {
+      "0": 1.0,
+      "1": 1.05,
+      "2": 1.1,
+      "3": 1.2,
+      "4": 1.3,
+      "5": 1.4
+    },
+    "rotulos": {
+      "0": "sem relação",
+      "1": "conexão no LinkedIn ou conhecido de mercado",
+      "2": "contato prévio",
+      "3": "relação profissional",
+      "4": "acesso direto",
+      "5": "amigo profissional, com entrada"
+    },
+    "validade_dias": 365,
+    "confirma_vinculo_dias": 180
   }
 }

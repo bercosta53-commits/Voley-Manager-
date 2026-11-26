@@ -42,11 +42,54 @@ MATURAVEIS = {"gerencia", "head", "diretoria_receita", "clevel_receita"}  # mand
 STATUS_SEM_VINCULO = ("BLOQUEADO", "RECONFIRMAR_VINCULO")
 
 
-def vinculo_atual(ac: Acontecimento, conta: dict | None, hoje: date) -> tuple[bool, str]:
+def _pessoas_do_acontecimento(ac: Acontecimento) -> set[str]:
+    nomes = set()
+    for d in ac.docs:
+        for n in (d.ev.get("pessoa"), (d.ev.get("abordar") or {}).get("nome"), (d.ev.get("_revisao") or {}).get("pessoa")):
+            if n and norm(n).strip():
+                nomes.add(norm(n).strip())
+    return nomes
+
+
+def relacionamento(ac: Acontecimento, conta: dict | None, relacionamentos: dict | None, hoje: date, p33: dict) -> dict | None:
+    """Relação da Velora com a pessoa NOMEADA (escala 0–5), vinda da tabela privada de relacionamentos (por nome
+    normalizado) ou do comitê da conta (pessoa.relacionamento). Só para nomeação de liderança; registro com mais
+    de `validade_dias` não vale. Devolve {nota, fator, em, rotulo} ou None."""
+    cfg = p33.get("relacionamento") or {}
+    if cfg.get("alcance") == "nomeacao" and not ac.cl.get("nomeacao"):
+        return None
+    nomes = _pessoas_do_acontecimento(ac)
+    if not nomes:
+        return None
+    candidatos = []
+    for nome, r in (relacionamentos or {}).items():
+        if norm(nome).strip() in nomes:
+            candidatos.append(r)
+    for pes in (conta or {}).get("comite") or []:
+        if norm(pes.get("nome", "")).strip() in nomes and isinstance(pes.get("relacionamento"), dict):
+            candidatos.append(pes["relacionamento"])
+    melhor = None
+    for r in candidatos:
+        try:
+            nota = int(r.get("nota"))
+        except (TypeError, ValueError):
+            continue
+        em = str(r.get("em") or "")[:10]
+        if not em or (hoje - date.fromisoformat(em)).days > cfg.get("validade_dias", 365) or not 0 <= nota <= 5:
+            continue
+        if melhor is None or nota > melhor["nota"]:
+            melhor = {"nota": nota, "fator": float(cfg["fatores"][str(nota)]), "em": em, "rotulo": cfg.get("rotulos", {}).get(str(nota))}
+    return melhor
+
+
+def vinculo_atual(ac: Acontecimento, conta: dict | None, hoje: date, rel: dict | None = None) -> tuple[bool, str]:
     """O executivo ainda ocupa o cargo de receita? Sem confirmação, a maturação não se aplica.
     Ordem: revisão/campo vinculoAtual → vinculoConfirmadoEm (até 180 d) → pessoa no comitê da conta com cargo de
     receita e status que não peça reconfirmação."""
     ev = ac.docs[0].ev
+    # quem registrou a relação com a pessoa confirmou, naquela data, que ela está no cargo
+    if rel and rel["nota"] >= 1 and (hoje - date.fromisoformat(rel["em"])).days <= 180:
+        return True, f"vínculo confirmado pelo registro de relacionamento em {rel['em']}"
     for d in ac.docs:
         v = d.ev.get("vinculoAtual")
         if v is not None:
@@ -68,7 +111,7 @@ def vinculo_atual(ac: Acontecimento, conta: dict | None, hoje: date) -> tuple[bo
     return False, "sem confirmação de vínculo atual"
 
 
-def _tempo(ac: Acontecimento, hoje: date, p33: dict, conta: dict | None = None) -> tuple[float, str | None, str | None]:
+def _tempo(ac: Acontecimento, hoje: date, p33: dict, conta: dict | None = None, rel: dict | None = None) -> tuple[float, str | None, str | None]:
     """(fator, janela, maturação). Vaga e fatos em geral: decaimento convencional. Liderança nomeada: dupla janela
     só com mandato de receita e, depois dos 90 dias, vínculo atual confirmado; senão, decaimento convencional."""
     dias = (hoje - ac.data).days
@@ -79,7 +122,7 @@ def _tempo(ac: Acontecimento, hoje: date, p33: dict, conta: dict | None = None) 
             return conv, None, f"sem maturação: cargo sem mandato de receita ({ac.cl.get('nivel') or 'não identificado'})"
         if dias <= p33["lideranca_nomeada"]["diagnostico"]["ate_dia"]:
             return lideranca_nomeada(dias, p33), janela, "janela de diagnóstico"
-        ok, motivo = vinculo_atual(ac, conta, hoje)
+        ok, motivo = vinculo_atual(ac, conta, hoje, rel)
         if not ok:
             return min(conv, lideranca_nomeada(dias, p33)), janela, f"suspensa: {motivo}"
         return lideranca_nomeada(dias, p33), janela, f"aplicada: {motivo}"
@@ -96,7 +139,7 @@ def _prod(it):
 
 def preparar(eventos: list[dict], hoje: date, empresa: str = "", p32: dict | None = None, p33: dict | None = None,
              interacoes: list[dict] | None = None, conta: dict | None = None,
-             revisoes: dict[str, dict] | None = None) -> tuple[list[Movimento], list[tuple[str, str, str]]]:
+             revisoes: dict[str, dict] | None = None, relacionamentos: dict | None = None) -> tuple[list[Movimento], list[tuple[str, str, str]]]:
     if p32 is None or p33 is None:
         p32, p33 = parametros()
     revisoes = revisoes or {}
@@ -129,8 +172,11 @@ def preparar(eventos: list[dict], hoje: date, empresa: str = "", p32: dict | Non
     acs = acontecimentos(documentos, p33["movimento"]["janela_acontecimento_dias"], p33["movimento"]["janela_vinculo_dias"])
     for ac in acs:
         ac.fonte_nivel, ac.fonte_fator = corroborar([(d.fonte_nivel, d.fonte_fator) for d in ac.docs], [x for d in ac.docs for x in d.testemunhas], p33)
-        ac.tempo, ac.janela, ac.maturacao = _tempo(ac, hoje, p33, conta)
-        ac.s = min(100.0, ac.cl["base"] * ac.fonte_fator * ac.tempo)
+        ac.relacionamento = relacionamento(ac, conta, relacionamentos, hoje, p33)
+        ac.tempo, ac.janela, ac.maturacao = _tempo(ac, hoje, p33, conta, ac.relacionamento)
+        fator_rel = ac.relacionamento["fator"] if ac.relacionamento else 1.0
+        # a relação só amplifica um fato que já existe (s = 0 continua 0) e não vira corroboração independente
+        ac.s = min(100.0, ac.cl["base"] * ac.fonte_fator * ac.tempo * fator_rel)
     acs = [a for a in acs if a.s > 0]
     if p33["movimento"].get("agrupar", True):
         movs, possiveis = movimentos(acs, empresa, p33["movimento"]["janela_vinculo_dias"])
@@ -228,11 +274,11 @@ def requisitos_90(parcelas: list[tuple[Movimento, float]], possiveis: list, pen:
 
 def calcular(eventos: list[dict], hoje: date, empresa: str = "", interacoes: list[dict] | None = None,
              p32: dict | None = None, p33: dict | None = None, conta: dict | None = None,
-             revisoes: dict[str, dict] | None = None) -> dict:
+             revisoes: dict[str, dict] | None = None, relacionamentos: dict | None = None) -> dict:
     """`conta` só é lida para o comitê (vínculo atual do executivo); o tier nunca entra no cálculo."""
     if p32 is None or p33 is None:
         p32, p33 = parametros()
-    movs, possiveis = preparar(eventos, hoje, empresa, p32, p33, interacoes, conta, revisoes)
+    movs, possiveis = preparar(eventos, hoje, empresa, p32, p33, interacoes, conta, revisoes, relacionamentos)
     principal, contexto, parcelas = agregar(movs, p33)
     pen = max((m.s for m in movs if m.categoria == NEGATIVO), default=0.0)
     v = max(0.0, min(100.0, max(principal, contexto)) - pen)
@@ -259,6 +305,8 @@ def calcular(eventos: list[dict], hoje: date, empresa: str = "", interacoes: lis
                 "id": a.id, "chave": a.cl["chave"], "categoria": a.cl["categoria"], "base": a.cl["base"], "data": a.data.isoformat(),
                 "fonte": a.fonte_nivel, "fator_fonte": a.fonte_fator, "tempo": round(a.tempo, 4), "janela_lideranca": a.janela,
                 "maturacao": a.maturacao, "cargo": a.cl.get("cargo"), "revisado": bool(a.cl.get("revisado")),
+                # só nota, fator e data: quem registrou fica na tabela privada
+                "relacionamento": ({k: a.relacionamento[k] for k in ("nota", "fator", "em", "rotulo")} if a.relacionamento else None),
                 "s": round(a.s, 2), "documentos": [d.id for d in a.docs], "superado_por": a.superado_por,
             } for a in sorted(m.acontecimentos, key=lambda a: -a.s)],
         } for m in sorted(movs, key=lambda m: -m.s)],

@@ -463,5 +463,57 @@ class TestRegressoes26b(unittest.TestCase):
         self.assertEqual(len(r["movimentos"]), 2)  # sem vínculo causal, R3 não junta
 
 
+class TestRelacionamento(unittest.TestCase):
+    """Reconhecimento de uma nova liderança (decisão de 26/11): 0–5, até ×1,40, só nomeações."""
+
+    def nomeacao(self, dias=36, **x):
+        return ev("executivo_chegou", dias, "Fulana assume como CRO", pessoa="Fulana de Tal", **x)
+
+    def calc_rel(self, evs, rels=None, conta=None):
+        return motor33.calcular(evs, HOJE, "Empresa", None, P32, P33, conta, None, rels)
+
+    def s(self, r):
+        return r["movimentos"][0]["acontecimentos"][0]["s"]
+
+    def test_escala_multiplica_a_forca_da_nomeacao(self):
+        base = self.s(self.calc_rel([self.nomeacao()]))
+        for nota, fator in ((0, 1.0), (1, 1.05), (2, 1.10), (3, 1.20), (4, 1.30), (5, 1.40)):
+            r = self.calc_rel([self.nomeacao()], {"Fulana de Tal": {"nota": nota, "em": "2026-11-20"}})
+            self.assertAlmostEqual(self.s(r), min(100, round(base * fator, 2)), places=1, msg=nota)
+            a = r["movimentos"][0]["acontecimentos"][0]
+            self.assertEqual(a["relacionamento"]["nota"], nota)
+            self.assertNotIn("autor", a["relacionamento"])  # quem registrou não sai do motor
+
+    def test_so_amplifica_nomeacao_de_lideranca(self):
+        vaga = ev("vaga_lideranca_alvo", 5, "Head Comercial", pessoa="Fulana de Tal")
+        r = self.calc_rel([vaga], {"Fulana de Tal": {"nota": 5, "em": "2026-11-20"}})
+        self.assertIsNone(r["movimentos"][0]["acontecimentos"][0]["relacionamento"])
+        self.assertEqual(r["vscs"], self.calc_rel([vaga])["vscs"])
+
+    def test_nao_cria_sinal_e_respeita_validade(self):
+        expirada = self.nomeacao(dias=800)
+        self.assertEqual(self.calc_rel([expirada], {"Fulana de Tal": {"nota": 5, "em": "2026-11-20"}})["vscs"], 0.0)
+        velho = self.calc_rel([self.nomeacao()], {"Fulana de Tal": {"nota": 5, "em": "2025-06-01"}})
+        self.assertIsNone(velho["movimentos"][0]["acontecimentos"][0]["relacionamento"])
+
+    def test_teto_um_fato_sozinho_nao_passa_de_85(self):
+        r = self.calc_rel([self.nomeacao(dias=250, vinculoAtual=True)], {"Fulana de Tal": {"nota": 5, "em": "2026-11-20"}})
+        self.assertLessEqual(r["vscs"], 85.0)
+        self.assertFalse(r["excepcional"])
+
+    def test_relacionamento_recente_confirma_o_vinculo_e_liga_a_maturacao(self):
+        sem = self.calc_rel([self.nomeacao(dias=300)])
+        self.assertTrue(sem["movimentos"][0]["acontecimentos"][0]["maturacao"].startswith("suspensa") if sem["movimentos"] else True)
+        com = self.calc_rel([self.nomeacao(dias=300)], {"Fulana de Tal": {"nota": 3, "em": "2026-11-01"}})
+        a = com["movimentos"][0]["acontecimentos"][0]
+        self.assertTrue(a["maturacao"].startswith("aplicada"))
+        self.assertGreater(com["vscs"], 70)
+
+    def test_relacionamento_tambem_pelo_comite_da_conta(self):
+        conta = {"comite": [{"nome": "Fulana de Tal", "cargo": "CRO", "relacionamento": {"nota": 4, "em": "2026-11-10"}}]}
+        r = self.calc_rel([self.nomeacao()], None, conta)
+        self.assertEqual(r["movimentos"][0]["acontecimentos"][0]["relacionamento"]["fator"], 1.30)
+
+
 if __name__ == "__main__":
     unittest.main()
