@@ -38,8 +38,9 @@ export const CLASSES: Classe[] = ['A1', 'A2', 'B1', 'B2', 'C'];
 /** Regras na ordem em que são aplicadas, só em avaliações completas (briefing 8.2). */
 export const REGRAS = {
   C: { icpAbaixoDe: 3, notaAbaixoDe: 2.5 },
-  A1: { nota: 4.5, minimos: { icp: 4, sinais: 4, clima: 3, oportunidadeDigital: 3 } as Record<Dimensao, number> },
-  A2: { nota: 4.0, minimos: { icp: 4, sinais: 3, clima: 3, oportunidadeDigital: 3 } as Record<Dimensao, number> },
+  // Clima entra como contexto: mínimo 2 em A1/A2 (decisão de Bernardo, 26/11). Pesa na média e só barra setor muito ruim.
+  A1: { nota: 4.5, minimos: { icp: 4, sinais: 4, clima: 2, oportunidadeDigital: 3 } as Record<Dimensao, number> },
+  A2: { nota: 4.0, minimos: { icp: 4, sinais: 3, clima: 2, oportunidadeDigital: 3 } as Record<Dimensao, number> },
   B1: { nota: 3.25 },
 } as const;
 

@@ -26,10 +26,11 @@ test('fronteiras da nota integrada (C 2,5 · B1 3,25 · A2 4,0 · A1 4,5)', () =
   assert.equal(classificar(N(4.5, 4.5, 4.5, 4.5)), 'A1'); // 4,5
 });
 
-test('mínimos de A: ICP 3,99 cai para B1; Sinais 3,99 cai de A1 para A2; Clima ou Digital 2,99 cai para B1', () => {
+test('mínimos de A: ICP 3,99 cai para B1; Sinais 3,99 cai de A1 para A2; Clima 1,99 ou Digital 2,99 cai para B1', () => {
   assert.equal(classificar(N(3.99, 5, 5, 5)), 'B1');
   assert.equal(classificar(N(5, 3.99, 5, 5)), 'A2');
-  assert.equal(classificar(N(5, 5, 2.99, 5)), 'B1');
+  assert.equal(classificar(N(5, 5, 2.99, 5)), 'A2'); // Clima é contexto: mínimo 2 (26/11); a média 4,25 fica abaixo de A1
+  assert.equal(classificar(N(5, 5, 1.99, 5)), 'B1');
   assert.equal(classificar(N(5, 5, 5, 2.99)), 'B1');
 });
 
@@ -91,8 +92,8 @@ test('nota mínima para A1: soma 12,5 pede 5,5 (cai); soma 14 pede 4,0; ICP falt
   const v = visao(5, 4.5, null, 4.5);
   assert.equal(v.investigacao.notaMinimaParaA1, 4);
   assert.equal(v.investigacao.podeChegarA1, true);
-  assert.equal(v.investigacao.notaMinimaParaSweet, 3); // entrar (A2) pede média 4,0 e Clima ≥ 3
-  assert.match(v.motivosClassificacao[0], /Clima do setor: precisa de nota ≥ 3 para o sweet spot/);
+  assert.equal(v.investigacao.notaMinimaParaSweet, 2); // entrar (A2) pede média 4,0 e Clima ≥ 2 (contexto, 26/11)
+  assert.match(v.motivosClassificacao[0], /Clima do setor: precisa de nota ≥ 2 para o sweet spot/);
 });
 
 test('o 5,0 do teste de viabilidade nunca aparece no estado', () => {
@@ -189,4 +190,10 @@ test('Clima: a vertical vem do código de especialização; sem código, a Gener
   assert.equal(de(undefined).S, -1); // GEN segue o macro
   assert.equal(de('ESP99').nome, 'Generalista');
   assert.equal(climaPorCodigo(null)('ESP01'), null);
+});
+
+test('Clima como contexto (decisão de 26/11): mínimo 2 em A1/A2; abaixo de 2 barra o sweet spot', () => {
+  assert.equal(visao(5, 5, 2.5, 5).classeIntegrada, 'A2'); // setor neutro-negativo não barra o sweet spot (A1 pede média 4,5)
+  assert.equal(visao(5, 4, 2.0, 5).situacaoSweetSpot, 'sweet_spot'); // generalista com macro ruim ainda entra, se o resto sustenta
+  assert.notEqual(visao(5, 5, 1.8, 5).situacaoSweetSpot, 'sweet_spot'); // setor muito ruim barra
 });
