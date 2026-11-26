@@ -60,18 +60,20 @@ export interface Alivio {
   decomposicao?: 'todas' | 'com_sinal' | 'nenhuma';
   historico?: 'todo' | 'mais_recente' | 'nenhum';
   serie?: boolean;
+  /** contas que mantêm a decomposição mesmo com decomposicao 'nenhuma' (ex.: o exemplo da metodologia) */
+  manter?: string[];
 }
 
 /**
  * S-1: a base com os campos pesados que a tela não usa esvaziados (mesma forma de Base, então a tela não muda).
  * Nada é inventado: o campo ou vem inteiro, ou vem vazio, ou vem só o item mais recente.
  */
-export function aliviarBase(base: Base, { decomposicao = 'todas', historico = 'todo', serie = true }: Alivio): Base {
+export function aliviarBase(base: Base, { decomposicao = 'todas', historico = 'todo', serie = true, manter = [] }: Alivio): Base {
   const comSinal = decomposicao === 'com_sinal' ? new Set(base.sinais.map(s => s.contaId)) : null;
   return {
     ...base,
     contas: base.contas.map(c => {
-      const manterDecomp = decomposicao === 'todas' || (comSinal?.has(c.id) ?? false);
+      const manterDecomp = decomposicao === 'todas' || (comSinal?.has(c.id) ?? false) || manter.includes(c.id);
       const recente = historico === 'mais_recente' ? [...(c.historico ?? [])].sort((a, b) => b.data.localeCompare(a.data)).slice(0, 1) : [];
       return {
         ...c,

@@ -56,3 +56,14 @@ test('aliviar a base: esvazia só o que a tela não usa, sem inventar nada', asy
   assert.equal(a.contas[0].score, b.contas[0].score); // score, nome, comitê etc. intactos
   assert.deepEqual(aliviarBase(b, {}).contas, b.contas); // padrão: nada muda
 });
+
+test('aliviar mantém a decomposição das contas pedidas (exemplo da metodologia)', async () => {
+  const { aliviarBase } = await import('../../lib/casca-dados.ts');
+  const { exemploMetodologia } = await import('../../lib/exemplo-metodologia.ts');
+  const b = structuredClone(base);
+  b.contas.forEach((c, i) => (c.v2 = { anel: 1, frase: '', timing: 0, proximity: 0, tier: 'A', contribuicoes: i < 2 ? [{ id: 'a' }, { id: 'b' }] : [] }));
+  const ex = exemploMetodologia(b.contas);
+  const a = aliviarBase(b, { decomposicao: 'nenhuma', manter: [ex.id] });
+  assert.equal(exemploMetodologia(a.contas)?.id, ex.id); // a tela escolhe o mesmo exemplo depois do alívio
+  assert.equal(a.contas.filter(c => c.v2.contribuicoes.length).length, 1);
+});

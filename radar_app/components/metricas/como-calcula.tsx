@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { exemploMetodologia } from '@/lib/exemplo-metodologia';
 import type { Base } from '@/lib/tipos';
 import { hrefConta } from '@/lib/contas';
 import { cn, pontos } from '@/lib/utils';
@@ -30,10 +31,7 @@ const FAIXA_COR = ['bg-secondary text-text-2', 'bg-cool-bg text-cool', 'bg-warm-
  * como os fatos se somam, o que o status significa e o que fazer com ele. O exemplo é uma conta real da base.
  */
 export function ComoCalcula({ base }: { base: Base }) {
-  const exemplo = [...base.contas]
-    .filter(c => (c.v2?.contribuicoes?.length ?? 0) >= 2)
-    // exemplo útil: conta dentro do ICP (tier A/B) com o maior score
-    .sort((a, b) => Number((a.v2?.tier ?? a.tier) === 'C') - Number((b.v2?.tier ?? b.tier) === 'C') || b.score - a.score)[0];
+  const exemplo = exemploMetodologia(base.contas);
   const faixas = [...FAIXAS_VSCS].reverse();
 
   return (
