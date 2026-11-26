@@ -1,3 +1,4 @@
+import { aliviarBase } from '@/lib/casca-dados';
 import { lerBase } from '@/lib/dados';
 import { Hoje } from '@/components/hoje/hoje';
 
@@ -8,5 +9,6 @@ export const metadata = { title: { absolute: 'Hoje | Velora Radar' } };
 // funcionar como arquivo estático (publicação).
 export default async function Pagina() {
   const base = await lerBase();
-  return <Hoje base={base} />;
+  // S-1: decomposição do score só nas contas com sinal (os cartões); histórico não é usado em Hoje
+  return <Hoje base={aliviarBase(base, { decomposicao: 'com_sinal', historico: 'nenhum' })} />;
 }

@@ -38,3 +38,21 @@ test('filtros e perguntas dão o mesmo resultado no índice e na base completa',
   );
   assert.deepEqual(aplicar(casca.contas, { ...SEM_FILTRO, texto: base.contas[1].comite[0]?.nome ?? base.contas[1].nome }, porConta(casca)).map(c => c.id).includes(base.contas[1].id), true);
 });
+
+test('aliviar a base: esvazia só o que a tela não usa, sem inventar nada', async () => {
+  const { aliviarBase } = await import('../../lib/casca-dados.ts');
+  const b = structuredClone(base);
+  b.contas[0].historico = [{ data: '2026-09-01', tipo: 'x' }, { data: '2026-11-01', tipo: 'y' }];
+  b.contas[0].v2 = { anel: 1, frase: '', timing: 0, proximity: 0, contribuicoes: [{ id: 'q' }] };
+  const semSinal = b.contas.find(c => !b.sinais.some(s => s.contaId === c.id));
+  if (semSinal) semSinal.v2 = { anel: 1, frase: '', timing: 0, proximity: 0, contribuicoes: [{ id: 'k' }] };
+  const a = aliviarBase(b, { decomposicao: 'com_sinal', historico: 'mais_recente', serie: false });
+  assert.equal(a.contas.length, b.contas.length);
+  assert.deepEqual(a.contas[0].historico.map(h => h.data), ['2026-11-01']);
+  assert.deepEqual(a.contas[0].serie, []);
+  const comSinal = a.contas.find(c => b.sinais.some(s => s.contaId === c.id) && b.contas.find(x => x.id === c.id).composicao.length);
+  if (comSinal) assert.ok(comSinal.composicao.length > 0);
+  if (semSinal) assert.deepEqual(a.contas.find(c => c.id === semSinal.id).v2.contribuicoes, []);
+  assert.equal(a.contas[0].score, b.contas[0].score); // score, nome, comitê etc. intactos
+  assert.deepEqual(aliviarBase(b, {}).contas, b.contas); // padrão: nada muda
+});
