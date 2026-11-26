@@ -164,8 +164,37 @@ export function dimensaoSinais(
   };
 }
 
-export function dimensaoClima(): DimensaoIntegrada {
-  return vazio(origemDe('clima'), 'metodo_nao_mapeado', ORIGEM.clima.motivo);
+export interface ClimaDaConta {
+  nome: string;
+  estado: string;
+  S: number;
+  confianca?: string;
+  dataReferencia: string;
+  fontes?: { nome?: string; url: string }[];
+}
+
+/**
+ * Clima do setor da conta (vertical do Clima pelo código de especialização). Nota = 3 + 2·S, de 1 a 5. É avaliação
+ * editorial sobre indicadores reais com data e fonte; a edição tem validade de 21 dias. Sem edição ou vertical, sem nota.
+ */
+export function dimensaoClima(clima?: ClimaDaConta | null, agora: Date = new Date()): DimensaoIntegrada {
+  if (!clima) return vazio(origemDe('clima'), 'metodo_nao_mapeado', ORIGEM.clima.motivo);
+  const nota = Math.round(Math.min(5, Math.max(1, 3 + 2 * clima.S)) * 10) / 10;
+  const idade = (agora.getTime() - Date.parse(clima.dataReferencia)) / 86_400_000;
+  const velha = idade > ORIGEM.clima.validadeDias;
+  return {
+    nota,
+    resumo: `${clima.estado} · ${clima.nome}`,
+    status: velha ? 'desatualizada' : 'avaliada',
+    motivoSemNota: null,
+    semAchados: false,
+    entraNoCalculo: !velha,
+    motivoExclusao: velha ? `Edição do Clima com mais de ${ORIGEM.clima.validadeDias} dias` : null,
+    dataReferencia: clima.dataReferencia,
+    fontes: (clima.fontes ?? []).flatMap(f => (linkSeguro(f.url) ? [{ url: f.url, titulo: f.nome ?? null }] : [])).slice(0, 3),
+    origem: origemDe('clima'),
+    pendenciasQualidade: clima.confianca && clima.confianca !== 'Alta' ? [`confiança ${clima.confianca.toLowerCase()} na leitura do setor`] : [],
+  };
 }
 
 export function dimensaoDigital(auditoria: AuditoriaDigital | undefined, agora: Date): DimensaoIntegrada {

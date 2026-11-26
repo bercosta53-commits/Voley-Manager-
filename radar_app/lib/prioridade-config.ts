@@ -85,11 +85,12 @@ export const ORIGEM = {
     mapeamento: 'documentado' as const,
   },
   clima: {
-    campoOrigem: null,
-    escalaOriginal: null,
-    transformacao: null,
-    mapeamento: 'indisponivel' as const,
-    motivo: 'Clima do setor no backlog: ainda não há nota por conta nem vínculo entre a vertical do Clima e o setor da conta.',
+    campoOrigem: 'data/clima.json: vertical do Clima ligada à conta pelo código de especialização (ESP01–ESP20; sem código, Generalista = macro)',
+    escalaOriginal: 'Nível S de −1 a +1 (40% macro, 45% setorial, 15% notícias): avaliação editorial da Velora sobre indicadores com data e fonte',
+    transformacao: '3 + 2 × S (neutro = 3, melhor = 5, pior = 1)',
+    mapeamento: 'documentado' as const,
+    motivo: 'Edição do Clima mais antiga que a validade ou sem vertical para a conta.',
+    validadeDias: 21, // edição semanal: três semanas sem atualizar e o eixo sai do cálculo
   },
   oportunidadeDigital: {
     campoOrigem: 'data/aquisicao.json (auditoria web), ligado à conta pelo domínio',

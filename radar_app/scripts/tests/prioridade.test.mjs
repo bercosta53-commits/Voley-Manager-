@@ -133,7 +133,7 @@ test('dado fora do intervalo vira pendência e dimensão indisponível, sem corr
   assert.equal(dimensaoIcp({ tier: 'Z' }).motivoSemNota, 'fora_do_intervalo');
 });
 
-test('mapeamentos: VSCS vira 1 + 4v/100; sem achados não é lido como nota da rubrica; Clima indisponível', () => {
+test('mapeamentos: VSCS vira 1 + 4v/100; sem achados não é lido como nota da rubrica; Clima sem edição fica sem nota', () => {
   assert.equal(dimensaoSinais({ score: 50 }).nota, 3);
   const zero = dimensaoSinais({ score: 0 });
   assert.equal(zero.nota, 1);
@@ -143,7 +143,7 @@ test('mapeamentos: VSCS vira 1 + 4v/100; sem achados não é lido como nota da r
   assert.equal(dimensaoIcp({ icp: { tier: 'A', motivos: [] } }).nota, 5); // D5
   assert.equal(dimensaoIcp({ tier: '' }).nota, null);
   assert.equal(dimensaoClima().nota, null);
-  assert.equal(dimensaoClima().origem.mapeamento, 'indisponivel');
+  assert.equal(dimensaoClima().origem.mapeamento, 'documentado');
   assert.equal(dimensaoDigital(undefined, new Date()).motivoSemNota, 'nao_coletado');
   assert.equal(dimensaoDigital({ nivel: 0, confianca: 'insuficiente', dataReferencia: null, fonte: null, resumo: '' }, new Date()).nota, null);
 });
@@ -154,4 +154,39 @@ test('modo apresentação: dimensão oculta conta como faltante e não vaza pela
   assert.equal(v.dimensoes.clima.nota, null);
   assert.equal(v.dimensoes.clima.motivoSemNota, 'oculto_modo_apresentacao');
   assert.equal(v.situacaoSweetSpot, 'candidata');
+});
+
+test('Clima: nota = 3 + 2·S, de 1 a 5, com estado, fontes, confiança e validade da edição', () => {
+  const agora = new Date('2026-11-26T12:00:00Z');
+  const base = { nome: 'Regtech', estado: 'Bom', confianca: 'Alta', dataReferencia: '2026-11-25', fontes: [{ nome: 'Receita Federal', url: 'https://www.gov.br/x' }, { url: 'javascript:alert(1)' }] };
+  const d = dimensaoClima({ ...base, S: 0.5 }, agora);
+  assert.equal(d.nota, 4);
+  assert.equal(d.resumo, 'Bom · Regtech');
+  assert.equal(d.entraNoCalculo, true);
+  assert.deepEqual(d.fontes, [{ url: 'https://www.gov.br/x', titulo: 'Receita Federal' }]); // link inseguro fica de fora
+  assert.equal(dimensaoClima({ ...base, S: 0 }, agora).nota, 3);
+  assert.equal(dimensaoClima({ ...base, S: -1 }, agora).nota, 1);
+  assert.equal(dimensaoClima({ ...base, S: 1.4 }, agora).nota, 5);
+  assert.deepEqual(dimensaoClima({ ...base, S: 0, confianca: 'Média' }, agora).pendenciasQualidade, ['confiança média na leitura do setor']);
+  const velha = dimensaoClima({ ...base, S: 0.5, dataReferencia: '2026-10-01' }, agora);
+  assert.equal(velha.status, 'desatualizada');
+  assert.equal(velha.entraNoCalculo, false);
+});
+
+test('Clima: a vertical vem do código de especialização; sem código, a Generalista', async () => {
+  const { climaPorCodigo } = await import('../../lib/prioridade-linhas.ts');
+  const dados = {
+    atualizadoEm: '2026-11-25T00:00:00-03:00', z: [1, -1], pesos: { macro: 0.4, setorial: 0.45, noticias: 0.15 },
+    verticais: [
+      { id: 'ESP01', nome: 'Fintech', codigos: ['ESP01'], sens: [1, 0], setorial: 1, noticias: 1, estado: 'Bom', confianca: 'Alta', fontes: [] },
+      { id: 'GEN', nome: 'Generalista', codigos: ['GEN'], sens: [0, 1], setorial: 0, noticias: 0, estado: 'Ruim', confianca: 'Alta', fontes: [] },
+    ],
+  };
+  const de = climaPorCodigo(dados);
+  assert.equal(de('ESP01').nome, 'Fintech');
+  assert.equal(Math.round(de('ESP01').S * 100) / 100, 1); // 0,4·1 + 0,45·1 + 0,15·1
+  assert.equal(de(undefined).nome, 'Generalista');
+  assert.equal(de(undefined).S, -1); // GEN segue o macro
+  assert.equal(de('ESP99').nome, 'Generalista');
+  assert.equal(climaPorCodigo(null)('ESP01'), null);
 });

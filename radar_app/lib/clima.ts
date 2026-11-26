@@ -143,6 +143,20 @@ export function estadoNaSemana(s: number, v: Pick<Vertical, 'estado' | 'S'>, sem
   return 'Neutro';
 }
 
+/** Nível S da vertical (−1 a +1): 40% macro (sensibilidade × blocos), 45% setorial, 15% notícias; GEN segue o macro. */
+export function nivelVertical(dados: Pick<DadosClima, 'z' | 'pesos'>, r: DadosClima['verticais'][number]): { S: number; macro: number; contrib: number[] } {
+  const den = r.sens.reduce((a, b) => a + Math.abs(b), 0) || 1;
+  const contrib = r.sens.map((s, i) => (s * (dados.z[i] ?? 0)) / den);
+  const macro = contrib.reduce((a, b) => a + b, 0);
+  const S = r.id === 'GEN' ? macro : dados.pesos.macro * macro + dados.pesos.setorial * r.setorial + dados.pesos.noticias * r.noticias;
+  return { S, macro, contrib };
+}
+
+/** Vertical do Clima de uma conta, pelo código de especialização (ESP01–ESP20); sem código, a Generalista (GEN). */
+export function verticalDaConta<V extends { id: string; codigos: string[] }>(verticais: V[], codigo?: string | null): V | undefined {
+  return verticais.find(v => v.codigos.includes(codigo || 'GEN')) ?? verticais.find(v => v.id === 'GEN');
+}
+
 export function calcularClima(dados: DadosClima, base: Base): Clima {
   const dataClima = dados.atualizadoEm.slice(0, 10);
   const hoje = dataClima > base.geradoEm ? dataClima : base.geradoEm;
@@ -155,10 +169,7 @@ export function calcularClima(dados: DadosClima, base: Base): Clima {
   const contasDe = (codigos: string[]) => base.contas.filter(c => codigos.includes(c.especializacao?.codigo ?? 'GEN'));
 
   const verticais: Vertical[] = dados.verticais.map(r => {
-    const den = r.sens.reduce((a, b) => a + Math.abs(b), 0) || 1;
-    const contrib = r.sens.map((s, i) => (s * (dados.z[i] ?? 0)) / den);
-    const macro = contrib.reduce((a, b) => a + b, 0);
-    const S = r.id === 'GEN' ? macro : dados.pesos.macro * macro + dados.pesos.setorial * r.setorial + dados.pesos.noticias * r.noticias;
+    const { S, macro, contrib } = nivelVertical(dados, r);
     const cs = contasDe(r.codigos);
     const ruimOuInstavel = r.estado === 'Ruim' || r.estado === 'Instável';
     const k = semente(r.id) * 6.28;
