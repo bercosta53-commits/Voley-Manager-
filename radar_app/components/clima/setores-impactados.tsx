@@ -25,7 +25,7 @@ export function SetoresImpactados({ t, contas }: { t: Indicador; contas: Conta[]
   if (!setores.length) return null;
   return (
     <div className="mt-1 border-t border-border pt-2">
-      <div className="mb-1.5 text-[11px] font-semibold tracking-[0.04em] text-text-3 uppercase">Setores impactados</div>
+      <div className="mb-1.5 text-xs font-semibold tracking-[0.04em] text-text-3 uppercase">Setores impactados</div>
       <ul className="flex flex-wrap gap-1.5">
         {setores.map(({ s, contas: cs }) => {
           const Seta = s.efeito === 'negativo' ? ArrowDownRight : ArrowUpRight;
@@ -41,7 +41,7 @@ export function SetoresImpactados({ t, contas }: { t: Indicador; contas: Conta[]
               >
                 <Seta className="size-3" strokeWidth={2} />
                 {s.rotulo}
-                <span className="vr-data text-[10px] opacity-80">{cs.length}</span>
+                <span className="vr-data text-xs opacity-80">{cs.length}</span>
               </button>
             </li>
           );
@@ -75,7 +75,7 @@ export function SetoresImpactados({ t, contas }: { t: Indicador; contas: Conta[]
                         {[c.ramoTI?.nome, c.especializacao && c.especializacao.codigo !== 'GEN' ? c.especializacao.nome : null, c.uf, c.tier && `Tier ${c.tier}`].filter(Boolean).join(' · ')}
                       </span>
                     </span>
-                    {c.vscsStatus && <span className={cn('hidden rounded-chip px-1.5 py-0.5 text-[10px] sm:inline', COR_STATUS_VSCS[c.vscsStatus])}>{c.vscsStatus}</span>}
+                    {c.vscsStatus && <span className={cn('hidden rounded-chip px-1.5 py-0.5 text-xs sm:inline', COR_STATUS_VSCS[c.vscsStatus])}>{c.vscsStatus}</span>}
                     <span className="vr-data w-8 text-right text-sm font-semibold">{pontos(c.score)}</span>
                   </Link>
                 </li>

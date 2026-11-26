@@ -260,14 +260,14 @@ export function PainelVertical({ clima, v }: { clima: Clima; v: Vertical }) {
               <span className="truncate">{c.nome}</span>
             </span>
             <span className="flex items-center gap-2.5">
-              <span className="text-[11px] text-text-3">Tier {c.tier}</span>
+              <span className="text-xs text-text-3">Tier {c.tier}</span>
               <span className="vr-data min-w-7 text-right text-sm">{pontos(c.score)}</span>
             </span>
           </Link>
         ))}
       </div>
       <div className="rounded-control border border-acid/40 bg-acid-soft p-3">
-        <div className="text-[11px] font-bold tracking-[0.06em] text-foreground uppercase">Jogada da vertical</div>
+        <div className="text-xs font-bold tracking-[0.06em] text-foreground uppercase">Jogada da vertical</div>
         <div className="mt-0.5 text-md font-bold">{v.jogada}</div>
         <div className="mt-0.5 text-xs text-text-2">{v.jogadaTexto}</div>
       </div>
@@ -278,7 +278,7 @@ export function PainelVertical({ clima, v }: { clima: Clima; v: Vertical }) {
 function Mini({ rotulo, valor, cor, texto }: { rotulo: string; valor: string; cor?: string; texto?: boolean }) {
   return (
     <div className="rounded-control bg-[var(--vr-surface)] p-2.5">
-      <div className="text-[11px] text-text-3">{rotulo}</div>
+      <div className="text-xs text-text-3">{rotulo}</div>
       <div className={cn(texto ? 'pt-0.5 text-sm font-semibold' : 'vr-data text-lg')} style={cor ? { color: cor } : undefined}>
         {valor}
       </div>

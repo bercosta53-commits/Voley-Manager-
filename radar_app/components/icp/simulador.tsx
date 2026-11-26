@@ -48,7 +48,7 @@ function Cartao({ borda, tracejado, rotulo, corRotulo, n, titulo, nota, children
       style={borda ? { borderColor: `color-mix(in srgb, ${borda} 45%, transparent)` } : undefined}
     >
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold tracking-[0.08em] uppercase" style={{ color: corRotulo ?? 'var(--vr-text-2)' }}>
+        <span className="text-xs font-bold tracking-[0.08em] uppercase" style={{ color: corRotulo ?? 'var(--vr-text-2)' }}>
           {rotulo}
         </span>
         <span className={cn('vr-data text-2xl font-semibold', tracejado && 'text-text-3')}>{n}</span>
@@ -164,12 +164,12 @@ export function Simulador({
                   style={{ gridColumn: col, gridRow: row }}
                 >
                   <span className="text-xs font-bold">{uf}</span>
-                  <span className="vr-data text-[10px] opacity-85">{porUf[uf] ?? 0}</span>
+                  <span className="vr-data text-xs opacity-85">{porUf[uf] ?? 0}</span>
                 </button>
               );
             })}
           </div>
-          <div className="mt-2 flex gap-3.5 text-[11px] text-text-3">
+          <div className="mt-2 flex gap-3.5 text-xs text-text-3">
             <span>número = contas na base</span>
             <span>· {semUf} contas sem UF ficam no Tier B</span>
           </div>

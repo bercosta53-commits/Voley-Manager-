@@ -97,7 +97,7 @@ function Linha({ v, cels, sel, onSel }: { v: Vertical; cels: { v: string; fundo:
         {v.nome}
       </button>
       {cels.map((c, i) => (
-        <div key={i} title={c.titulo} className={cn('vr-data flex h-[30px] items-center justify-center rounded-[3px] text-[11px]', c.forte ? 'font-semibold text-white' : 'text-foreground')} style={{ background: c.fundo }}>
+        <div key={i} title={c.titulo} className={cn('vr-data flex h-[30px] items-center justify-center rounded-[3px] text-xs', c.forte ? 'font-semibold text-white' : 'text-foreground')} style={{ background: c.fundo }}>
           {c.v}
         </div>
       ))}

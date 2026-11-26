@@ -82,7 +82,7 @@ function CartaoIndicador({ t, contas }: { t: Indicador; contas: Conta[] }) {
         </svg>
       )}
       <div className="text-xs text-text-2">{t.nota}</div>
-      <div className="text-[11px] text-text-3">
+      <div className="text-xs text-text-3">
         {t.fonteUrl ? <a href={t.fonteUrl} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-foreground">{t.fonte}</a> : t.fonte}
       </div>
       <div className="mt-auto">

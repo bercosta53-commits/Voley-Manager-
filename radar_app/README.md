@@ -96,19 +96,28 @@ pessoa. Se a base estiver atrasada, o resumo diz isso primeiro.
 
 | Caminho | O quê |
 | --- | --- |
-| `app/` | rotas (Hoje, Radar, Contas, Conta, Decisores, Fontes, Métricas, ICP, Clima, Aquisição) e `api/saude`, `api/estados` |
+| `app/` | rotas: Hoje (`(inicio)`), Radar = Prioridade de contas (`radar/`), Radar de proximidade (`radar/proximidade`), Contas (`contas/(lista)`), Conta (`contas/[id]`, com o 404 decidido no `layout.tsx`), Decisores, Fontes, Métricas, ICP, Clima, Aquisição; e `api/saude`, `api/estados`, `api/resumo`. Cada seção tem o seu `loading.tsx` (não há loading na raiz) |
 | `app/velora-radar-tokens.css` | tokens de design (cores, tipografia, raios, sombras, movimento) |
-| `components/casca/` | menu lateral, navegação do celular, busca ⌘K, aviso de base desatualizada |
+| `components/casca/` | menu lateral, navegação do celular, busca ⌘K, aviso de base desatualizada, esqueleto de carregamento |
 | `components/hoje/` | tela Hoje: caixa de sinais, cartão de sinal, abordar, estados de tela |
-| `components/conta/` | tela da conta: tese da conta, próxima ação com rascunho, linha do tempo, comitê, cadastro |
+| `components/conta/` | tela da conta: tese da conta, rascunho da abordagem, andamento, linha do tempo, comitê, cadastro |
+| `components/prioridade/` | Prioridade de contas (experimental): metodologia, faixa "do ambiente ao sweet spot", lista, painel com losango, comparação, Setor × Prioridade, cruzar duas dimensões |
 | `components/radar/` | panorama da base, radar de proximidade, movimentos da semana |
+| `components/metricas/` | visão da liderança, "Como o score é calculado" (metodologia e histórico do modelo) |
 | `components/ui/` | peças comuns: botão, evidência, selo do VSCS, painel flutuante, modo apresentação |
-| `lib/dados.ts` | leitura e validação do snapshot (server-only) |
-| `lib/frescor.ts`, `lib/panorama.ts`, `lib/tese.ts` | regras puras, com testes em `scripts/tests/*.test.mjs` |
-| `lib/avaliacao.ts` | faixas do VSCS e matriz ICP × VSCS usadas na tela |
+| `lib/dados.ts` | leitura e validação do snapshot (server-only); completa estágio e ação pela matriz quando a carga não traz |
+| `lib/casca-dados.ts` | S-1: índice leve da casca (`paraCasca`) e `aliviarBase`: cada tela manda ao navegador só o que usa |
+| `lib/prioridade-config.ts` | módulo único da Prioridade integrada: pesos, limites, sweet spot (A1 e A2), mapeamentos e validades (decisões D1, D2, D5, D7) |
+| `lib/prioridade.ts`, `lib/prioridade-filtros.ts`, `lib/prioridade-visoes.ts`, `lib/prioridade-transporte.ts`, `lib/prioridade-linhas.ts` | motor de classes, busca e filtros, agrupar e cruzar, transporte compacto (puros) e montagem das linhas no servidor |
+| `lib/frescor.ts`, `lib/panorama.ts`, `lib/tese.ts`, `lib/cobertura.ts`, `lib/lideranca.ts`, `lib/resumo.ts`, `lib/papeis.ts`, `lib/filtros.ts` | regras puras, com testes em `scripts/tests/*.test.mjs` |
+| `lib/avaliacao.ts` | faixas do VSCS e matriz ICP × VSCS usadas na tela (o score exibido é sempre o do motor, P1-8) |
+| `lib/email.ts`, `app/api/resumo` | resumo diário das 7h (desligado até configurar; ver acima) |
+| `scripts/score_v2.py` | motor do VSCS 3.0 (a proposta 3.1, em que liderança e contratação de head amadurecem, está no PR #44 e entra depois do alinhamento com a inteligência) |
+| `scripts/tests/` | testes de lib (`*.test.mjs`, com `resolver.mjs`) e do motor (`test_*.py`) |
+| `scripts/smoke.mjs`, `scripts/jornada.mjs`, `scripts/medir-rotas.mjs` | teste de fumaça, jornada da demo no navegador e medição de peso por tela |
 | `db/` | migrações propostas para o Supabase (aplicar só depois do alinhamento com a carga diária) |
-| `docs/` | contrato de dados (`contrato-radar-acoes.md`) e histórico da migração para a Cloudflare |
-| `scripts/*.py`, `scripts/gerar_dados.py` | coletores e classificadores da fase anterior (planilha e base local). A carga de produção hoje é a pesquisa diária gravando direto no Supabase |
+| `docs/` | contrato de dados (`contrato-radar-acoes.md`, PR #14), maturidade de aquisição e histórico da migração para a Cloudflare |
+| `scripts/gerar_dados.py` e demais `scripts/*.py` | coletores e classificadores da fase anterior (planilha e base local). A carga de produção hoje é a pesquisa diária gravando direto no Supabase |
 
 ## Contrato com a carga diária
 
