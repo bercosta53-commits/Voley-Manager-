@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { BarChart3, Building2, CloudSun, Crosshair, Inbox, MoreHorizontal, PlugZap, Radar, Search, Target, UsersRound } from 'lucide-react';
+import { Activity, BarChart3, Building2, CloudSun, Crosshair, Inbox, MoreHorizontal, PlugZap, Radar, Search, Target, UsersRound } from 'lucide-react';
 import { PainelFlutuante } from '@/components/ui/painel-flutuante';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,7 @@ export const SECOES = [
   { href: '/contas', rotulo: 'Contas', icone: Building2, grupo: 'Operação' },
   { href: '/decisores', rotulo: 'Decisores', icone: UsersRound, grupo: 'Operação' },
   { href: '/radar', rotulo: 'Radar', icone: Radar, grupo: 'Mercado' },
+  { href: '/movimentos', rotulo: 'Movimentos', icone: Activity, grupo: 'Mercado' },
   { href: '/aquisicao', rotulo: 'Aquisição', icone: Target, grupo: 'Mercado' },
   { href: '/icp', rotulo: 'ICP', icone: Crosshair, grupo: 'Mercado' },
   { href: '/clima', rotulo: 'Clima', icone: CloudSun, grupo: 'Mercado' },

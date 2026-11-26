@@ -369,8 +369,18 @@ try {
   const nosMov = await narr.locator('h3 + p').evaluateAll(ps => ps.reduce((n, p) => n + Number((p.textContent.match(/(\d+) fatos?/) ?? [0, 0])[1]), 0));
   conferir(nosMov === fatosConta, 'narrativa: a soma dos fatos dos movimentos é o total da conta', `${nosMov} de ${fatosConta}`);
 
+  // 5d. Movimentos do mercado: a grade soma os fatos de movimento da janela, e a célula abre os fatos dela
+  await pagina.goto(app.url('/movimentos'), { waitUntil: 'networkidle' });
+  const totalMov = Number((await pagina.locator('main h1 + p').innerText()).match(/(\d+) fatos?/)[1]);
+  const naGrade = await pagina.locator('#grade-mercado tbody button').evaluateAll(bs => bs.reduce((n, b) => n + Number(b.textContent), 0));
+  conferir(naGrade === totalMov, 'movimentos: a grade soma os fatos da janela', `${naGrade} de ${totalMov}`);
+  const celulaMov = pagina.locator('#grade-mercado tbody button').first();
+  const nMov = Number(await celulaMov.innerText());
+  await celulaMov.click();
+  conferir((await pagina.locator('#grade-mercado h3 + ul > li').count()) === nMov, 'movimentos: a célula abre exatamente os seus fatos', `${nMov}`);
+
   // 6. Régua de acabamento nas telas da demo, a 1440 e a 360 px
-  const rotas = ['/', '/radar', '/contas', `/contas/${contaAlvo.id}`, '/decisores', '/aquisicao', '/icp', '/clima', '/fontes', '/metricas', `/contas/${contaAlvo.id}/briefing`];
+  const rotas = ['/', '/radar', '/contas', `/contas/${contaAlvo.id}`, '/decisores', '/aquisicao', '/icp', '/clima', '/movimentos', '/fontes', '/metricas', `/contas/${contaAlvo.id}/briefing`];
   for (const largura of [1440, 360]) {
     const p = await navegador.newPage({ viewport: { width: largura, height: 800 } });
     vigiar(p);
