@@ -225,6 +225,19 @@ try {
   conferir((await pc.locator('main').innerText()).includes('Oportunidade Velora') && !(await blocoPb.count()), 'sinal isolado mostra a Oportunidade Velora, sem bloco de playbook');
   await pc.locator('main [role="option"]', { hasText: contaPb.nome }).first().click();
   await blocoPb.screenshot({ path: path.join(SAIDA, '3h-playbook.png') });
+  await pc.locator('main ul[aria-label="Sinal selecionado"]').screenshot({ path: path.join(SAIDA, '3i-cartao-playbook.png') });
+  conferir(
+    (await pc.locator('main svg [aria-label="Playbook ativado: Liderança nova montando time"]').count()) === 1,
+    'gráfico do cartão marca o dia em que o playbook ativou',
+  );
+  await pc.getByRole('button', { name: /^Playbook/ }).click();
+  await pc.getByRole('listbox', { name: 'Playbook' }).getByRole('option', { name: /Qualquer playbook/ }).click();
+  await pc.keyboard.press('Escape');
+  await pc.waitForTimeout(200);
+  const linhasPb = await pc.locator('main ul[aria-label="Sinais na caixa"] [role="option"]').allInnerTexts();
+  conferir(linhasPb.length > 0 && linhasPb.every(x => x.includes(contaPb.nome)), 'filtro "Qualquer playbook" deixa só as contas com playbook', `${linhasPb.length} linhas`);
+  await pc.goto(app.url(`/contas/${contaPb.id}`), { waitUntil: 'networkidle' });
+  conferir(await pc.locator('section[aria-label="Playbook: Liderança nova montando time"]').isVisible(), 'a página da conta mostra o playbook combinado');
   await pc.close();
 
   await pagina.goto(app.url('/metricas'), { waitUntil: 'networkidle' });

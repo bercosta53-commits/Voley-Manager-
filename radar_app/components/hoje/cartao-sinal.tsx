@@ -283,7 +283,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
               <span className="font-medium text-text-2">Score em 90 dias</span>
               <span>cada ponto é um sinal</span>
             </p>
-            <GraficoSinais serie={conta.serie} eventos={eventos} hoje={hoje} />
+            <GraficoSinais serie={conta.serie} eventos={eventos} hoje={hoje} marca={playbook && { data: playbook.ativadoEm, rotulo: playbook.playbook.nome }} />
             <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-text-3">
               {(['A', 'B', 'C'] as const).map(n => (
                 <span key={n} className="inline-flex items-center gap-1">

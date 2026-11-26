@@ -40,9 +40,8 @@ export function OportunidadeVelora({ sinal, ativacao }: { sinal: Sinal; ativacao
     return (
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
         <dt className="text-text-3">Oportunidade Velora</dt>
-        <dd className="flex flex-wrap items-center gap-1.5">
-          <span className="text-text-2">faz parte de um playbook combinado:</span>
-          <SeloPlaybook ativacao={ativacao} />
+        <dd className="text-text-2">
+          está no playbook combinado <span className="font-medium text-foreground">{ativacao.playbook.nome}</span>, com a oferta e o roteiro
         </dd>
       </div>
     );
@@ -60,7 +59,7 @@ export function OportunidadeVelora({ sinal, ativacao }: { sinal: Sinal; ativacao
 }
 
 /** O bloco do playbook combinado (seção 5.6): história, o que fazer e o que a Velora oferece. */
-export function BlocoPlaybook({ ativacao, conta }: { ativacao: Ativacao; conta: Conta }) {
+export function BlocoPlaybook({ ativacao, conta, className }: { ativacao: Ativacao; conta: Conta; className?: string }) {
   const { playbook: pb, evidencia, diasRestantes } = ativacao;
   const grupos = pessoasParaPlaybook(pb, conta.comite);
   const primeiro = grupos.flatMap(g => g.pessoas)[0];
@@ -101,7 +100,7 @@ export function BlocoPlaybook({ ativacao, conta }: { ativacao: Ativacao; conta: 
     ['Sucesso', pb.sucesso],
   ];
   return (
-    <section aria-label={`Playbook: ${pb.nome}`} className="vr-card mt-4 border-l-[3px] border-l-[var(--vr-warm)] p-5">
+    <section aria-label={`Playbook: ${pb.nome}`} className={cn('vr-card mt-4 border-l-[3px] border-l-[var(--vr-warm)] p-5', className)}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-1.5 text-sm font-semibold">
           <Zap aria-hidden className="size-4 text-warm" strokeWidth={2} />
