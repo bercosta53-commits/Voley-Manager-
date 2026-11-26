@@ -68,6 +68,8 @@ export async function subirApp(base, { porta, env = {} } = {}) {
       SUPABASE_URL: `http://127.0.0.1:${supabase.address().port}`,
       SUPABASE_SECRET_KEY: 'chave-de-teste',
       NEXT_TELEMETRY_DISABLED: '1',
+      // a base guardada em memória fica congelada nos testes: alterar a base por engano quebra o teste
+      RADAR_BASE_CONGELADA: '1',
       ...env,
     },
     stdio: ['ignore', 'pipe', 'pipe'],

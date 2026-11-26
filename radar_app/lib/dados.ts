@@ -1,5 +1,6 @@
 import 'server-only';
 import { cache } from 'react';
+import { memoComValidade } from './memoria';
 import type { Base } from './tipos';
 import { MATRIZ_ICP, faixaVscs, statusVscs } from './avaliacao';
 import type { DadosClima, Indicador, EstadoClima, SetorImpactado } from './clima';
@@ -128,8 +129,16 @@ export async function lerSnapshot(): Promise<Base> {
   return { ...base, contas, sinais, diagnostico };
 }
 
-// Uma leitura por renderização de servidor. Nenhuma consulta no build e nenhum fallback fictício.
-export const lerBase = cache(lerSnapshot);
+/**
+ * P0-8: a base fica na memória da instância por 5 minutos. A carga é diária; uma carga nova aparece em até
+ * 5 minutos. /api/saude e o resumo diário continuam lendo direto (lerSnapshot), para medir a leitura de verdade.
+ */
+export const VALIDADE_BASE_MS = 5 * 60_000;
+const lerSnapshotEmMemoria = memoComValidade(lerSnapshot, VALIDADE_BASE_MS, { congelar: process.env.RADAR_BASE_CONGELADA === '1' });
+
+// Uma leitura por renderização de servidor (React cache), vinda da memória quando ela está válida. Nenhuma consulta
+// no build e nenhum fallback fictício.
+export const lerBase = cache(lerSnapshotEmMemoria);
 
 function parNumerico(valores: number[], campo: string): [number, number] {
   if (valores.length !== 2 || !valores.every(Number.isFinite)) {
