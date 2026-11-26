@@ -29,7 +29,7 @@ ALVOS = (
     ("estruturar_time_canal", r"\b(montar (o |um )?time (comercial|de vendas|de growth)|estruturar canais|criar a area comercial)\b"),
     ("lancamento_produto", r"\b(lancar (o |um )?produto|go-to-market do lancamento)\b"),
 )
-VERBO = re.compile(r"\b(abrir|dobrar|triplicar|ampliar|aumentar|reduzir|melhorar|estruturar|montar|criar|escalar|recuperar|lancar|expandir|entrar|conquistar|acelerar|transformar|diversificar|fortalecer|liderar a entrada|desenvolver|executar|construir|negociar|gerar|implementar|aprofundar|otimizar|reunir|reunindo|ampliacao|expansao|fortalecimento)\b")
+VERBO = re.compile(r"\b(abrir|dobrar|triplicar|ampliar|aumentar|reduzir|melhorar|estruturar|montar|criar|escalar|recuperar|lancar|expandir|entrar|conquistar|acelerar|transformar|diversificar|fortalecer|liderar a entrada|desenvolver|executar|construir|negociar|gerar|implementar|aprofundar|conectar|otimizar|reunir|reunindo|ampliacao|expansao|fortalecimento)\b")
 META = re.compile(r"\b(dobrar|triplicar|quadruplicar)\b|\d+(?:[.,]\d+)?\s*(?:%|por cento|milhoes|bilhoes|vezes)\b|\b\d+(?:[.,]\d+)?%")
 
 def _normalizar(ev: dict, bruto: dict) -> dict | None:
