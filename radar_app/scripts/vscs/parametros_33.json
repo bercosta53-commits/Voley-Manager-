@@ -167,6 +167,16 @@
       "especifica": 1.15,
       "meta_praca": 1.2
     },
-    "faixa_90": "nao libera sem baseline elegivel"
+    "faixa_90": "nao libera sem baseline elegivel",
+    "alcance": "entrada_efetiva",
+    "niveis": [
+      "coordenacao",
+      "gerencia",
+      "head",
+      "diretoria_receita",
+      "clevel_receita"
+    ],
+    "exige_ingresso_confirmado": true,
+    "vagas_elegiveis": false
   }
 }
