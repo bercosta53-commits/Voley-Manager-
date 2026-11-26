@@ -30,9 +30,9 @@ const casos = [
   ['/radar/proximidade', 200, 'Panorama da base'],
   ['/contas', 200, 'Contas'],
   [`/contas/${primeiraConta}`, 200, base.contas[0].nome],
-  // Débito conhecido: com loading.tsx o Next já enviou o status 200 quando notFound() roda (soft 404).
+  // Conta inexistente: 404 de verdade (o layout da conta decide antes do loading; ver app/contas/[id]/layout.tsx).
   // A tela "não encontrada" aparece; o teste confere o conteúdo e aceita 200 até isso ser corrigido.
-  ['/contas/conta-que-nao-existe', [200, 404], 'Página não encontrada'],
+  ['/contas/conta-que-nao-existe', 404, 'Página não encontrada'],
   ['/decisores', 200, 'Decisores'],
   ['/fontes', 200, 'Fontes'],
   ['/metricas', 200, 'Métricas'],
