@@ -35,7 +35,9 @@ REGRAS_CARGO: list[tuple[str, re.Pattern]] = [
                                 r"|\blider\s+(de\s+)?" + AREA_RECEITA + r"\b")),
     ("especialista_gtm", re.compile(r"\b(revops|revenue operations|sales ops|marketing ops|operacoes de (vendas|marketing|receita)|especialista (em )?(gtm|growth|crm|automacao)|analista de (growth|crm|automacao|revops))\b"
                                     r"|\b(especialista|analista)\b[a-z0-9 /-]{0,40}?\b(abm|account-based|seo|geracao de demanda|demand gen|marketing ops)\b"
-                                    r"|\bespecialista (de|em) marketing\b")),
+                                    r"|\bespecialista (de|em) marketing\b"
+                                    # CS com escopo de expansão de contas grandes é especialista, não operacional (decisão de 26/11)
+                                    r"|\b(analista|especialista)\b[a-z ]{0,25}?\b(customer success|cs)\b.{0,80}?\b(enterprise|grandes contas|expansao de contas|upsell|cross-sell)\b")),
     ("sdr_bdr", re.compile(r"\b(sdr|bdr|ldr|pre-?vendas|inside sales|executiv[oa] de (vendas|contas|negocios)|account (executive|manager)|vendedor|vendedora|representante comercial|consultor[a]? comercial|customer success|csm|analista (comercial|de marketing|de vendas)|assistente comercial|vaga de novos negocios|copywriter)\b")),
 ]
 LIDERANCA = {"clevel_receita", "diretoria_receita", "head", "gerencia", "coordenacao"}
@@ -203,6 +205,25 @@ def papel_na_aquisicao(texto: str, empresa: str) -> str | None:
     if re.search(nucleo + r"[\w\s.]{0,30}\b" + ADQUIRE, t):
         return "realizada"
     return None
+
+
+# lançamento que abre uma frente nova para a empresa (vertical, segmento, público ou mercado que ela não atendia):
+# exige mais da empresa que um lançamento para o mercado atual, por isso vale mais (decisão de 26/11)
+NOVA_FRENTE = re.compile(r"\b(nova vertical|novo vertical|novo segmento|novos segmentos|novo publico|nova unidade de negocios?|oferta externa"
+                         r"|passa a (atender|oferecer (a|para) o mercado)|primeira (solucao|oferta|plataforma) (para|voltada)|entra(da)? (no|em) (um )?novo mercado"
+                         r"|amplia(cao)? (a atuacao|o portfolio) para (o setor|a vertical|o segmento)|vertical [a-z]+ (na|em|para))\b")
+LANCAMENTO_COMUM = re.compile(r"\b(nova versao|atualizacao|nova funcionalidade|novos recursos|melhoria|upgrade)\b")
+
+
+FRENTE_NEGADA = re.compile(r"\b(sem|nao|nem|nao e|nao ha)\b[a-z0-9 ,-]{0,60}?\b(nova vertical|novo vertical|novo mercado|novo segmento|novo publico)\b")
+EVOLUCAO = re.compile(r"\b(evolucao d[eo] (um )?produto existente|evolucao (comercial )?da oferta existente|como evolucao d[aeo]|evolucao d[aeo] (plataforma|produto|solucao)|nova versao|versao \d)")
+
+
+def nova_frente(texto: str) -> bool:
+    t = FRENTE_NEGADA.sub(" ", norm(texto))
+    if EVOLUCAO.search(t):
+        return False  # evolução do que já existe é lançamento comum
+    return bool(NOVA_FRENTE.search(t)) and not (LANCAMENTO_COMUM.search(t) and not re.search(r"\b(vertical|segmento|publico|mercado)\b", t))
 
 
 PASSADO = re.compile(r"\b(atingiu|alcancou|fechou|registrou|cresceu|faturou|bateu|superou|encerrou|obteve|teve crescimento|chegou a"

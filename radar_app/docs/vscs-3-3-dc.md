@@ -261,7 +261,16 @@ O classificador de texto só decide sinais **nunca classificados**. Revisão, ca
 | "X passa a integrar Y após aquisição" | aquisição feita | aquisição sofrida |
 | Resultado passado ("relata crescimento", "marco de", "nos 12 meses anteriores"); "não são meta" negado | meta declarada | declaração genérica |
 
-Ficam para decisão humana, porque o registro reflete um julgamento caso a caso: Head sem gestão de equipe comprovada registrado como especialista, analista de CS enterprise, declaração com plano datado registrada como genérica, e lançamento em vertical nova × comum. Testes sintéticos em `scripts/tests/test_vscs.py` (`TestClassificadorTexto`).
+Decisões de 26/11 sobre os casos que o registro tratava caso a caso:
+
+| Caso | Decisão | Regra |
+|---|---|---|
+| Vaga de Head sem gestão de equipe comprovada | Head | o título decide; gestão não comprovada não rebaixa para especialista |
+| Analista de Customer Success com escopo enterprise, de expansão ou upsell | Especialista GTM | CS sem esse escopo continua operacional |
+| Declaração com plano datado ("até 2030", "fim de 2026") | Meta | o prazo futuro prevalece sobre números passados no mesmo texto |
+| Lançamento de produto | As duas são relevantes; vertical nova vale mais (75 × 65) porque exige mais da empresa | vertical nova quando abre frente que a empresa não atendia (vertical, segmento, público ou mercado novo, oferta externa de tecnologia interna); comum quando é evolução do que já existe (nova versão, novos recursos). Menção negada ("sem peso de nova vertical") não conta |
+
+Sinais já registrados com outra classificação continuam com o registro, porque dado real não é sobrescrito; mudar um deles exige revisão individual. Testes sintéticos em `scripts/tests/test_vscs.py` (`TestClassificadorTexto`).
 
 ### 3.11 Missão declarada da nova liderança (pesos aprovados em 26/11)
 

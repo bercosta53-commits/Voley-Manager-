@@ -562,6 +562,24 @@ class TestClassificadorTexto(unittest.TestCase):
         self.assertEqual(self.cl("fusao_aquisicao", "Alfa Software passa a integrar Grupo Beta após aquisição", empresa="Alfa Software"),
                          "foi_adquirida")
 
+    def test_decisoes_26_11_classificador(self):
+        # Head sem gestão de equipe comprovada continua head
+        self.assertEqual(self.cl("vaga_lideranca_alvo", "Empresa busca Head Comercial para expansão internacional",
+                                 "Gestão de equipe não confirmada."), "vaga_head")
+        # analista de CS com escopo de expansão enterprise = especialista; CS comum = operacional
+        self.assertEqual(self.cl("vaga_area_alvo", "Empresa busca analista de Customer Success para expansão de contas enterprise"),
+                         "vaga_especialista_gtm")
+        self.assertEqual(self.cl("vaga_area_alvo", "Empresa busca analista de Customer Success"), "vaga_sdr_bdr")
+        # declaração com plano datado = meta
+        self.assertEqual(self.cl("resultados_crescimento", "Empresa atingiu 500 clientes e planeja dobrar a receita até 2028"), "declaracao_meta")
+        # lançamento que abre frente nova vale mais que lançamento para o mercado atual
+        self.assertEqual(self.cl("lancamento_produto", "Empresa anuncia oferta externa da plataforma interna para o setor de logística"),
+                         "lancamento_novo_vertical")
+        self.assertEqual(self.cl("lancamento_produto", "Empresa lança nova versão do aplicativo com novos recursos"), "lancamento_comum")
+        self.assertEqual(self.cl("lancamento_produto", "Empresa lança módulo de relatórios",
+                                 "Evolução de produto existente, sem peso de nova vertical."), "lancamento_comum")
+        self.assertGreater(P32["bases_30"]["lancamento_novo_vertical"], P32["bases_30"]["lancamento_comum"])
+
     def test_resultado_passado_nao_e_meta(self):
         self.assertEqual(self.cl("resultados_crescimento", "Empresa relata crescimento de 300% no MRR",
                                  "Resultados dos 12 meses anteriores; não são meta futura."), "declaracao_generica")

@@ -20,7 +20,7 @@ sys.path.insert(0, str(AQUI.parent))
 import score_v2 as s30  # noqa: E402
 
 from .classificar import (FORA_DE_RECEITA, LIDERANCA, OPERACIONAL, base_bloco, cargo_do_evento, chave_canonica, evidencia_clevel,
-                          clevel_com_receita, familia_cargo, marco_historico, nivel_cargo, nivel_no_contexto, norm,
+                          clevel_com_receita, familia_cargo, marco_historico, nivel_cargo, nivel_no_contexto, norm, nova_frente,
                           papel_na_aquisicao)  # noqa: E402
 
 VERSAO = "vscs-3.2-contexto-cargos"
@@ -130,6 +130,8 @@ def classificar(ev: dict, p: dict) -> dict | None:
     chave = s30.nivelar(ev)
     if not chave or chave not in s30.P:
         return None
+    if chave == "lancamento_comum" and nova_frente(f'{ev.get("sinal", "")} {ev.get("porQueAgora", "")}'):
+        chave = "lancamento_novo_vertical"  # abre frente nova: vertical, segmento, público ou mercado que a empresa não atendia
     if chave == "declaracao_meta" and marco_historico(f'{ev.get("sinal", "")} {ev.get("porQueAgora", "")}'):
         chave = "declaracao_generica"  # número de resultado passado não é meta futura
     if cal.get("base"):  # base decidida na calibração do sinal prevalece sobre a da tabela
