@@ -64,7 +64,9 @@ try {
   conferir(await pagina.getByRole('heading', { name: 'Panorama da base' }).isVisible(), 'panorama visível no Radar');
   conferir(!pagina.url().includes('apresentacao='), 'parâmetro do modo apresentação sai da URL');
   const secoes = await menu(pagina);
-  conferir(!secoes.includes('Clima') && !secoes.includes('ICP'), 'modo apresentação tira Clima e ICP do menu', secoes.join(', '));
+  conferir(!secoes.includes('Clima') && !secoes.includes('ICP') && !secoes.includes('Fontes'), 'modo apresentação tira Clima, ICP e Fontes do menu', secoes.join(', '));
+  const rodape = await pagina.locator('aside[aria-label="Navegação principal"] > div').last().innerText();
+  conferir(!rodape.includes('fontes ativas'), 'modo apresentação não mostra a contagem de fontes no rodapé', rodape.replace(/\s+/g, ' '));
   const cartao = pagina.locator('section:has(#panorama-base) a', { hasText: 'Em oportunidade' });
   const emOportunidade = Number((await cartao.locator('.vr-data').first().innerText()).replace(/\D/g, ''));
   const esperado = base.contas.filter(c => c.score >= 55).length;
