@@ -277,10 +277,10 @@ A missão anunciada com uma nomeação de liderança de receita (gerência, head
 - **Origem:** primeiro a revisão (`missao` na revisão do sinal), depois o campo `missao` gravado pelo classificador (`tipo`, `texto`, `especifica`, `meta`, `praca`, `confianca`; abaixo de 0,6 não pesa), e por fim uma leitura conservadora do título e do contexto, só em construções de mandato ("para abrir…", "com a missão de…", "responsável por expandir…"). Na dúvida, ×1,00.
 - **Texto literal:** `texto` é sempre o trecho literal do anúncio, nunca paráfrase. Sai em `acontecimentos[].missao = {tipo, texto, fator, origem}`.
 - **Tipos:** `grandes_contas`, `expansao_geografica`, `conversao_eficiencia`, `novo_mercado`, `estruturar_time_canal`, `lancamento_produto` ou `generica`.
-- **Ainda em proposta, decisões pendentes:**
-  - vaga de liderança com missão não pesa;
-  - a missão segue as janelas da nomeação;
-  - a tabela que liga cada tipo de missão a uma oferta e a um ângulo de conversa (para playbooks e tela) ainda não foi aplicada.
+- **Decisões de 26/11:**
+  - **Só o anúncio:** a missão vale só para o anúncio. Só os documentos do dia do anúncio são lidos, e uma notícia posterior sobre a mesma nomeação não cria nem muda a missão.
+  - **Vaga não pesa:** vaga de liderança com missão não recebe o fator.
+  - **Sem tabela de oferta:** não há tabela que ligue a missão a uma oferta. A missão aparece pelo trecho literal, e a oferta decorre dela.
 
 Código em `scripts/vscs/missao.py` e parâmetros em `parametros_33.json` (`missao`). Testes em `Test33Missao`. Simulação sobre a base real feita fora do repositório.
 

@@ -617,6 +617,15 @@ class Test33Missao(unittest.TestCase):
                        {"Fulana de Tal": {"nota": 5, "em": "2026-11-01"}})
         self.assertEqual(a["s"], 100.0)
 
+    def test_missao_vale_so_para_o_anuncio(self):
+        anuncio = self.nom("Fulana assume como CRO", id="anuncio", url="https://exemplo.com.br/a", pessoa="Fulana de Tal")
+        depois = ev("executivo_chegou", 20, "Fulana assume como CRO para abrir grandes contas na América do Norte",
+                    fonte="Valor Econômico", id="entrevista", url="https://exemplo.com.br/b", pessoa="Fulana de Tal")
+        r = motor33.calcular([anuncio, depois], HOJE, "Empresa", None, P32, P33, None, None, None)
+        a = r["movimentos"][0]["acontecimentos"][0]
+        self.assertEqual(sorted(a["documentos"]), ["anuncio", "entrevista"])  # mesmo acontecimento
+        self.assertIsNone(a["missao"])  # a entrevista posterior não cria missão
+
     def test_citacao_sem_mandato_nao_e_missao(self):
         _, a = self.ac([self.nom("Fulana assume como CRO", "Ex-CRO de outra empresa; reporta ao CEO.")])
         self.assertIsNone(a["missao"])

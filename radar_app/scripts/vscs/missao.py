@@ -5,6 +5,9 @@ horizonte e a oferta que encaixa. A missão é atributo da nomeação, não um s
 nomeação (×1,00 genérica, ×1,15 específica, ×1,20 específica com meta ou praça), não conta como corroboração e não
 ajuda a chegar à faixa 90+. Na dúvida, ×1,00.
 
+Vale só para o anúncio: só os documentos do dia do anúncio são lidos. Vaga com missão não pesa. Não há tabela
+missão → oferta: a missão aparece pelo trecho literal e a oferta decorre dela.
+
 Fonte da missão, em ordem: revisão (`_revisao.missao`) → campo `missao` gravado pelo classificador → leitura
 conservadora do título e do contexto, só em construções de mandato ("para abrir…", "com a missão de…",
 "responsável por expandir…"). O texto devolvido é sempre o trecho literal, nunca paráfrase.
@@ -67,6 +70,11 @@ def missao(cl: dict, docs: list[dict], cfg: dict) -> dict | None:
     """Missão do acontecimento: {tipo, texto, fator, origem} ou None quando não se aplica ou não há missão."""
     if not cfg or not cl.get("nomeacao") or cl.get("nivel") not in cfg.get("niveis", []):
         return None
+    # válida só para o anúncio (decisão de 26/11): lê apenas os documentos do dia do anúncio; notícia posterior
+    # sobre a mesma nomeação não cria nem muda a missão
+    datas = [str(ev.get("data") or "")[:10] for ev in docs if ev.get("data")]
+    if datas:
+        docs = [ev for ev in docs if str(ev.get("data") or "")[:10] == min(datas)]
     achada = None
     for ev in docs:
         for fonte, m in (("revisao", (ev.get("_revisao") or {}).get("missao")), ("registro", ev.get("missao"))):
