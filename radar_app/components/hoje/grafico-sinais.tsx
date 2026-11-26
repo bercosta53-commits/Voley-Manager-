@@ -1,5 +1,8 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
 import { NIVEL_GATILHO } from '@/lib/papeis';
-import { cn, pontos } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 export interface EventoGrafico {
   data: string;
@@ -11,9 +14,10 @@ export interface EventoGrafico {
 }
 
 const DIAS = 90;
-const L = 300;
-const A = 112;
-const M = { topo: 18, base: 20, esq: 4, dir: 4 };
+const A = 132;
+const M = { topo: 22, base: 22, esq: 28, dir: 8 };
+/** distância mínima, em px, entre dois rótulos de pontos: rótulo que cairia em cima de outro fica no tooltip */
+const VAO_ROTULO = 36;
 
 function diasAtras(data: string, hoje: string) {
   return Math.round((Date.parse(hoje) - Date.parse(data)) / 86_400_000);
@@ -23,7 +27,29 @@ function diasAtras(data: string, hoje: string) {
  * Score dos últimos 90 dias (0–100, mesma escala em todo cartão, para comparar contas de olho) com cada
  * sinal marcado na data em que aconteceu: a curva sobe junto com os fatos. Cor da marca = nível do gatilho.
  */
-export function GraficoSinais({ serie, eventos, hoje, className }: { serie: number[]; eventos: EventoGrafico[]; hoje: string; className?: string }) {
+export function GraficoSinais({
+  serie,
+  eventos,
+  hoje,
+  className
+}: {
+  serie: number[];
+  eventos: EventoGrafico[];
+  hoje: string;
+  className?: string;
+}) {
+  // desenha na largura real do espaço (sem esticar o SVG): o texto fica sempre no mesmo tamanho
+  const caixa = useRef<HTMLDivElement>(null);
+  const [L, setL] = useState(560);
+  useEffect(() => {
+    const el = caixa.current;
+    if (!el) return;
+    const medir = () => el.clientWidth > 0 && setL(el.clientWidth);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const w = L - M.esq - M.dir;
   const h = A - M.topo - M.base;
   const x = (diasAtrasDoHoje: number) => M.esq + ((DIAS - Math.min(DIAS, Math.max(0, diasAtrasDoHoje))) / DIAS) * w;
@@ -39,63 +65,102 @@ export function GraficoSinais({ serie, eventos, hoje, className }: { serie: numb
     return (valores[i] ?? 0) * (1 - f) + (valores[Math.min(i + 1, valores.length - 1)] ?? 0) * f;
   };
   const visiveis = eventos.filter(e => diasAtras(e.data, hoje) <= DIAS && diasAtras(e.data, hoje) >= -30);
-  // rótulo de pontos: o sinal do cartão e os dois mais fortes; o resto fica no tooltip
-  const rotulados = new Set(
-    [...visiveis]
-      .sort((a, b) => Number(!!b.atual) - Number(!!a.atual) || Math.abs(b.pontos) - Math.abs(a.pontos))
-      .slice(0, 3)
-      .map(e => `${e.data}-${e.rotulo}`),
-  );
+  // rótulo de pontos: o sinal do cartão primeiro, depois os mais fortes, até 4, sem dois rótulos sobrepostos;
+  // o resto fica no tooltip
+  const rotulados = new Set<string>();
+  const xsRotulados: number[] = [];
+  for (const e of [...visiveis].sort(
+    (a, b) => Number(!!b.atual) - Number(!!a.atual) || Math.abs(b.pontos) - Math.abs(a.pontos)
+  )) {
+    if (rotulados.size >= 4) break;
+    const cx = x(diasAtras(e.data, hoje));
+    if (xsRotulados.some(px => Math.abs(px - cx) < VAO_ROTULO)) continue;
+    rotulados.add(`${e.data}-${e.rotulo}`);
+    xsRotulados.push(cx);
+  }
   const atual = valores[valores.length - 1] ?? 0;
 
   return (
-    <svg viewBox={`0 0 ${L} ${A}`} className={cn('h-auto w-full overflow-visible', className)} role="img" aria-label={`Score de 90 dias com ${visiveis.length} sinais marcados na data`}>
-      <defs>
-        <linearGradient id="vrAreaScore" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="var(--vr-warm)" stopOpacity={0.22} />
-          <stop offset="100%" stopColor="var(--vr-warm)" stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      {[0, 50, 100].map(v => (
-        <g key={v}>
-          <line x1={M.esq} x2={M.esq + w} y1={y(v)} y2={y(v)} stroke="var(--vr-border)" strokeWidth={1} strokeDasharray={v === 0 ? undefined : '2 3'} />
-          <text x={M.esq + w} y={y(v) - 3} textAnchor="end" className="fill-text-3 text-[10px]">
-            {v}
-          </text>
-        </g>
-      ))}
-      <path d={area} fill="url(#vrAreaScore)" />
-      <path d={linha} fill="none" stroke="var(--vr-warm)" strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" />
-      {visiveis.map(e => {
-        const d = diasAtras(e.data, hoje);
-        const cx = x(d);
-        const cy = y(valorNoDia(d));
-        const cor = (NIVEL_GATILHO[e.nivel] ?? NIVEL_GATILHO.C).ponto; // um campo fora do contrato não derruba Hoje
-        const chave = `${e.data}-${e.rotulo}`;
-        return (
-          <g key={chave}>
-            <title>{`${e.rotulo} · ${e.pontos < 0 ? '−' : '+'}${pontos(Math.abs(e.pontos))} pts · ${e.data.split('-').reverse().join('/')}`}</title>
-            <line x1={cx} x2={cx} y1={cy} y2={M.topo + h} stroke={cor} strokeWidth={1} strokeDasharray="1.5 2" opacity={0.6} />
-            {e.atual && <circle cx={cx} cy={cy} r={6.5} fill="none" stroke={cor} strokeWidth={1.25} opacity={0.5} />}
-            <circle cx={cx} cy={cy} r={e.atual ? 4 : 3} fill={cor} stroke="var(--vr-surface)" strokeWidth={1.5} />
-            {rotulados.has(chave) && (
-              <text x={cx} y={cy - 9} textAnchor="middle" className="vr-data text-[11px] font-semibold" fill={cor}>
-                {e.pontos < 0 ? `−${pontos(Math.abs(e.pontos))}` : `+${pontos(e.pontos)}`}
-              </text>
-            )}
+    <div ref={caixa} className={cn('w-full', className)}>
+      <svg
+        width={L}
+        height={A}
+        viewBox={`0 0 ${L} ${A}`}
+        className="block overflow-visible"
+        role="img"
+        aria-label={`Score de 90 dias com ${visiveis.length} sinais marcados na data`}
+      >
+        <defs>
+          <linearGradient id="vrAreaScore" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="var(--vr-warm)" stopOpacity={0.22} />
+            <stop offset="100%" stopColor="var(--vr-warm)" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        {[0, 50, 100].map(v => (
+          <g key={v}>
+            <line
+              x1={M.esq}
+              x2={M.esq + w}
+              y1={y(v)}
+              y2={y(v)}
+              stroke="var(--vr-border)"
+              strokeWidth={1}
+              strokeDasharray={v === 0 ? undefined : '2 3'}
+            />
+            <text x={M.esq - 6} y={y(v) + 4} textAnchor="end" className="vr-data fill-text-3 text-[12px]">
+              {v}
+            </text>
           </g>
-        );
-      })}
-      <circle cx={M.esq + w} cy={y(atual)} r={2.5} fill="var(--vr-warm)" />
-      <text x={M.esq} y={A - 3} className="fill-text-3 text-[10px]">
-        90 dias
-      </text>
-      <text x={M.esq + w / 2} y={A - 3} textAnchor="middle" className="fill-text-3 text-[10px]">
-        45
-      </text>
-      <text x={M.esq + w} y={A - 3} textAnchor="end" className="fill-text-3 text-[10px]">
-        hoje
-      </text>
-    </svg>
+        ))}
+        <path d={area} fill="url(#vrAreaScore)" />
+        <path
+          d={linha}
+          fill="none"
+          stroke="var(--vr-warm)"
+          strokeWidth={1.75}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {visiveis.map(e => {
+          const d = diasAtras(e.data, hoje);
+          const cx = x(d);
+          const cy = y(valorNoDia(d));
+          const cor = (NIVEL_GATILHO[e.nivel] ?? NIVEL_GATILHO.C).ponto; // um campo fora do contrato não derruba Hoje
+          const chave = `${e.data}-${e.rotulo}`;
+          return (
+            <g key={chave}>
+              <title>{`${e.rotulo} · ${e.pontos < 0 ? '−' : '+'}${Math.round(Math.abs(e.pontos))} pts · ${e.data.split('-').reverse().join('/')}`}</title>
+              <line
+                x1={cx}
+                x2={cx}
+                y1={cy}
+                y2={M.topo + h}
+                stroke={cor}
+                strokeWidth={1}
+                strokeDasharray="1.5 2"
+                opacity={0.6}
+              />
+              {e.atual && <circle cx={cx} cy={cy} r={6.5} fill="none" stroke={cor} strokeWidth={1.25} opacity={0.5} />}
+              <circle cx={cx} cy={cy} r={e.atual ? 4 : 3} fill={cor} stroke="var(--vr-surface)" strokeWidth={1.5} />
+              {rotulados.has(chave) && (
+                <text x={cx} y={cy - 9} textAnchor="middle" className="vr-data text-[12px] font-semibold" fill={cor}>
+                  {e.pontos < 0 ? `−${Math.round(Math.abs(e.pontos))}` : `+${Math.round(e.pontos)}`}
+                </text>
+              )}
+            </g>
+          );
+        })}
+        <circle cx={M.esq + w} cy={y(atual)} r={2.5} fill="var(--vr-warm)" />
+        <text x={M.esq} y={A - 3} className="fill-text-3 text-[12px]">
+          90 dias
+        </text>
+        <text x={M.esq + w / 2} y={A - 3} textAnchor="middle" className="fill-text-3 text-[12px]">
+          45
+        </text>
+        <text x={M.esq + w} y={A - 3} textAnchor="end" className="fill-text-3 text-[12px]">
+          hoje
+        </text>
+      </svg>
+    </div>
   );
 }

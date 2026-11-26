@@ -171,6 +171,36 @@ try {
   conferir(!!antes && antes === depois, 'relevância 3 não muda o score exibido (score único)', `${antes} → ${depois}`);
   await ph.close();
 
+  // 3g. Hoje, fase 1 da tela de sinais: ordem escolhida, contadores por estágio que somam o total e filtram,
+  // pontos inteiros, nada de "(a identificar)", filtros na URL e "Limpar filtros"
+  const pc = await navegador.newPage({ viewport: { width: 1440, height: 900 } });
+  vigiar(pc);
+  await pc.goto(app.url('/'), { waitUntil: 'networkidle' });
+  const totalLista = async () => Number((await pc.locator('main span', { hasText: /^\d+ sina(l|is) · / }).first().innerText()).match(/^\d+/)[0]);
+  const ordemSel = pc.getByRole('combobox', { name: 'Ordenar a caixa' });
+  conferir((await ordemSel.inputValue()) === 'aceleracao', 'a caixa abre ordenada por maior aceleração');
+  const contadores = pc.locator('main ul[aria-label^="Sinais na caixa por estágio"] button');
+  const somaContadores = (await contadores.allInnerTexts()).reduce((n, x) => n + Number(x.match(/\d+/)[0]), 0);
+  const total = await totalLista();
+  conferir(total > 0 && somaContadores === total, 'contadores por estágio somam o total da lista', `${somaContadores} ≠ ${total}`);
+  const textoMain = await pc.locator('main').innerText();
+  conferir(!textoMain.includes('(a identificar)'), 'nenhum "(a identificar)" na caixa');
+  const listaTexto = await pc.locator('main [role="option"]').allInnerTexts();
+  conferir(listaTexto.length > 0 && listaTexto.every(x => !/[+−]\d+[.,]\d/.test(x)), 'pontos dos sinais em inteiros');
+  const primeiro = contadores.filter({ hasNotText: 'Sem estágio' }).first();
+  const nPrimeiro = Number((await primeiro.innerText()).match(/\d+/)[0]);
+  await primeiro.click();
+  await pc.waitForTimeout(200);
+  conferir((await totalLista()) === nPrimeiro && pc.url().includes('f='), 'clicar num estágio filtra a lista e guarda o filtro na URL', `${await totalLista()} ≠ ${nPrimeiro}`);
+  await pc.getByRole('button', { name: 'Limpar filtros' }).first().click();
+  await pc.waitForTimeout(200);
+  conferir((await totalLista()) === total && !pc.url().includes('f='), '"Limpar filtros" volta a lista inteira');
+  await ordemSel.selectOption('score');
+  await pc.waitForTimeout(200);
+  conferir(pc.url().includes('ordem=score'), 'a ordem escolhida vai para a URL');
+  await pc.screenshot({ path: path.join(SAIDA, '3g-hoje-filtros.png') });
+  await pc.close();
+
   await pagina.goto(app.url('/metricas'), { waitUntil: 'networkidle' });
   await pagina.locator('#visao-lideranca').waitFor();
   const visao = await pagina.locator('section:has(#visao-lideranca)').innerText();

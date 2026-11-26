@@ -19,6 +19,8 @@ import { ACOES_DE_ABORDAGEM, ROTULO_RELEVANCIA, type Relevancia } from '@/lib/av
 import { useApresentacao } from '@/components/ui/use-apresentacao';
 import { Evidencia } from '@/components/ui/evidencia';
 import { SeloQualificada } from '@/components/ui/selo-qualificada';
+import { BarraForca } from './forca';
+import { forcaDe, pontosInteiros } from '@/lib/caixa';
 
 /** "Sinal de alta relevância": retorno do time para calibrar o modelo; não muda o score (P1-8). */
 function SeletorRelevancia({ valor, onMudar }: { valor?: Relevancia; onMudar: (n: Relevancia) => void }) {
@@ -105,7 +107,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
     atual: c.id === sinal.id || (c.data === sinal.data && c.texto === (sinal.sinal ?? sinal.porQueAgora)),
   }));
   if (!eventos.some(e => e.atual) && sinal.nivel)
-    eventos.push({ data: sinal.data, pontos: sinal.pontos, rotulo: sinal.sinal ?? sinal.porQueAgora, nivel: sinal.nivel, atual: true });
+    eventos.push({ data: sinal.data, pontos: Math.round(sinal.pontos), rotulo: sinal.sinal ?? sinal.porQueAgora, nivel: sinal.nivel, atual: true });
 
   const quem = sinal.abordar.nome ? (
     <>
@@ -113,7 +115,25 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
       {sinal.abordar.cargo && <span className="text-text-3">, {sinal.abordar.cargo}</span>}
     </>
   ) : (
-    <span className="text-text-2">{sinal.abordar.cargo} (a identificar)</span>
+    // sem nome indicado pelo motor: a persona a procurar e, quando houver, quem do comitê já está mapeado
+    <>
+      <span className="text-text-2">{sinal.abordar.cargo ? `Persona: ${sinal.abordar.cargo}` : 'Persona não indicada'}</span>
+      {conta.comite.length > 0 ? (
+        <span className="text-text-3">
+          {' · no comitê: '}
+          {conta.comite
+            .slice(0, 2)
+            .map(p => p.nome)
+            .join(', ')}
+          {conta.comite.length > 2 && ` e mais ${conta.comite.length - 2}`}
+        </span>
+      ) : (
+        <span className="text-text-3"> · ninguém mapeado no comitê</span>
+      )}
+      <Link href={`${hrefConta(conta.id)}#comite`} className="ml-1.5 text-xs font-medium text-foreground underline decoration-border-strong underline-offset-4" onClick={e => e.stopPropagation()}>
+        Ver comitê
+      </Link>
+    </>
   );
 
   return (
@@ -201,15 +221,17 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
           <ScoreTendencia score={pontos(conta.score)} tendencia={conta.tendencia} serie={conta.serie} status={conta.vscsStatus} compacto />
         </header>
 
-        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_280px] md:gap-6">
+        <div className="grid gap-4">
           {/* o sinal: nível do gatilho, a sinalização rápida e os pontos — leitura em 2 segundos */}
           <div className="flex min-w-0 flex-col gap-3">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className={cn('inline-flex items-center gap-1 rounded-chip px-1.5 py-0.5 text-xs font-semibold', nivel.cor)}>
                 <IconeSinal tipo={sinal.tipo} className="size-3.5" />
+                {!negativo && <BarraForca forca={forcaDe(sinal)} />}
                 {nivel.rotulo}
               </span>
               <span className="rounded-chip bg-secondary px-1.5 py-0.5 text-xs text-text-2">{sinal.rotulo}</span>
+
             </div>
             <div className="flex items-baseline gap-2">
               <p className="text-xl font-semibold leading-snug tracking-tight text-foreground">{sinal.sinal ?? sinal.porQueAgora}</p>
@@ -219,7 +241,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                     sinal.pontos < 0 ? 'bg-risk-bg text-risk' : 'bg-warm-bg text-warm',
                   )}
                 >
-                  {sinal.pontos < 0 ? `−${Math.abs(sinal.pontos)}` : `+${sinal.pontos}`}
+                  {pontosInteiros(sinal.pontos)}
                 </span>
             </div>
             {sinal.sinal && <p className="-mt-1.5 line-clamp-2 text-sm text-text-2">{sinal.porQueAgora}</p>}

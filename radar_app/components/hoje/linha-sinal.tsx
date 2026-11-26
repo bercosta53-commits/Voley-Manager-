@@ -5,6 +5,8 @@ import type { Conta, Sinal } from '@/lib/tipos';
 import { cn, dataCurta } from '@/lib/utils';
 import { COR_TIER, NIVEL_GATILHO } from '@/lib/papeis';
 import { LogoConta } from './logo-conta';
+import { BarraForca } from './forca';
+import { forcaDe, pontosInteiros } from '@/lib/caixa';
 
 /**
  * Uma linha da caixa de entrada (computador): conta, o sinal em uma frase, quanto somou e quando. A leitura é
@@ -41,8 +43,9 @@ export const LinhaSinal = forwardRef<HTMLButtonElement, { sinal: Sinal; conta: C
               <span aria-hidden className="size-1.5 shrink-0 rounded-full" style={{ background: cor }} />
               <span className="truncate">{sinal.rotulo}</span>
               {util && <span className="shrink-0 text-ok">· útil</span>}
-              <span className={cn('vr-data ml-auto shrink-0 font-semibold', negativo || sinal.pontos < 0 ? 'text-risk' : sinal.pontos > 0 ? 'text-warm' : 'text-text-3')}>
-                {sinal.pontos < 0 ? `−${Math.abs(sinal.pontos)}` : `+${sinal.pontos}`}
+              {!negativo && <BarraForca forca={forcaDe(sinal)} className="ml-auto shrink-0" />}
+              <span className={cn('vr-data shrink-0 font-semibold', negativo && 'ml-auto', negativo || sinal.pontos < 0 ? 'text-risk' : sinal.pontos > 0 ? 'text-warm' : 'text-text-3')}>
+                {pontosInteiros(sinal.pontos)}
               </span>
             </span>
           </span>
