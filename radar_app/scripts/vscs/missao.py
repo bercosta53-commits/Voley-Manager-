@@ -29,7 +29,7 @@ ALVOS = (
     ("estruturar_time_canal", r"\b(montar (o |um )?time (comercial|de vendas|de growth)|estruturar canais|criar a area comercial)\b"),
     ("lancamento_produto", r"\b(lancar (o |um )?produto|go-to-market do lancamento)\b"),
 )
-VERBO = re.compile(r"\b(abrir|dobrar|triplicar|ampliar|aumentar|reduzir|melhorar|estruturar|montar|criar|escalar|recuperar|lancar|expandir|entrar|conquistar|acelerar|transformar|diversificar|liderar a entrada)\b")
+VERBO = re.compile(r"\b(abrir|dobrar|triplicar|ampliar|aumentar|reduzir|melhorar|estruturar|montar|criar|escalar|recuperar|lancar|expandir|entrar|conquistar|acelerar|transformar|diversificar|fortalecer|liderar a entrada)\b")
 META = re.compile(r"\b(dobrar|triplicar|quadruplicar)\b|\d+(?:[.,]\d+)?\s*(?:%|por cento|milhoes|bilhoes|vezes)\b|\b\d+(?:[.,]\d+)?%")
 
 def _normalizar(ev: dict, bruto: dict) -> dict | None:
@@ -46,7 +46,8 @@ def _normalizar(ev: dict, bruto: dict) -> dict | None:
     literal = ev.get("trechoLiteral") or ev.get("tituloOriginal")
     if literal and texto not in literal:
         return None
-    especifica = bruto.get("especifica") is True and tipo != "generica" and bool(VERBO.search(norm(texto)))
+    generico = re.fullmatch(r"(?:liderar|fortalecer|acelerar|aumentar|ampliar|impulsionar|estruturar)\s+(?:o |a |os |as )?(?:crescimento|area comercial|negocios|vendas|receita|presenca)(?:\s+da (?:empresa|companhia))?", norm(texto).strip(" ."))
+    especifica = bruto.get("especifica") is True and tipo != "generica" and bool(VERBO.search(norm(texto))) and not generico
     meta = bruto.get("meta")
     praca = bruto.get("praca")
     # Prazo isolado não é meta. Meta/praca precisam estar no trecho, não em inferência.
