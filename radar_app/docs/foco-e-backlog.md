@@ -12,19 +12,17 @@ A força do Radar agora é **extrair informação do ambiente, tratá-la e gerar
 | Tratar | Classificar, datar, deduplicar, ligar à conta certa, avaliar a fonte e agrupar em acontecimentos e movimentos | Esse fato é real, é novo, é desta empresa e quanto vale? |
 | Gerar inteligência | Ler padrões por conta, setor e mercado | O que está mudando, em quem e por quê? |
 
-## Backlog proposto (extrair → tratar → inteligência)
+## Backlog (decisões de 26/11)
 
-A ordem segue um diagnóstico da base real, feito fora do repositório.
-
-| # | Etapa | Item | Por quê |
+| # | Etapa | Item | Situação |
 |---|---|---|---|
-| 1 | Extrair | **Cobertura:** separar "sem fato" de "não varrido". Registrar a última varredura de cada conta e fonte, e fazer varredura dirigida nas contas A/B sem nenhum sinal | Hoje uma conta sem sinal pode ser só uma conta que ninguém olhou |
-| 2 | Tratar | **Especialização vertical** das contas sem código | Sem ela, a conta não se liga ao Clima nem entra na leitura por setor |
-| 3 | Tratar | **Corroboração:** buscar segunda fonte para os sinais que pontuam e têm uma fonte só | A fonte única limita a força e a confiança do fato |
-| 4 | Tratar | **Datas incertas:** confirmar a data dos sinais com data estimada | A data decide a janela e o decaimento |
-| 5 | Tratar | **Contrato do classificador:** pedir o campo `missao` e aplicar as regras de 26/11 na origem | O fato já chega classificado, sem depender da inferência |
-| 6 | Inteligência | **Leitura por vertical e mercado:** movimentos por vertical e mês, sequências típicas (vaga → nomeação → expansão), o que está mudando e em quem | Transforma fatos de conta em leitura de mercado, sempre com os fatos citados |
-| 7 | Inteligência | **Narrativa da conta:** linha do tempo dos movimentos com fonte, força e o que mudou desde a última leitura | Mostra o porquê de cada conta, não só o score |
+| 1 | Extrair | **Cobertura:** separar "sem fato" de "não varrido" (`payload.varreduras`, `docs/varreduras.md`). O painel em Fontes destaca as contas com informação; o que falta ler fica recolhido | Feito (PR #60) |
+| 2 | Tratar | **Especialização vertical** das contas sem código | Com o ChatGPT (responsável: Velora) |
+| 3 | Tratar | **Corroboração:** só buscar segunda fonte quando a primeira for fraca | Decidido: fonte forte basta, para não gastar tokens à toa |
+| 4 | Tratar | **Datas incertas:** confirmar a data dos sinais com data estimada | Feito: 2 correções e 6 confirmações, em relatório privado |
+| 5 | Tratar | **Contrato do classificador:** pedir os campos `missao` e `varreduras` e aplicar as regras de 26/11 na origem | Com o ChatGPT |
+| 6 | Inteligência | **Movimentos do mercado:** por família ou ramo de TI e por vertical; tema acima da média, sequências e fatos citados | Feito (PR #62) |
+| 7 | Inteligência | **Narrativa da conta:** movimentos com período, força e o que é novo desde a última leitura | Feito (PR #61) |
 
 ## Estacionado (fora do backlog por ora)
 
