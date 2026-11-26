@@ -139,7 +139,7 @@ export function LinhaTempoClima({ clima, periodo, onPeriodo }: { clima: Clima; p
             const y = 26 + ri * 22;
             return (
               <g key={v.id}>
-                <text x={0} y={y + 12} className="fill-text-2 text-[12px]">
+                <text x={0} y={y + 12} className="fill-text-2 text-xs">
                   {v.nome}
                 </text>
                 {v.serie(P).map((x, i) => (

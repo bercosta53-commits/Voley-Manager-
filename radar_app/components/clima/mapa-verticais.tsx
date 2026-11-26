@@ -89,12 +89,12 @@ export function MapaVerticais({
         <line x1={60} y1={210} x2={740} y2={210} stroke="var(--vr-border-strong)" strokeDasharray="4 4" />
         <line x1={xs(bom)} y1={20} x2={xs(bom)} y2={410} stroke="var(--vr-ok)" strokeOpacity={0.4} />
         <line x1={xs(ruim)} y1={20} x2={xs(ruim)} y2={410} stroke="var(--vr-risk)" strokeOpacity={0.4} />
-        <text x={70} y={38} className="fill-text-3 text-[12px]">{temHistorico ? 'Ruim, mas melhorando' : 'Condições setoriais favoráveis'}</text>
-        <text x={70} y={400} className="fill-text-3 text-[12px]">{temHistorico ? 'Ruim e piorando' : 'Condições setoriais desfavoráveis'}</text>
+        <text x={70} y={38} className="fill-text-3 text-xs">{temHistorico ? 'Ruim, mas melhorando' : 'Condições setoriais favoráveis'}</text>
+        <text x={70} y={400} className="fill-text-3 text-xs">{temHistorico ? 'Ruim e piorando' : 'Condições setoriais desfavoráveis'}</text>
         <text x={xs(ruim)} y={428} textAnchor="middle" className="vr-data text-[11px]" fill="var(--vr-risk)">{fmtClima(ruim)}</text>
         <text x={xs(bom)} y={428} textAnchor="middle" className="vr-data text-[11px]" fill="var(--vr-ok)">{fmtClima(bom)}</text>
-        <text x={400} y={448} textAnchor="middle" className="fill-text-3 text-[12px]">Nível do clima (S) →</text>
-        <text x={22} y={215} textAnchor="middle" transform="rotate(-90 22 215)" className="fill-text-3 text-[12px]">{temHistorico ? 'Tendência 30 dias →' : 'Avaliação setorial →'}</text>
+        <text x={400} y={448} textAnchor="middle" className="fill-text-3 text-xs">Nível do clima (S) →</text>
+        <text x={22} y={215} textAnchor="middle" transform="rotate(-90 22 215)" className="fill-text-3 text-xs">{temHistorico ? 'Tendência 30 dias →' : 'Avaliação setorial →'}</text>
         {bolhas.map(v => {
           const r = raio(v);
           const yRotulo = rotulos.get(v.id);
@@ -130,7 +130,7 @@ export function MapaVerticais({
               />
               <circle cx={cx} cy={cy} r={3} fill={cor} />
               {yRotulo !== undefined && (
-                <text x={cx} y={yRotulo} textAnchor="middle" className="fill-foreground text-[12px] font-semibold" style={{ paintOrder: 'stroke', stroke: 'var(--vr-surface)', strokeWidth: 3 }}>
+                <text x={cx} y={yRotulo} textAnchor="middle" className="fill-foreground text-xs font-semibold" style={{ paintOrder: 'stroke', stroke: 'var(--vr-surface)', strokeWidth: 3 }}>
                   {v.nome}
                 </text>
               )}
@@ -147,7 +147,7 @@ export function MapaVerticais({
                 <text x={x + 12} y={y + 20} className="fill-foreground text-[13px] font-bold">
                   {hv.nome} · {hv.estado}
                 </text>
-                <text x={x + 12} y={y + 38} className="vr-data fill-text-2 text-[12px]">
+                <text x={x + 12} y={y + 38} className="vr-data fill-text-2 text-xs">
                   S {fmtClima(hv.S)} · {temHistorico ? `Δ30d ${fmtClima(hv.delta30)}` : `Setorial ${fmtClima(hv.setorial)}`} · {hv.contas} contas
                 </text>
                 <text x={x + 12} y={y + 56} className="fill-text-3 text-[11px]">
@@ -222,7 +222,7 @@ export function PainelVertical({ clima, v }: { clima: Clima; v: Vertical }) {
             const y = 8 + i * 34;
             return (
               <g key={rotulo}>
-                <text x={0} y={y + 13} className="fill-text-2 text-[12px]">
+                <text x={0} y={y + 13} className="fill-text-2 text-xs">
                   {rotulo}
                 </text>
                 <rect x={neg ? 250 - w : 250} y={y} width={w} height={18} rx={3} fill={neg ? 'var(--vr-risk)' : 'var(--vr-ok)'} opacity={0.85} />

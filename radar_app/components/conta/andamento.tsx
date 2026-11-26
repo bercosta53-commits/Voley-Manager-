@@ -3,7 +3,7 @@
 import type { StatusConta } from '@/lib/acoes';
 import { STATUS_CONTA } from '@/lib/acoes';
 import { cn, dataCurta } from '@/lib/utils';
-import { Rotulo } from '@/components/ui/rotulo';
+import { Secao } from '@/components/ui/secao';
 
 const ROTULO: Record<StatusConta, string> = {
   abordado: 'Abordado',
@@ -28,10 +28,7 @@ export function Andamento({
   onMudar: (status: StatusConta | null) => void;
 }) {
   return (
-    <section aria-labelledby="andamento-conta" className="vr-card p-5">
-      <Rotulo id="andamento-conta">
-        Andamento da conta
-      </Rotulo>
+    <Secao id="andamento-conta" titulo="Andamento da conta">
       {!compartilhado ? (
         <p className="mt-2 text-sm text-text-3">O andamento depois do contato é registrado para o time inteiro quando o registro compartilhado estiver ligado.</p>
       ) : (
@@ -61,6 +58,6 @@ export function Andamento({
           </p>
         </>
       )}
-    </section>
+    </Secao>
   );
 }

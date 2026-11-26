@@ -110,7 +110,7 @@ export function GraficoSinais({
               strokeWidth={1}
               strokeDasharray={v === 0 ? undefined : '2 3'}
             />
-            <text x={M.esq - 6} y={y(v) + 4} textAnchor="end" className="vr-data fill-text-3 text-[12px]">
+            <text x={M.esq - 6} y={y(v) + 4} textAnchor="end" className="vr-data fill-text-3 text-xs">
               {v}
             </text>
           </g>
@@ -146,7 +146,7 @@ export function GraficoSinais({
               {e.atual && <circle cx={cx} cy={cy} r={6.5} fill="none" stroke={cor} strokeWidth={1.25} opacity={0.5} />}
               <circle cx={cx} cy={cy} r={e.atual ? 4 : 3} fill={cor} stroke="var(--vr-surface)" strokeWidth={1.5} />
               {rotulados.has(chave) && (
-                <text x={cx} y={cy - 9} textAnchor="middle" className="vr-data text-[12px] font-semibold" fill={cor}>
+                <text x={cx} y={cy - 9} textAnchor="middle" className="vr-data text-xs font-semibold" fill={cor}>
                   {e.pontos < 0 ? `−${Math.round(Math.abs(e.pontos))}` : `+${Math.round(e.pontos)}`}
                 </text>
               )}
@@ -159,20 +159,20 @@ export function GraficoSinais({
           return (
             <g aria-label={`Playbook ativado: ${marca.rotulo}`}>
               <line x1={mx} x2={mx} y1={M.topo - 4} y2={M.topo + h} stroke="var(--vr-text)" strokeWidth={1} strokeDasharray="3 3" opacity={0.45} />
-              <text x={direita ? mx - 4 : mx + 4} y={12} textAnchor={direita ? 'end' : 'start'} className="fill-text-2 text-[12px] font-semibold">
+              <text x={direita ? mx - 4 : mx + 4} y={12} textAnchor={direita ? 'end' : 'start'} className="fill-text-2 text-xs font-semibold">
                 ⚡ {marca.rotulo}
               </text>
             </g>
           );
         })()}
         <circle cx={M.esq + w} cy={y(atual)} r={2.5} fill="var(--vr-warm)" />
-        <text x={M.esq} y={A - 3} className="fill-text-3 text-[12px]">
+        <text x={M.esq} y={A - 3} className="fill-text-3 text-xs">
           90 dias
         </text>
-        <text x={M.esq + w / 2} y={A - 3} textAnchor="middle" className="fill-text-3 text-[12px]">
+        <text x={M.esq + w / 2} y={A - 3} textAnchor="middle" className="fill-text-3 text-xs">
           45
         </text>
-        <text x={M.esq + w} y={A - 3} textAnchor="end" className="fill-text-3 text-[12px]">
+        <text x={M.esq + w} y={A - 3} textAnchor="end" className="fill-text-3 text-xs">
           hoje
         </text>
       </svg>

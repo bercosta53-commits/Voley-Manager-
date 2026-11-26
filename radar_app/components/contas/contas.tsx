@@ -24,6 +24,7 @@ import { Aviso, ErroCarregar, SemPermissao } from '@/components/hoje/estados';
 import { useEstados } from '@/components/hoje/estado';
 import { ehQuente, teveAcao } from '@/lib/cobertura';
 import { MenuFiltro } from './menu-filtro';
+import { Chip } from '@/components/ui/chip';
 
 type Coluna = 'nome' | 'score' | 'tendencia' | 'sinal';
 type EstadoTela = 'normal' | 'carregando' | 'vazio' | 'erro' | 'sem-permissao';
@@ -348,9 +349,9 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
                                   </Link>
                                   <SeloQualificada conta={c} />
                                   {subTrabalhada(c) && (
-                                    <span className="shrink-0 rounded-chip bg-warm-bg px-1.5 py-0.5 text-xs font-medium text-warm" title="Conta quente e ninguém do time agiu nela ainda">
+                                    <Chip tom="quente" peso="medio" className="shrink-0" title="Conta quente e ninguém do time agiu nela ainda">
                                       sem ação
-                                    </span>
+                                    </Chip>
                                   )}
                                   {c.dominio && (
                                     <a

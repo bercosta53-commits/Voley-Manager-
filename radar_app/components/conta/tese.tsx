@@ -8,6 +8,7 @@ import { COR_PAPEL, rotuloPapel } from '@/lib/papeis';
 import { cn, dataCurta, plural, pontos } from '@/lib/utils';
 import { COR_STATUS_VSCS } from '@/components/ui/selo-vscs';
 import { SeloQualificada } from '@/components/ui/selo-qualificada';
+import { Chip } from '@/components/ui/chip';
 
 function Linha({ pergunta, children, vazio }: { pergunta: string; children?: React.ReactNode; vazio?: string }) {
   return (
@@ -20,7 +21,7 @@ function Linha({ pergunta, children, vazio }: { pergunta: string; children?: Rea
 }
 
 const Papel = ({ papel }: { papel?: PapelAbm }) =>
-  papel ? <span className={cn('rounded-chip px-1.5 py-0.5 text-xs font-medium', COR_PAPEL[papel])}>{rotuloPapel(papel)}</span> : null;
+  papel ? <Chip tom="livre" peso="medio" className={COR_PAPEL[papel]}>{rotuloPapel(papel)}</Chip> : null;
 
 /**
  * Tese da conta: as seis perguntas de uma oportunidade numa leitura, antes da ação. Cada resposta vem da
@@ -40,14 +41,14 @@ export function TeseConta({ tese, nomeConta, semAcaoDoTime = false }: { tese: Te
         <span className="flex flex-wrap items-center gap-1.5">
           <SeloQualificada conta={{ qualificada }} />
           {semAcaoDoTime && (
-            <span className="rounded-chip bg-warm-bg px-1.5 py-0.5 text-xs font-medium text-warm" title="Conta quente e ninguém do time agiu nela ainda (cobertura, P2-11)">
+            <Chip tom="quente" peso="medio" title="Conta quente e ninguém do time agiu nela ainda (cobertura, P2-11)">
               Quente e sem ação do time
-            </span>
+            </Chip>
           )}
           {scorePendente && (
-            <span className="rounded-chip border border-warm bg-warm-bg px-1.5 py-0.5 text-xs text-foreground" title="O motor ainda não certificou o VSCS desta conta">
+            <Chip tom="quente" className="border border-warm text-foreground" title="O motor ainda não certificou o VSCS desta conta">
               Score pendente de certificação
-            </span>
+            </Chip>
           )}
         </span>
       </div>
@@ -76,11 +77,17 @@ export function TeseConta({ tese, nomeConta, semAcaoDoTime = false }: { tese: Te
               <p className="text-md font-semibold">{agora.sinal.sinal || agora.sinal.rotulo}</p>
               <p className="mt-0.5 text-text-2">{agora.sinal.porQueAgora}</p>
               <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
-                <span className="vr-data rounded-chip border border-border px-1.5 py-0.5 text-text-2">
+                <Chip className="vr-data">
                   {dataCurta(agora.sinal.data)} · {agora.dias === 0 ? 'hoje' : `há ${plural(agora.dias, 'dia', 'dias')}`}
-                </span>
-                <span className="vr-data rounded-chip bg-warm-bg px-1.5 py-0.5 font-semibold text-warm">+{pontos(agora.sinal.pontos)} no VSCS</span>
-                {agora.estagio && <span className={cn('rounded-chip px-1.5 py-0.5 font-medium', COR_STATUS_VSCS[agora.estagio])}>{agora.estagio}</span>}
+                </Chip>
+                <Chip tom="quente" peso="forte" className="vr-data">
+                  +{pontos(agora.sinal.pontos)} no VSCS
+                </Chip>
+                {agora.estagio && (
+                  <Chip tom="livre" peso="medio" className={COR_STATUS_VSCS[agora.estagio]}>
+                    {agora.estagio}
+                  </Chip>
+                )}
                 {agora.abertos > 1 && <span className="text-text-3">mais {plural(agora.abertos - 1, 'fato aberto', 'fatos abertos')}</span>}
               </p>
             </>

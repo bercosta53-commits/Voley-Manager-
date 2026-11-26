@@ -184,7 +184,7 @@ function Cita({ ns }: { ns: number[] }) {
   return (
     <sup className="ml-0.5 whitespace-nowrap">
       {ns.map(n => (
-        <a key={n} href={`#fonte-${n}`} className="vr-data px-0.5 text-[12px] text-text-3 no-underline hover:text-foreground">
+        <a key={n} href={`#fonte-${n}`} className="vr-data px-0.5 text-xs text-text-3 no-underline hover:text-foreground">
           [{n}]
         </a>
       ))}
