@@ -12,7 +12,11 @@ const variantes = {
     dimensaoSinais({ score: 0 }),
     dimensaoSinais({ score: 140 }),
   ],
-  clima: [dimensaoClima()],
+  clima: [
+    dimensaoClima(),
+    dimensaoClima({ nome: 'Fintech', estado: 'Bom', S: 0.42, confianca: 'Média', dataReferencia: '2026-11-25', fontes: [{ nome: 'BC', url: 'https://bcb.gov.br/x' }] }, agora),
+    dimensaoClima({ nome: 'Varejo', estado: 'Ruim', S: -0.3, confianca: 'Alta', dataReferencia: '2026-09-01' }, agora),
+  ],
   oportunidadeDigital: [
     dimensaoDigital({ nivel: 2, confianca: 'parcial', dataReferencia: '2026-11-08', fonte: 'https://e.example', resumo: 'L2' }, agora),
     dimensaoDigital({ nivel: 3, confianca: 'adequada', dataReferencia: '2026-06-01', fonte: null, resumo: 'L3' }, agora),
@@ -26,7 +30,7 @@ test('ida e volta de cada dimensão: igual, só sem a origem (e sem o texto fixo
     for (const x of xs) {
       const volta = expandirDimensao(compactarDimensao(d, x));
       const esperado = semOrigem(x);
-      if (d === 'clima') Object.assign(esperado, { resumo: null, motivoExclusao: null });
+      if (d === 'clima' && x.motivoSemNota === 'metodo_nao_mapeado') Object.assign(esperado, { resumo: null, motivoExclusao: null });
       if (esperado.motivoExclusao === esperado.resumo) esperado.motivoExclusao = null;
       assert.deepEqual(volta, esperado, `${d}: ${JSON.stringify(x).slice(0, 80)}`);
     }
@@ -35,8 +39,9 @@ test('ida e volta de cada dimensão: igual, só sem a origem (e sem o texto fixo
 test('a visão recalculada no navegador é a mesma do servidor, em todas as combinações', () => {
   for (const icp of variantes.icp)
     for (const sinais of variantes.sinais)
-      for (const dig of variantes.oportunidadeDigital) {
-        const dims = { icp, sinais, clima: variantes.clima[0], oportunidadeDigital: dig };
+      for (const dig of variantes.oportunidadeDigital)
+      for (const clima of variantes.clima) {
+        const dims = { icp, sinais, clima, oportunidadeDigital: dig };
         const servidor = visaoIntegrada('c', dims);
         const transporte = { contaId: 'c', nome: 'c', outrosNomes: [], setor: null, uf: '', tier: '', evidencia: null, acaoOficial: null, acaoDaMatriz: false,
           dims: Object.fromEntries(Object.entries(dims).map(([d, x]) => [d, compactarDimensao(d, x)])) };

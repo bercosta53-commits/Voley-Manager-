@@ -14,7 +14,6 @@ import {
 import { AGRUPAMENTOS, agrupar, mudarOrdem, ordemEmTexto, ordenarMulti, type Agrupamento, type CriterioOrdem } from '@/lib/prioridade-visoes';
 import { Casca } from '@/components/casca/casca';
 import { MenuFiltro } from '@/components/contas/menu-filtro';
-import { useApresentacao } from '@/components/ui/use-apresentacao';
 import { cn, plural } from '@/lib/utils';
 import { Faixa } from './faixa';
 import { Metodologia, SeloExperimental } from './metodologia';
@@ -133,7 +132,6 @@ function Proximidade({ l }: { l: LinhaPrioridade }) {
 }
 
 export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCasca; linhas: LinhaTransporte[] }) {
-  const apresentacao = useApresentacao();
   const [estado, setEstado] = useState<EstadoUrl>(INICIAL);
   const [folha, setFolha] = useState(false);
   const [recolhidos, setRecolhidos] = useState<Set<string>>(new Set());
@@ -166,7 +164,7 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
 
   // no modo apresentação o Clima fica oculto; conta como faltante para a classe não revelar o valor (hoje já é nulo)
   // S-1: o servidor manda só as dimensões; a classe é recalculada aqui com as mesmas regras (lib/prioridade.ts)
-  const linhas = useMemo(() => expandirLinhas(linhasServidor, apresentacao ? ['clima'] : []), [linhasServidor, apresentacao]);
+  const linhas = useMemo(() => expandirLinhas(linhasServidor), [linhasServidor]);
   const { f, o } = estado;
   const mudar = (parte: Partial<FiltrosPrioridade>) => setEstado(e => ({ ...e, f: { ...e.f, ...parte } }));
   const { visiveis, semNotaNoFiltro, naBuscaFora } = useMemo(() => aplicarTudo(linhas, f), [linhas, f]);

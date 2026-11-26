@@ -13,7 +13,7 @@ const EVENTO = 'vr:apresentacao';
 
 /** Clima (dados simulados) e ICP (simulador de regras) ficam fora do roteiro da demo. */
 // Fontes é tela de operação (estado dos coletores), não de produto: fica fora da demo, como Clima e ICP
-export const SECOES_FORA_DA_APRESENTACAO = ['/clima', '/icp', '/fontes'];
+export const SECOES_FORA_DA_APRESENTACAO = ['/icp', '/fontes'];
 
 function ler() {
   try {

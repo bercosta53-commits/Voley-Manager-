@@ -1,6 +1,7 @@
 import type { Base } from './tipos';
 import { analisarConta, NIVEIS, type DadosAquisicao } from './aquisicao-maturidade';
-import { dimensaoClima, dimensaoDigital, dimensaoIcp, dimensaoSinais, type AuditoriaDigital } from './prioridade';
+import { dimensaoClima, dimensaoDigital, dimensaoIcp, dimensaoSinais, type AuditoriaDigital, type ClimaDaConta } from './prioridade';
+import { nivelVertical, verticalDaConta, type DadosClima } from './clima';
 import { DIMENSOES } from './prioridade-config';
 import { compactarDimensao, type LinhaTransporte } from './prioridade-transporte';
 
@@ -26,7 +27,23 @@ export function auditoriasPorDominio(dados: DadosAquisicao): Map<string, Auditor
   return m;
 }
 
-export function linhasPrioridade(base: Base, auditorias: Map<string, AuditoriaDigital>, agora: Date): LinhaTransporte[] {
+/** Clima por código de especialização, já com o nível S calculado uma vez por vertical. */
+export function climaPorCodigo(dados: DadosClima | null | undefined): (codigo?: string | null) => ClimaDaConta | null {
+  if (!dados?.verticais?.length) return () => null;
+  const verticais = dados.verticais.map(v => ({ ...v, S: nivelVertical(dados, v).S }));
+  const data = dados.atualizadoEm.slice(0, 10);
+  return codigo => {
+    const v = verticalDaConta(verticais, codigo);
+    return v ? { nome: v.nome, estado: v.estado, S: v.S, confianca: v.confianca, dataReferencia: data, fontes: v.fontes } : null;
+  };
+}
+
+export function linhasPrioridade(
+  base: Base,
+  auditorias: Map<string, AuditoriaDigital>,
+  agora: Date,
+  climaDe: (codigo?: string | null) => ClimaDaConta | null = () => null,
+): LinhaTransporte[] {
   const fatos = new Map<string, Base['sinais']>();
   for (const s of base.sinais) if (s.tipo !== 'noticia_setorial' && !s.exemplo) fatos.set(s.contaId, [...(fatos.get(s.contaId) ?? []), s]);
   return base.contas.map(c => {
@@ -35,7 +52,7 @@ export function linhasPrioridade(base: Base, auditorias: Map<string, AuditoriaDi
     const dims = {
       icp: dimensaoIcp(c),
       sinais: dimensaoSinais(c, daConta.map(s => ({ data: s.data, url: s.url, fonte: s.fonte }))),
-      clima: dimensaoClima(),
+      clima: dimensaoClima(climaDe(c.especializacao?.codigo), agora),
       oportunidadeDigital: dimensaoDigital(auditorias.get(dominio(c.dominio)), agora),
     };
     return {

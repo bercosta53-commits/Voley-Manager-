@@ -26,10 +26,11 @@ test('fronteiras da nota integrada (C 2,5 · B1 3,25 · A2 4,0 · A1 4,5)', () =
   assert.equal(classificar(N(4.5, 4.5, 4.5, 4.5)), 'A1'); // 4,5
 });
 
-test('mínimos de A: ICP 3,99 cai para B1; Sinais 3,99 cai de A1 para A2; Clima ou Digital 2,99 cai para B1', () => {
+test('mínimos de A: ICP 3,99 cai para B1; Sinais 3,99 cai de A1 para A2; Clima 1,99 ou Digital 2,99 cai para B1', () => {
   assert.equal(classificar(N(3.99, 5, 5, 5)), 'B1');
   assert.equal(classificar(N(5, 3.99, 5, 5)), 'A2');
-  assert.equal(classificar(N(5, 5, 2.99, 5)), 'B1');
+  assert.equal(classificar(N(5, 5, 2.99, 5)), 'A2'); // Clima é contexto: mínimo 2 (26/11); a média 4,25 fica abaixo de A1
+  assert.equal(classificar(N(5, 5, 1.99, 5)), 'B1');
   assert.equal(classificar(N(5, 5, 5, 2.99)), 'B1');
 });
 
@@ -91,8 +92,8 @@ test('nota mínima para A1: soma 12,5 pede 5,5 (cai); soma 14 pede 4,0; ICP falt
   const v = visao(5, 4.5, null, 4.5);
   assert.equal(v.investigacao.notaMinimaParaA1, 4);
   assert.equal(v.investigacao.podeChegarA1, true);
-  assert.equal(v.investigacao.notaMinimaParaSweet, 3); // entrar (A2) pede média 4,0 e Clima ≥ 3
-  assert.match(v.motivosClassificacao[0], /Clima do setor: precisa de nota ≥ 3 para o sweet spot/);
+  assert.equal(v.investigacao.notaMinimaParaSweet, 2); // entrar (A2) pede média 4,0 e Clima ≥ 2 (contexto, 26/11)
+  assert.match(v.motivosClassificacao[0], /Clima do setor: precisa de nota ≥ 2 para o sweet spot/);
 });
 
 test('o 5,0 do teste de viabilidade nunca aparece no estado', () => {
@@ -133,7 +134,7 @@ test('dado fora do intervalo vira pendência e dimensão indisponível, sem corr
   assert.equal(dimensaoIcp({ tier: 'Z' }).motivoSemNota, 'fora_do_intervalo');
 });
 
-test('mapeamentos: VSCS vira 1 + 4v/100; sem achados não é lido como nota da rubrica; Clima indisponível', () => {
+test('mapeamentos: VSCS vira 1 + 4v/100; sem achados não é lido como nota da rubrica; Clima sem edição fica sem nota', () => {
   assert.equal(dimensaoSinais({ score: 50 }).nota, 3);
   const zero = dimensaoSinais({ score: 0 });
   assert.equal(zero.nota, 1);
@@ -143,7 +144,7 @@ test('mapeamentos: VSCS vira 1 + 4v/100; sem achados não é lido como nota da r
   assert.equal(dimensaoIcp({ icp: { tier: 'A', motivos: [] } }).nota, 5); // D5
   assert.equal(dimensaoIcp({ tier: '' }).nota, null);
   assert.equal(dimensaoClima().nota, null);
-  assert.equal(dimensaoClima().origem.mapeamento, 'indisponivel');
+  assert.equal(dimensaoClima().origem.mapeamento, 'documentado');
   assert.equal(dimensaoDigital(undefined, new Date()).motivoSemNota, 'nao_coletado');
   assert.equal(dimensaoDigital({ nivel: 0, confianca: 'insuficiente', dataReferencia: null, fonte: null, resumo: '' }, new Date()).nota, null);
 });
@@ -154,4 +155,45 @@ test('modo apresentação: dimensão oculta conta como faltante e não vaza pela
   assert.equal(v.dimensoes.clima.nota, null);
   assert.equal(v.dimensoes.clima.motivoSemNota, 'oculto_modo_apresentacao');
   assert.equal(v.situacaoSweetSpot, 'candidata');
+});
+
+test('Clima: nota = 3 + 2·S, de 1 a 5, com estado, fontes, confiança e validade da edição', () => {
+  const agora = new Date('2026-11-26T12:00:00Z');
+  const base = { nome: 'Regtech', estado: 'Bom', confianca: 'Alta', dataReferencia: '2026-11-25', fontes: [{ nome: 'Receita Federal', url: 'https://www.gov.br/x' }, { url: 'javascript:alert(1)' }] };
+  const d = dimensaoClima({ ...base, S: 0.5 }, agora);
+  assert.equal(d.nota, 4);
+  assert.equal(d.resumo, 'Bom · Regtech');
+  assert.equal(d.entraNoCalculo, true);
+  assert.deepEqual(d.fontes, [{ url: 'https://www.gov.br/x', titulo: 'Receita Federal' }]); // link inseguro fica de fora
+  assert.equal(dimensaoClima({ ...base, S: 0 }, agora).nota, 3);
+  assert.equal(dimensaoClima({ ...base, S: -1 }, agora).nota, 1);
+  assert.equal(dimensaoClima({ ...base, S: 1.4 }, agora).nota, 5);
+  assert.deepEqual(dimensaoClima({ ...base, S: 0, confianca: 'Média' }, agora).pendenciasQualidade, ['confiança média na leitura do setor']);
+  const velha = dimensaoClima({ ...base, S: 0.5, dataReferencia: '2026-10-01' }, agora);
+  assert.equal(velha.status, 'desatualizada');
+  assert.equal(velha.entraNoCalculo, false);
+});
+
+test('Clima: a vertical vem do código de especialização; sem código, a Generalista', async () => {
+  const { climaPorCodigo } = await import('../../lib/prioridade-linhas.ts');
+  const dados = {
+    atualizadoEm: '2026-11-25T00:00:00-03:00', z: [1, -1], pesos: { macro: 0.4, setorial: 0.45, noticias: 0.15 },
+    verticais: [
+      { id: 'ESP01', nome: 'Fintech', codigos: ['ESP01'], sens: [1, 0], setorial: 1, noticias: 1, estado: 'Bom', confianca: 'Alta', fontes: [] },
+      { id: 'GEN', nome: 'Generalista', codigos: ['GEN'], sens: [0, 1], setorial: 0, noticias: 0, estado: 'Ruim', confianca: 'Alta', fontes: [] },
+    ],
+  };
+  const de = climaPorCodigo(dados);
+  assert.equal(de('ESP01').nome, 'Fintech');
+  assert.equal(Math.round(de('ESP01').S * 100) / 100, 1); // 0,4·1 + 0,45·1 + 0,15·1
+  assert.equal(de(undefined).nome, 'Generalista');
+  assert.equal(de(undefined).S, -1); // GEN segue o macro
+  assert.equal(de('ESP99').nome, 'Generalista');
+  assert.equal(climaPorCodigo(null)('ESP01'), null);
+});
+
+test('Clima como contexto (decisão de 26/11): mínimo 2 em A1/A2; abaixo de 2 barra o sweet spot', () => {
+  assert.equal(visao(5, 5, 2.5, 5).classeIntegrada, 'A2'); // setor neutro-negativo não barra o sweet spot (A1 pede média 4,5)
+  assert.equal(visao(5, 4, 2.0, 5).situacaoSweetSpot, 'sweet_spot'); // generalista com macro ruim ainda entra, se o resto sustenta
+  assert.notEqual(visao(5, 5, 1.8, 5).situacaoSweetSpot, 'sweet_spot'); // setor muito ruim barra
 });
