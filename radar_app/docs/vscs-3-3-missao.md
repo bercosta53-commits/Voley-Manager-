@@ -4,7 +4,7 @@ Aprovada para teste. Feature flag `missao.habilitada` desligada por padrão. Nã
 
 ## Contrato
 
-No sinal de nomeação ou vaga gerencial/head/diretoria/C-level de receita, registrar `missao` com tipo, texto literal (até 120 caracteres), especifica, meta (ou null), praca (ou null), confianca (0–1), fonteUrl e opcionalmente ativa/substituidaEm. Revisão individual prevalece. Preservar versões anteriores no histórico privado. Nunca criar um novo sinal de missão. Vaga captura mandato sem amplificação. Não usar resumo interno como citação. Fallback apenas sobre tituloOriginal/trechoLiteral e padrões inequívocos; incerteza não pontua. Para tipo explícito, classificador valida nexo GTM e evidência na fonte.
+Somente no sinal de entrada efetiva de liderança de receita — coordenação, gerência, head, diretoria ou C-level — registrar `missao` com tipo, texto literal (até 120 caracteres), especifica, meta (ou null), praca (ou null), confianca (0–1), fonteUrl e opcionalmente ativa/substituidaEm. Revisão individual prevalece. Preservar versões anteriores no histórico privado. Nunca criar um novo sinal de missão. Vagas abertas, encerradas ou canceladas não participam desta variável: sem missão elegível, sem amplificação, sem oferta derivada da missão. Dados antigos de vagas permanecem apenas como histórico, fora da ativação por mandato. Exigir ingressoConfirmado=true e ingressoFonteUrl (fonte que comprova que a pessoa assumiu); ingressoEm, se conhecido, não pode ser futuro. A data do anúncio não comprova posse. Coordenação deve envolver gestão real de receita, não função operacional com título de liderança. A regra não altera o peso-base de vagas em outras variáveis do VSCS nem a curva de maturação vigente. Não usar resumo interno como citação. Fallback apenas sobre tituloOriginal/trechoLiteral e padrões inequívocos; incerteza não pontua. Para tipo explícito, classificador valida nexo GTM e evidência na fonte.
 
 Fatores 1,00 / 1,15 / 1,20. Meta concreta ou praça identificada no trecho; prazo sozinho não qualifica. Confiança menor que 0,6, missão genérica ou sem fonte neutras. Escolher uma missão principal, sem acumular. Relação multiplica antes do teto de 100; DC de um movimento limitado a 85. Para 90+, o controle sem missão precisa ser elegível por si mesmo. O tier permanece fora do cálculo.
 
@@ -17,6 +17,6 @@ movimentoId explícito liga execução confirmada à nomeação. Mesma praça se
 ## Validação antes de merge
 
 1. Rodar testes existentes e novos; comparar feature desligada/ligada com as mesmas entradas, revisões, data e relacionamentos privados.
-2. Classificar os anúncios reais: fonte literal, URL, cargo, mandato vigente, confiança. Registrar secundárias apenas como contexto, sem acumular.
+2. Classificar entradas efetivas: fonte literal, URL, cargo, mandato vigente, confiança e evidência de ingresso. Revalidar o histórico antes de amplificar. Registrar secundárias apenas como contexto, sem acumular.
 3. Mostrar delta de score, ranking e CQ-1 por conta, razões, teto e agrupamento. Nenhum dado real no GitHub.
 4. Rotulagem cega e revisão humana; obter aprovação comercial. Só então integrar playbooks/telas e considerar publicação, com backup e rollback.
