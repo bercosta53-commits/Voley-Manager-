@@ -370,6 +370,13 @@ try {
   const esperadoCob = new Set(base.sinais.filter(s => !s.exemplo && (Date.parse(base.geradoEm) - Date.parse(s.data)) / 864e5 <= 90).map(s => s.contaId)).size;
   conferir(comInfo === esperadoCob, 'cobertura: contas com informação = contas com fato nos últimos 90 dias', `${comInfo} de ${esperadoCob}`);
 
+  // 5c. Narrativa da conta: os movimentos cobrem todos os fatos da conta
+  await pagina.goto(app.url(`/contas/${contaAlvo.id}`), { waitUntil: 'networkidle' });
+  const narr = pagina.locator('section', { hasText: 'Narrativa da conta' }).first();
+  const fatosConta = base.sinais.filter(s => !s.exemplo && s.contaId === contaAlvo.id).length;
+  const nosMov = await narr.locator('h3 + p').evaluateAll(ps => ps.reduce((n, p) => n + Number((p.textContent.match(/(\d+) fatos?/) ?? [0, 0])[1]), 0));
+  conferir(nosMov === fatosConta, 'narrativa: a soma dos fatos dos movimentos é o total da conta', `${nosMov} de ${fatosConta}`);
+
   // 6. Régua de acabamento nas telas da demo, a 1440 e a 360 px
   const rotas = ['/', '/radar', '/contas', `/contas/${contaAlvo.id}`, '/decisores', '/aquisicao', '/icp', '/clima', '/fontes', '/metricas', `/contas/${contaAlvo.id}/briefing`];
   for (const largura of [1440, 360]) {
