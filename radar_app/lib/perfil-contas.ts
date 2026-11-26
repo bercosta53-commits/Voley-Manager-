@@ -28,6 +28,8 @@ export interface PerfilContas {
   comSinal30: number;
   atencaoOuMais: number;
   paraAbordar: number;
+  abComMovimento: number;
+  comComite: number;
   comCnpj: number;
   semUf: number;
   tiers: Barra[];
@@ -55,6 +57,10 @@ export function perfilContas(base: Base): PerfilContas {
   const atencaoOuMais = C.filter(c => c.vscsStatus && c.vscsStatus !== 'Monitoramento').length;
   const paraAbordar = C.filter(c => c.acaoRecomendada && ACOES_DE_ABORDAGEM.has(c.acaoRecomendada)).length;
   const comCnpj = C.filter(c => c.cnpj).length;
+  // o que se sabe: contas A/B com fato nos últimos 90 dias e contas com alguém do comitê mapeado
+  const recentes90 = new Set(base.sinais.filter(s => s.tipo !== 'noticia_setorial' && diasEntre(s.data, hoje) <= 90).map(s => s.contaId));
+  const abComMovimento = C.filter(c => (c.tier === 'A' || c.tier === 'B') && recentes90.has(c.id)).length;
+  const comComite = C.filter(c => (c.comite ?? []).length > 0).length;
   const semUf = C.filter(c => !c.uf).length;
 
   const tiers = ['A', 'B', 'C'].map(t => ({ id: t, rotulo: `Tier ${t}`, valor: C.filter(c => c.tier === t).length })).filter(b => b.valor);
@@ -84,9 +90,9 @@ export function perfilContas(base: Base): PerfilContas {
   const sp = ufs.find(u => u.id === 'SP');
   const maiorRegiao = [...regioes].filter(r => r.id !== SEM_UF).sort((x, y) => y.valor - x.valor)[0];
   const leituras = [
-    `Só ${comSinal30} contas (${pct(comSinal30, C.length)}%) tiveram sinal nos últimos 30 dias; ${atencaoOuMais} estão em Atenção ou acima e ${paraAbordar ? `${paraAbordar} pedem abordagem` : 'nenhuma pede abordagem hoje'}.`,
+    `${comSinal30} contas (${pct(comSinal30, C.length)}%) tiveram fato nos últimos 30 dias e ${abComMovimento} contas A/B se mexeram nos últimos 90${atencaoOuMais ? `; ${atencaoOuMais} estão em Atenção ou acima` : ''}${paraAbordar ? ` e ${paraAbordar} pedem abordagem` : ''}.`,
     b ? `${pct(b.valor, C.length)}% da base é tier B; as ${C.filter(c => c.tier === 'A').length} contas tier A são as candidatas a ABM 1:1.` : '',
-    `${maiorRegiao ? `${pct(maiorRegiao.valor, C.length)}% estão no ${maiorRegiao.rotulo}${sp ? ` (SP sozinho tem ${pct(sp.valor, C.length)}%)` : ''}. ` : ''}Faltam dados: ${semUf} contas sem UF e ${C.length - comCnpj} sem CNPJ confirmado na Receita.`,
+    maiorRegiao ? `${pct(maiorRegiao.valor, C.length)}% estão no ${maiorRegiao.rotulo}${sp ? ` (SP sozinho tem ${pct(sp.valor, C.length)}%)` : ''}.` : '',
     (() => {
       const grandes = portes.find(x => x.id === 'Média ou grande')?.valor ?? 0;
       const comPorte = portes.filter(x => x.id !== 'Sem CNPJ').reduce((n, x) => n + x.valor, 0);
@@ -100,6 +106,8 @@ export function perfilContas(base: Base): PerfilContas {
     comSinal30,
     atencaoOuMais,
     paraAbordar,
+    abComMovimento,
+    comComite,
     comCnpj,
     semUf,
     tiers,

@@ -150,27 +150,36 @@ export function Simulador({
             <span className="text-sm font-bold">Região do ICP</span>
             <span className="text-xs text-text-3">clique num estado para incluir ou tirar</span>
           </div>
-          <div className="grid max-w-[400px] grid-cols-8 gap-1" style={{ gridAutoRows: '46px' }}>
-            {Object.entries(POS).map(([uf, [col, row]]) => {
-              const on = al.regiao.includes(uf);
-              return (
-                <button
-                  key={uf}
-                  type="button"
-                  aria-pressed={on}
-                  aria-label={`${uf}, ${porUf[uf] ?? 0} contas, ${on ? 'na região do ICP' : 'fora da região'}`}
-                  onClick={() => onMudar({ regiao: on ? al.regiao.filter(x => x !== uf) : [...al.regiao, uf] })}
-                  className={cn('flex flex-col items-center justify-center rounded-control border leading-tight', on ? 'border-ok bg-ok-bg text-foreground' : 'border-border bg-[var(--vr-surface-3)] text-text-2 hover:border-border-strong')}
-                  style={{ gridColumn: col, gridRow: row }}
-                >
-                  <span className="text-xs font-bold">{uf}</span>
-                  <span className="vr-data text-xs opacity-85">{porUf[uf] ?? 0}</span>
-                </button>
-              );
-            })}
-          </div>
+          {/* estados com contas, do maior para o menor: barra proporcional e clique para incluir ou tirar da região */}
+          <ul className="flex flex-col gap-1">
+            {Object.keys(POS)
+              .filter(uf => (porUf[uf] ?? 0) > 0)
+              .sort((a, b) => (porUf[b] ?? 0) - (porUf[a] ?? 0))
+              .map(uf => {
+                const on = al.regiao.includes(uf);
+                const n = porUf[uf] ?? 0;
+                const max = Math.max(1, ...Object.values(porUf));
+                return (
+                  <li key={uf}>
+                    <button
+                      type="button"
+                      aria-pressed={on}
+                      aria-label={`${uf}, ${n} contas, ${on ? 'na região do ICP' : 'fora da região'}`}
+                      onClick={() => onMudar({ regiao: on ? al.regiao.filter(x => x !== uf) : [...al.regiao, uf] })}
+                      className={cn('grid w-full grid-cols-[32px_minmax(0,1fr)_36px] items-center gap-2 rounded-control px-1.5 py-1 text-left hover:bg-[var(--vr-surface-2)]', on && 'bg-ok-bg/60')}
+                    >
+                      <span className={cn('text-xs font-bold', on ? 'text-foreground' : 'text-text-3')}>{uf}</span>
+                      <span className="h-2 overflow-hidden rounded-full bg-[var(--vr-surface-3)]">
+                        <span className={cn('block h-full rounded-full', on ? 'bg-ok' : 'bg-border-strong')} style={{ width: `${(n / max) * 100}%` }} />
+                      </span>
+                      <span className="vr-data text-right text-xs">{n}</span>
+                    </button>
+                  </li>
+                );
+              })}
+          </ul>
           <div className="mt-2 flex gap-3.5 text-xs text-text-3">
-            <span>número = contas na base</span>
+            <span>verde = na região do ICP · número = contas na base</span>
             <span>· {semUf} contas sem UF no cadastro</span>
           </div>
         </div>
