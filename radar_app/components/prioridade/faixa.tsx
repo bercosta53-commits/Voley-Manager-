@@ -62,7 +62,7 @@ export function Faixa({
             const n = contagem[s.id];
             const ativo = ativos.includes(s.id);
             return (
-              <li key={s.id} style={{ flexGrow: Math.max(n, total * 0.03), flexBasis: 0 }} className="min-w-[96px]">
+              <li key={s.id} style={{ flexGrow: Math.max(n, total * 0.03), flexBasis: 0 }} className="min-w-[132px]">
                 <button
                   type="button"
                   aria-pressed={ativo}

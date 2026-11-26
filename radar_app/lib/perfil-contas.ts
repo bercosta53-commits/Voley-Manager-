@@ -1,3 +1,4 @@
+import { faltandoNoComite } from './papeis';
 import type { Barra } from '@/components/ui/perfil-compacto';
 import type { Base } from './tipos';
 import { FAIXAS_VSCS, ACOES_DE_ABORDAGEM } from './avaliacao';
@@ -60,7 +61,8 @@ export function perfilContas(base: Base): PerfilContas {
   // o que se sabe: contas A/B com fato nos últimos 90 dias e contas com alguém do comitê mapeado
   const recentes90 = new Set(base.sinais.filter(s => s.tipo !== 'noticia_setorial' && diasEntre(s.data, hoje) <= 90).map(s => s.contaId));
   const abComMovimento = C.filter(c => (c.tier === 'A' || c.tier === 'B') && recentes90.has(c.id)).length;
-  const comComite = C.filter(c => (c.comite ?? []).length > 0).length;
+  // comitê com os três lugares essenciais ocupados (assina o cheque, decisor, dono da dor)
+  const comComite = C.filter(c => faltandoNoComite({ comite: c.comite ?? [], comiteFaltando: c.comiteFaltando }).length === 0).length;
   const semUf = C.filter(c => !c.uf).length;
 
   const tiers = ['A', 'B', 'C'].map(t => ({ id: t, rotulo: `Tier ${t}`, valor: C.filter(c => c.tier === t).length })).filter(b => b.valor);

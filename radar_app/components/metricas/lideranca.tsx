@@ -58,13 +58,9 @@ export function VisaoLideranca({
       </div>
 
       {/* só números com dado: sem registro compartilhado, as medidas de ação do time não aparecem */}
-      <div className={cn('grid grid-cols-2 [&>*:not(:last-child)]:border-r [&>*]:border-border', compartilhado ? 'md:grid-cols-4' : 'md:grid-cols-2')}>
+      <div className={cn('grid grid-cols-2 [&>*:not(:last-child)]:border-r [&>*]:border-border', compartilhado ? 'md:grid-cols-4' : l.quentes > 0 ? 'md:grid-cols-2' : 'grid-cols-1')}>
         <Numero valor={String(l.fatosSemana)} rotulo="Fatos novos na semana" detalhe={plural(l.contasComFatoSemana, 'empresa', 'empresas')} />
-        {l.quentes > 0 ? (
-          <Numero valor={String(l.quentes)} rotulo="Empresas em oportunidade" detalhe="VSCS 55 ou mais, ou qualificadas" />
-        ) : (
-          <Numero valor={String(l.contasComFatoSemana)} rotulo="Empresas com fato na semana" detalhe="leitura nova para o time" />
-        )}
+        {l.quentes > 0 && <Numero valor={String(l.quentes)} rotulo="Empresas em oportunidade" detalhe="VSCS 55 ou mais, ou qualificadas" />}
         {compartilhado && (
           <>
             <Numero valor={String(l.quentesComAcao)} rotulo="Já trabalhadas pelo time" detalhe={`${l.quentesSemAcaoTotal} ainda sem nenhuma ação`} />
