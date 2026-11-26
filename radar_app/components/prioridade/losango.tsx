@@ -19,7 +19,7 @@ export function textoLosango(dims: Record<Dimensao, DimensaoIntegrada>) {
  * se ligam; o polígono só é preenchido com as quatro notas. Sem animação.
  */
 export function Losango({ dims, tamanho = 220, compacto = false }: { dims: Record<Dimensao, DimensaoIntegrada>; tamanho?: number; compacto?: boolean }) {
-  const margem = compacto ? 34 : 56;
+  const margem = compacto ? 46 : 56;
   const R = tamanho / 2 - margem;
   const c = tamanho / 2;
   const pt = (d: Dimensao, v: number) => [c + DIRECAO[d][0] * (R * v) / 5, c + DIRECAO[d][1] * (R * v) / 5] as const;
@@ -58,10 +58,10 @@ export function Losango({ dims, tamanho = 220, compacto = false }: { dims: Recor
           const base = dy < 0 ? -4 : dy > 0 ? 12 : 4;
           return (
             <g key={d}>
-              <text x={x} y={y + base - (dy === 0 ? 7 : dy < 0 ? 13 : 0)} textAnchor={anchor} className={cn('fill-text-2 font-medium', compacto ? 'text-[10px]' : 'text-[12px]')}>
+              <text x={x} y={y + base - (dy === 0 ? 7 : dy < 0 ? 13 : 0)} textAnchor={anchor} className={cn('fill-text-2 font-medium', 'text-[12px]')}>
                 {compacto ? ({ icp: 'ICP', sinais: 'Sinais', clima: 'Clima', oportunidadeDigital: 'Digital' } as const)[d] : ROTULO_DIMENSAO[d]}
               </text>
-              <text x={x} y={y + base + (dy === 0 ? 7 : dy < 0 ? 0 : 13)} textAnchor={anchor} className={cn('vr-data', notas[i] !== null ? 'fill-foreground font-semibold' : 'fill-text-3', compacto ? 'text-[10px]' : 'text-[12px]')}>
+              <text x={x} y={y + base + (dy === 0 ? 7 : dy < 0 ? 0 : 13)} textAnchor={anchor} className={cn(notas[i] !== null ? 'vr-data fill-foreground font-semibold' : 'fill-text-3', 'text-[12px]')}>
                 {notas[i] !== null ? formatarNota(Math.round(notas[i]! * 10) / 10) : 'Sem avaliação'}
               </text>
             </g>

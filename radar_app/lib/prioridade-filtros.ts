@@ -25,12 +25,12 @@ export interface LinhaPrioridade {
 export type Segmento = 'a1' | 'candidata' | 'A2' | 'B1' | 'B2' | 'C' | 'fora_por_criterio' | 'sem_metrica';
 export const SEGMENTOS: { id: Segmento; rotulo: string; grupo: string }[] = [
   { id: 'a1', rotulo: 'A1', grupo: 'Sweet spot' },
-  { id: 'candidata', rotulo: '1 dimensão a investigar', grupo: 'Candidatas' },
+  { id: 'candidata', rotulo: '1 a investigar', grupo: 'Candidatas' },
   { id: 'A2', rotulo: 'A2', grupo: 'Aproximadas' },
   { id: 'B1', rotulo: 'B1', grupo: 'Aproximadas' },
-  { id: 'B2', rotulo: 'B2', grupo: 'Métrica enfraquece' },
-  { id: 'C', rotulo: 'C', grupo: 'Métrica enfraquece' },
-  { id: 'fora_por_criterio', rotulo: '1 faltando, A1 fora de alcance', grupo: 'Incompletas' },
+  { id: 'B2', rotulo: 'B2', grupo: 'Enfraquece' },
+  { id: 'C', rotulo: 'C', grupo: 'Enfraquece' },
+  { id: 'fora_por_criterio', rotulo: '1 faltando, sem A1', grupo: 'Incompletas' },
   { id: 'sem_metrica', rotulo: '2+ faltando', grupo: 'Sem métrica' },
 ];
 

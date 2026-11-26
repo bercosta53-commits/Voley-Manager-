@@ -60,7 +60,7 @@ try {
   vigiar(pagina);
 
   // 1. Panorama: abre a demo e cada número leva à lista que ele conta
-  await pagina.goto(app.url('/radar?apresentacao=1'), { waitUntil: 'networkidle' });
+  await pagina.goto(app.url('/radar/proximidade?apresentacao=1'), { waitUntil: 'networkidle' });
   conferir(await pagina.getByRole('heading', { name: 'Panorama da base' }).isVisible(), 'panorama visível no Radar');
   conferir(!pagina.url().includes('apresentacao='), 'parâmetro do modo apresentação sai da URL');
   const secoes = await menu(pagina);
@@ -189,6 +189,33 @@ try {
   const resumoS = await pagina.locator('main p').first().innerText();
   const tabelaS = await pagina.locator('main table').innerText();
   conferir(resumoS.startsWith(`${quentesSemAcao} de ${base.contas.length}`) && !tabelaS.includes(contaAlvo.nome), 'aba "Quentes sem ação" tira a conta que o time já trabalhou', resumoS);
+
+  // 3e. Prioridade de contas (briefing v2): faixa soma o total, busca acha conta sem acento, painel com losango,
+  // comparação limitada a três e estado preservado na URL ao recarregar
+  await pagina.goto(app.url('/radar'), { waitUntil: 'networkidle' });
+  await pagina.getByRole('heading', { name: 'Prioridade de contas' }).waitFor();
+  const faixaTexto = await pagina.locator('section:has(#faixa-titulo) p.sr-only').innerText();
+  const numerosFaixa = await pagina.$$eval('section:has(#faixa-titulo) ul button .vr-data', els => els.map(e => Number(e.textContent)));
+  conferir(numerosFaixa.reduce((a, b) => a + b, 0) === base.contas.length && faixaTexto.includes(`${base.contas.length} contas monitoradas`), 'faixa "do ambiente ao sweet spot" soma todas as contas', numerosFaixa.join('+'));
+  const alvoBusca = base.contas[0].nome;
+  await pagina.getByRole('combobox', { name: 'Buscar empresa ou setor' }).fill(alvoBusca.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase());
+  await pagina.waitForTimeout(300);
+  const linhasBusca = await pagina.locator('main table tbody tr').count();
+  conferir(linhasBusca >= 1 && (await pagina.locator('main table tbody').innerText()).includes(alvoBusca), 'busca acha a conta sem acento nem caixa', `${linhasBusca} linhas`);
+  await pagina.locator('main table tbody tr').first().getByRole('button').first().click();
+  const painel = pagina.locator('aside[aria-labelledby="painel-conta-titulo"]');
+  await painel.waitFor();
+  conferir((await painel.getByRole('img', { name: /Losango das quatro dimensões/ }).count()) === 1 && (await painel.innerText()).includes('Clima do setor'), 'painel da conta abre com o losango e as quatro dimensões');
+  await painel.getByRole('button', { name: 'Fechar o painel' }).click();
+  await pagina.getByRole('combobox', { name: 'Buscar empresa ou setor' }).fill('');
+  await pagina.waitForTimeout(300);
+  const caixas = pagina.locator('main table tbody input[type="checkbox"]');
+  for (let i = 0; i < 3; i++) await caixas.nth(i).check();
+  conferir(await caixas.nth(3).isDisabled(), 'comparação para em três contas');
+  await pagina.reload({ waitUntil: 'networkidle' });
+  await pagina.getByRole('heading', { name: 'Prioridade de contas' }).waitFor();
+  conferir((await pagina.getByRole('heading', { name: /Comparação \(3 de 3\)/ }).count()) === 1 && pagina.url().includes('cmp='), 'comparação continua depois de recarregar (estado na URL)');
+  await pagina.goto(app.url('/radar'), { waitUntil: 'networkidle' });
 
   // 4. Decisores no modo apresentação: nenhum e-mail exposto
   await pagina.goto(app.url('/decisores'), { waitUntil: 'networkidle' });

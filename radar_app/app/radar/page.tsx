@@ -1,11 +1,14 @@
 import { lerBase } from '@/lib/dados';
-import { gerarBaseProximidadeReal } from '@/lib/proximidade-real';
-import { TelaRadar } from '@/components/radar/radar';
+import dados from '@/data/aquisicao.json';
+import type { DadosAquisicao } from '@/lib/aquisicao-maturidade';
+import { auditoriasPorDominio, linhasPrioridade } from '@/lib/prioridade-linhas';
+import { TelaPrioridade } from '@/components/prioridade/tela';
 
-export const metadata = { title: 'Radar' };
+export const metadata = { title: 'Prioridade de contas' };
 
+/** Página principal do Radar: prioridade de contas em quatro eixos (modelo experimental, separado do VSCS). */
 export default async function Pagina() {
   const base = await lerBase();
-  const proximidade = gerarBaseProximidadeReal(base);
-  return <TelaRadar base={base} proximidade={proximidade} />;
+  const linhas = linhasPrioridade(base, auditoriasPorDominio(dados as unknown as DadosAquisicao), new Date());
+  return <TelaPrioridade base={base} linhas={linhas} />;
 }

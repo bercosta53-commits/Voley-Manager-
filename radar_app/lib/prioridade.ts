@@ -225,7 +225,8 @@ export function visaoIntegrada(
       .map(c => `${c.rotulo} ${fmt1(c.valor)} < ${fmt1(c.minimo)}`);
     return {
       ...semClasse,
-      motivosClassificacao: motivos.length ? motivos : ['Mesmo com nota máxima na dimensão faltante, a nota integrada não chega a A1'],
+      // o teto usa a faltante no máximo da escala; mostra só o teto da média, nunca a nota de teste
+      motivosClassificacao: motivos.length ? motivos : [`Teto da nota integrada ${formatarIntegrada(media)} (A1 pede ${formatarIntegrada(REGRAS.A1.nota)})`],
       situacaoSweetSpot: 'fora_por_criterio',
       investigacao: null,
     };
