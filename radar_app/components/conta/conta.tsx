@@ -28,6 +28,7 @@ import { detectarPlaybook, type Ativacao } from '@/lib/playbooks';
 import { BlocoPlaybook } from '@/components/hoje/playbook';
 import { Comite } from './comite';
 import { LinhaDoTempo } from './linha-do-tempo';
+import { NarrativaConta } from './narrativa';
 import { Decomposicao } from './decomposicao';
 import { useHoje } from '@/components/ui/use-agora';
 import { Rotulo } from '@/components/ui/rotulo';
@@ -181,6 +182,7 @@ function Detalhe({
             <ProximaAcao conta={conta} sinais={sinais} estados={estados} hoje={hoje} onMudar={onMudar} andamento={andamento} />
           </div>
           {playbook && <BlocoPlaybook ativacao={playbook} conta={conta} className="mt-0" />}
+          <NarrativaConta contaId={conta.id} sinais={sinais} hoje={hoje} />
           <LinhaDoTempo conta={conta} sinais={sinais} estados={estados} hoje={hoje} andamento={andamento} />
         </div>
         <div className="flex flex-col gap-6">

@@ -58,7 +58,7 @@ export function Evidencia({
       ) : (
         <span className="rounded-chip border border-border px-1 text-xs">sem link de fonte</span>
       )}
-      {coletadoEm && <span>· coletado em {dataCurta(coletadoEm)}</span>}
+      {/^\d{4}-\d{2}-\d{2}/.test(coletadoEm ?? '') && <span>· coletado em {dataCurta(coletadoEm!.slice(0, 10))}</span>}
       {confianca && ROTULO_CONFIANCA[confianca] && <span>· {ROTULO_CONFIANCA[confianca]}</span>}
       {extra && <span>· {extra}</span>}
     </span>
