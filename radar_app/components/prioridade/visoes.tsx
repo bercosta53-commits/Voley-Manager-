@@ -73,7 +73,7 @@ export function MatrizSetorPrioridade({
                       onClick={() => onCelula(r.setor, c.id)}
                       aria-label={`${r.setor}, ${c.rotulo}: ${n} ${n === 1 ? 'conta' : 'contas'}`}
                       style={tom(n, max)}
-                      className={cn('vr-data h-8 w-full rounded-[4px] text-sm', n ? 'font-semibold hover:ring-1 hover:ring-foreground' : 'text-text-3')}
+                      className={cn('vr-data h-8 w-full rounded-chip text-sm', n ? 'font-semibold hover:ring-1 hover:ring-foreground' : 'text-text-3')}
                     >
                       {n}
                     </button>
@@ -176,7 +176,7 @@ export function CruzarDimensoes({
                         aria-label={`${q}: ${n} ${n === 1 ? 'conta' : 'contas'}`}
                         title={q}
                         style={tom(n, max)}
-                        className={cn('vr-data grid h-14 w-20 place-items-center rounded-[4px] text-base sm:w-28', n ? 'font-semibold hover:ring-1 hover:ring-foreground' : 'text-text-3')}
+                        className={cn('vr-data grid h-14 w-20 place-items-center rounded-chip text-base sm:w-28', n ? 'font-semibold hover:ring-1 hover:ring-foreground' : 'text-text-3')}
                       >
                         {n}
                       </button>

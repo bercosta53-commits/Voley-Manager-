@@ -120,7 +120,7 @@ export function NavLateral({ base, novos, onBuscar }: { base: BaseCasca; novos: 
       className="fixed inset-y-0 left-0 z-30 hidden w-16 flex-col border-r border-border bg-[var(--vr-surface)] md:flex lg:w-60"
     >
       <Link href="/" className="flex h-14 items-center gap-2.5 border-b border-border px-4 lg:px-5">
-        <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-[5px] bg-foreground text-[13px] font-bold text-background">
+        <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-control bg-foreground text-[13px] font-bold text-background">
           v
         </span>
         <span className="hidden items-baseline gap-1.5 lg:flex">

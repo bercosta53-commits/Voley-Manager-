@@ -143,7 +143,7 @@ export function Segmentos({
   if (vazio(barras)) return <SemDado />;
   return (
     <div>
-      <div className="flex h-2.5 gap-[2px] overflow-hidden rounded-[3px]">
+      <div className="flex h-2.5 gap-[2px] overflow-hidden rounded-chip">
         {barras.map((b, i) => {
           const { className, style } = estilo(b, i);
           const apagado = algum && !ativos!.includes(b.id);

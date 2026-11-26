@@ -33,7 +33,7 @@ export const LinhaSinal = forwardRef<HTMLButtonElement, { sinal: Sinal; conta: C
           )}
         >
           <span aria-hidden className="absolute top-0 bottom-0 left-0 w-[3px]" style={{ background: ativo ? 'var(--vr-text)' : 'transparent' }} />
-          <LogoConta nome={conta.nome} dominio={conta.dominio} tamanho={28} className="mt-0.5 rounded-[6px]" />
+          <LogoConta nome={conta.nome} dominio={conta.dominio} tamanho={28} className="mt-0.5 rounded-control" />
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-1.5">
               <span className="truncate text-sm font-semibold">{conta.nome}</span>

@@ -256,7 +256,7 @@ export function PainelVertical({ clima, v }: { clima: Clima; v: Vertical }) {
         {v.quentes.map(c => (
           <Link key={c.id} href={hrefConta(c.id)} className="flex items-center justify-between gap-2 border-b border-border py-2 hover:text-foreground">
             <span className="flex min-w-0 items-center gap-2 font-semibold">
-              <LogoConta nome={c.nome} dominio={c.dominio} tamanho={20} className="rounded-[4px]" />
+              <LogoConta nome={c.nome} dominio={c.dominio} tamanho={20} className="rounded-chip" />
               <span className="truncate">{c.nome}</span>
             </span>
             <span className="flex items-center gap-2.5">

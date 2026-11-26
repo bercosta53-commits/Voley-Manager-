@@ -381,7 +381,7 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
           ))}
         </div>
 
-        <div className={cn('mb-3 flex-wrap items-center gap-2', folha ? 'fixed inset-x-0 bottom-0 z-40 flex max-h-[80vh] overflow-y-auto rounded-t-[12px] border-t border-border bg-background p-4 shadow-3' : 'hidden md:flex')} role={folha ? 'dialog' : undefined} aria-label={folha ? 'Filtros' : undefined}>
+        <div className={cn('mb-3 flex-wrap items-center gap-2', folha ? 'fixed inset-x-0 bottom-0 z-40 flex max-h-[80vh] overflow-y-auto rounded-t-overlay border-t border-border bg-background p-4 shadow-3' : 'hidden md:flex')} role={folha ? 'dialog' : undefined} aria-label={folha ? 'Filtros' : undefined}>
           <MenuFiltro rotulo="Prioridade integrada" opcoes={CLASSES.map(c => ({ id: c, rotulo: c, qtd: conta(l => l.visao.classeIntegrada === c) }))} valor={f.classes} onMudar={v => mudar({ classes: v })} />
           <MenuFiltro rotulo="Sweet spot" opcoes={SITUACOES.map(s => ({ ...s, qtd: conta(l => l.visao.situacaoSweetSpot === s.id) }))} valor={f.situacoes} onMudar={v => mudar({ situacoes: v })} />
           <MenuFiltro rotulo="Setor" opcoes={setores.map(s => ({ id: s, rotulo: s, qtd: conta(l => (l.setor ?? SEM_SETOR) === s) }))} valor={f.setores} onMudar={v => mudar({ setores: v })} />
@@ -459,7 +459,7 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
                 role="tab"
                 aria-selected={estado.v === id}
                 onClick={() => setEstado(e => ({ ...e, v: id }))}
-                className={cn('h-8 rounded-[5px] px-3 text-sm max-md:h-10', estado.v === id ? 'bg-foreground font-semibold text-background' : 'text-text-2 hover:text-foreground')}
+                className={cn('h-8 rounded-control px-3 text-sm max-md:h-10', estado.v === id ? 'bg-foreground font-semibold text-background' : 'text-text-2 hover:text-foreground')}
               >
                 {rotulo}
               </button>
