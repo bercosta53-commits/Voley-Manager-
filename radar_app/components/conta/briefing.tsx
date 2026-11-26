@@ -11,7 +11,7 @@ import { useHoje } from '@/components/ui/use-agora';
 import { hrefConta } from '@/lib/contas';
 import { briefingEmTexto, montarBriefing, type Linha } from '@/lib/briefing';
 import { detectarPlaybook } from '@/lib/playbooks';
-import { dataCurta } from '@/lib/utils';
+import { dataCurta, seDiferente } from '@/lib/utils';
 import { Rotulo } from '@/components/ui/rotulo';
 import { Chip } from '@/components/ui/chip';
 
@@ -80,7 +80,7 @@ export function TelaBriefing({ base }: { base: BaseCasca & { conta: Conta; sinai
                       {l.texto}
                       <Cita ns={l.fontes} />
                     </p>
-                    {l.detalhe && <p className="text-sm text-text-3">{l.detalhe}</p>}
+                    {seDiferente(l.texto, l.detalhe) && <p className="text-sm text-text-3">{l.detalhe}</p>}
                   </li>
                 ))}
               </ol>

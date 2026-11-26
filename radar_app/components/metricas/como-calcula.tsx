@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { exemploMetodologia } from '@/lib/exemplo-metodologia';
 import type { Base } from '@/lib/tipos';
 import { hrefConta } from '@/lib/contas';
-import { cn, pontos } from '@/lib/utils';
+import { cn, pontos, seDiferente } from '@/lib/utils';
 import { FAIXAS_VSCS, MATRIZ_ICP } from '@/lib/avaliacao';
 import { Rotulo } from '@/components/ui/rotulo';
 
@@ -154,7 +154,7 @@ export function ComoCalcula({ base }: { base: Base }) {
               <li key={i} className="flex items-baseline justify-between gap-3">
                 <span className="min-w-0 text-text-2">
                   {p.rotulo}
-                  {p.detalhe && <span className="text-text-3"> · {p.detalhe}</span>}
+                  {seDiferente(p.rotulo, p.detalhe) && <span className="text-text-3"> · {p.detalhe}</span>}
                 </span>
                 <span className={cn('vr-data shrink-0 text-xs', p.pontos < 0 ? 'text-risk' : 'text-foreground')}>
                   {p.pontos < 0 ? `−${Math.abs(p.pontos)}` : `+${p.pontos}`}

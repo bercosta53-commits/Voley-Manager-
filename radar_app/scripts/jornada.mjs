@@ -373,7 +373,8 @@ try {
   // 5c. Narrativa da conta: os movimentos cobrem todos os fatos da conta
   await pagina.goto(app.url(`/contas/${contaAlvo.id}`), { waitUntil: 'networkidle' });
   const narr = pagina.locator('section', { hasText: 'Narrativa da conta' }).first();
-  const fatosConta = base.sinais.filter(s => !s.exemplo && s.contaId === contaAlvo.id).length;
+  const sinaisConta = base.sinais.filter(s => !s.exemplo && s.contaId === contaAlvo.id);
+  const fatosConta = sinaisConta.length + (contaAlvo.historico ?? []).filter(h => !h.exemplo && !sinaisConta.some(s => s.data === h.data && (s.sinal ?? s.rotulo) === (h.sinal ?? h.rotulo))).length;
   const nosMov = await narr.locator('h3 + p').evaluateAll(ps => ps.reduce((n, p) => n + Number((p.textContent.match(/(\d+) fatos?/) ?? [0, 0])[1]), 0));
   conferir(nosMov === fatosConta, 'narrativa: a soma dos fatos dos movimentos é o total da conta', `${nosMov} de ${fatosConta}`);
 

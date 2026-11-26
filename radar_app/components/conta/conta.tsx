@@ -191,11 +191,11 @@ function Detalhe({
             <ProximaAcao conta={conta} sinais={sinais} estados={estados} hoje={hoje} onMudar={onMudar} andamento={andamento} />
           </div>
           {playbook && <BlocoPlaybook ativacao={playbook} conta={conta} className="mt-0" />}
-          <NarrativaConta contaId={conta.id} sinais={sinais} hoje={hoje} />
+          <NarrativaConta contaId={conta.id} sinais={sinais} historico={conta.historico} hoje={hoje} />
           <LinhaDoTempo conta={conta} sinais={sinais} estados={estados} hoje={hoje} andamento={andamento} />
         </div>
         <div className="flex flex-col gap-6">
-          <Andamento atual={andamento} compartilhado={compartilhado} onMudar={onAndamento} />
+          {compartilhado && <Andamento atual={andamento} compartilhado={compartilhado} onMudar={onAndamento} />}
           <Comite conta={conta} />
           <Cadastro conta={conta} />
         </div>
@@ -286,7 +286,6 @@ function ProximaAcao({
   const abordado = sinais.map(s => ({ s, e: estados[s.id] })).find(x => x.e?.acao === 'abordado');
   const [texto, setTexto] = useState('');
   const [copiado, setCopiado] = useState(false);
-  const [mesmoAssim, setMesmoAssim] = useState(false);
   useEffect(() => {
     if (alvo) setTexto(rascunho(alvo, conta));
     setCopiado(false);
@@ -323,25 +322,8 @@ function ProximaAcao({
   // a matriz ICP × VSCS ainda não pede abordagem: diz o que fazer em vez de empurrar o rascunho
   // (mesma origem da tese: o que o motor gravou ou, sem isso, a matriz — senão a tela se contradiz)
   const acao = conta.acaoRecomendada || acaoPelaMatriz(conta);
-  if (acao && !ACOES_DE_ABORDAGEM.has(acao) && !conta.v2?.via_rapida && !mesmoAssim) {
-    const corpo: Record<string, string> = {
-      Monitorar: 'O VSCS ainda é baixo para o tier desta conta. Um fato sozinho não abre conversa: o radar avisa quando outro sinal chegar perto deste no tempo.',
-      'Ampliar pesquisa': 'Há movimento, mas falta um segundo fato. Pesquise a conta (vagas, imprensa, LinkedIn à mão) e confirme quem decide antes de abordar.',
-      'Revisar ICP da conta': 'Score alto em conta fora do ICP costuma indicar ICP mal classificado. Revise o tier antes de perseguir.',
-      Ignorar: 'Fora do ICP e sem sinais relevantes.',
-    };
-    return (
-      <section className="vr-card flex flex-wrap items-center justify-between gap-3 p-4">
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold">Rascunho guardado</h2>
-          <p className="text-sm text-text-3">{corpo[acao] ?? conta.v2?.frase}</p>
-        </div>
-        <Button variant="ghost" onClick={() => setMesmoAssim(true)}>
-          Ver o rascunho mesmo assim
-        </Button>
-      </section>
-    );
-  }
+  // a tese já diz a próxima ação (Monitorar, Ampliar pesquisa…): sem contato pedido, o rascunho não ocupa a tela
+  if (acao && !ACOES_DE_ABORDAGEM.has(acao) && !conta.v2?.via_rapida) return null;
 
   const para = alvo.abordar.nome ? `${alvo.abordar.nome}${alvo.abordar.cargo ? `, ${alvo.abordar.cargo}` : ''}` : `${alvo.abordar.cargo} (a identificar)`;
   return (
@@ -449,10 +431,12 @@ function Cadastro({ conta }: { conta: Conta }) {
   if (conta.socios?.length) {
     linhas.push(['Sócios', conta.socios.map(s => (s.qualificacao ? `${s.nome} (${s.qualificacao})` : s.nome)).join(', ')]);
   }
+  // só o que está preenchido: linha com "—" não informa nada
+  const preenchidas = linhas.filter(([, v]) => v !== '—' && !(typeof v === 'object' && v && 'props' in v && (v as React.ReactElement<{ children?: unknown }>).props.children === '—'));
   return (
     <Secao titulo="Dados cadastrais">
       <dl className="mt-3 grid gap-2.5 text-sm">
-        {linhas.map(([k, v]) => (
+        {preenchidas.map(([k, v]) => (
           <div key={k} className="grid grid-cols-[112px_minmax(0,1fr)] gap-3">
             <dt className="text-text-3">{k}</dt>
             <dd className="break-words text-text-2">{v}</dd>

@@ -317,7 +317,7 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
                         Conta
                       </Cabecalho>
                       <th scope="col" className="hidden w-[200px] px-3 py-2.5 font-medium lg:table-cell">Segmento</th>
-                      <th scope="col" className="hidden w-[170px] px-3 py-2.5 font-medium md:table-cell">Status · ação</th>
+                      <th scope="col" className="hidden w-[150px] px-3 py-2.5 font-medium md:table-cell">Momento</th>
                       <Cabecalho col="sinal" ordem={ordem} onOrdenar={ordenar} className="hidden w-[250px] md:table-cell">
                         Último sinal
                       </Cabecalho>
@@ -382,7 +382,8 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
                             {c.especializacao && c.especializacao.codigo !== 'GEN' && <span className="text-text-3"> · {c.especializacao.nome}</span>}
                           </td>
                           <td className="hidden px-3 py-2.5 md:table-cell">
-                            <SeloVscs status={c.vscsStatus} acao={c.acaoRecomendada} />
+                            {/* o padrão da base (Monitoramento) não ocupa a coluna: só o que foge dele aparece */}
+                            {c.vscsStatus && c.vscsStatus !== 'Monitoramento' ? <SeloVscs status={c.vscsStatus} acao={c.acaoRecomendada} /> : <span className="sr-only">{c.vscsStatus ?? 'sem status'}</span>}
                           </td>
                           <td className="hidden px-3 py-2.5 md:table-cell">
                             {s ? (

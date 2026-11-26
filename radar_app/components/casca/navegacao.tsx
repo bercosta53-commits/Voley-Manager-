@@ -104,17 +104,11 @@ export function NavLateral({ base, novos, onBuscar }: { base: BaseCasca; novos: 
   };
   const apresentacao = useApresentacao();
   // no modo apresentação o estado dos coletores não aparece (Fontes sai do menu): o rodapé mostra só o frescor
-  const fontes = apresentacao ? [] : (base.fontes ?? []);
-  const ok = fontes.filter(f => f.status === 'ok').length;
   const agora = useAgora();
-  // vermelho quando nenhuma fonte está de pé ou a base passou de 72 h; âmbar com fonte parada ou base > 36 h
+  // vermelho quando a base passou de 72 h; âmbar acima de 36 h
   const idade = agora ? frescor(base.atualizadoEm ?? base.geradoEm, agora).nivel : 'ok';
-  const tom =
-    (fontes.length && ok === 0) || idade === 'critico' || idade === 'desconhecido'
-      ? 'bg-risk'
-      : fontes.some(f => f.status !== 'ok') || idade === 'atencao'
-        ? 'bg-warm'
-        : 'bg-ok';
+  // a cor diz só se a carga está em dia; o estado de cada fonte fica na tela Fontes
+  const tom = idade === 'critico' || idade === 'desconhecido' ? 'bg-risk' : idade === 'atencao' ? 'bg-warm' : 'bg-ok';
   return (
     <aside
       aria-label="Navegação principal"
@@ -186,11 +180,6 @@ export function NavLateral({ base, novos, onBuscar }: { base: BaseCasca; novos: 
             <span aria-hidden className={cn('size-1.5 rounded-full', tom)} />
             Dados de {rotuloCarga(base.atualizadoEm ?? base.geradoEm)}
           </span>
-          {fontes.length > 0 && (
-            <span className="pl-3">
-              {ok} de {fontes.length} fontes ativas
-            </span>
-          )}
         </Link>
         <div className="mt-2 flex items-center justify-center gap-1 lg:justify-between">
           <span className="hidden lg:inline">
