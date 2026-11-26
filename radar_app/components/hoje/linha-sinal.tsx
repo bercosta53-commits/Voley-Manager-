@@ -7,13 +7,15 @@ import { COR_TIER, NIVEL_GATILHO } from '@/lib/papeis';
 import { LogoConta } from './logo-conta';
 import { BarraForca } from './forca';
 import { forcaDe, pontosInteiros } from '@/lib/caixa';
+import type { Ativacao } from '@/lib/playbooks';
+import { Zap } from 'lucide-react';
 
 /**
  * Uma linha da caixa de entrada (computador): conta, o sinal em uma frase, quanto somou e quando. A leitura é
  * de cima para baixo como um e-mail; o detalhe do sinal selecionado abre ao lado.
  */
-export const LinhaSinal = forwardRef<HTMLButtonElement, { sinal: Sinal; conta: Conta; ativo: boolean; util?: boolean; onSelecionar: () => void }>(
-  function LinhaSinal({ sinal, conta, ativo, util, onSelecionar }, ref) {
+export const LinhaSinal = forwardRef<HTMLButtonElement, { sinal: Sinal; conta: Conta; ativo: boolean; util?: boolean; playbook?: Ativacao; onSelecionar: () => void }>(
+  function LinhaSinal({ sinal, conta, ativo, util, playbook, onSelecionar }, ref) {
     const negativo = sinal.categoria === 'negativo';
     const cor = negativo ? 'var(--vr-risk)' : NIVEL_GATILHO[sinal.nivel ?? 'C'].ponto;
     return (
@@ -43,6 +45,12 @@ export const LinhaSinal = forwardRef<HTMLButtonElement, { sinal: Sinal; conta: C
               <span aria-hidden className="size-1.5 shrink-0 rounded-full" style={{ background: cor }} />
               <span className="truncate">{sinal.rotulo}</span>
               {util && <span className="shrink-0 text-ok">· útil</span>}
+              {playbook && (
+                <span title={`Playbook: ${playbook.playbook.nome}`} className="inline-flex min-w-0 items-center gap-0.5 font-semibold text-warm">
+                  <Zap aria-hidden className="size-3 shrink-0" strokeWidth={2} />
+                  <span className="truncate">{playbook.playbook.nome}</span>
+                </span>
+              )}
               {!negativo && <BarraForca forca={forcaDe(sinal)} className="ml-auto shrink-0" />}
               <span className={cn('vr-data shrink-0 font-semibold', negativo && 'ml-auto', negativo || sinal.pontos < 0 ? 'text-risk' : sinal.pontos > 0 ? 'text-warm' : 'text-text-3')}>
                 {pontosInteiros(sinal.pontos)}

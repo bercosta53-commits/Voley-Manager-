@@ -26,6 +26,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEstados } from './estado';
 import { MenuFiltro } from '@/components/contas/menu-filtro';
+import { playbooksPorConta } from '@/lib/playbooks';
+import { BlocoPlaybook } from './playbook';
 import {
   ORDENS, ORDEM_PADRAO, SEM_FILTROS_CAIXA, contarOpcoes, dentroDaJanela, filtrarCaixa, ordenarCaixa, porEstagio, temFiltroCaixa,
   type FiltrosCaixa, type Ordem,
@@ -113,6 +115,8 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
     }
     return { caixa, adiados, concluidos };
   }, [sinais, estados, naCaixa]);
+  // playbooks combinados por conta (fase 3): leem todos os sinais da carga, não só os da caixa
+  const playbooks = useMemo(() => playbooksPorConta(sinais, dataCarga), [sinais, dataCarga]);
   // janela de validade por tipo: sinal vencido sai da caixa e fica só na conta e no gráfico (lib/caixa.ts)
   const caixaValida = useMemo(() => listas.caixa.filter(s => dentroDaJanela(s, dataCarga)), [listas.caixa, dataCarga]);
   const vencidos = listas.caixa.length - caixaValida.length;
@@ -323,6 +327,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
                 conta={contas.get(s.contaId)!}
                 ativo={s.id === atual.id}
                 util={estados[s.id]?.avaliacao === 'util'}
+                playbook={playbooks.get(s.contaId)}
                 onSelecionar={() => setFoco(i)}
               />
             ))}
@@ -342,8 +347,10 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
               onAvaliar={n => avaliar(atual, n)}
               onAbrir={() => router.push(hrefConta(atual.contaId))}
               onFoco={() => {}}
+              playbook={playbooks.get(atual.contaId)}
             />
           </ul>
+          {playbooks.get(atual.contaId) && <BlocoPlaybook key={atual.contaId} ativacao={playbooks.get(atual.contaId)!} conta={contas.get(atual.contaId)!} />}
           {/* contexto da conta ao lado do sinal: o que fazer (matriz ICP × score) e de onde vem o número */}
           {(() => {
             const c = contas.get(atual.contaId)!;
@@ -393,6 +400,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
               }}
               sinal={s}
               conta={contas.get(s.contaId)!}
+              playbook={playbooks.get(s.contaId)}
               estado={estados[s.id]}
               hoje={hoje}
               naCaixa={visao === 'caixa'}
@@ -549,6 +557,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
               <CartaoSinal
                 sinal={detalhe}
                 conta={detalheConta}
+                playbook={playbooks.get(detalhe.contaId)}
                 estado={estados[detalhe.id]}
                 hoje={hoje}
                 naCaixa={naCaixa(estados[detalhe.id])}
@@ -560,6 +569,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
                 onFoco={() => {}}
               />
             </ul>
+            {playbooks.get(detalhe.contaId) && <BlocoPlaybook ativacao={playbooks.get(detalhe.contaId)!} conta={detalheConta} />}
             {naCaixa(estados[detalhe.id]) ? (
               <div className="grid grid-cols-2 gap-2">
                 <Button variant="primary" className="col-span-2" onClick={() => agir(detalhe, 'abordar')}>
