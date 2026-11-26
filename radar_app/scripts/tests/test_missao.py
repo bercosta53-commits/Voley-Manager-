@@ -5,7 +5,8 @@ from datetime import date, timedelta
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from vscs import motor33
-from vscs.missao import extrair, TIPOS
+from vscs.missao import extrair, TIPOS, selecionar
+from types import SimpleNamespace
 
 HOJE = date(2026, 11, 26)
 def mandato(tipo="grandes_contas", texto="abrir grandes contas", **kw):
@@ -13,7 +14,8 @@ def mandato(tipo="grandes_contas", texto="abrir grandes contas", **kw):
 def ev(m=None, **kw):
     e = {"id": "e1", "tipo": "executivo_chegou", "data": (HOJE-timedelta(days=36)).isoformat(),
          "sinal": "Fulana assume como CRO", "pessoa": "Fulana", "cargo": "CRO",
-         "fonte": "Exame", "url": "https://example.invalid/anuncio", **kw}
+         "fonte": "Exame", "url": "https://example.invalid/anuncio",
+         "ingressoConfirmado": True, "ingressoFonteUrl": "https://example.invalid/posse", **kw}
     if m is not None:
         e["missao"] = m
     return e
@@ -49,7 +51,7 @@ class TestMissao(unittest.TestCase):
         e=ev(mandato(),tipo="vaga_lideranca_alvo",sinal="Head Comercial",cargo="Head Comercial")
         a,b=self.calc([e]),self.calc([e],False)
         self.assertEqual(a["vscs"],b["vscs"])
-        self.assertEqual(a["movimentos"][0]["acontecimentos"][0]["missao"]["fator"],1)
+        self.assertIsNone(a["movimentos"][0]["acontecimentos"][0]["missao"])
     def test_mandato_nao_duplica_documento(self):
         e=ev(mandato())
         outro=ev(mandato(),id="e2",url="https://example.invalid/republicacao")
@@ -70,3 +72,24 @@ class TestMissao(unittest.TestCase):
         m=mandato(tensaoExecucao={"nivel":"alta"},aderenciaVelora={"nivel":"muito_alta"})
         self.assertEqual(extrair(ev(m))["fator"],1.15)
         self.assertEqual(extrair(ev(m))["tensaoExecucao"]["nivel"],"alta")
+
+    def test_entrada_efetiva_e_senioridade(self):
+        for nivel, nomeacao, vaga, confirmado, esperado in [
+            ("coordenacao", True, False, True, True),
+            ("gerencia", True, False, True, True),
+            ("head", True, False, True, True),
+            ("diretoria_receita", True, False, True, True),
+            ("clevel_receita", True, False, True, True),
+            ("sdr_bdr", True, False, True, False),
+            ("especialista_gtm", True, False, True, False),
+            ("head", False, True, True, False),
+            ("head", True, False, False, False)]:
+            cl = dict(nivel=nivel, nomeacao=nomeacao, vaga=vaga)
+            ac = SimpleNamespace(cl=cl, docs=[SimpleNamespace(cl=cl, ev=ev(mandato(), ingressoConfirmado=confirmado))])
+            self.assertEqual(selecionar(ac, True, HOJE) is not None, esperado)
+    def test_anuncio_futuro_nao_conta(self):
+        e=ev(mandato(), ingressoEm="2026-12-01")
+        self.assertEqual(self.calc([e])["vscs"], self.calc([e],False)["vscs"])
+    def test_sem_fonte_ingresso_nao_conta(self):
+        e=ev(mandato(), ingressoFonteUrl=None)
+        self.assertEqual(self.calc([e])["vscs"], self.calc([e],False)["vscs"])
