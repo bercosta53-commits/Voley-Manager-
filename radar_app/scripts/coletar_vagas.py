@@ -45,6 +45,9 @@ import urllib.robotparser
 from datetime import date
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from varreduras import registrar as registrar_varredura  # noqa: E402
+
 RAIZ = Path(__file__).resolve().parent.parent
 DESTINO = RAIZ / "data" / "contas.local.json"
 RENDERIZADOR = RAIZ / "scripts" / "renderizar_pagina.js"
@@ -467,6 +470,7 @@ def main() -> None:
             vagas, erro = achar_vagas_da_conta(conta["nome"], conta["dominio"], robots_cache)
             if erro:
                 erros.append((conta["nome"], erro))
+                registrar_varredura(base, conta["id"], "carreiras", "erro")
             else:
                 vagas = [v for v in vagas if v[1] not in descartados]
                 consolidado = id_vagas_abertas(conta["id"])
@@ -486,10 +490,12 @@ def main() -> None:
                     ids_conhecidos |= {s["id"] for s in novos}
                     total_com_vaga_alvo += 1
                     total_novos_sinais += len(novos)
+                registrar_varredura(base, conta["id"], "carreiras", "com_fato" if novos else "sem_fato", len(vagas))
         except Exception as e:
             # um site com algo inesperado não pode derrubar a rodada inteira — grava o erro e segue
             # (lição do coletor de CNPJ: a rodada inteira travou e perdeu tudo por causa disso uma vez).
             erros.append((conta["nome"], f"erro inesperado: {e}"))
+            registrar_varredura(base, conta["id"], "carreiras", "erro")
 
         if i % 25 == 0 or i == len(contas):
             print(f"  {i}/{len(contas)} contas processadas...", file=sys.stderr)

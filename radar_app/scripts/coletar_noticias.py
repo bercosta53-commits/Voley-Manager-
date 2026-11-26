@@ -34,6 +34,9 @@ from datetime import date
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from varreduras import registrar as registrar_varredura  # noqa: E402
+
 RAIZ = Path(__file__).resolve().parent.parent
 DESTINO = RAIZ / "data" / "contas.local.json"
 JANELA_CAIXA_DIAS = 45  # mais novo que isso -> sinais[] (caixa de Hoje); mais velho -> historico[] direto
@@ -316,7 +319,10 @@ def main() -> None:
 
             if erro:
                 erros.append((conta["nome"], erro))
+                registrar_varredura(base, conta["id"], "google-news", "erro")
             else:
+                registrar_varredura(base, conta["id"], "google-news", "com_fato" if (novos_sinais or novos_eventos) else "sem_fato",
+                                    len(novos_sinais) + len(novos_eventos))
                 if novos_sinais:
                     for s in novos_sinais:
                         base["sinais"].append({"id": id_sinal(conta["id"], s["url"]), "contaId": conta["id"], **s})

@@ -11,6 +11,7 @@ import { hrefConta, primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, sentid
 import { gancho, rascunho } from '@/lib/mensagem';
 import { papelNoComite } from '@/lib/papeis';
 import { cobertura } from '@/lib/cobertura';
+import { coberturaDaConta, EXPLICA_COBERTURA, ROTULO_COBERTURA, type Varredura } from '@/lib/varredura';
 import { ACAO_DO_ANDAMENTO, teseDaConta } from '@/lib/tese';
 import { TeseConta } from './tese';
 import { cn, dataComAno, dataCurta, moeda, plural, somarDias, pontos } from '@/lib/utils';
@@ -39,7 +40,7 @@ type EstadoTela = 'normal' | 'carregando' | 'vazio' | 'erro' | 'sem-permissao';
 const ESTADOS: EstadoTela[] = ['carregando', 'vazio', 'erro', 'sem-permissao'];
 
 /** S-1: a tela da conta recebe a conta e os sinais dela, mais o índice leve da casca; nunca o snapshot inteiro. */
-export type BaseConta = BaseCasca & { conta?: Conta; sinaisDaConta: Sinal[] };
+export type BaseConta = BaseCasca & { conta?: Conta; sinaisDaConta: Sinal[]; varreduraDaConta?: Record<string, Varredura> };
 
 export function TelaConta({ base, contaId }: { base: BaseConta; contaId: string }) {
   const [estadoTela, setEstadoTela] = useState<EstadoTela>('normal');
@@ -93,6 +94,8 @@ export function TelaConta({ base, contaId }: { base: BaseConta; contaId: string 
         andamento={andamentos[conta.id]}
         compartilhado={compartilhado}
         onAndamento={st => salvarStatus(conta.id, st)}
+        varredura={base.varreduraDaConta}
+        dataBase={base.geradoEm.slice(0, 10)}
         playbook={detectarPlaybook(sinais.filter(s => s.tipo !== 'noticia_setorial'), (base.atualizadoEm ?? base.geradoEm).slice(0, 10)) ?? undefined}
       />
     );
@@ -120,6 +123,8 @@ function Detalhe({
   compartilhado,
   onAndamento,
   playbook,
+  varredura,
+  dataBase,
 }: {
   conta: Conta;
   sinais: Sinal[];
@@ -132,6 +137,9 @@ function Detalhe({
   onAndamento: (status: StatusConta | null) => void;
   /** playbook combinado ativo na conta (fase 3 da tela de sinais) */
   playbook?: Ativacao;
+  varredura?: Record<string, Varredura>;
+  /** data da carga (AAAA-MM-DD): referência da cobertura */
+  dataBase?: string;
 }) {
   const [decompor, setDecompor] = useState(false);
   const tese = useMemo(
@@ -162,6 +170,7 @@ function Detalhe({
             <div className="mt-2 flex flex-wrap gap-1.5">
               <Chip tom="contorno">Tier {conta.tier}</Chip>
               <Chip tom="contorno">{rotuloStatus(conta)}</Chip>
+              <ChipCobertura contaId={conta.id} sinais={sinais} varredura={varredura} hoje={dataBase ?? hoje} />
               <Link
                 href={`${hrefConta(conta.id)}/briefing`}
                 className="inline-flex items-center gap-1 rounded-chip border border-border-strong bg-card px-1.5 py-0.5 text-xs font-medium text-foreground hover:bg-muted"
@@ -451,6 +460,21 @@ function Cadastro({ conta }: { conta: Conta }) {
         ))}
       </dl>
     </Secao>
+  );
+}
+
+/** "Varrida, sem fato · 20/11": diz se a falta de sinal é informação ou só falta de leitura. */
+function ChipCobertura({ contaId, sinais, varredura, hoje }: { contaId: string; sinais: Sinal[]; varredura?: Record<string, Varredura>; hoje: string }) {
+  const cb = coberturaDaConta(contaId, sinais.map(s => s.data), varredura ? { [contaId]: varredura } : undefined, hoje);
+  if (cb.estado === 'com_fato') return null;
+  const quando = cb.ultimaVarredura ?? cb.ultimoFato;
+  return (
+    <span title={EXPLICA_COBERTURA[cb.estado]}>
+      <Chip tom="contorno">
+        {ROTULO_COBERTURA[cb.estado]}
+        {quando && ` · ${quando.slice(8, 10)}/${quando.slice(5, 7)}`}
+      </Chip>
+    </span>
   );
 }
 

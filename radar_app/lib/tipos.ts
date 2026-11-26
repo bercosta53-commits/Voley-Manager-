@@ -258,6 +258,8 @@ export interface Base {
   fontes: Fonte[];
   /** agenda presencial: eventos dos próximos 60 dias com contas da base */
   agenda?: EventoAgenda[];
+  /** última varredura por conta e fonte: separa "sem fato" de "não varrido" (lib/varredura.ts, docs/varreduras.md) */
+  varreduras?: import('./varredura').Varreduras;
   /** true quando a base é a de exemplo (empresas fictícias) */
   ficticia?: boolean;
   /** preenchido na leitura (lib/dados.ts), nunca gravado: o que foi retirado e quanto a leitura custou */

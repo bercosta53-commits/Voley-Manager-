@@ -17,5 +17,5 @@ export default async function Pagina({ params }: { params: Promise<{ id: string 
   const conta = base.contas.find(c => c.id === id);
   if (!conta) notFound();
   // S-1: só esta conta e os sinais dela, mais o índice leve da casca (menu, Cmd+K, frescor)
-  return <TelaConta base={{ ...paraCasca(base), conta, sinaisDaConta: base.sinais.filter(s => s.contaId === id) }} contaId={id} />;
+  return <TelaConta base={{ ...paraCasca(base), conta, sinaisDaConta: base.sinais.filter(s => s.contaId === id), varreduraDaConta: base.varreduras?.[id] }} contaId={id} />;
 }

@@ -25,6 +25,13 @@ export async function baseDeTeste() {
   delete base.ficticia;
   base.sinais = base.sinais.map(s => ({ ...s, exemplo: false }));
   base.contas = base.contas.map(c => ({ ...c, historico: (c.historico ?? []).map(h => ({ ...h, exemplo: false })) }));
+  // varreduras de teste (contas fictícias, docs/varreduras.md)
+  // (as duas contas de fato mais antigo; a 1.ª varrida sem fato, a 2.ª com erro)
+  const ultimoFato = c => base.sinais.filter(s => s.contaId === c.id).map(s => s.data).sort().at(-1) ?? '';
+  const antigas = [...base.contas].sort((a, b) => ultimoFato(a).localeCompare(ultimoFato(b))).slice(0, 2);
+  base.varreduras = Object.fromEntries(
+    antigas.map((c, i) => [c.id, { 'google-news': { em: base.geradoEm, resultado: i === 0 ? 'sem_fato' : 'erro', itens: 0 } }]),
+  );
   base.sinais.push({ ...base.sinais[0], id: 'sinal-exemplo-teste', rotulo: MARCA_FICTICIA, sinal: MARCA_FICTICIA, porQueAgora: MARCA_FICTICIA, exemplo: true });
   return base;
 }

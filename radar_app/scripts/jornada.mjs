@@ -362,6 +362,14 @@ try {
   await pagina.getByRole('button', { name: /Modo apresentação/ }).first().click();
   conferir((await menu(pagina)).includes('Clima'), 'o selo desliga o modo apresentação');
 
+  // 5b. Cobertura da varredura: a soma dos estados é a base inteira
+  await pagina.goto(app.url('/fontes'), { waitUntil: 'networkidle' });
+  const cob = pagina.locator('section[aria-labelledby="cobertura-titulo"]');
+  conferir((await cob.count()) === 1, 'Fontes mostra a cobertura das contas');
+  const comInfo = Number(await cob.locator('.vr-data.text-4xl').innerText());
+  const esperadoCob = new Set(base.sinais.filter(s => !s.exemplo && (Date.parse(base.geradoEm) - Date.parse(s.data)) / 864e5 <= 90).map(s => s.contaId)).size;
+  conferir(comInfo === esperadoCob, 'cobertura: contas com informação = contas com fato nos últimos 90 dias', `${comInfo} de ${esperadoCob}`);
+
   // 5c. Narrativa da conta: os movimentos cobrem todos os fatos da conta
   await pagina.goto(app.url(`/contas/${contaAlvo.id}`), { waitUntil: 'networkidle' });
   const narr = pagina.locator('section', { hasText: 'Narrativa da conta' }).first();

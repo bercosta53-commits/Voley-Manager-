@@ -9,6 +9,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Casca } from '@/components/casca/casca';
 import { Aviso, ErroCarregar, SemPermissao } from '@/components/hoje/estados';
 import { PlugZap } from 'lucide-react';
+import type { ResumoCobertura } from '@/lib/varredura';
+import { CoberturaVarredura } from './cobertura-varredura';
 
 type EstadoTela = 'normal' | 'carregando' | 'vazio' | 'erro' | 'sem-permissao';
 const ESTADOS: EstadoTela[] = ['carregando', 'vazio', 'erro', 'sem-permissao'];
@@ -22,7 +24,7 @@ const ORDEM: Record<StatusFonte, number> = { erro: 0, atencao: 1, ok: 2 };
 
 const frequencia = (dias: number) => (dias <= 1 ? 'todo dia' : dias === 7 ? 'toda semana' : dias >= 28 ? 'todo mês' : `a cada ${dias} dias`);
 
-export function TelaFontes({ base }: { base: BaseCasca }) {
+export function TelaFontes({ base, cobertura }: { base: BaseCasca; cobertura?: ResumoCobertura }) {
   const [estadoTela, setEstadoTela] = useState<EstadoTela>('normal');
   const [pronto, setPronto] = useState(false);
   useEffect(() => {
@@ -70,6 +72,7 @@ export function TelaFontes({ base }: { base: BaseCasca }) {
               : 'De onde o radar tira os sinais.'}
           </p>
         </div>
+        {cobertura && cobertura.total > 0 && pronto && estadoTela === 'normal' && <CoberturaVarredura resumo={cobertura} />}
         {conteudo}
       </main>
     </Casca>
@@ -127,7 +130,7 @@ function Linha({ rotulo, children }: { rotulo: string; children: React.ReactNode
   return (
     <div className="grid grid-cols-[108px_minmax(0,1fr)] gap-3">
       <dt className="text-text-3">{rotulo}</dt>
-      <dd className="text-text-2">{children}</dd>
+      <dd className="min-w-0 text-text-2 [overflow-wrap:anywhere]">{children}</dd>
     </div>
   );
 }
