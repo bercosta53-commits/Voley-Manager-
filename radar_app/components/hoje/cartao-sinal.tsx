@@ -23,6 +23,7 @@ import { BarraForca } from './forca';
 import { forcaDe, pontosInteiros } from '@/lib/caixa';
 import type { Ativacao } from '@/lib/playbooks';
 import { OportunidadeVelora, SeloPlaybook } from './playbook';
+import { SeloViaQuente } from '@/components/conta/relacionamento';
 import { Chip } from '@/components/ui/chip';
 
 /** "Sinal de alta relevância": retorno do time para calibrar o modelo; não muda o score (P1-8). */
@@ -79,10 +80,12 @@ interface Props {
   onFoco: () => void;
   /** playbook combinado ativo na conta (fase 3): selo no cartão e substitui a oportunidade isolada */
   playbook?: Ativacao;
+  /** alguém da Velora tem acesso direto a uma pessoa do comitê (relação 4–5) */
+  viaQuente?: boolean;
 }
 
 export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
-  { sinal, conta, estado, hoje, naCaixa, semAcoes, deslizavel, onAcao, onAvaliar, onAbrir, onFoco, playbook },
+  { sinal, conta, estado, hoje, naCaixa, semAcoes, deslizavel, onAcao, onAvaliar, onAbrir, onFoco, playbook, viaQuente },
   ref,
 ) {
   const reduzir = useReducedMotion();
@@ -237,6 +240,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
               </span>
               <Chip tom="neutro">{sinal.rotulo}</Chip>
               {playbook && <SeloPlaybook ativacao={playbook} />}
+              {viaQuente && <SeloViaQuente />}
 
             </div>
             <div className="flex items-baseline gap-2">
