@@ -155,7 +155,7 @@ export function TelaIcp({ base, regras }: { base: Base; regras: RegrasIcp }) {
                           style={{ background: l.length ? `color-mix(in srgb, var(--vr-cool) ${Math.round(8 + t * 55)}%, var(--vr-surface))` : 'var(--vr-surface-2)' }}
                         >
                           <span className={cn('vr-data text-sm', t > 0.7 ? 'text-white' : 'text-foreground')}>{l.length || '·'}</span>
-                          {a > 0 && <span className={cn('vr-data text-[11px] font-semibold', t > 0.7 ? 'text-white' : 'text-ok')}>{a} A</span>}
+                          {a > 0 && <span className={cn('vr-data text-xs font-semibold', t > 0.7 ? 'text-white' : 'text-ok')}>{a} A</span>}
                         </div>
                       );
                     })}
@@ -185,7 +185,7 @@ function Linha({ nome, total, a, children }: { nome: string; total: number; a: n
       {children}
       <div className="flex h-11 flex-col items-center justify-center rounded-[3px] bg-[var(--vr-surface-2)] leading-tight">
         <span className="vr-data text-sm">{total}</span>
-        <span className="vr-data text-[11px] font-semibold text-ok">{a} A</span>
+        <span className="vr-data text-xs font-semibold text-ok">{a} A</span>
       </div>
     </>
   );

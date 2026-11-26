@@ -103,10 +103,10 @@ export function Gatilhos({
               className={cn('flex flex-col gap-2 rounded-card border p-4 text-left', on ? 'border-ok bg-ok-bg/50' : 'border-border bg-[var(--vr-surface-2)] hover:border-border-strong')}
             >
               <span className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-bold tracking-[0.08em] uppercase" style={{ color: g.tag === 'Sugestão' ? 'var(--vr-cool)' : 'var(--vr-ok)' }}>
+                <span className="text-xs font-bold tracking-[0.08em] uppercase" style={{ color: g.tag === 'Sugestão' ? 'var(--vr-cool)' : 'var(--vr-ok)' }}>
                   {g.tag}
                 </span>
-                <span className="vr-data text-[11px] text-text-3">G{g.id}</span>
+                <span className="vr-data text-xs text-text-3">G{g.id}</span>
               </span>
               <span className="text-md leading-snug font-bold">{g.nome}</span>
               <span className="text-xs text-text-2">{g.def}</span>
@@ -117,10 +117,10 @@ export function Gatilhos({
               <span className="block h-1.5 overflow-hidden rounded-full bg-[var(--vr-surface-3)]">
                 <span className="block h-1.5 bg-ok transition-[width] duration-300" style={{ width: pct(n) }} />
               </span>
-              <span className="text-[11px] text-text-3">
+              <span className="text-xs text-text-3">
                 <span className="font-semibold text-foreground">Como medimos:</span> {g.como}
               </span>
-              <span className="text-[11px]" style={{ color: corConf }}>
+              <span className="text-xs" style={{ color: corConf }}>
                 Confiança {conf}
               </span>
             </button>
@@ -160,7 +160,7 @@ export function Gatilhos({
         </div>
         <div className="flex min-w-0 flex-[1_1_340px] flex-col gap-2.5">
           <div className="text-sm font-bold">Quais gatilhos andam juntos</div>
-          <div className="grid gap-[3px] text-[11px]" style={{ gridTemplateColumns: '120px repeat(5, minmax(0, 1fr))' }}>
+          <div className="grid gap-[3px] text-xs" style={{ gridTemplateColumns: '120px repeat(5, minmax(0, 1fr))' }}>
             <div />
             {GATILHOS.map(g => (
               <div key={g.id} className="py-1 text-center font-semibold text-text-3">
@@ -171,7 +171,7 @@ export function Gatilhos({
               <Linhas key={r.id} r={r} pool={pool} comax={comax} />
             ))}
           </div>
-          <div className="text-[11px] text-text-3">Diagonal = contas com o gatilho. Fora dela = contas com os dois.</div>
+          <div className="text-xs text-text-3">Diagonal = contas com o gatilho. Fora dela = contas com os dois.</div>
         </div>
       </div>
 
@@ -219,7 +219,7 @@ export function Gatilhos({
             })}
           </div>
         </div>
-        <div className="text-[11px] text-text-3">
+        <div className="text-xs text-text-3">
           Ponto cheio = barreira típica da oferta · tracejado âmbar = aparece em parte das contas por causa do cliente atendido. Faixas de ciclo são hipótese para calibrar com as primeiras conversas.
         </div>
       </div>
@@ -296,7 +296,7 @@ function Oferta({ seg, l, comum, faixa }: { seg: string; l: Linha[]; comum: numb
         )}
       </div>
       <div className={cn('vr-data py-1.5 text-right', borda)}>
-        {l.length} <span className="text-[11px] text-ok">{l.filter(a => a.tier === 'A').length} A</span>
+        {l.length} <span className="text-xs text-ok">{l.filter(a => a.tier === 'A').length} A</span>
       </div>
     </>
   );
