@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { Archive, CalendarClock, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
-import type { Base, EstadoSinal, Sinal, StatusVscs } from '@/lib/tipos';
+import type { Base, Conta, EstadoSinal, Sinal, StatusVscs } from '@/lib/tipos';
 import { cn, dataCurta, dataLonga, plural, somarDias, pontos } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/ui/kbd';
@@ -26,8 +26,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEstados } from './estado';
 import { MenuFiltro } from '@/components/contas/menu-filtro';
+import { playbooksPorConta } from '@/lib/playbooks';
+import { BlocoPlaybook } from './playbook';
 import {
-  ORDENS, ORDEM_PADRAO, SEM_FILTROS_CAIXA, contarOpcoes, dentroDaJanela, filtrarCaixa, ordenarCaixa, porEstagio, temFiltroCaixa,
+  ORDENS, ORDEM_PADRAO, QUALQUER_PLAYBOOK, SEM_FILTROS_CAIXA, contarOpcoes, dentroDaJanela, filtrarCaixa, ordenarCaixa, porEstagio, temFiltroCaixa,
   type FiltrosCaixa, type Ordem,
 } from '@/lib/caixa';
 
@@ -113,6 +115,14 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
     }
     return { caixa, adiados, concluidos };
   }, [sinais, estados, naCaixa]);
+  // playbooks combinados por conta (fase 3): leem todos os sinais da carga, não só os da caixa
+  const playbooks = useMemo(() => playbooksPorConta(sinais, dataCarga), [sinais, dataCarga]);
+  // contas com o nome do playbook ativo, para o filtro "Playbook" (lib/caixa.ts)
+  const contasFiltro = useMemo(() => {
+    const m = new Map<string, Conta & { playbook?: string }>();
+    for (const [id, c] of contas) m.set(id, playbooks.has(id) ? { ...c, playbook: playbooks.get(id)!.playbook.nome } : c);
+    return m;
+  }, [contas, playbooks]);
   // janela de validade por tipo: sinal vencido sai da caixa e fica só na conta e no gráfico (lib/caixa.ts)
   const caixaValida = useMemo(() => listas.caixa.filter(s => dentroDaJanela(s, dataCarga)), [listas.caixa, dataCarga]);
   const vencidos = listas.caixa.length - caixaValida.length;
@@ -144,7 +154,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
   // mudar filtro ou ordem volta o foco do j/k para o primeiro da nova lista
   useEffect(() => setFoco(0), [ordem, filtros]);
   const lista = useMemo(
-    () => ordenarCaixa(filtrarCaixa(caixaValida, filtros, contas, dataCarga), ordem, contas),
+    () => ordenarCaixa(filtrarCaixa(caixaValida, filtros, contasFiltro, dataCarga), ordem, contas),
     [caixaValida, filtros, contas, dataCarga, ordem],
   );
   const contagens = { caixa: caixaValida.length, adiados: listas.adiados.length, concluidos: listas.concluidos.length };
@@ -152,29 +162,30 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
   const novosHoje = caixaValida.filter(s => s.data >= dataCarga).length;
   const rotuloNovos = dataCarga === hoje ? `${novosHoje} de hoje` : `${novosHoje} da carga de ${dataCurta(dataCarga)}`;
   // sinais por estágio do score (todas as faixas, com os outros filtros aplicados): os contadores somam o total
-  const semEstagio = useMemo(() => filtrarCaixa(caixaValida, filtros, contas, dataCarga, 'estagios'), [caixaValida, filtros, contas, dataCarga]);
+  const semEstagio = useMemo(() => filtrarCaixa(caixaValida, filtros, contasFiltro, dataCarga, 'estagios'), [caixaValida, filtros, contasFiltro, dataCarga]);
   const porStatus = useMemo(
     () => porEstagio(semEstagio, contas, [...FAIXAS_VSCS].map(([, st]) => st)).filter(x => x.n > 0),
     [semEstagio, contas],
   );
   const opcoes = useMemo(
     () => ({
-      tipos: contarOpcoes(caixaValida, filtros, contas, dataCarga, 'tipos'),
-      tiers: contarOpcoes(caixaValida, filtros, contas, dataCarga, 'tiers'),
-      setores: contarOpcoes(caixaValida, filtros, contas, dataCarga, 'setores'),
-      ufs: contarOpcoes(caixaValida, filtros, contas, dataCarga, 'ufs'),
+      tipos: contarOpcoes(caixaValida, filtros, contasFiltro, dataCarga, 'tipos'),
+      tiers: contarOpcoes(caixaValida, filtros, contasFiltro, dataCarga, 'tiers'),
+      setores: contarOpcoes(caixaValida, filtros, contasFiltro, dataCarga, 'setores'),
+      ufs: contarOpcoes(caixaValida, filtros, contasFiltro, dataCarga, 'ufs'),
+      playbooks: contarOpcoes(caixaValida, filtros, contasFiltro, dataCarga, 'playbooks'),
     }),
-    [caixaValida, filtros, contas, dataCarga],
+    [caixaValida, filtros, contasFiltro, dataCarga],
   );
   // estado vazio por filtro: sugere tirar o filtro que mais devolve sinais
   const sugestao = useMemo(() => {
     if (lista.length || !temFiltroCaixa(filtros)) return null;
-    const grupos: [keyof FiltrosCaixa, string][] = [['estagios', 'estágio'], ['tipos', 'tipo de sinal'], ['tiers', 'tier'], ['setores', 'setor'], ['ufs', 'UF'], ['janela', 'janela']];
+    const grupos: [keyof FiltrosCaixa, string][] = [['estagios', 'estágio'], ['tipos', 'tipo de sinal'], ['tiers', 'tier'], ['setores', 'setor'], ['ufs', 'UF'], ['janela', 'janela'], ['playbooks', 'playbook']];
     return grupos
-      .filter(([g]) => (g === 'janela' ? filtros.janela : (filtros[g] as string[]).length))
-      .map(([g, rotulo]) => ({ g, rotulo, n: filtrarCaixa(caixaValida, filtros, contas, dataCarga, g).length }))
+      .filter(([g]) => (g === 'janela' ? filtros.janela : (filtros[g] as string[] | undefined)?.length))
+      .map(([g, rotulo]) => ({ g, rotulo, n: filtrarCaixa(caixaValida, filtros, contasFiltro, dataCarga, g).length }))
       .sort((a, b) => b.n - a.n)[0] ?? null;
-  }, [lista.length, filtros, caixaValida, contas, dataCarga]);
+  }, [lista.length, filtros, caixaValida, contasFiltro, dataCarga]);
 
   // ---------- ações ----------
 
@@ -323,6 +334,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
                 conta={contas.get(s.contaId)!}
                 ativo={s.id === atual.id}
                 util={estados[s.id]?.avaliacao === 'util'}
+                playbook={playbooks.get(s.contaId)}
                 onSelecionar={() => setFoco(i)}
               />
             ))}
@@ -342,8 +354,10 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
               onAvaliar={n => avaliar(atual, n)}
               onAbrir={() => router.push(hrefConta(atual.contaId))}
               onFoco={() => {}}
+              playbook={playbooks.get(atual.contaId)}
             />
           </ul>
+          {playbooks.get(atual.contaId) && <BlocoPlaybook key={atual.contaId} ativacao={playbooks.get(atual.contaId)!} conta={contas.get(atual.contaId)!} />}
           {/* contexto da conta ao lado do sinal: o que fazer (matriz ICP × score) e de onde vem o número */}
           {(() => {
             const c = contas.get(atual.contaId)!;
@@ -393,6 +407,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
               }}
               sinal={s}
               conta={contas.get(s.contaId)!}
+              playbook={playbooks.get(s.contaId)}
               estado={estados[s.id]}
               hoje={hoje}
               naCaixa={visao === 'caixa'}
@@ -475,6 +490,17 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
             <MenuFiltro rotulo="Tipo de sinal" opcoes={opcoes.tipos.map(([id, qtd]) => ({ id, rotulo: id, qtd }))} valor={filtros.tipos} onMudar={v => mudarFiltro({ tipos: v })} />
             <MenuFiltro rotulo="Tier" opcoes={opcoes.tiers.map(([id, qtd]) => ({ id, rotulo: `Tier ${id}`, qtd }))} valor={filtros.tiers} onMudar={v => mudarFiltro({ tiers: v })} />
             <MenuFiltro rotulo="Setor" opcoes={opcoes.setores.map(([id, qtd]) => ({ id, rotulo: id, qtd }))} valor={filtros.setores} onMudar={v => mudarFiltro({ setores: v })} />
+            {(opcoes.playbooks.length > 0 || filtros.playbooks.length > 0) && (
+              <MenuFiltro
+                rotulo="Playbook"
+                opcoes={[
+                  { id: QUALQUER_PLAYBOOK, rotulo: QUALQUER_PLAYBOOK, qtd: opcoes.playbooks.reduce((n, [, q]) => n + q, 0) },
+                  ...opcoes.playbooks.map(([id, qtd]) => ({ id, rotulo: id, qtd })),
+                ]}
+                valor={filtros.playbooks}
+                onMudar={v => mudarFiltro({ playbooks: v })}
+              />
+            )}
             <MenuFiltro rotulo="UF" opcoes={opcoes.ufs.map(([id, qtd]) => ({ id, rotulo: id, qtd }))} valor={filtros.ufs} onMudar={v => mudarFiltro({ ufs: v })} />
             <label className="flex h-8 items-center gap-1.5 rounded-control border border-border bg-card px-2 text-sm text-text-2 max-md:h-10">
               Janela
@@ -549,6 +575,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
               <CartaoSinal
                 sinal={detalhe}
                 conta={detalheConta}
+                playbook={playbooks.get(detalhe.contaId)}
                 estado={estados[detalhe.id]}
                 hoje={hoje}
                 naCaixa={naCaixa(estados[detalhe.id])}
@@ -560,6 +587,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
                 onFoco={() => {}}
               />
             </ul>
+            {playbooks.get(detalhe.contaId) && <BlocoPlaybook ativacao={playbooks.get(detalhe.contaId)!} conta={detalheConta} />}
             {naCaixa(estados[detalhe.id]) ? (
               <div className="grid grid-cols-2 gap-2">
                 <Button variant="primary" className="col-span-2" onClick={() => agir(detalhe, 'abordar')}>

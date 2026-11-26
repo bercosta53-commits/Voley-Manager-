@@ -84,3 +84,15 @@ test('variantes dos coletores herdam a janela da raiz (liderança 135 dias, D7)'
   assert.equal(janelaDe({ tipo: 'intencao_site' }), 15);
   assert.equal(janelaDe({ tipo: 'tipo_desconhecido' }), 60);
 });
+
+test('filtro de playbook: nome exato ou "Qualquer playbook"; conta sem playbook sai', async () => {
+  const { QUALQUER_PLAYBOOK } = await import('../../lib/caixa.ts');
+  const contas = new Map([['a', conta('a', { playbook: 'Lançamento com tração' })], ['b', conta('b')], ['c', conta('c', { playbook: 'Reposicionamento' })]]);
+  const l = [sinal('1', 'a', '2026-11-20'), sinal('2', 'b', '2026-11-20'), sinal('3', 'c', '2026-11-20')];
+  assert.deepEqual(filtrarCaixa(l, { ...SEM_FILTROS_CAIXA, playbooks: ['Reposicionamento'] }, contas, CARGA).map(s => s.id), ['3']);
+  assert.deepEqual(filtrarCaixa(l, { ...SEM_FILTROS_CAIXA, playbooks: [QUALQUER_PLAYBOOK] }, contas, CARGA).map(s => s.id), ['1', '3']);
+  assert.deepEqual(contarOpcoes(l, SEM_FILTROS_CAIXA, contas, CARGA, 'playbooks'), [['Lançamento com tração', 1], ['Reposicionamento', 1]]);
+  // link antigo, sem o campo, continua valendo
+  const { playbooks: _, ...antigo } = SEM_FILTROS_CAIXA;
+  assert.equal(filtrarCaixa(l, antigo, contas, CARGA).length, 3);
+});

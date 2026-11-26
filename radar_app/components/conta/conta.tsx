@@ -24,6 +24,8 @@ import { Aviso, ErroCarregar, SemPermissao } from '@/components/hoje/estados';
 import { useEstados, type StatusPorConta } from '@/components/hoje/estado';
 import type { StatusConta } from '@/lib/acoes';
 import { Andamento } from './andamento';
+import { detectarPlaybook, type Ativacao } from '@/lib/playbooks';
+import { BlocoPlaybook } from '@/components/hoje/playbook';
 import { Comite } from './comite';
 import { LinhaDoTempo } from './linha-do-tempo';
 import { Decomposicao } from './decomposicao';
@@ -87,6 +89,7 @@ export function TelaConta({ base, contaId }: { base: BaseConta; contaId: string 
         andamento={andamentos[conta.id]}
         compartilhado={compartilhado}
         onAndamento={st => salvarStatus(conta.id, st)}
+        playbook={detectarPlaybook(sinais.filter(s => s.tipo !== 'noticia_setorial'), (base.atualizadoEm ?? base.geradoEm).slice(0, 10)) ?? undefined}
       />
     );
 
@@ -112,6 +115,7 @@ function Detalhe({
   andamento,
   compartilhado,
   onAndamento,
+  playbook,
 }: {
   conta: Conta;
   sinais: Sinal[];
@@ -122,6 +126,8 @@ function Detalhe({
   andamento?: StatusPorConta[string];
   compartilhado: boolean;
   onAndamento: (status: StatusConta | null) => void;
+  /** playbook combinado ativo na conta (fase 3 da tela de sinais) */
+  playbook?: Ativacao;
 }) {
   const [decompor, setDecompor] = useState(false);
   const tese = useMemo(
@@ -164,6 +170,7 @@ function Detalhe({
           <div id="proxima-acao" className="scroll-mt-6 empty:hidden">
             <ProximaAcao conta={conta} sinais={sinais} estados={estados} hoje={hoje} onMudar={onMudar} andamento={andamento} />
           </div>
+          {playbook && <BlocoPlaybook ativacao={playbook} conta={conta} className="mt-0" />}
           <LinhaDoTempo conta={conta} sinais={sinais} estados={estados} hoje={hoje} andamento={andamento} />
         </div>
         <div className="flex flex-col gap-6">

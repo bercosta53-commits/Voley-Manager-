@@ -21,6 +21,8 @@ import { Evidencia } from '@/components/ui/evidencia';
 import { SeloQualificada } from '@/components/ui/selo-qualificada';
 import { BarraForca } from './forca';
 import { forcaDe, pontosInteiros } from '@/lib/caixa';
+import type { Ativacao } from '@/lib/playbooks';
+import { OportunidadeVelora, SeloPlaybook } from './playbook';
 
 /** "Sinal de alta relevância": retorno do time para calibrar o modelo; não muda o score (P1-8). */
 function SeletorRelevancia({ valor, onMudar }: { valor?: Relevancia; onMudar: (n: Relevancia) => void }) {
@@ -74,10 +76,12 @@ interface Props {
   onAvaliar?: (n: Relevancia) => void;
   onAbrir: () => void;
   onFoco: () => void;
+  /** playbook combinado ativo na conta (fase 3): selo no cartão e substitui a oportunidade isolada */
+  playbook?: Ativacao;
 }
 
 export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
-  { sinal, conta, estado, hoje, naCaixa, semAcoes, deslizavel, onAcao, onAvaliar, onAbrir, onFoco },
+  { sinal, conta, estado, hoje, naCaixa, semAcoes, deslizavel, onAcao, onAvaliar, onAbrir, onFoco, playbook },
   ref,
 ) {
   const reduzir = useReducedMotion();
@@ -231,6 +235,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                 {nivel.rotulo}
               </span>
               <span className="rounded-chip bg-secondary px-1.5 py-0.5 text-xs text-text-2">{sinal.rotulo}</span>
+              {playbook && <SeloPlaybook ativacao={playbook} />}
 
             </div>
             <div className="flex items-baseline gap-2">
@@ -266,6 +271,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                   )}
                 </dd>
               </div>
+              <OportunidadeVelora sinal={sinal} ativacao={playbook} />
             </dl>
             {/* no modo apresentação a nota sai da tela: ela recalcula o score só neste navegador */}
             {onAvaliar && !apresentacao && <SeletorRelevancia valor={estado?.relevancia} onMudar={onAvaliar} />}
@@ -277,7 +283,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
               <span className="font-medium text-text-2">Score em 90 dias</span>
               <span>cada ponto é um sinal</span>
             </p>
-            <GraficoSinais serie={conta.serie} eventos={eventos} hoje={hoje} />
+            <GraficoSinais serie={conta.serie} eventos={eventos} hoje={hoje} marca={playbook && { data: playbook.ativadoEm, rotulo: playbook.playbook.nome }} />
             <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-text-3">
               {(['A', 'B', 'C'] as const).map(n => (
                 <span key={n} className="inline-flex items-center gap-1">

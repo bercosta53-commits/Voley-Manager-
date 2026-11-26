@@ -14,8 +14,8 @@ export interface EventoGrafico {
 }
 
 const DIAS = 90;
-const A = 132;
-const M = { topo: 22, base: 22, esq: 28, dir: 8 };
+const A = 144;
+const M = { topo: 34, base: 22, esq: 28, dir: 8 };
 /** distância mínima, em px, entre dois rótulos de pontos: rótulo que cairia em cima de outro fica no tooltip */
 const VAO_ROTULO = 36;
 
@@ -31,12 +31,15 @@ export function GraficoSinais({
   serie,
   eventos,
   hoje,
-  className
+  className,
+  marca,
 }: {
   serie: number[];
   eventos: EventoGrafico[];
   hoje: string;
   className?: string;
+  /** anotação vertical: dia em que um playbook combinado foi ativado, com o nome dele */
+  marca?: { data: string; rotulo: string };
 }) {
   // desenha na largura real do espaço (sem esticar o SVG): o texto fica sempre no mesmo tamanho
   const caixa = useRef<HTMLDivElement>(null);
@@ -150,6 +153,18 @@ export function GraficoSinais({
             </g>
           );
         })}
+        {marca && diasAtras(marca.data, hoje) >= 0 && diasAtras(marca.data, hoje) <= DIAS && (() => {
+          const mx = x(diasAtras(marca.data, hoje));
+          const direita = mx > M.esq + w / 2;
+          return (
+            <g aria-label={`Playbook ativado: ${marca.rotulo}`}>
+              <line x1={mx} x2={mx} y1={M.topo - 4} y2={M.topo + h} stroke="var(--vr-text)" strokeWidth={1} strokeDasharray="3 3" opacity={0.45} />
+              <text x={direita ? mx - 4 : mx + 4} y={12} textAnchor={direita ? 'end' : 'start'} className="fill-text-2 text-[12px] font-semibold">
+                ⚡ {marca.rotulo}
+              </text>
+            </g>
+          );
+        })()}
         <circle cx={M.esq + w} cy={y(atual)} r={2.5} fill="var(--vr-warm)" />
         <text x={M.esq} y={A - 3} className="fill-text-3 text-[12px]">
           90 dias

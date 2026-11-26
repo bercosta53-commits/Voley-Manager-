@@ -26,6 +26,16 @@ const contaAlvo = base.contas.find(c => c.id === sinalAlvo.contaId);
 contaAlvo.qualificada = { status: 'sim', desde: '2026-11-20', motivo: 'VSCS e tier dentro da regra CQ-1', regra_versao: 'cq-1' };
 base.contas.find(c => c.id !== contaAlvo.id).qualificada = { status: 'desconhecido', pendencias: ['decisor não identificado'] };
 
+// fase 3: uma conta (fora a da jornada) ganha uma vaga ao lado da troca de liderança, para o playbook combinado
+// "Liderança nova montando time" ativar. Base de teste, só para a jornada.
+const sinalLideranca = base.sinais.find(s => /^(troca_|socio_entrou|executivo_chegou)/.test(s.tipo) && s.contaId !== contaAlvo.id);
+const sinalVagaPb = {
+  ...sinalLideranca, id: `${sinalLideranca.id}-vaga`, tipo: 'vaga_area_alvo', rotulo: 'Vaga comercial', categoria: 'contratacao',
+  sinal: 'Abriu 3 vagas de executivo de vendas', porQueAgora: 'Abriu 3 vagas de executivo de vendas.', pontos: 12, nivel: 'B',
+};
+base.sinais.push(sinalVagaPb);
+const contaPb = base.contas.find(c => c.id === sinalLideranca.contaId);
+
 // contribuições do motor nas contas (como na carga real do VSCS 3.0): é o que a nota de relevância recalculava
 // antes do P1-8; com elas, a verificação do score único pega uma volta do recálculo
 for (const c of base.contas) {
@@ -199,6 +209,45 @@ try {
   await pc.waitForTimeout(200);
   conferir(pc.url().includes('ordem=score'), 'a ordem escolhida vai para a URL');
   await pc.screenshot({ path: path.join(SAIDA, '3g-hoje-filtros.png') });
+  // fase 3: playbook combinado na linha, no cartão e no bloco de ação, com a oferta da Velora
+  await ordemSel.selectOption('recente');
+  const linhaPb = pc.locator('main [role="option"]', { hasText: contaPb.nome }).first();
+  conferir(await linhaPb.getByText('Liderança nova montando time').isVisible(), 'linha da conta mostra o selo do playbook combinado');
+  await linhaPb.click();
+  const blocoPb = pc.locator('section[aria-label="Playbook: Liderança nova montando time"]');
+  await blocoPb.waitFor();
+  const textoPb = await blocoPb.innerText();
+  conferir(textoPb.includes('Growth Leader as a Service') && /pergunta de descoberta/i.test(textoPb) && /janela de ação/i.test(textoPb) && /com quem falar/i.test(textoPb), 'bloco do playbook com leitura, pergunta, janela e oferta Velora');
+  conferir(textoPb.includes(sinalVagaPb.sinal), 'evidência do playbook cita os sinais que o formam');
+  const semPb = pc.locator('main [role="option"]').filter({ hasNotText: contaPb.nome }).first();
+  await semPb.click();
+  await pc.waitForTimeout(150);
+  conferir((await pc.locator('main').innerText()).includes('Oportunidade Velora') && !(await blocoPb.count()), 'sinal isolado mostra a Oportunidade Velora, sem bloco de playbook');
+  await pc.locator('main [role="option"]', { hasText: contaPb.nome }).first().click();
+  await pc.setViewportSize({ width: 1440, height: 900 });
+  await blocoPb.screenshot({ path: path.join(SAIDA, '3h-playbook.png') });
+  await pc.locator('main ul[aria-label="Sinal selecionado"]').screenshot({ path: path.join(SAIDA, '3i-cartao-playbook.png') });
+  await blocoPb.getByRole('button', { name: 'Ver mensagem' }).click();
+  conferir((await blocoPb.innerText()).includes('Faz sentido trocar 20 minutos'), '"Ver mensagem" mostra o rascunho antes de copiar');
+  await blocoPb.screenshot({ path: path.join(SAIDA, '3j-playbook-mensagem.png') });
+  {
+    const cel = await navegador.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+    await cel.goto(app.url(`/contas/${contaPb.id}`), { waitUntil: 'networkidle' });
+    await cel.locator('section[aria-label^="Playbook:"]').screenshot({ path: path.join(SAIDA, '3k-playbook-celular.png') });
+    await cel.close();
+  }
+  conferir(
+    (await pc.locator('main svg [aria-label="Playbook ativado: Liderança nova montando time"]').count()) === 1,
+    'gráfico do cartão marca o dia em que o playbook ativou',
+  );
+  await pc.getByRole('button', { name: /^Playbook/ }).click();
+  await pc.getByRole('listbox', { name: 'Playbook' }).getByRole('option', { name: /Qualquer playbook/ }).click();
+  await pc.keyboard.press('Escape');
+  await pc.waitForTimeout(200);
+  const linhasPb = await pc.locator('main ul[aria-label="Sinais na caixa"] [role="option"]').allInnerTexts();
+  conferir(linhasPb.length > 0 && linhasPb.every(x => x.includes(contaPb.nome)), 'filtro "Qualquer playbook" deixa só as contas com playbook', `${linhasPb.length} linhas`);
+  await pc.goto(app.url(`/contas/${contaPb.id}`), { waitUntil: 'networkidle' });
+  conferir(await pc.locator('section[aria-label="Playbook: Liderança nova montando time"]').isVisible(), 'a página da conta mostra o playbook combinado');
   await pc.close();
 
   await pagina.goto(app.url('/metricas'), { waitUntil: 'networkidle' });

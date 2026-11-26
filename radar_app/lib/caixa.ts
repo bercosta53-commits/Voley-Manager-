@@ -144,12 +144,15 @@ export interface FiltrosCaixa {
   ufs: string[];
   /** só sinais dos últimos N dias */
   janela: 7 | 30 | 90 | null;
+  /** nome do playbook combinado ativo na conta (fase 3), ou QUALQUER_PLAYBOOK */
+  playbooks: string[];
 }
-export const SEM_FILTROS_CAIXA: FiltrosCaixa = { estagios: [], tipos: [], tiers: [], setores: [], ufs: [], janela: null };
+export const SEM_FILTROS_CAIXA: FiltrosCaixa = { estagios: [], tipos: [], tiers: [], setores: [], ufs: [], janela: null, playbooks: [] };
+export const QUALQUER_PLAYBOOK = 'Qualquer playbook';
 export const SEM_SETOR = 'Sem setor';
 export const SEM_UF = 'Sem UF';
 
-type ContaFiltro = Pick<Conta, 'vscsStatus' | 'tier' | 'uf' | 'segmento' | 'ramoTI'>;
+type ContaFiltro = Pick<Conta, 'vscsStatus' | 'tier' | 'uf' | 'segmento' | 'ramoTI'> & { playbook?: string };
 export const setorDe = (c?: ContaFiltro) => c?.ramoTI?.nome ?? (c?.segmento || SEM_SETOR);
 export const temFiltroCaixa = (f: FiltrosCaixa) => JSON.stringify({ ...SEM_FILTROS_CAIXA, ...f }) !== JSON.stringify(SEM_FILTROS_CAIXA);
 
@@ -163,17 +166,24 @@ export function filtrarCaixa(lista: Sinal[], f: FiltrosCaixa, contas: Map<string
     if (ignorar !== 'setores' && f.setores.length && !f.setores.includes(setorDe(c))) return false;
     if (ignorar !== 'ufs' && f.ufs.length && !f.ufs.includes(c?.uf || SEM_UF)) return false;
     if (ignorar !== 'janela' && f.janela && idadeDias(s, dataCarga) > f.janela) return false;
+    if (ignorar !== 'playbooks' && f.playbooks?.length && !(c?.playbook && (f.playbooks.includes(QUALQUER_PLAYBOOK) || f.playbooks.includes(c.playbook)))) return false;
     return true;
   });
 }
 
 /** Contagem por valor de um grupo, considerando os outros filtros (o número diz quantos sobrariam). */
-export function contarOpcoes(lista: Sinal[], f: FiltrosCaixa, contas: Map<string, ContaFiltro>, dataCarga: string, grupo: 'estagios' | 'tipos' | 'tiers' | 'setores' | 'ufs') {
+export function contarOpcoes(lista: Sinal[], f: FiltrosCaixa, contas: Map<string, ContaFiltro>, dataCarga: string, grupo: 'estagios' | 'tipos' | 'tiers' | 'setores' | 'ufs' | 'playbooks') {
   const base = filtrarCaixa(lista, f, contas, dataCarga, grupo);
   const n = new Map<string, number>();
   for (const s of base) {
     const c = contas.get(s.contaId);
-    const k = grupo === 'estagios' ? c?.vscsStatus ?? '' : grupo === 'tipos' ? s.rotulo : grupo === 'tiers' ? c?.tier ?? '' : grupo === 'setores' ? setorDe(c) : c?.uf || SEM_UF;
+    const k =
+      grupo === 'estagios' ? c?.vscsStatus ?? ''
+      : grupo === 'tipos' ? s.rotulo
+      : grupo === 'tiers' ? c?.tier ?? ''
+      : grupo === 'setores' ? setorDe(c)
+      : grupo === 'playbooks' ? c?.playbook ?? ''
+      : c?.uf || SEM_UF;
     if (k) n.set(k, (n.get(k) ?? 0) + 1);
   }
   return [...n.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'pt-BR'));
