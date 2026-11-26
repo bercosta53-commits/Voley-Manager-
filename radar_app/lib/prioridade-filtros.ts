@@ -66,11 +66,15 @@ export interface FiltrosPrioridade {
   ufs: string[];
   tiers: string[];
   atalho: Atalho | null;
+  /** célula do cruzamento de duas dimensões (faixas de 1 ponto) */
+  celula?: { x: Dimensao; y: Dimensao; fx: number; fy: number } | null;
 }
 
 export const SEM_FILTROS: FiltrosPrioridade = {
-  busca: '', classes: [], situacoes: [], segmentos: [], setores: [], coberturas: [], faltando: [], notaMin: {}, integradaMin: 0, ufs: [], tiers: [], atalho: null,
+  busca: '', classes: [], situacoes: [], segmentos: [], setores: [], coberturas: [], faltando: [], notaMin: {}, integradaMin: 0, ufs: [], tiers: [], atalho: null, celula: null,
 };
+/** Faixas de 1 ponto: [1,2) → 1 … [4,5] → 4. */
+export const faixaNota = (n: number) => (n >= 4 - 1e-9 ? 4 : n >= 3 - 1e-9 ? 3 : n >= 2 - 1e-9 ? 2 : 1);
 export const SEM_SETOR = 'Sem setor';
 
 const nota = (l: LinhaPrioridade, d: Dimensao) => {
@@ -111,6 +115,10 @@ export function filtrar(linhas: LinhaPrioridade[], f: FiltrosPrioridade): { linh
     if (f.tiers.length && !f.tiers.includes(l.tier)) return false;
     if (f.integradaMin && !(v.notaIntegrada !== null && v.notaIntegrada >= f.integradaMin - 1e-9)) return false;
     if (f.atalho && !bateAtalho(l, f.atalho)) return false;
+    if (f.celula) {
+      const nx = nota(l, f.celula.x), ny = nota(l, f.celula.y);
+      if (nx === null || ny === null || faixaNota(nx) !== f.celula.fx || faixaNota(ny) !== f.celula.fy) return false;
+    }
     for (const d of DIMENSOES) {
       const min = f.notaMin[d];
       if (!min) continue;
@@ -147,12 +155,13 @@ export function filtrosEmTexto(f: FiltrosPrioridade): string {
   if (f.faltando.length) g.push(`falta ${ou(f.faltando.map(d => ROTULO_CURTO[d]))}`);
   for (const d of DIMENSOES) if (f.notaMin[d]) g.push(`${ROTULO_CURTO[d]} ≥ ${String(f.notaMin[d]).replace('.', ',')}`);
   if (f.integradaMin) g.push(`nota integrada ≥ ${String(f.integradaMin).replace('.', ',')}`);
+  if (f.celula) g.push(`${ROTULO_CURTO[f.celula.x]} ${f.celula.fx} a ${f.celula.fx + 1} e ${ROTULO_CURTO[f.celula.y]} ${f.celula.fy} a ${f.celula.fy + 1}`);
   if (f.tiers.length) g.push(`Tier ICP ${ou(f.tiers)}`);
   if (f.ufs.length) g.push(ou(f.ufs));
   return g.join(', E ');
 }
 
-export const temFiltro = (f: FiltrosPrioridade) => JSON.stringify({ ...f, busca: '' }) !== JSON.stringify({ ...SEM_FILTROS });
+export const temFiltro = (f: FiltrosPrioridade) => JSON.stringify({ ...SEM_FILTROS, ...f, busca: '', celula: f.celula ?? null }) !== JSON.stringify(SEM_FILTROS);
 
 /** Contagem por segmento da faixa (sempre soma o total). */
 export function faixa(linhas: LinhaPrioridade[]): Record<Segmento, number> {

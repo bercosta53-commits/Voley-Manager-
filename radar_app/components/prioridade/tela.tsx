@@ -2,14 +2,15 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link2, Search } from 'lucide-react';
+import { ChevronDown, Link2, Search, SlidersHorizontal } from 'lucide-react';
 import type { Base } from '@/lib/tipos';
 import { CLASSES, DIMENSOES, ROTULO_CURTO, ROTULO_DIMENSAO, type Dimensao } from '@/lib/prioridade-config';
 import { visaoIntegrada, type SituacaoSweetSpot } from '@/lib/prioridade';
 import {
-  ATALHOS_ROTULO, SEM_FILTROS, SEM_SETOR, aplicarTudo, faixa, filtrosEmTexto, ordenar, sugestoes, temFiltro,
+  ATALHOS_ROTULO, SEGMENTOS, SEM_FILTROS, SEM_SETOR, aplicarTudo, coberturaDe, faixa, filtrosEmTexto, sugestoes, temFiltro,
   type Atalho, type ColunaOrdem, type FiltrosPrioridade, type LinhaPrioridade, type Segmento,
 } from '@/lib/prioridade-filtros';
+import { AGRUPAMENTOS, agrupar, mudarOrdem, ordemEmTexto, ordenarMulti, type Agrupamento, type CriterioOrdem } from '@/lib/prioridade-visoes';
 import { Casca } from '@/components/casca/casca';
 import { MenuFiltro } from '@/components/contas/menu-filtro';
 import { useApresentacao } from '@/components/ui/use-apresentacao';
@@ -17,6 +18,8 @@ import { cn, plural } from '@/lib/utils';
 import { Faixa } from './faixa';
 import { Metodologia, SeloExperimental } from './metodologia';
 import { ClasseExperimental, Comparacao, PainelConta, textoNota } from './painel';
+import { CruzarDimensoes, MatrizSetorPrioridade, ResumoDoSetor } from './visoes';
+import { dataCurta } from '@/lib/utils';
 
 const SITUACOES: { id: SituacaoSweetSpot; rotulo: string }[] = [
   { id: 'a1', rotulo: 'A1 (sweet spot)' },
@@ -27,12 +30,29 @@ const SITUACOES: { id: SituacaoSweetSpot; rotulo: string }[] = [
 ];
 const PASSOS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
 
+type Visao = 'lista' | 'matriz' | 'cruzar';
+type ColunaOpcional = 'proximidade' | 'evidencia' | 'cobertura' | 'data';
+const COLUNAS_OPCIONAIS: { id: ColunaOpcional; rotulo: string }[] = [
+  { id: 'proximidade', rotulo: 'Proximidade do sweet spot' },
+  { id: 'evidencia', rotulo: 'Evidência principal' },
+  { id: 'cobertura', rotulo: 'Cobertura' },
+  { id: 'data', rotulo: 'Data da última avaliação' },
+];
+const COLUNAS_PADRAO: ColunaOpcional[] = ['proximidade', 'evidencia'];
+
 interface EstadoUrl {
   f: FiltrosPrioridade;
-  o: { col: ColunaOrdem; desc: boolean };
+  o: CriterioOrdem[];
   sel: string | null;
   cmp: string[];
+  v: Visao;
+  g: Agrupamento;
+  cols: ColunaOpcional[];
+  x: Dimensao;
+  y: Dimensao;
+  mo: 'a1' | 'candidata' | 'nome';
 }
+const INICIAL: EstadoUrl = { f: SEM_FILTROS, o: [{ col: 'inicial', desc: true }], sel: null, cmp: [], v: 'lista', g: 'nenhum', cols: COLUNAS_PADRAO, x: 'icp', y: 'sinais', mo: 'a1' };
 
 function lerUrl(): EstadoUrl {
   const p = new URLSearchParams(location.search);
@@ -42,8 +62,27 @@ function lerUrl(): EstadoUrl {
     if (bruto) f = { ...SEM_FILTROS, ...JSON.parse(bruto) };
   } catch {}
   f = { ...f, busca: p.get('q') ?? '' };
-  const [col, dir] = (p.get('o') ?? 'inicial').split(':');
-  return { f, o: { col: (col as ColunaOrdem) || 'inicial', desc: dir !== 'asc' }, sel: p.get('c'), cmp: (p.get('cmp') ?? '').split(',').filter(Boolean).slice(0, 3) };
+  const o = (p.get('o') ?? '')
+    .split(',')
+    .filter(Boolean)
+    .map(x => {
+      const [col, dir] = x.split(':');
+      return { col: col as ColunaOrdem, desc: dir !== 'asc' };
+    });
+  const dims = (v: string | null, padrao: Dimensao) => (DIMENSOES.includes(v as Dimensao) ? (v as Dimensao) : padrao);
+  return {
+    ...INICIAL,
+    f,
+    o: o.length ? o : INICIAL.o,
+    sel: p.get('c'),
+    cmp: (p.get('cmp') ?? '').split(',').filter(Boolean).slice(0, 3),
+    v: (['lista', 'matriz', 'cruzar'].includes(p.get('v') ?? '') ? p.get('v') : 'lista') as Visao,
+    g: (AGRUPAMENTOS.some(a => a.id === p.get('g')) ? p.get('g') : 'nenhum') as Agrupamento,
+    cols: p.has('cols') ? ((p.get('cols') ?? '').split(',').filter(c => COLUNAS_OPCIONAIS.some(x => x.id === c)) as ColunaOpcional[]) : COLUNAS_PADRAO,
+    x: dims(p.get('x'), 'icp'),
+    y: dims(p.get('y'), 'sinais'),
+    mo: (['a1', 'candidata', 'nome'].includes(p.get('mo') ?? '') ? p.get('mo') : 'a1') as EstadoUrl['mo'],
+  };
 }
 
 function escreverUrl(e: EstadoUrl) {
@@ -51,9 +90,14 @@ function escreverUrl(e: EstadoUrl) {
   if (e.f.busca) p.set('q', e.f.busca);
   const { busca: _, ...resto } = e.f;
   if (temFiltro(e.f)) p.set('f', JSON.stringify(resto));
-  if (e.o.col !== 'inicial') p.set('o', `${e.o.col}:${e.o.desc ? 'desc' : 'asc'}`);
+  if (e.o.some(c => c.col !== 'inicial')) p.set('o', e.o.map(c => `${c.col}:${c.desc ? 'desc' : 'asc'}`).join(','));
   if (e.sel) p.set('c', e.sel);
   if (e.cmp.length) p.set('cmp', e.cmp.join(','));
+  if (e.v !== 'lista') p.set('v', e.v);
+  if (e.g !== 'nenhum') p.set('g', e.g);
+  if (e.cols.join() !== COLUNAS_PADRAO.join()) p.set('cols', e.cols.join(','));
+  if (e.v === 'cruzar') (p.set('x', e.x), p.set('y', e.y));
+  if (e.v === 'matriz' && e.mo !== 'a1') p.set('mo', e.mo);
   const q = p.toString();
   history.replaceState(null, '', q ? `?${q}` : location.pathname);
 }
@@ -88,7 +132,9 @@ function Proximidade({ l }: { l: LinhaPrioridade }) {
 
 export function TelaPrioridade({ base, linhas: linhasServidor }: { base: Base; linhas: LinhaPrioridade[] }) {
   const apresentacao = useApresentacao();
-  const [estado, setEstado] = useState<EstadoUrl>({ f: SEM_FILTROS, o: { col: 'inicial', desc: true }, sel: null, cmp: [] });
+  const [estado, setEstado] = useState<EstadoUrl>(INICIAL);
+  const [folha, setFolha] = useState(false);
+  const [recolhidos, setRecolhidos] = useState<Set<string>>(new Set());
   const [pronto, setPronto] = useState(false);
   const [sugerir, setSugerir] = useState(false);
   const [indice, setIndice] = useState(0);
@@ -122,7 +168,10 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: Base; l
   const { f, o } = estado;
   const mudar = (parte: Partial<FiltrosPrioridade>) => setEstado(e => ({ ...e, f: { ...e.f, ...parte } }));
   const { visiveis, semNotaNoFiltro, naBuscaFora } = useMemo(() => aplicarTudo(linhas, f), [linhas, f]);
-  const ordenadas = useMemo(() => ordenar(visiveis, o.col, o.desc), [visiveis, o]);
+  const ordenadas = useMemo(() => ordenarMulti(visiveis, o), [visiveis, o]);
+  const grupos = useMemo(() => (estado.g === 'nenhum' ? null : agrupar(ordenadas, estado.g)), [ordenadas, estado.g]);
+  const col = (c: ColunaOpcional) => estado.cols.includes(c);
+  const nFiltros = filtrosEmTexto(f) ? filtrosEmTexto(f).split(', E ').length : 0;
   const contagem = useMemo(() => faixa(linhas), [linhas]);
   const completas = linhas.filter(l => l.visao.cobertura === 4).length;
   const setores = useMemo(() => [...new Set(linhas.map(l => l.setor ?? SEM_SETOR))].sort((a, b) => a.localeCompare(b, 'pt-BR')), [linhas]);
@@ -137,8 +186,8 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: Base; l
     else setEstado(e => ({ ...e, f: { ...e.f, busca: '', setores: [...new Set([...e.f.setores, op.id])] } }));
     setSugerir(false);
   }
-  function ordenarPor(col: ColunaOrdem) {
-    setEstado(e => ({ ...e, o: e.o.col === col ? { col, desc: !e.o.desc } : { col, desc: col !== 'nome' } }));
+  function ordenarPor(c: ColunaOrdem, somar: boolean) {
+    setEstado(e => ({ ...e, o: mudarOrdem(e.o, c, somar) }));
   }
   function alternarComparar(id: string) {
     setEstado(e => ({ ...e, cmp: e.cmp.includes(id) ? e.cmp.filter(x => x !== id) : e.cmp.length >= 3 ? e.cmp : [...e.cmp, id] }));
@@ -146,14 +195,76 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: Base; l
   const alternarSegmento = (s: Segmento) => mudar({ segmentos: f.segmentos.includes(s) ? f.segmentos.filter(x => x !== s) : [...f.segmentos, s] });
   const textoFiltros = filtrosEmTexto(f);
 
-  const Cabecalho = ({ col, children, className }: { col: ColunaOrdem; children: React.ReactNode; className?: string }) => (
-    <th scope="col" aria-sort={o.col === col ? (o.desc ? 'descending' : 'ascending') : undefined} className={cn('px-3 py-2 font-medium', className)}>
-      <button type="button" onClick={() => ordenarPor(col)} className="hover:text-foreground">
-        {children}
-        {o.col === col && <span aria-hidden> {o.desc ? '↓' : '↑'}</span>}
-      </button>
-    </th>
-  );
+  const Cabecalho = ({ col: c, children, className }: { col: ColunaOrdem; children: React.ReactNode; className?: string }) => {
+    const i = o.findIndex(x => x.col === c);
+    const crit = o[i];
+    return (
+      <th scope="col" aria-sort={i === 0 ? (crit!.desc ? 'descending' : 'ascending') : undefined} className={cn('px-3 py-2 font-medium', className)}>
+        <button type="button" onClick={e => ordenarPor(c, e.shiftKey)} title="Clique ordena; Shift+clique soma um critério" className="hover:text-foreground">
+          {children}
+          {crit && (
+            <span aria-hidden>
+              {' '}
+              {crit.desc ? '↓' : '↑'}
+              {o.length > 1 && <sup>{i + 1}</sup>}
+            </span>
+          )}
+        </button>
+      </th>
+    );
+  };
+  const nColunas = 3 + DIMENSOES.length + estado.cols.length;
+  const linhaConta = (l: LinhaPrioridade) => {
+    const v = l.visao;
+    const naComparacao = estado.cmp.includes(l.contaId);
+    const enfase = v.classeIntegrada === 'A1' ? 'bg-ok/10' : v.situacaoSweetSpot === 'candidata' ? 'shadow-[inset_3px_0_0_var(--vr-ok)]' : '';
+    const datas = DIMENSOES.map(d => v.dimensoes[d].dataReferencia).filter((x): x is string => !!x).sort();
+    return (
+      <tr key={l.contaId} className={cn('hover:bg-secondary/60', enfase, estado.sel === l.contaId && 'bg-secondary')}>
+        <td className="px-3 py-2.5">
+          <input
+            type="checkbox"
+            checked={naComparacao}
+            disabled={!naComparacao && estado.cmp.length >= 3}
+            onChange={() => alternarComparar(l.contaId)}
+            aria-label={`Comparar ${l.nome}`}
+            title={!naComparacao && estado.cmp.length >= 3 ? 'Já há três contas na comparação; tire uma para incluir outra' : undefined}
+          />
+        </td>
+        <td className="px-3 py-2.5">
+          <button type="button" onClick={() => setEstado(e => ({ ...e, sel: l.contaId }))} className="text-left font-semibold hover:underline">
+            {l.nome}
+          </button>
+          <span className="block text-xs text-text-3">{l.setor ?? 'Sem setor'}</span>
+        </td>
+        <td className="px-3 py-2.5">
+          <ClasseExperimental v={v} />
+        </td>
+        {DIMENSOES.map(d => (
+          <td key={d} className="px-3 py-2.5">
+            <Indicador l={l} d={d} />
+          </td>
+        ))}
+        {col('proximidade') && (
+          <td className="max-w-[260px] px-3 py-2.5">
+            <Proximidade l={l} />
+          </td>
+        )}
+        {col('evidencia') && (
+          <td className="max-w-[280px] px-3 py-2.5">
+            <span className="line-clamp-2 text-sm text-text-2">{l.evidencia?.texto ?? <span className="text-text-3">Sem fato com fonte</span>}</span>
+          </td>
+        )}
+        {col('cobertura') && (
+          <td className="px-3 py-2.5 text-sm">
+            {v.cobertura} de 4
+            {coberturaDe(v) !== 'completa' && <span className="block text-xs text-text-3">falta {v.dimensoesFaltantes.map(d => ROTULO_CURTO[d]).join(', ')}</span>}
+          </td>
+        )}
+        {col('data') && <td className="px-3 py-2.5 text-sm text-text-2">{datas.length ? dataCurta(datas[datas.length - 1]!) : <span className="text-text-3">—</span>}</td>}
+      </tr>
+    );
+  };
 
   return (
     <Casca base={base}>
@@ -242,6 +353,13 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: Base; l
           )}
         </div>
 
+        <button
+          type="button"
+          onClick={() => setFolha(true)}
+          className="mb-3 inline-flex h-10 items-center gap-1.5 rounded-control border border-border bg-card px-3 text-sm md:hidden"
+        >
+          <SlidersHorizontal className="size-4" strokeWidth={1.5} /> Filtros{nFiltros ? ` (${nFiltros})` : ''}
+        </button>
         {/* atalhos de visão (experimentais) */}
         <div className="mb-3 flex flex-wrap items-center gap-1.5" role="group" aria-label="Atalhos de visão (experimentais)">
           {(Object.keys(ATALHOS_ROTULO) as Atalho[]).map(a => (
@@ -260,7 +378,7 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: Base; l
           ))}
         </div>
 
-        <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className={cn('mb-3 flex-wrap items-center gap-2', folha ? 'fixed inset-x-0 bottom-0 z-40 flex max-h-[80vh] overflow-y-auto rounded-t-[12px] border-t border-border bg-background p-4 shadow-3' : 'hidden md:flex')} role={folha ? 'dialog' : undefined} aria-label={folha ? 'Filtros' : undefined}>
           <MenuFiltro rotulo="Prioridade integrada" opcoes={CLASSES.map(c => ({ id: c, rotulo: c, qtd: conta(l => l.visao.classeIntegrada === c) }))} valor={f.classes} onMudar={v => mudar({ classes: v })} />
           <MenuFiltro rotulo="Sweet spot" opcoes={SITUACOES.map(s => ({ ...s, qtd: conta(l => l.visao.situacaoSweetSpot === s.id) }))} valor={f.situacoes} onMudar={v => mudar({ situacoes: v })} />
           <MenuFiltro rotulo="Setor" opcoes={setores.map(s => ({ id: s, rotulo: s, qtd: conta(l => (l.setor ?? SEM_SETOR) === s) }))} valor={f.setores} onMudar={v => mudar({ setores: v })} />
@@ -302,6 +420,11 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: Base; l
             valor={f.ufs}
             onMudar={v => mudar({ ufs: v })}
           />
+          {folha && (
+            <button type="button" onClick={() => setFolha(false)} className="mt-2 h-10 w-full rounded-control bg-foreground text-sm font-semibold text-background">
+              Aplicar ({ordenadas.length} contas)
+            </button>
+          )}
         </div>
 
         {(temFiltro(f) || f.busca) && (
@@ -318,8 +441,78 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: Base; l
         )}
 
         <Comparacao linhas={comparadas} onTirar={alternarComparar} />
-
-        {ordenadas.length === 0 ? (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div role="tablist" aria-label="Visão" className="flex rounded-control border border-border bg-card p-0.5">
+            {(
+              [
+                ['lista', 'Lista'],
+                ['matriz', 'Setor × Prioridade'],
+                ['cruzar', 'Cruzar duas dimensões'],
+              ] as [Visao, string][]
+            ).map(([id, rotulo]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={estado.v === id}
+                onClick={() => setEstado(e => ({ ...e, v: id }))}
+                className={cn('h-8 rounded-[5px] px-3 text-sm max-md:h-10', estado.v === id ? 'bg-foreground font-semibold text-background' : 'text-text-2 hover:text-foreground')}
+              >
+                {rotulo}
+              </button>
+            ))}
+          </div>
+          {estado.v === 'lista' && (
+            <div className="flex flex-wrap items-center gap-2 text-sm text-text-2">
+              <label className="flex items-center gap-1.5">
+                Agrupar por
+                <select value={estado.g} onChange={e => setEstado(s => ({ ...s, g: e.target.value as Agrupamento }))} className="rounded-control border border-border bg-card px-1.5 py-1">
+                  {AGRUPAMENTOS.map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.rotulo}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <details className="relative">
+                <summary className="cursor-pointer list-none rounded-control border border-border bg-card px-2 py-1">Colunas</summary>
+                <div className="absolute right-0 z-20 mt-1 w-60 rounded-control border border-border bg-card p-2 shadow-2">
+                  <p className="px-1 pb-1 text-xs text-text-3">Conta e as quatro dimensões ficam sempre.</p>
+                  {COLUNAS_OPCIONAIS.map(c => (
+                    <label key={c.id} className="flex items-center gap-2 px-1 py-1">
+                      <input
+                        type="checkbox"
+                        checked={estado.cols.includes(c.id)}
+                        onChange={() =>
+                          setEstado(s => ({ ...s, cols: s.cols.includes(c.id) ? s.cols.filter(x => x !== c.id) : COLUNAS_OPCIONAIS.map(x => x.id).filter(x => x === c.id || s.cols.includes(x)) }))
+                        }
+                      />
+                      {c.rotulo}
+                    </label>
+                  ))}
+                </div>
+              </details>
+            </div>
+          )}
+        </div>
+        {o.length > 1 && estado.v === 'lista' && <p className="mb-2 text-xs text-text-3">Ordem: {ordemEmTexto(o)}</p>}
+        {f.setores.length === 1 && <ResumoDoSetor linhas={visiveis} setor={f.setores[0]!} />}
+        {estado.v === 'matriz' ? (
+          <MatrizSetorPrioridade
+            linhas={visiveis}
+            ordem={estado.mo}
+            onOrdem={mo => setEstado(e => ({ ...e, mo }))}
+            onCelula={(setor, seg) => setEstado(e => ({ ...e, v: 'lista', f: { ...e.f, setores: [setor], segmentos: seg ? [seg] : e.f.segmentos } }))}
+          />
+        ) : estado.v === 'cruzar' ? (
+          <CruzarDimensoes
+            linhas={visiveis}
+            x={estado.x}
+            y={estado.y}
+            onEixos={(x, y) => setEstado(e => ({ ...e, x, y }))}
+            onCelula={(fx, fy) => setEstado(e => ({ ...e, v: 'lista', f: { ...e.f, celula: { x: e.x, y: e.y, fx, fy } } }))}
+          />
+        ) : ordenadas.length === 0 ? (
           <div className="vr-card p-6 text-center text-sm">
             {f.busca ? (
               <>
@@ -357,55 +550,69 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: Base; l
                       {ROTULO_CURTO[d]}
                     </Cabecalho>
                   ))}
-                  <Cabecalho col="proximidade">Proximidade do sweet spot</Cabecalho>
-                  <th scope="col" className="px-3 py-2 font-medium">
-                    Evidência principal
-                  </th>
+                  {col('proximidade') && <Cabecalho col="proximidade">Proximidade do sweet spot</Cabecalho>}
+                  {col('evidencia') && (
+                    <th scope="col" className="px-3 py-2 font-medium">
+                      Evidência principal
+                    </th>
+                  )}
+                  {col('cobertura') && (
+                    <th scope="col" className="px-3 py-2 font-medium">
+                      Cobertura
+                    </th>
+                  )}
+                  {col('data') && (
+                    <th scope="col" className="px-3 py-2 font-medium">
+                      Última avaliação
+                    </th>
+                  )}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
-                {ordenadas.map(l => {
-                  const v = l.visao;
-                  const naComparacao = estado.cmp.includes(l.contaId);
-                  const enfase =
-                    v.classeIntegrada === 'A1' ? 'bg-ok/10' : v.situacaoSweetSpot === 'candidata' ? 'shadow-[inset_3px_0_0_var(--vr-ok)]' : '';
+              {grupos ? (
+                grupos.map(g => {
+                  const fechado = recolhidos.has(g.chave);
                   return (
-                    <tr key={l.contaId} className={cn('hover:bg-secondary/60', enfase, estado.sel === l.contaId && 'bg-secondary')}>
-                      <td className="px-3 py-2.5">
-                        <input
-                          type="checkbox"
-                          checked={naComparacao}
-                          disabled={!naComparacao && estado.cmp.length >= 3}
-                          onChange={() => alternarComparar(l.contaId)}
-                          aria-label={`Comparar ${l.nome}`}
-                          title={!naComparacao && estado.cmp.length >= 3 ? 'Já há três contas na comparação; tire uma para incluir outra' : undefined}
-                        />
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <button type="button" onClick={() => setEstado(e => ({ ...e, sel: l.contaId }))} className="text-left font-semibold hover:underline">
-                          {l.nome}
-                        </button>
-                        <span className="block text-xs text-text-3">{l.setor ?? 'Sem setor'}</span>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <ClasseExperimental v={v} />
-                      </td>
-                      {DIMENSOES.map(d => (
-                        <td key={d} className="px-3 py-2.5">
-                          <Indicador l={l} d={d} />
-                        </td>
-                      ))}
-                      <td className="max-w-[260px] px-3 py-2.5">
-                        <Proximidade l={l} />
-                      </td>
-                      <td className="max-w-[280px] px-3 py-2.5">
-                        <span className="line-clamp-2 text-sm text-text-2">{l.evidencia?.texto ?? <span className="text-text-3">Sem fato com fonte</span>}</span>
-                      </td>
-                    </tr>
+                    <tbody key={g.chave} className="divide-y divide-border border-b border-border">
+                      <tr className="bg-secondary/50">
+                        <th scope="rowgroup" colSpan={nColunas} className="px-3 py-2 text-left">
+                          <button
+                            type="button"
+                            aria-expanded={!fechado}
+                            onClick={() => setRecolhidos(s => (s.has(g.chave) ? new Set([...s].filter(x => x !== g.chave)) : new Set([...s, g.chave])))}
+                            className="flex w-full items-center gap-3"
+                          >
+                            <ChevronDown className={cn('size-4 text-text-3 transition-transform', fechado && '-rotate-90')} strokeWidth={1.5} />
+                            <span className="font-semibold">{g.rotulo}</span>
+                            <span className="text-xs font-normal text-text-3">{g.linhas.length} contas</span>
+                            <span aria-hidden className="ml-auto flex h-2 w-40 overflow-hidden rounded-full bg-background">
+                              {SEGMENTOS.map(s =>
+                                g.distribuicao[s.id] ? (
+                                  <span
+                                    key={s.id}
+                                    style={{
+                                      flexGrow: g.distribuicao[s.id],
+                                      background: 'var(--vr-ok)',
+                                      opacity: { a1: 1, candidata: 0.85, A2: 0.75, B1: 0.55, B2: 0.35, C: 0.2, fora_por_criterio: 0.12, sem_metrica: 0.06 }[s.id],
+                                    }}
+                                  />
+                                ) : null,
+                              )}
+                            </span>
+                            <span className="sr-only">
+                              Distribuição: {SEGMENTOS.filter(s => g.distribuicao[s.id]).map(s => `${g.distribuicao[s.id]} ${s.rotulo}`).join(', ')}
+                            </span>
+                          </button>
+                        </th>
+                      </tr>
+                      {!fechado && g.linhas.map(linhaConta)}
+                    </tbody>
                   );
-                })}
-              </tbody>
+                })
+              ) : (
+                <tbody className="divide-y divide-border">{ordenadas.map(linhaConta)}</tbody>
+              )}
             </table>
+            {estado.g === 'faltante' && <p className="px-3 py-2 text-xs text-text-3">Uma conta com duas dimensões faltando aparece nos dois grupos.</p>}
           </div>
         )}
         {estado.cmp.length >= 3 && <p className="mt-2 text-xs text-text-3">Já há três contas na comparação. Tire uma para incluir outra.</p>}

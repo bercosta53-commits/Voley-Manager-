@@ -47,7 +47,7 @@ export function Faixa({
         Do ambiente ao sweet spot
       </h2>
       <div className="flex flex-wrap items-stretch gap-1.5 xl:flex-nowrap">
-        <div className="flex min-w-[118px] flex-col justify-center rounded-control border border-border bg-card px-3 py-2">
+        <div className="flex w-full min-w-[118px] flex-col justify-center rounded-control border border-border bg-card px-3 py-2 sm:w-auto">
           <span className="text-xs font-semibold tracking-wide text-text-3 uppercase">Ambiente</span>
           <span className="vr-data text-lg leading-tight font-semibold">{total}</span>
           <span className="text-xs text-text-3">{completas} com as 4 dimensões</span>

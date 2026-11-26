@@ -215,6 +215,22 @@ try {
   await pagina.reload({ waitUntil: 'networkidle' });
   await pagina.getByRole('heading', { name: 'Prioridade de contas' }).waitFor();
   conferir((await pagina.getByRole('heading', { name: /Comparação \(3 de 3\)/ }).count()) === 1 && pagina.url().includes('cmp='), 'comparação continua depois de recarregar (estado na URL)');
+  // fase 3: Setor × Prioridade soma o recorte e a célula filtra a lista; cruzar põe sem avaliação fora da grade
+  await pagina.goto(app.url('/radar?v=matriz'), { waitUntil: 'networkidle' });
+  const totalMatriz = Number(await pagina.locator('section:has(#matriz-setor) tfoot td').last().innerText());
+  conferir(totalMatriz === base.contas.length, 'Setor × Prioridade soma todas as contas do recorte', String(totalMatriz));
+  const celula = pagina.locator('section:has(#matriz-setor) tbody button:not([disabled])[aria-label*=":"]').first();
+  const nCelula = Number((await celula.getAttribute('aria-label')).match(/: (\d+)/)[1]);
+  await celula.click();
+  await pagina.waitForTimeout(300);
+  conferir((await pagina.locator('main table tbody tr').count()) === nCelula && pagina.url().includes('setores'), 'célula da matriz filtra a lista com as mesmas contas', `${nCelula} contas`);
+  await pagina.goto(app.url('/radar?v=cruzar&x=icp&y=sinais'), { waitUntil: 'networkidle' });
+  const nasCelulas = await pagina.$$eval('section:has(#cruzar) tbody button', bs => bs.reduce((n, b) => n + Number(b.textContent), 0));
+  const semAval = Number((await pagina.locator('section:has(#cruzar)').innerText()).match(/Sem avaliação em ICP ou Sinais: (\d+)/)[1]);
+  conferir(nasCelulas + semAval === base.contas.length, 'cruzar duas dimensões: grade + sem avaliação = total', `${nasCelulas} + ${semAval}`);
+  await pagina.goto(app.url('/radar?g=setor'), { waitUntil: 'networkidle' });
+  const grupos = await pagina.locator('main table th[scope="rowgroup"]').count();
+  conferir(grupos >= 1 && (await pagina.locator('main table tbody tr:not(:has(th[scope="rowgroup"]))').count()) === base.contas.length, 'agrupar por setor mantém todas as contas', `${grupos} grupos`);
   await pagina.goto(app.url('/radar'), { waitUntil: 'networkidle' });
 
   // 4. Decisores no modo apresentação: nenhum e-mail exposto

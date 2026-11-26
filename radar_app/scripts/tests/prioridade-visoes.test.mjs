@@ -66,3 +66,10 @@ test('ordenação múltipla: clique troca, Shift+clique soma; sem valor no fim; 
   assert.deepEqual(mudarOrdem(o, 'icp', true), [{ col: 'icp', desc: false }, { col: 'sinais', desc: true }]);
   assert.deepEqual(mudarOrdem(o, 'nome', false), [{ col: 'nome', desc: false }]);
 });
+
+test('clicar numa célula do cruzamento filtra exatamente as contas dela', async () => {
+  const { SEM_FILTROS, filtrar, filtrosEmTexto } = await import('../../lib/prioridade-filtros.ts');
+  const celula = { x: 'icp', y: 'sinais', fx: 4, fy: 3 };
+  assert.deepEqual(ids(filtrar(L, { ...SEM_FILTROS, celula }).linhas), ['b']);
+  assert.equal(filtrosEmTexto({ ...SEM_FILTROS, celula }), 'ICP 4 a 5 e Sinais 3 a 4');
+});

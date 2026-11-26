@@ -1,5 +1,5 @@
 import { DIMENSOES, ROTULO_CURTO, ROTULO_DIMENSAO, type Dimensao } from './prioridade-config';
-import { SEGMENTOS, SEM_SETOR, coberturaDe, ordemInicial, segmentoDe, type ColunaOrdem, type LinhaPrioridade, type Segmento } from './prioridade-filtros';
+import { SEGMENTOS, SEM_SETOR, coberturaDe, faixaNota, ordemInicial, segmentoDe, type ColunaOrdem, type LinhaPrioridade, type Segmento } from './prioridade-filtros';
 
 /**
  * Agrupar, cruzar e resumir (briefing v2, 6.6). Tudo descritivo: não cria nota do setor, classe nova nem
@@ -151,6 +151,7 @@ export function setorPorPrioridade(linhas: LinhaPrioridade[], ordem: 'a1' | 'can
 
 // ---------------------------------------------------------------- cruzar duas dimensões
 
+export { faixaNota };
 /** Faixas de 1 ponto: [1,2), [2,3), [3,4), [4,5]. */
 export const FAIXAS_NOTA = [
   { id: 1, rotulo: '1 a 2' },
@@ -158,7 +159,6 @@ export const FAIXAS_NOTA = [
   { id: 3, rotulo: '3 a 4' },
   { id: 4, rotulo: '4 a 5' },
 ] as const;
-export const faixaNota = (n: number) => (n >= 4 - 1e-9 ? 4 : n >= 3 - 1e-9 ? 3 : n >= 2 - 1e-9 ? 2 : 1);
 
 export interface Cruzamento {
   x: Dimensao;
