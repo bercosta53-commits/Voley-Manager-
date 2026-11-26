@@ -10,20 +10,51 @@ import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/ui/kbd';
 import { Tooltip } from '@/components/ui/tooltip';
 import { BotaoTema } from '@/components/hoje/tema';
-import type { Base } from '@/lib/tipos';
+import type { BaseCasca } from '@/lib/casca-dados';
 import { useAgora } from '@/components/ui/use-agora';
+import { frescor, rotuloCarga } from '@/lib/frescor';
+import { definirApresentacao, SECOES_FORA_DA_APRESENTACAO, useApresentacao } from '@/components/ui/use-apresentacao';
+
+/**
+ * Seções em três grupos: o trabalho do dia (Operação), a leitura do mercado (Mercado) e como o Radar funciona
+ * (Sistema). Os endereços e nomes não mudam; a barra do celular mantém a própria ordem (NO_CELULAR).
+ */
+export const GRUPOS = ['Operação', 'Mercado', 'Sistema'] as const;
 
 export const SECOES = [
-  { href: '/', rotulo: 'Hoje', icone: Inbox },
-  { href: '/radar', rotulo: 'Radar', icone: Radar },
-  { href: '/aquisicao', rotulo: 'Aquisição', icone: Target },
-  { href: '/icp', rotulo: 'ICP', icone: Crosshair },
-  { href: '/contas', rotulo: 'Contas', icone: Building2 },
-  { href: '/decisores', rotulo: 'Decisores', icone: UsersRound },
-  { href: '/fontes', rotulo: 'Fontes', icone: PlugZap },
-  { href: '/clima', rotulo: 'Clima', icone: CloudSun },
-  { href: '/metricas', rotulo: 'Métricas', icone: BarChart3 },
+  { href: '/', rotulo: 'Hoje', icone: Inbox, grupo: 'Operação' },
+  { href: '/contas', rotulo: 'Contas', icone: Building2, grupo: 'Operação' },
+  { href: '/decisores', rotulo: 'Decisores', icone: UsersRound, grupo: 'Operação' },
+  { href: '/radar', rotulo: 'Radar', icone: Radar, grupo: 'Mercado' },
+  { href: '/aquisicao', rotulo: 'Aquisição', icone: Target, grupo: 'Mercado' },
+  { href: '/icp', rotulo: 'ICP', icone: Crosshair, grupo: 'Mercado' },
+  { href: '/clima', rotulo: 'Clima', icone: CloudSun, grupo: 'Mercado' },
+  { href: '/fontes', rotulo: 'Fontes', icone: PlugZap, grupo: 'Sistema' },
+  { href: '/metricas', rotulo: 'Métricas', icone: BarChart3, grupo: 'Sistema' },
 ] as const;
+
+/** As seções do menu e da busca; no modo apresentação, sem as que ficam fora do roteiro. */
+export function useSecoes() {
+  const apresentacao = useApresentacao();
+  return apresentacao ? SECOES.filter(s => !SECOES_FORA_DA_APRESENTACAO.includes(s.href)) : SECOES;
+}
+
+/** Selo do modo apresentação: avisa que ele está ligado e desliga com um clique. */
+function SeloApresentacao() {
+  const apresentacao = useApresentacao();
+  if (!apresentacao) return null;
+  return (
+    <Tooltip lado="bottom" conteudo="Clima e ICP fora do menu, e-mails mascarados, nota de relevância oculta. Clique para desligar.">
+      <button
+        type="button"
+        onClick={() => definirApresentacao(false)}
+        className="rounded-chip border border-border-strong px-2 py-0.5 text-xs font-medium whitespace-nowrap text-text-2 hover:text-foreground"
+      >
+        Modo apresentação · sair
+      </button>
+    </Tooltip>
+  );
+}
 
 export function useSecaoAtiva() {
   const caminho = usePathname() || '/';
@@ -32,7 +63,7 @@ export function useSecaoAtiva() {
 
 function Marca() {
   return (
-    <Link href="/" className="flex items-center gap-2 rounded-chip">
+    <Link href="/" className="flex min-h-6 items-center gap-2 rounded-chip">
       <span className="text-md font-semibold tracking-tight">velora</span>
       <span className="text-md text-text-3">radar</span>
     </Link>
@@ -58,25 +89,13 @@ function AvisoExemplo({ ficticia }: { ficticia: boolean }) {
   );
 }
 
-/** Data e hora de atualização da base, em linguagem de gente ("hoje, 14:20", "ontem", "3 nov"). */
-function atualizada(iso: string | undefined, hoje: Date | null) {
-  if (!iso) return '—';
-  const d = new Date(iso.length <= 10 ? `${iso}T12:00:00` : iso);
-  // antes de montar no navegador não há "hoje" confiável (a página vem do build): mostra só a data
-  if (!hoje) return d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', timeZone: 'America/Sao_Paulo' }).replace('.', '');
-  const dias = Math.round((new Date(hoje.toDateString()).getTime() - new Date(d.toDateString()).getTime()) / 86_400_000);
-  const hora = iso.length > 10 ? `, ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : '';
-  if (dias <= 0) return `hoje${hora}`;
-  if (dias === 1) return `ontem${hora}`;
-  return d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' }).replace('.', '');
-}
-
 /**
  * Menu lateral (computador): fixo, sólido, com contagens e o estado da base — de quando é o dado e se as
  * fontes estão de pé. No md vira trilho de ícones; no lg mostra os rótulos.
  */
-export function NavLateral({ base, novos, onBuscar }: { base: Base; novos: number; onBuscar: () => void }) {
+export function NavLateral({ base, novos, onBuscar }: { base: BaseCasca; novos: number; onBuscar: () => void }) {
   const ativa = useSecaoAtiva();
+  const secoes = useSecoes();
   const contagem: Record<string, number | undefined> = {
     '/': novos || undefined,
     '/contas': base.contas.length,
@@ -84,9 +103,15 @@ export function NavLateral({ base, novos, onBuscar }: { base: Base; novos: numbe
   };
   const fontes = base.fontes ?? [];
   const ok = fontes.filter(f => f.status === 'ok').length;
-  // vermelho só quando nenhuma fonte está de pé; com parte delas funcionando o radar segue útil (âmbar)
-  const tom = fontes.length && ok === 0 ? 'bg-risk' : fontes.some(f => f.status !== 'ok') ? 'bg-warm' : 'bg-ok';
   const agora = useAgora();
+  // vermelho quando nenhuma fonte está de pé ou a base passou de 72 h; âmbar com fonte parada ou base > 36 h
+  const idade = agora ? frescor(base.atualizadoEm ?? base.geradoEm, agora).nivel : 'ok';
+  const tom =
+    (fontes.length && ok === 0) || idade === 'critico' || idade === 'desconhecido'
+      ? 'bg-risk'
+      : fontes.some(f => f.status !== 'ok') || idade === 'atencao'
+        ? 'bg-warm'
+        : 'bg-ok';
   return (
     <aside
       aria-label="Navegação principal"
@@ -114,26 +139,37 @@ export function NavLateral({ base, novos, onBuscar }: { base: Base; novos: numbe
         </button>
       </div>
 
-      <nav aria-label="Seções" className="mt-3 flex flex-col gap-0.5 px-2.5 lg:px-3">
-        {SECOES.map(({ href, rotulo, icone: Icone }) => {
-          const n = contagem[href];
+      <nav aria-label="Seções" className="mt-3 flex flex-col gap-3 px-2.5 lg:px-3">
+        {GRUPOS.map(grupo => {
+          const doGrupo = secoes.filter(s => s.grupo === grupo);
+          if (!doGrupo.length) return null; // modo apresentação pode esvaziar um grupo
           return (
-            <Link
-              key={href}
-              href={href}
-              title={rotulo}
-              aria-current={ativa(href) ? 'page' : undefined}
-              className={cn(
-                'relative flex h-9 items-center justify-center gap-2.5 rounded-control px-2.5 text-sm font-medium text-text-2 transition-colors duration-[var(--vr-dur-hover)] hover:bg-[var(--vr-surface-2)] hover:text-foreground lg:justify-start',
-                ativa(href) && 'bg-[var(--vr-surface-3)] text-foreground',
-              )}
-            >
-              {ativa(href) && <span aria-hidden className="absolute top-2 bottom-2 left-0 w-[3px] rounded-r bg-foreground" />}
-              <Icone className="size-4 shrink-0" strokeWidth={1.75} />
-              <span className="hidden flex-1 lg:inline">{rotulo}</span>
-              {n !== undefined && <span className="vr-data hidden text-xs text-text-3 lg:inline">{n}</span>}
-              {href === '/' && novos > 0 && <span aria-hidden className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-acid ring-2 ring-[var(--vr-surface)] lg:hidden" />}
-            </Link>
+            <div key={grupo} role="group" aria-labelledby={`grupo-${grupo}`} className="flex flex-col gap-0.5 border-t border-border pt-3 first:border-t-0 first:pt-0 lg:border-t-0 lg:pt-0">
+              <span id={`grupo-${grupo}`} className="hidden px-2.5 pb-1 text-xs font-semibold text-text-3 lg:block">
+                {grupo}
+              </span>
+              {doGrupo.map(({ href, rotulo, icone: Icone }) => {
+                const n = contagem[href];
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    title={rotulo}
+                    aria-current={ativa(href) ? 'page' : undefined}
+                    className={cn(
+                      'relative flex h-9 items-center justify-center gap-2.5 rounded-control px-2.5 text-sm font-medium text-text-2 transition-colors duration-[var(--vr-dur-hover)] hover:bg-[var(--vr-surface-2)] hover:text-foreground lg:justify-start',
+                      ativa(href) && 'bg-[var(--vr-surface-3)] text-foreground',
+                    )}
+                  >
+                    {ativa(href) && <span aria-hidden className="absolute top-2 bottom-2 left-0 w-[3px] rounded-r bg-foreground" />}
+                    <Icone className="size-4 shrink-0" strokeWidth={1.75} />
+                    <span className="hidden flex-1 lg:inline">{rotulo}</span>
+                    {n !== undefined && <span className="vr-data hidden text-xs text-text-3 lg:inline">{n}</span>}
+                    {href === '/' && novos > 0 && <span aria-hidden className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-acid ring-2 ring-[var(--vr-surface)] lg:hidden" />}
+                  </Link>
+                );
+              })}
+            </div>
           );
         })}
       </nav>
@@ -145,7 +181,7 @@ export function NavLateral({ base, novos, onBuscar }: { base: Base; novos: numbe
         >
           <span className="flex items-center gap-1.5">
             <span aria-hidden className={cn('size-1.5 rounded-full', tom)} />
-            Base atualizada {atualizada(base.atualizadoEm ?? base.geradoEm, agora)}
+            Dados de {rotuloCarga(base.atualizadoEm ?? base.geradoEm)}
           </span>
           {fontes.length > 0 && (
             <span className="pl-3">
@@ -156,6 +192,7 @@ export function NavLateral({ base, novos, onBuscar }: { base: Base; novos: numbe
         <div className="mt-2 flex items-center justify-center gap-1 lg:justify-between">
           <span className="hidden lg:inline">
             <AvisoExemplo ficticia={!!base.ficticia} />
+            <SeloApresentacao />
           </span>
           <BotaoTema />
         </div>
@@ -171,6 +208,7 @@ export function TopoCelular({ ficticia, onBuscar }: { ficticia: boolean; onBusca
       <Marca />
       <div className="ml-auto flex items-center gap-1">
         <AvisoExemplo ficticia={ficticia} />
+        <SeloApresentacao />
         <Button variant="ghost" size="icon" onClick={onBuscar} aria-label="Buscar ou perguntar">
           <Search />
         </Button>
@@ -186,8 +224,9 @@ const NO_CELULAR = ['/', '/radar', '/aquisicao', '/contas', '/decisores'];
 export function NavInferior({ novos }: { novos: number }) {
   const ativa = useSecaoAtiva();
   const [mais, setMais] = useState(false);
-  const principais = SECOES.filter(s => NO_CELULAR.includes(s.href));
-  const resto = SECOES.filter(s => !NO_CELULAR.includes(s.href));
+  const secoes = useSecoes();
+  const principais = secoes.filter(s => NO_CELULAR.includes(s.href)).sort((a, b) => NO_CELULAR.indexOf(a.href) - NO_CELULAR.indexOf(b.href));
+  const resto = secoes.filter(s => !NO_CELULAR.includes(s.href));
   const restoAtivo = resto.some(s => ativa(s.href));
   const item = 'flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-card text-xs font-medium text-text-3 transition-colors duration-[var(--vr-dur-hover)]';
   return (

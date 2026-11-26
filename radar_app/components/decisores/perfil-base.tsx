@@ -68,7 +68,7 @@ export function PerfilBase({ base, papeisAtivos, onPapel }: { base: Base; papeis
           </Bloco>
           <Bloco titulo="Onde falta gente no comitê" dica="contas sem o papel">
             <Ranking barras={p.lacunas} total={p.contas} cor="bg-warm" unidade="contas" />
-            <p className="mt-2 text-[11px] text-text-3">
+            <p className="mt-2 text-xs text-text-3">
               {num(p.comiteCompleto)} de {num(p.contas)} contas ({pct(p.comiteCompleto, p.contas)}%) têm decisor, dono da dor e quem assina o cheque.
             </p>
           </Bloco>

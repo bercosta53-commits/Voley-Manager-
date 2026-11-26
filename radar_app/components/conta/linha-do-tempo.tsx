@@ -1,7 +1,9 @@
-import { Archive, CalendarClock, ExternalLink, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { Archive, CalendarClock, Flag, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
+import type { StatusConta } from '@/lib/acoes';
 import type { Conta, EstadoSinal, Sinal } from '@/lib/tipos';
 import { cn, dataCurta, quando } from '@/lib/utils';
 import { IconeSinal } from '@/components/hoje/icone-sinal';
+import { Evidencia } from '@/components/ui/evidencia';
 
 interface Item {
   chave: string;
@@ -15,8 +17,32 @@ interface Item {
 }
 
 /** Linha do tempo: sinais (abertos e antigos) e o que a equipe fez, do mais recente para o mais antigo. */
-export function LinhaDoTempo({ conta, sinais, estados, hoje }: { conta: Conta; sinais: Sinal[]; estados: Record<string, EstadoSinal>; hoje: string }) {
+const ROTULO_ANDAMENTO: Record<StatusConta, string> = {
+  abordado: 'Andamento: abordado',
+  respondeu: 'Andamento: respondeu',
+  reuniao: 'Andamento: reunião marcada',
+  oportunidade: 'Andamento: virou oportunidade',
+  descartada: 'Andamento: conta descartada',
+};
+
+export function LinhaDoTempo({
+  conta,
+  sinais,
+  estados,
+  hoje,
+  andamento,
+}: {
+  conta: Conta;
+  sinais: Sinal[];
+  estados: Record<string, EstadoSinal>;
+  hoje: string;
+  andamento?: { status: StatusConta; por: string; em: string };
+}) {
   const itens: Item[] = [];
+  // com o registro compartilhado, cada ação diz quem fez
+  const sobre = (s: Sinal, e: EstadoSinal) => `Sobre: ${s.rotulo.toLowerCase()}${e.por ? ` · por ${e.por}` : ''}`;
+  if (andamento)
+    itens.push({ chave: 'andamento', data: andamento.em, icone: <Flag className="size-4" strokeWidth={1.5} />, titulo: ROTULO_ANDAMENTO[andamento.status], texto: `por ${andamento.por}`, acao: true });
   for (const s of sinais) {
     const e = estados[s.id];
     itens.push({
@@ -26,16 +52,16 @@ export function LinhaDoTempo({ conta, sinais, estados, hoje }: { conta: Conta; s
       titulo: s.sinal ?? s.rotulo,
       texto: s.porQueAgora,
       novo: !e?.acao,
-      meta: <Evidencia fonte={s.fonte} url={s.url} exemplo={s.exemplo} extra={!e?.acao ? 'na caixa' : undefined} />,
+      meta: <Evidencia className="mt-0.5 flex text-xs" fonte={s.fonte} url={s.url} fontes={s.fontes} coletadoEm={s.coletadoEm} confianca={s.confianca} extra={!e?.acao ? 'na caixa' : undefined} />,
     });
     if (e?.acao && e.em) {
       const icones = { abordado: Send, adiado: CalendarClock, arquivado: e.avaliacao === 'ruido' ? ThumbsDown : Archive };
       const Icone = icones[e.acao];
       const titulo =
         e.acao === 'abordado' ? 'Abordado' : e.acao === 'adiado' ? `Adiado até ${dataCurta(e.ate ?? e.em)}` : e.avaliacao === 'ruido' ? 'Marcado como ruído' : 'Arquivado';
-      itens.push({ chave: `${s.id}-acao`, data: e.em, icone: <Icone className="size-4" strokeWidth={1.5} />, titulo, texto: `Sobre: ${s.rotulo.toLowerCase()}`, acao: true });
+      itens.push({ chave: `${s.id}-acao`, data: e.em, icone: <Icone className="size-4" strokeWidth={1.5} />, titulo, texto: sobre(s, e), acao: true });
     } else if (e?.avaliacao === 'util' && e.em) {
-      itens.push({ chave: `${s.id}-util`, data: e.em, icone: <ThumbsUp className="size-4" strokeWidth={1.5} />, titulo: 'Marcado como útil', texto: `Sobre: ${s.rotulo.toLowerCase()}`, acao: true });
+      itens.push({ chave: `${s.id}-util`, data: e.em, icone: <ThumbsUp className="size-4" strokeWidth={1.5} />, titulo: 'Marcado como útil', texto: sobre(s, e), acao: true });
     }
   }
   for (const h of conta.historico)
@@ -45,7 +71,7 @@ export function LinhaDoTempo({ conta, sinais, estados, hoje }: { conta: Conta; s
       icone: <IconeSinal tipo={h.tipo} className="size-4" />,
       titulo: h.sinal ?? h.rotulo,
       texto: h.porQueAgora,
-      meta: <Evidencia fonte={h.fonte} url={h.url} exemplo={h.exemplo} />,
+      meta: <Evidencia className="mt-0.5 flex text-xs" fonte={h.fonte} url={h.url} />,
     });
   // Ação feita hoje aparece acima do sinal do mesmo dia.
   itens.sort((a, b) => (a.data === b.data ? Number(!!b.acao) - Number(!!a.acao) : b.data.localeCompare(a.data)));
@@ -87,18 +113,3 @@ export function LinhaDoTempo({ conta, sinais, estados, hoje }: { conta: Conta; s
   );
 }
 
-function Evidencia({ fonte, url, exemplo, extra }: { fonte: string; url: string; exemplo: boolean; extra?: string }) {
-  return (
-    <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-text-3">
-      <span className="text-text-2">{fonte}</span>
-      {url ? (
-        <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-chip underline decoration-border-strong underline-offset-2 hover:text-foreground">
-          ver fonte <ExternalLink className="size-3" strokeWidth={1.5} />
-        </a>
-      ) : (
-        exemplo && <span className="rounded-chip border border-border px-1 text-[11px]">exemplo</span>
-      )}
-      {extra && <span>· {extra}</span>}
-    </p>
-  );
-}

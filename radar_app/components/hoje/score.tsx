@@ -1,5 +1,5 @@
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, pontos } from '@/lib/utils';
 
 export function Curva({ serie, largura, altura, classe }: { serie: number[]; largura: number; altura: number; classe: string }) {
   const min = Math.min(...serie),
@@ -23,20 +23,26 @@ export function ScoreTendencia({ score, tendencia, serie, status, compacto = fal
   const Seta = sentido === 'sobe' ? ArrowUpRight : sentido === 'desce' ? ArrowDownRight : Minus;
   const rotulo =
     sentido === 'sobe'
-      ? `esquentando, mais ${tendencia} pontos em 30 dias`
+      ? `esquentando, mais ${pontos(tendencia)} pontos em 30 dias`
       : sentido === 'desce'
-        ? `esfriando, menos ${Math.abs(tendencia)} pontos em 30 dias`
+        ? `esfriando, menos ${pontos(Math.abs(tendencia))} pontos em 30 dias`
         : 'estável nos últimos 30 dias';
   return (
-    <div className="flex items-center gap-3" aria-label={`Score ${score}${status ? `, ${status}` : ''}, ${rotulo}`} role="img">
+    <div className="flex items-center gap-3" aria-label={`Score ${pontos(score)}${status ? `, ${status}` : ''}, ${rotulo}`} role="img">
       {!compacto && <Curva serie={serie} largura={64} altura={22} classe={cor} />}
       <div className="flex flex-col items-end leading-none">
-        <span className="font-display text-xl font-semibold tracking-tight tabular-nums">{score}</span>
+        <span className="font-display text-xl font-semibold tracking-tight tabular-nums">{pontos(score)}</span>
         <span className={cn('vr-data mt-1 flex items-center gap-0.5 text-xs', cor)}>
-          <Seta className="size-3.5" strokeWidth={1.5} />
-          {sentido === 'estavel' ? '0' : `${tendencia > 0 ? '+' : '−'}${Math.abs(tendencia)}`}
+          {sentido === 'estavel' ? (
+            'estável'
+          ) : (
+            <>
+              <Seta className="size-3.5" strokeWidth={1.5} />
+              {`${tendencia > 0 ? '+' : '−'}${pontos(Math.abs(tendencia))}`}
+            </>
+          )}
         </span>
-        {status && <span className="mt-1 whitespace-nowrap text-[10px] text-text-3">{status}</span>}
+        {status && <span className="mt-1 whitespace-nowrap text-xs text-text-3">{status}</span>}
       </div>
     </div>
   );

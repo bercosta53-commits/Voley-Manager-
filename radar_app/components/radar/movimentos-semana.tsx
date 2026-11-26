@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import type { Base, Conta, Sinal } from '@/lib/tipos';
 import { CATEGORIA_ROTULO_CURTO } from '@/lib/papeis';
-import { cn, diasEntre, plural } from '@/lib/utils';
+import { cn, diasEntre, plural, pontos } from '@/lib/utils';
 import { LogoConta } from '@/components/hoje/logo-conta';
 import { COR_STATUS_VSCS } from '@/components/ui/selo-vscs';
 
@@ -66,7 +66,7 @@ export function MovimentosSemana({ base, onAbrir }: { base: Base; onAbrir: (cont
         </p>
         <ul className="flex flex-wrap gap-1.5 md:ml-auto" aria-label="Fatos novos por categoria">
           {m.categorias.map(([cat, n]) => (
-            <li key={cat} className="rounded-chip bg-secondary px-1.5 py-0.5 text-[11px] text-text-2">
+            <li key={cat} className="rounded-chip bg-secondary px-1.5 py-0.5 text-xs text-text-2">
               {CATEGORIA_ROTULO_CURTO[cat] ?? cat} <span className="vr-data font-semibold text-foreground">{n}</span>
             </li>
           ))}
@@ -98,10 +98,10 @@ function Lista({ titulo, itens, vazio, onAbrir }: { titulo: string; itens: Movim
                 <LogoConta nome={conta.nome} dominio={conta.dominio} tamanho={20} className="rounded-[4px]" />
                 <span className="truncate font-medium text-foreground">{conta.nome}</span>
                 <span className="truncate text-text-3">{sinal ? (sinal.sinal ?? sinal.porQueAgora) : 'perdeu força com o tempo'}</span>
-                {conta.vscsStatus && <span className={cn('rounded-chip px-1 text-[10px]', COR_STATUS_VSCS[conta.vscsStatus])}>{conta.vscsStatus}</span>}
+                {conta.vscsStatus && <span className={cn('rounded-chip px-1 text-xs', COR_STATUS_VSCS[conta.vscsStatus])}>{conta.vscsStatus}</span>}
                 <span className={cn('vr-data flex items-center justify-end gap-0.5 font-semibold', delta > 0 ? 'text-warm' : 'text-cool')}>
                   {delta > 0 ? <ArrowUpRight className="size-3" strokeWidth={2} /> : <ArrowDownRight className="size-3" strokeWidth={2} />}
-                  {Math.abs(delta)}
+                  {pontos(Math.abs(delta))}
                 </span>
               </button>
             </li>

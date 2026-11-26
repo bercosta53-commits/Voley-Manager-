@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation';
 import * as Dialog from '@radix-ui/react-dialog';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ArrowRight, CornerDownLeft, MessageCircleQuestion, Search, UserRound } from 'lucide-react';
-import type { Base } from '@/lib/tipos';
+import type { BaseCasca } from '@/lib/casca-dados';
 import { hrefConta, normalizar } from '@/lib/contas';
 import { aplicar, interpretar, paraUrl } from '@/lib/filtros';
-import { cn, plural } from '@/lib/utils';
+import { cn, plural, pontos } from '@/lib/utils';
 import { Kbd } from '@/components/ui/kbd';
 import { LogoConta } from '@/components/hoje/logo-conta';
-import { SECOES } from './navegacao';
+import { useSecoes } from './navegacao';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -25,7 +25,7 @@ interface Item {
 }
 
 /** Cmd+K: buscar conta ou pessoa, pular para uma tela, ou fazer uma pergunta simples sobre a base. */
-export function Comando({ base, aberto, onAberto }: { base: Base; aberto: boolean; onAberto: (a: boolean) => void }) {
+export function Comando({ base, aberto, onAberto }: { base: BaseCasca; aberto: boolean; onAberto: (a: boolean) => void }) {
   const router = useRouter();
   const reduzir = useReducedMotion();
   const [q, setQ] = useState('');
@@ -50,6 +50,7 @@ export function Comando({ base, aberto, onAberto }: { base: Base; aberto: boolea
     if (!aberto) setQ('');
   }, [aberto]);
 
+  const secoes = useSecoes();
   const sinaisPorConta = useMemo(() => {
     const m = new Map<string, typeof base.sinais>();
     for (const s of base.sinais) m.set(s.contaId, [...(m.get(s.contaId) ?? []), s]);
@@ -69,7 +70,7 @@ export function Comando({ base, aberto, onAberto }: { base: Base; aberto: boolea
           icone: <LogoConta nome={c.nome} dominio={c.dominio} tamanho={24} />,
           href: hrefConta(c.id),
         });
-      for (const s of SECOES) saida.push({ id: s.href, grupo: 'Ir para', titulo: s.rotulo, icone: <s.icone className="size-4" strokeWidth={1.5} />, href: s.href });
+      for (const s of secoes) saida.push({ id: s.href, grupo: 'Ir para', titulo: s.rotulo, icone: <s.icone className="size-4" strokeWidth={1.5} />, href: s.href });
       return saida;
     }
 
@@ -93,7 +94,7 @@ export function Comando({ base, aberto, onAberto }: { base: Base; aberto: boolea
         id: c.id,
         grupo: 'Contas',
         titulo: c.nome,
-        detalhe: [c.cidade && `${c.cidade}/${c.uf}`, `score ${c.score}`].filter(Boolean).join(' · '),
+        detalhe: [c.cidade && `${c.cidade}/${c.uf}`, `score ${pontos(c.score)}`].filter(Boolean).join(' · '),
         icone: <LogoConta nome={c.nome} dominio={c.dominio} tamanho={24} />,
         href: hrefConta(c.id),
       });
@@ -108,10 +109,10 @@ export function Comando({ base, aberto, onAberto }: { base: Base; aberto: boolea
             icone: <UserRound className="size-4" strokeWidth={1.5} />,
             href: hrefConta(c.id),
           });
-    for (const s of SECOES)
+    for (const s of secoes)
       if (casa(s.rotulo)) saida.push({ id: s.href, grupo: 'Ir para', titulo: s.rotulo, icone: <s.icone className="size-4" strokeWidth={1.5} />, href: s.href });
     return saida;
-  }, [q, base.contas, sinaisPorConta]);
+  }, [q, base.contas, sinaisPorConta, secoes]);
 
   useEffect(() => setSel(0), [q]);
   useEffect(() => {

@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { Activity, ArrowDownUp, ArrowRight, CheckCircle2, ChevronRight, CircleHelp, Database, Download, ExternalLink, Layers3, LayoutGrid, MousePointer2, Radar, Search, ShieldCheck, SlidersHorizontal, Table2, Target, X } from 'lucide-react';
 import Link from 'next/link';
 import { Casca } from '@/components/casca/casca';
-import type { Base } from '@/lib/tipos';
+import type { BaseCasca } from '@/lib/casca-dados';
 import { cn } from '@/lib/utils';
 
 type Estado = 'network' | 'html' | 'request' | 'not_observed' | 'not_tested';
@@ -66,21 +66,21 @@ function Barra({rotulo,valor,maximo,legenda,onClick}:{rotulo:string;valor:number
   <div className="h-2.5 overflow-hidden rounded-chip bg-[var(--vr-surface-3)]"><div className="h-full rounded-chip bg-foreground transition-[width] duration-300" style={{width:String(p(valor,Math.max(maximo,1)))+'%'}}/></div></>;
  return onClick?<button type="button" onClick={onClick} className="block w-full rounded-control p-1 text-left hover:bg-[var(--vr-surface-2)]">{area}</button>:<div>{area}</div>;
 }
-function NomeFonte({item}:{item:ContaAqu}){return <span className="min-w-0"><span className="block truncate text-sm font-semibold text-foreground">{item.name}</span><span className="vr-data block truncate text-[11px] text-text-3">{item.id} · {item.domain}</span></span>;}
+function NomeFonte({item}:{item:ContaAqu}){return <span className="min-w-0"><span className="block truncate text-sm font-semibold text-foreground">{item.name}</span><span className="vr-data block truncate text-xs text-text-3">{item.id} · {item.domain}</span></span>;}
 function PainelEmpresa({item,onClose,contaRadarId}:{item:ContaAqu;onClose:()=>void;contaRadarId?:string}){
  const total=Object.values(item.tags).filter(x=>x==='network').length;
  const baseHref=cssUrl(item.evidence),site='https://'+item.domain;
  return <div className="fixed inset-0 z-50 flex justify-end bg-black/35" role="presentation" onMouseDown={onClose}>
   <aside role="dialog" aria-modal="true" aria-label={'Aquisição de '+item.name} className="h-full w-full max-w-[640px] overflow-y-auto border-l border-border bg-background shadow-3" onMouseDown={e=>e.stopPropagation()}>
    <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-background px-5 py-5 md:px-7">
-    <div className="min-w-0"><p className="mb-1 text-[11px] font-semibold uppercase tracking-[.15em] text-text-3">Dossiê técnico de aquisição · {item.id}</p><h2 className="font-display text-xl font-semibold md:text-2xl">{item.name}</h2><p className="mt-1 text-xs text-text-3">{item.domain} · Tier {item.tier}</p></div>
+    <div className="min-w-0"><p className="mb-1 text-xs font-semibold uppercase tracking-[.15em] text-text-3">Dossiê técnico de aquisição · {item.id}</p><h2 className="font-display text-xl font-semibold md:text-2xl">{item.name}</h2><p className="mt-1 text-xs text-text-3">{item.domain} · Tier {item.tier}</p></div>
     <button type="button" aria-label="Fechar dossiê" className="rounded-control border border-border p-2 hover:bg-[var(--vr-surface-2)]" onClick={onClose}><X className="size-4"/></button>
    </header>
    <div className="space-y-5 px-5 py-6 md:px-7">
     <div className="grid grid-cols-3 gap-2">
-     <div className="vr-card p-3"><span className="text-[11px] text-text-3">Prioridade de diagnóstico</span><p className="vr-data mt-1 text-2xl font-semibold">{item.priority}<span className="text-sm text-text-3">/100</span></p></div>
-     <div className="vr-card p-3"><span className="text-[11px] text-text-3">Tecnologias na rede</span><p className="vr-data mt-1 text-2xl font-semibold">{total}</p></div>
-     <div className="vr-card p-3"><span className="text-[11px] text-text-3">Páginas válidas</span><p className="vr-data mt-1 text-2xl font-semibold">{item.validPages}</p></div>
+     <div className="vr-card p-3"><span className="text-xs text-text-3">Prioridade de diagnóstico</span><p className="vr-data mt-1 text-2xl font-semibold">{item.priority}<span className="text-sm text-text-3">/100</span></p></div>
+     <div className="vr-card p-3"><span className="text-xs text-text-3">Tecnologias na rede</span><p className="vr-data mt-1 text-2xl font-semibold">{total}</p></div>
+     <div className="vr-card p-3"><span className="text-xs text-text-3">Páginas válidas</span><p className="vr-data mt-1 text-2xl font-semibold">{item.validPages}</p></div>
     </div>
     <div className="rounded-control border border-border bg-[var(--vr-surface-2)] p-4">
      <div className="mb-2 flex flex-wrap items-center gap-2"><Chip tom={item.validPages>0?'sucesso':'alerta'}>{item.validPages>0?'Site auditado':'Auditoria inconclusiva'}</Chip><Chip>Tier {item.tier}</Chip></div>
@@ -88,7 +88,7 @@ function PainelEmpresa({item,onClose,contaRadarId}:{item:ContaAqu;onClose:()=>vo
     </div>
     {GRUPOS.map(g=><section key={g.id} className="vr-card p-4">
       <div className="mb-4 flex items-center justify-between"><div><h3 className="text-sm font-semibold">{g.nome}</h3><p className="mt-0.5 text-xs text-text-3">{g.sub}</p></div><span className="vr-data text-sm text-text-3">{g.chaves.filter(k=>item.tags[k]==='network').length}/{g.chaves.length}</span></div>
-      <div className="grid gap-2 sm:grid-cols-2">{g.chaves.map(k=><div key={k} className="flex min-w-0 items-center gap-2 rounded-control border border-border px-2.5 py-2"><Ponto estado={item.tags[k]}/><span className="min-w-0 flex-1 truncate text-xs">{NOMES[k]}</span><span className="text-[10px] text-text-3">{item.tags[k]==='network'?'Rede':item.tags[k]==='html'?'HTML':item.tags[k]==='not_observed'?'N/obs.':'N/test.'}</span></div>)}</div>
+      <div className="grid gap-2 sm:grid-cols-2">{g.chaves.map(k=><div key={k} className="flex min-w-0 items-center gap-2 rounded-control border border-border px-2.5 py-2"><Ponto estado={item.tags[k]}/><span className="min-w-0 flex-1 truncate text-xs">{NOMES[k]}</span><span className="text-xs text-text-3">{item.tags[k]==='network'?'Rede':item.tags[k]==='html'?'HTML':item.tags[k]==='not_observed'?'N/obs.':'N/test.'}</span></div>)}</div>
       {g.id==='captacao'&&<p className="mt-3 border-t border-border pt-3 text-xs text-text-3">Formulários no DOM: <b className="text-foreground">{item.forms}</b> · Links WhatsApp no DOM: <b className="text-foreground">{item.whatsappLinks}</b></p>}
       {g.id==='crm'&&<p className="mt-3 border-t border-border pt-3 text-xs leading-5 text-text-3">Histórico BuiltWith: {item.crmHistorical||'Não identificado'}</p>}
     </section>)}
@@ -111,7 +111,7 @@ function PainelEmpresa({item,onClose,contaRadarId}:{item:ContaAqu;onClose:()=>vo
   </aside>
  </div>
 }
-export function TelaAquisicao({base,dados}:{base:Base;dados:Dataset}){
+export function TelaAquisicao({base,dados}:{base:BaseCasca;dados:Dataset}){
  const [vista,setVista]=useState<Vista>('panorama');
  const [texto,setTexto]=useState('');const [tier,setTier]=useState('todos');const [grupo,setGrupo]=useState('todos');
  const [status,setStatus]=useState('todos');const [ordenacao,setOrdenacao]=useState('prioridade');
@@ -148,7 +148,7 @@ export function TelaAquisicao({base,dados}:{base:Base;dados:Dataset}){
  </div>;
  return <Casca base={base}><main className="w-full max-w-[1600px] px-4 pt-2 pb-28 md:px-8 md:pt-8 md:pb-16">
   <div className="mb-7 flex flex-wrap items-start justify-between gap-3">
-   <div><p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.17em] text-text-3"><span className="inline-block size-1.5 rounded-full bg-ok"/> Intelligence / GTM Stack</p><h1 className="font-display text-3xl font-semibold tracking-tight">Aquisição</h1>
+   <div><p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[.17em] text-text-3"><span className="inline-block size-1.5 rounded-full bg-ok"/> Intelligence / GTM Stack</p><h1 className="font-display text-3xl font-semibold tracking-tight">Aquisição</h1>
     <p className="mt-2 max-w-2xl text-sm leading-6 text-text-2">O que a empresa usa para atrair, medir e converter. Explore o stack por conta, compare evidências e priorize auditorias de Growth & Vendas.</p></div>
    <div className="flex flex-wrap gap-2 pt-1"><Chip tom="sucesso"><CheckCircle2 className="size-3.5"/> Dados L11 · 08 nov 2026</Chip><Chip>120 contas analisadas</Chip></div>
   </div>
@@ -168,26 +168,26 @@ export function TelaAquisicao({base,dados}:{base:Base;dados:Dataset}){
   {vista==='panorama'&&<div className="grid gap-4 xl:grid-cols-[1.45fr_1fr]">
    <section className="vr-card p-5 md:p-6"><div className="mb-6 flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-base font-semibold">Mapa de instrumentação</h2><p className="mt-1 text-xs text-text-3">Resposta HTTP observada / {validas.length} sites auditados. Clique em uma tecnologia para filtrar.</p></div><Chip>Fonte: Playwright</Chip></div>
     <div className="grid gap-6 md:grid-cols-2">{GRUPOS.slice(0,3).map(g=><div key={g.id}><h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-3">{g.nome}</h3><div className="space-y-3">{g.chaves.map(k=><Barra key={k} rotulo={NOMES[k]} valor={registrosRede(k)} maximo={validas.length} legenda={String(registrosRede(k))+' · '+p(registrosRede(k),validas.length)+'%'} onClick={()=>filtrarFerramenta(k)}/>)}</div></div>)}
-      <div><h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-3">Captação no DOM</h3><div className="space-y-3"><Barra rotulo="Formulário visível" valor={validas.filter(a=>a.forms>0).length} maximo={validas.length}/><Barra rotulo="Link de WhatsApp" valor={validas.filter(a=>a.whatsappLinks>0).length} maximo={validas.length}/></div><p className="mt-4 text-[11px] leading-5 text-text-3">Presença em HTML e DOM não comprova funcionamento de conversão ou integração com o CRM.</p></div>
+      <div><h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-text-3">Captação no DOM</h3><div className="space-y-3"><Barra rotulo="Formulário visível" valor={validas.filter(a=>a.forms>0).length} maximo={validas.length}/><Barra rotulo="Link de WhatsApp" valor={validas.filter(a=>a.whatsappLinks>0).length} maximo={validas.length}/></div><p className="mt-4 text-xs leading-5 text-text-3">Presença em HTML e DOM não comprova funcionamento de conversão ou integração com o CRM.</p></div>
     </div>
    </section>
    <div className="space-y-4">
     <section className="vr-card p-5"><h2 className="text-base font-semibold">Qualidade da evidência</h2><p className="mt-1 text-xs text-text-3">A ausência de observação não é diagnóstico de falha.</p>
       <div className="mt-5 flex h-3 overflow-hidden rounded-control bg-[var(--vr-surface-3)]">{[...NIVEL].map(item=>{const n=validas.filter(a=>a.tags.ga4===item.id).length;return <div key={item.id} className={classeEstado(item.id)} style={{width:String(p(n,validas.length))+'%'}} title={item.texto+': '+n}/>})}</div>
       <div className="mt-4 space-y-2">{NIVEL.map(item=><div key={item.id} className="flex items-center gap-2 text-xs"><Ponto estado={item.id}/><span className="flex-1 text-text-2">{item.texto}</span><b className="vr-data">{validas.filter(a=>a.tags.ga4===item.id).length}</b></div>)}</div>
-      <p className="mt-4 border-t border-border pt-3 text-[11px] text-text-3">Exemplo: estados do GA4 na amostra tecnicamente auditada.</p>
+      <p className="mt-4 border-t border-border pt-3 text-xs text-text-3">Exemplo: estados do GA4 na amostra tecnicamente auditada.</p>
     </section>
     <section className="vr-card p-5"><div className="mb-4 flex items-center gap-2"><MousePointer2 className="size-4 text-text-2"/><h2 className="text-base font-semibold">Eventos de conversão</h2></div>
       <div className="grid grid-cols-2 gap-2"><div className="rounded-control bg-[var(--vr-surface-2)] p-3"><div className="vr-data text-2xl font-semibold">{resultAvaliado}</div><p className="mt-0.5 text-xs text-text-3">contas com etapa CTA</p></div>
       <div className="rounded-control bg-[var(--vr-surface-2)] p-3"><div className="vr-data text-2xl font-semibold">{todas.filter(a=>!!a.ctaHttp).length}</div><p className="mt-0.5 text-xs text-text-3">eventos HTTP detalhados no L11</p></div></div>
-      <p className="mt-3 text-[11px] leading-5 text-text-3">A análise de clique tem cobertura parcial. Não extrapolar eventos observados para as 120 contas.</p>
+      <p className="mt-3 text-xs leading-5 text-text-3">A análise de clique tem cobertura parcial. Não extrapolar eventos observados para as 120 contas.</p>
     </section>
    </div>
    <section className="vr-card p-5 md:p-6 xl:col-span-2"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-base font-semibold">Empresas para aprofundar</h2><p className="mt-1 text-xs text-text-3">Prioridade L08 · não representa deficiência tecnológica.</p></div><button className="flex items-center gap-1 text-xs font-semibold hover:underline" onClick={()=>setVista('prioridades')}>Abrir fila completa <ArrowRight className="size-3.5"/></button></div>
-      <div className="grid gap-2 md:grid-cols-5">{[...lista].sort((a,b)=>b.priority-a.priority).slice(0,5).map(a=><button key={a.id} onClick={()=>setSelecionada(a)} className="rounded-control border border-border bg-[var(--vr-surface-2)] p-3 text-left transition-colors hover:border-border-strong hover:bg-[var(--vr-surface-3)]"><div className="flex justify-between"><Chip>Tier {a.tier}</Chip><span className="vr-data text-lg font-semibold">{a.priority}</span></div><p className="mt-4 line-clamp-2 min-h-10 text-sm font-semibold">{a.name}</p><p className="mt-1 truncate text-[11px] text-text-3">{a.signalFamilies} famílias · {redes(a)} sinais web</p></button>)}</div>
+      <div className="grid gap-2 md:grid-cols-5">{[...lista].sort((a,b)=>b.priority-a.priority).slice(0,5).map(a=><button key={a.id} onClick={()=>setSelecionada(a)} className="rounded-control border border-border bg-[var(--vr-surface-2)] p-3 text-left transition-colors hover:border-border-strong hover:bg-[var(--vr-surface-3)]"><div className="flex justify-between"><Chip>Tier {a.tier}</Chip><span className="vr-data text-lg font-semibold">{a.priority}</span></div><p className="mt-4 line-clamp-2 min-h-10 text-sm font-semibold">{a.name}</p><p className="mt-1 truncate text-xs text-text-3">{a.signalFamilies} famílias · {redes(a)} sinais web</p></button>)}</div>
    </section>
   </div>}
-  {vista==='matriz'&&<section className="vr-card overflow-hidden"><div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-4 md:px-5"><div><h2 className="text-sm font-semibold">Matriz de tecnologias</h2><p className="mt-1 text-xs text-text-3">Clique na linha para abrir as evidências. Pontos coloridos representam estados diferentes, não maturidade.</p></div><div className="flex flex-wrap gap-3">{NIVEL.slice(0,4).map(v=><span className="flex items-center gap-1 text-[10px] text-text-3" key={v.id}><Ponto estado={v.id} tamanho="size-2"/>{v.texto}</span>)}</div></div>
+  {vista==='matriz'&&<section className="vr-card overflow-hidden"><div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-4 md:px-5"><div><h2 className="text-sm font-semibold">Matriz de tecnologias</h2><p className="mt-1 text-xs text-text-3">Clique na linha para abrir as evidências. Pontos coloridos representam estados diferentes, não maturidade.</p></div><div className="flex flex-wrap gap-3">{NIVEL.slice(0,4).map(v=><span className="flex items-center gap-1 text-xs text-text-3" key={v.id}><Ponto estado={v.id} tamanho="size-2"/>{v.texto}</span>)}</div></div>
     <div className="overflow-x-auto"><table className="w-full min-w-[990px] text-left text-xs"><thead className="sticky top-0 z-10 bg-[var(--vr-surface-2)]"><tr><th className="sticky left-0 z-20 min-w-[240px] border-b border-r border-border bg-[var(--vr-surface-2)] px-4 py-3 font-semibold">EMPRESA</th><th className="border-b border-border px-3 py-3">TIER</th><th className="border-b border-border px-3 py-3">PRIOR.</th>{PRINCIPAIS.map(k=><th className="min-w-12 border-b border-border px-2 py-3 text-center font-medium text-text-3" key={k} title={NOMES[k]}>{k==='googleAds'?'Ads':k==='rdStation'?'RD':k==='linkedin'?'LI':k==='hubspot'?'Hub':k==='ploomes'?'Ploo':k.toUpperCase()}</th>)}<th className="border-b border-border px-3 py-3">CAPTAÇÃO</th><th className="border-b border-border px-3 py-3">AUDITORIA</th></tr></thead><tbody>
       {lista.map(a=><tr key={a.id} onClick={()=>setSelecionada(a)} tabIndex={0} onKeyDown={e=>{if(e.key==='Enter')setSelecionada(a)}} className="group cursor-pointer border-b border-border/70 hover:bg-[var(--vr-surface-2)] focus:bg-[var(--vr-surface-2)]">
        <td className="sticky left-0 z-[1] max-w-[280px] border-r border-border bg-card px-4 py-3 group-hover:bg-[var(--vr-surface-2)]"><NomeFonte item={a}/></td><td className="px-3 py-3 font-semibold">{a.tier}</td><td className="vr-data px-3 py-3 font-semibold">{a.priority}</td>{PRINCIPAIS.map(k=><td className="px-2 py-3 text-center" key={k}><Ponto estado={a.tags[k]} tamanho="size-3"/></td>)}<td className="px-3 py-3"><span title="Formulários / Links WhatsApp" className="vr-data whitespace-nowrap">{a.forms} F / {a.whatsappLinks} W</span></td><td className="px-3 py-3"><Chip tom={a.validPages>0?'sucesso':'alerta'}>{a.validPages>0?'Auditado':'Pendente'}</Chip></td>
@@ -202,6 +202,6 @@ export function TelaAquisicao({base,dados}:{base:Base;dados:Dataset}){
     <section className="vr-card p-5"><h3 className="mb-3 text-sm font-semibold">Perguntas de diagnóstico</h3><div className="space-y-3 text-xs leading-5 text-text-2"><p>01 · O clique vira evento mensurável e atribuído?</p><p>02 · Há fonte/UTM preservada até o CRM?</p><p>03 · O time comercial registra e acompanha os leads?</p><p>04 · Há campanhas ativas e governança de conversões?</p></div></section>
    </aside>
   </div>}
-  <div className="mt-6 flex flex-wrap items-start gap-2 rounded-card border border-border bg-[var(--vr-surface-2)] px-4 py-3 text-[11px] leading-5 text-text-3"><ShieldCheck className="mt-0.5 size-4 shrink-0"/><p className="m-0 flex-1"><strong>Metodologia:</strong> {dados.caveat} Fonte: {dados.source}. Não foram enviados formulários ou mensagens. A cobertura técnica das 120 contas é parcial, e a pontuação é usada apenas para decidir onde investigar.</p></div>
+  <div className="mt-6 flex flex-wrap items-start gap-2 rounded-card border border-border bg-[var(--vr-surface-2)] px-4 py-3 text-xs leading-5 text-text-3"><ShieldCheck className="mt-0.5 size-4 shrink-0"/><p className="m-0 flex-1"><strong>Metodologia:</strong> {dados.caveat} Fonte: {dados.source}. Não foram enviados formulários ou mensagens. A cobertura técnica das 120 contas é parcial, e a pontuação é usada apenas para decidir onde investigar.</p></div>
  </main>{selecionada&&<PainelEmpresa item={selecionada} contaRadarId={contaNoRadar(selecionada)} onClose={()=>setSelecionada(null)}/>}</Casca>;
 }

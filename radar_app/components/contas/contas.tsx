@@ -6,13 +6,13 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { ArrowDown, ArrowUp, BookmarkPlus, Download, ExternalLink, Search, SearchX, X } from 'lucide-react';
 import type { Base, Conta, Sinal } from '@/lib/tipos';
-import { aplicarAvaliacoes } from '@/lib/avaliacao';
 import { FAMILIAS, STATUS, familia, hrefConta, primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, status } from '@/lib/contas';
-import { SEM_FILTRO, aplicar, daUrl, temFiltro, type Filtros } from '@/lib/filtros';
+import { SEM_FILTRO, aplicar, daUrl, mesmosFiltros, temFiltro, type Filtros } from '@/lib/filtros';
+import { SeloQualificada } from '@/components/ui/selo-qualificada';
 import { baixarCsv } from '@/lib/exportar-csv';
 import { SeloVscs } from '@/components/ui/selo-vscs';
 import { PerfilContas } from './perfil-contas';
-import { cn, plural, quando } from '@/lib/utils';
+import { cn, plural, quando, pontos } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Casca } from '@/components/casca/casca';
@@ -22,6 +22,7 @@ import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
 import { sentido } from '@/lib/contas';
 import { Aviso, ErroCarregar, SemPermissao } from '@/components/hoje/estados';
 import { useEstados } from '@/components/hoje/estado';
+import { ehQuente, teveAcao } from '@/lib/cobertura';
 import { MenuFiltro } from './menu-filtro';
 
 type Coluna = 'nome' | 'score' | 'tendencia' | 'sinal';
@@ -40,6 +41,8 @@ const FIXOS: Salvo[] = [
   { id: 'ativar', nome: 'Prontas para ativar', filtros: { ...SEM_FILTRO, status: ['ativar'] }, fixo: true },
   { id: 'esquentando', nome: 'Esquentando', filtros: { ...SEM_FILTRO, tendencia: 'sobe' }, fixo: true },
   { id: 'com-sinal', nome: 'Com sinal na caixa', filtros: { ...SEM_FILTRO, comSinal: true }, fixo: true },
+  { id: 'qualificadas', nome: 'Qualificadas', filtros: { ...SEM_FILTRO, qualificadas: true }, fixo: true },
+  { id: 'sub-trabalhadas', nome: 'Quentes sem ação', filtros: { ...SEM_FILTRO, subTrabalhadas: true }, fixo: true },
 ];
 const CHAVE_SALVOS = 'vr:contas:filtros:v1';
 
@@ -51,9 +54,8 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
   const [salvos, setSalvos] = useState<Salvo[]>([]);
   const [nomeNovo, setNomeNovo] = useState<string | null>(null);
   const [pronto, setPronto] = useState(false);
-  const { estados } = useEstados();
-  // score com as avaliações de relevância (1/2/3) que a pessoa deu aos sinais
-  const base = useMemo(() => aplicarAvaliacoes(baseOriginal, estados), [baseOriginal, estados]);
+  const { estados, status: andamentos, compartilhado } = useEstados();
+  const base = baseOriginal; // score do motor, igual para todos (P1-8)
   const hoje = base.geradoEm;
 
   useEffect(() => {
@@ -85,20 +87,34 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
     return m;
   }, [base.sinais, estados, hoje]);
 
+  // cobertura (P2-11): contas com alguma ação do time. Sem o registro compartilhado, cada pessoa só veria as
+  // próprias ações, então "quentes sem ação" não aparece (diria que ninguém trabalhou o que outra pessoa trabalhou)
+  const trabalhadas = useMemo(() => {
+    const ids = new Set<string>();
+    if (!compartilhado) return ids;
+    const todosPorConta = new Map<string, Sinal[]>();
+    for (const s of base.sinais) todosPorConta.set(s.contaId, [...(todosPorConta.get(s.contaId) ?? []), s]);
+    for (const c of base.contas) if (teveAcao(todosPorConta.get(c.id) ?? [], estados, andamentos[c.id])) ids.add(c.id);
+    return ids;
+  }, [base, estados, andamentos, compartilhado]);
+  const subTrabalhada = (c: Conta) => compartilhado && ehQuente(c) && !trabalhadas.has(c.id);
+
   const linhas = useMemo(() => {
     const ult = (c: Conta) => sinaisPorConta.get(c.id)?.[0]?.data ?? c.historico[0]?.data ?? '';
     const valor = (c: Conta): number | string =>
       ordem.col === 'nome' ? c.nome.toLowerCase() : ordem.col === 'score' ? c.score : ordem.col === 'tendencia' ? c.tendencia : ult(c);
-    return aplicar(contas, filtros, sinaisPorConta).sort((a, b) => {
+    return aplicar(contas, filtros, sinaisPorConta, trabalhadas).sort((a, b) => {
       const va = valor(a),
         vb = valor(b);
       const r = va < vb ? -1 : va > vb ? 1 : b.score - a.score;
       return ordem.desc ? -r : r;
     });
-  }, [contas, filtros, ordem, sinaisPorConta]);
+  }, [contas, filtros, ordem, sinaisPorConta, trabalhadas]);
 
-  const todosSalvos = [...FIXOS, ...salvos];
-  const ativo = todosSalvos.find(s => JSON.stringify(s.filtros) === JSON.stringify(filtros));
+  // a aba Qualificadas só aparece quando o motor já grava o campo (contrato D12)
+  const comQualificacao = contas.some(c => c.qualificada);
+  const todosSalvos = [...FIXOS.filter(s => (s.id !== 'qualificadas' || comQualificacao) && (s.id !== 'sub-trabalhadas' || compartilhado)), ...salvos];
+  const ativo = todosSalvos.find(s => mesmosFiltros(s.filtros, filtros));
   const mudar = (parte: Partial<Filtros>) => setFiltros(f => ({ ...f, ...parte }));
   const contar = (pred: (c: Conta) => boolean) => contas.filter(pred).length;
 
@@ -216,6 +232,8 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
                 onMudar={v => mudar({ subsegmentos: v })}
               />
               {filtros.comSinal && <Pilula onTirar={() => mudar({ comSinal: false })}>Com sinal na caixa</Pilula>}
+              {filtros.qualificadas && <Pilula onTirar={() => mudar({ qualificadas: false })}>Qualificadas</Pilula>}
+              {filtros.subTrabalhadas && <Pilula onTirar={() => mudar({ subTrabalhadas: false })}>Quentes sem ação</Pilula>}
               {filtros.semContato && <Pilula onTirar={() => mudar({ semContato: false })}>Sem ninguém do comitê</Pilula>}
               {filtros.scoreMin > 0 && <Pilula onTirar={() => mudar({ scoreMin: 0 })}>Score {filtros.scoreMin}+</Pilula>}
               <Button
@@ -325,16 +343,22 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
                               <LogoConta nome={c.nome} dominio={c.dominio} tamanho={28} />
                               <div className="min-w-0">
                                 <span className="flex min-w-0 items-center gap-1">
-                                  <Link href={hrefConta(c.id)} className="truncate rounded-chip font-semibold text-foreground">
+                                  <Link href={hrefConta(c.id)} className="inline-flex min-h-6 min-w-0 items-center truncate rounded-chip font-semibold text-foreground">
                                     {c.nome}
                                   </Link>
+                                  <SeloQualificada conta={c} />
+                                  {subTrabalhada(c) && (
+                                    <span className="shrink-0 rounded-chip bg-warm-bg px-1.5 py-0.5 text-xs font-medium text-warm" title="Conta quente e ninguém do time agiu nela ainda">
+                                      sem ação
+                                    </span>
+                                  )}
                                   {c.dominio && (
                                     <a
                                       href={`https://${c.dominio}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       aria-label={`Site de ${c.nome}`}
-                                      className="shrink-0 rounded-chip text-text-3 hover:text-foreground"
+                                      className="grid size-6 shrink-0 place-items-center rounded-chip text-text-3 hover:text-foreground"
                                     >
                                       <ExternalLink className="size-3" strokeWidth={1.5} />
                                     </a>
@@ -429,13 +453,17 @@ function ScoreLinha({ conta }: { conta: Conta }) {
   const cor = s === 'sobe' ? 'text-warm' : s === 'desce' ? 'text-cool' : 'text-text-3';
   const Seta = s === 'sobe' ? ArrowUpRight : s === 'desce' ? ArrowDownRight : Minus;
   return (
-    <div className="flex items-center justify-end gap-2.5" role="img" aria-label={`Score ${conta.score}, ${s === 'sobe' ? 'esquentando' : s === 'desce' ? 'esfriando' : 'estável'}`}>
+    <div className="flex items-center justify-end gap-2.5" role="img" aria-label={`Score ${pontos(conta.score)}, ${s === 'sobe' ? 'esquentando' : s === 'desce' ? 'esfriando' : 'estável'}`}>
       <Curva serie={conta.serie} largura={44} altura={18} classe={cn(cor, 'max-md:hidden')} />
       <span className={cn('vr-data flex w-9 items-center justify-end gap-0.5 text-xs', cor)}>
-        <Seta className="size-3" strokeWidth={1.5} />
-        {s === 'estavel' ? '0' : Math.abs(conta.tendencia)}
+        {s !== 'estavel' && (
+          <>
+            <Seta className="size-3" strokeWidth={1.5} />
+            {pontos(Math.abs(conta.tendencia))}
+          </>
+        )}
       </span>
-      <span className="w-8 text-right font-display text-md font-semibold tabular-nums">{conta.score}</span>
+      <span className="w-8 text-right font-display text-md font-semibold tabular-nums">{pontos(conta.score)}</span>
     </div>
   );
 }

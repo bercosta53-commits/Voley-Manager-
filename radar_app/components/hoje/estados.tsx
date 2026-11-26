@@ -22,11 +22,13 @@ export function ListaEsqueleto({ linhas = 3 }: { linhas?: number }) {
   );
 }
 
-export function Aviso({ icone, titulo, children }: { icone: React.ReactNode; titulo: string; children: React.ReactNode }) {
+export function Aviso({ icone, titulo, children, principal }: { icone: React.ReactNode; titulo: string; children: React.ReactNode; principal?: boolean }) {
+  // `principal`: o aviso é a página inteira (404, erro geral), então o título é o h1 dela
+  const Titulo = principal ? 'h1' : 'h2';
   return (
     <div className="flex flex-col items-center px-6 py-16 text-center">
       <div className="mb-4 grid size-10 place-items-center rounded-full border border-border bg-card text-text-2 shadow-1">{icone}</div>
-      <h2 className="text-md font-semibold">{titulo}</h2>
+      <Titulo className="text-md font-semibold">{titulo}</Titulo>
       <div className="mt-1 max-w-sm text-sm text-text-3">{children}</div>
     </div>
   );
@@ -44,11 +46,20 @@ export function CaixaVazia({ visao }: { visao: 'caixa' | 'adiados' | 'concluidos
   );
 }
 
-export function ErroCarregar({ onTentar, oque = 'os sinais' }: { onTentar?: () => void; oque?: string }) {
+export function ErroCarregar({ onTentar, oque = 'os sinais', codigo, principal }: { onTentar?: () => void; oque?: string; codigo?: string; principal?: boolean }) {
   return (
-    <Aviso icone={<TriangleAlert className="size-5 text-risk" strokeWidth={1.5} />} titulo={`Não consegui abrir ${oque}`}>
+    <Aviso principal={principal} icone={<TriangleAlert className="size-5 text-risk" strokeWidth={1.5} />} titulo={`Não consegui abrir ${oque}`}>
       <p>Pode ser uma falha passageira. Tente de novo em instantes; se continuar, avise quem cuida do Radar.</p>
-      <p className="mt-1 text-xs">Detalhe técnico: a base de contas não pôde ser lida (npm run dados gera de novo).</p>
+      <p className="mt-1 text-xs">
+        A base de contas não pôde ser lida. O motivo aparece em /api/saude e nos logs do Worker
+        {codigo ? (
+          <>
+            {' '}
+            (código <span className="vr-data select-all">{codigo}</span>)
+          </>
+        ) : null}
+        .
+      </p>
       {onTentar && (
         <button onClick={onTentar} className="mt-3 rounded-control border border-border-strong bg-card px-3.5 py-2 text-sm font-semibold text-foreground shadow-1 hover:bg-muted">
           Tentar de novo

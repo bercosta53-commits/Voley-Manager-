@@ -17,6 +17,8 @@ export interface Pessoa {
   papeisExtras?: PapelAbm[];
   /** contato da Velora dentro da conta (relacionamento já aberto) */
   contatoVelora?: boolean;
+  /** auditoria do contato pela inteligência (ex.: APTO_HISTORICO, VALIDAR_EMAIL_EXISTENTE, BLOQUEADO_AGUARDA_AUDITORIA) */
+  statusValidacao?: string;
   /** relevância da pessoa no contexto do ICP */
   relevancia?: 'alta' | 'media' | 'baixa';
   email?: string;
@@ -131,6 +133,15 @@ export interface Conta {
   /** status do VSCS e ação recomendada (gravados pelo score_v2.py --exibir) */
   vscsStatus?: StatusVscs;
   acaoRecomendada?: string;
+  /** true quando a carga não trouxe acaoRecomendada e a tela a derivou da matriz ICP × VSCS ao ler a base
+   * (lib/dados.ts). Não vem da carga; serve para a tela dizer que a ação é da matriz, não do motor. */
+  acaoDaMatriz?: boolean;
+  /** score ainda não certificado pelo motor (a inteligência marca até rodar o VSCS sobre a conta) */
+  scorePendente?: boolean;
+  /** Conta Qualificada, regra CQ-1, gravada pelo motor (contrato D12); a tela só exibe */
+  qualificada?: { status: 'sim' | 'nao' | 'desconhecido'; desde?: string | null; motivo?: string; pendencias?: string[]; regra_versao?: string };
+  /** estágio do VSCS na carga anterior, quando comprovável (D12) */
+  estagio_anterior?: StatusVscs | null;
 }
 
 export type StatusVscs = 'Monitoramento' | 'Atenção' | 'Oportunidade emergente' | 'Alta prioridade' | 'Prioridade máxima';
@@ -165,6 +176,9 @@ export interface Sinal {
   porQueAgora: string;
   /** todos os veículos que noticiaram o mesmo fato (o principal incluído), quando foi mais de um */
   fontes?: { fonte: string; url: string; data: string }[];
+  /** quando a carga diária coletou o fato e quanto confia nele (contrato D2, opcionais) */
+  coletadoEm?: string;
+  confianca?: 'alta' | 'media' | 'baixa';
   /** pessoa do comitê citada na matéria (coletor de veículos) */
   pessoa?: string;
   /** nível (A/B/C) e tipo do VSCS a que o sinal pertence (scripts/score_v2.py --exibir) */
@@ -221,6 +235,8 @@ export interface EventoAgenda {
 
 export interface Base {
   geradoEm: string;
+  /** versão do motor de score que gerou esta base (ex.: vscs-3.0) */
+  scoreVersao?: string;
   /** data e hora da última atualização da base (score_v2.py --exibir) */
   atualizadoEm?: string;
   contas: Conta[];
@@ -230,6 +246,16 @@ export interface Base {
   agenda?: EventoAgenda[];
   /** true quando a base é a de exemplo (empresas fictícias) */
   ficticia?: boolean;
+  /** preenchido na leitura (lib/dados.ts), nunca gravado: o que foi retirado e quanto a leitura custou */
+  diagnostico?: DiagnosticoBase;
+}
+
+export interface DiagnosticoBase {
+  lidoEm: string;
+  ms: number;
+  bytes: number;
+  descartados: { exemplo: number; semConta: number; dataInvalida: number; historicoExemplo: number };
+  sinaisSemEvidencia: number;
 }
 
 export type Acao = 'abordado' | 'adiado' | 'arquivado';
@@ -240,6 +266,10 @@ export interface EstadoSinal {
   ate?: string; // adiado até (AAAA-MM-DD)
   avaliacao?: Avaliacao;
   /** relevância que a pessoa deu ao sinal: 1 mantém, 2 soma 10%, 3 soma 15% (lib/avaliacao.ts) */
-  relevancia?: 1 | 2 | 3;
+  relevancia?: Relevancia3;
   em?: string;
+  /** quem fez a última marcação (e-mail do Access), quando o registro compartilhado está ligado */
+  por?: string;
 }
+
+export type Relevancia3 = 1 | 2 | 3;

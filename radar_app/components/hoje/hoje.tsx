@@ -5,20 +5,20 @@ import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { Archive, CalendarClock, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
 import type { Base, EstadoSinal, Sinal, StatusVscs } from '@/lib/tipos';
-import { cn, dataCurta, dataLonga, plural, somarDias } from '@/lib/utils';
+import { cn, dataCurta, dataLonga, plural, somarDias, pontos } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/ui/kbd';
 import { PainelFlutuante } from '@/components/ui/painel-flutuante';
 import { Abordar } from './abordar';
 import { Agenda } from './agenda';
-import { aplicarAvaliacoes, FAIXAS_VSCS, ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
+import { FAIXAS_VSCS, ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
 import { COR_STATUS_VSCS } from '@/components/ui/selo-vscs';
 import { CartaoSinal, type AcaoCartao } from './cartao-sinal';
 import { LinhaSinal } from './linha-sinal';
 import { Decomposicao } from '@/components/conta/decomposicao';
 import { SeloVscs } from '@/components/ui/selo-vscs';
 import { CaixaVazia, ErroCarregar, ListaEsqueleto, SemPermissao } from './estados';
-import { isoLocal, useAgora } from '@/components/ui/use-agora';
+import { isoLocal, useAgora, useHoje } from '@/components/ui/use-agora';
 import { VISOES, type Visao } from './navegacao';
 import { Casca } from '@/components/casca/casca';
 import { hrefConta } from '@/lib/contas';
@@ -67,10 +67,11 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
     if (e && ESTADOS.includes(e)) setEstadoUrl(e);
   }, []);
   const estadoTela = estadoFixo ?? estadoUrl;
-  const hoje = baseOriginal.geradoEm;
+  // data da última carga (sinais "novos") e data real (adiar, acompanhar): base velha não vira "hoje"
+  const dataCarga = (baseOriginal.atualizadoEm ?? baseOriginal.geradoEm).slice(0, 10);
+  const hoje = useHoje(dataCarga);
   const { estados, salvar, pronto } = useEstados();
-  // a base como a pessoa a vê: score e pontos já com as avaliações de relevância (1/2/3) dela
-  const base = useMemo(() => aplicarAvaliacoes(baseOriginal, estados), [baseOriginal, estados]);
+  const base = baseOriginal; // score do motor, igual para todos (P1-8)
   // só a caixa: adiados e concluídos saíram da tela (pedido de 2026-11-06); quem foi adiado volta sozinho na data
   const visao: Visao = 'caixa';
   const [foco, setFoco] = useState(0);
@@ -109,7 +110,9 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
   }, [sinais, estados, naCaixa]);
   const lista = listas[visao];
   const contagens = { caixa: listas.caixa.length, adiados: listas.adiados.length, concluidos: listas.concluidos.length };
-  const novosHoje = listas.caixa.filter(s => s.data >= hoje).length;
+  // "novos" = fatos da data da última carga em diante; o rótulo só diz "de hoje" se a carga for de hoje
+  const novosHoje = listas.caixa.filter(s => s.data >= dataCarga).length;
+  const rotuloNovos = dataCarga === hoje ? `${novosHoje} de hoje` : `${novosHoje} da carga de ${dataCurta(dataCarga)}`;
   // contas com sinal na caixa, por faixa do score: o resumo do dia antes da lista
   const porStatus = useMemo(() => {
     const ids = new Set(listas.caixa.map(s => s.contaId));
@@ -275,11 +278,11 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
             return (
               <section aria-label={`Score de ${c.nome}`} className="vr-card mt-4 p-5">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="text-sm font-semibold">Por que {c.nome} está com {c.score}</h2>
+                  <h2 className="text-sm font-semibold">Por que {c.nome} está com {pontos(c.score)}</h2>
                   <SeloVscs status={c.vscsStatus} acao={c.acaoRecomendada} className="flex-row! items-center! gap-2!" />
                 </div>
                 <Decomposicao conta={c} />
-                <Link href={hrefConta(c.id)} className="mt-4 inline-block text-sm font-medium text-text-2 underline decoration-border-strong underline-offset-4 hover:text-foreground">
+                <Link href={hrefConta(c.id)} className="mt-4 inline-flex min-h-6 items-center text-sm font-medium text-text-2 underline decoration-border-strong underline-offset-4 hover:text-foreground">
                   Abrir a conta: comitê, linha do tempo e dados cadastrais
                 </Link>
               </section>
@@ -343,12 +346,12 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4 md:mb-8">
           <div>
             <h1 className="font-display text-2xl font-semibold tracking-tight">Hoje</h1>
-            {/* a data do cabeçalho é a de hoje no navegador (a página é gerada no build e congelaria o dia do
-                deploy); as contas de "novo"/"adiado" continuam pela data da base (hoje = base.geradoEm) */}
+            {/* a data do cabeçalho é a de hoje no navegador; "novos" vêm da data da última carga, e o rótulo
+                diz qual é quando a carga não é de hoje (lib/frescor.ts e o aviso no topo cobrem o atraso) */}
             <p className="mt-1 min-h-5 text-sm text-text-3">
               {[
                 agora && dataLonga(isoLocal(agora)),
-                !semDados && !carregando && plural(contagens.caixa, 'sinal na caixa', 'sinais na caixa') + (novosHoje > 0 ? `, ${novosHoje} de hoje` : ''),
+                !semDados && !carregando && plural(contagens.caixa, 'sinal na caixa', 'sinais na caixa') + (novosHoje > 0 ? `, ${rotuloNovos}` : ''),
               ]
                 .filter(Boolean)
                 .join(' · ')}

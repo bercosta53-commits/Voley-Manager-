@@ -15,8 +15,8 @@ export function SeloVscs({ status, acao, className }: { status?: StatusVscs; aca
   if (!status) return <span className="text-xs text-text-3">—</span>;
   return (
     <span className={cn('inline-flex flex-col items-start gap-0.5', className)}>
-      <span className={cn('rounded-chip px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap', COR_STATUS_VSCS[status])}>{status}</span>
-      {acao && <span className="text-[11px] whitespace-nowrap text-text-3">{acao}</span>}
+      <span className={cn('rounded-chip px-1.5 py-0.5 text-xs font-medium whitespace-nowrap', COR_STATUS_VSCS[status])}>{status}</span>
+      {acao && <span className="text-xs whitespace-nowrap text-text-3">{acao}</span>}
     </span>
   );
 }

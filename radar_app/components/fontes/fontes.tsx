@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { CircleAlert, CircleCheck, CircleX, KeyRound } from 'lucide-react';
-import type { Base, Fonte, StatusFonte } from '@/lib/tipos';
+import type { Fonte, StatusFonte } from '@/lib/tipos';
+import type { BaseCasca } from '@/lib/casca-dados';
 import { cn, dataCurta, plural, quando } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Casca } from '@/components/casca/casca';
@@ -21,7 +22,7 @@ const ORDEM: Record<StatusFonte, number> = { erro: 0, atencao: 1, ok: 2 };
 
 const frequencia = (dias: number) => (dias <= 1 ? 'todo dia' : dias === 7 ? 'toda semana' : dias >= 28 ? 'todo mês' : `a cada ${dias} dias`);
 
-export function TelaFontes({ base }: { base: Base }) {
+export function TelaFontes({ base }: { base: BaseCasca }) {
   const [estadoTela, setEstadoTela] = useState<EstadoTela>('normal');
   const [pronto, setPronto] = useState(false);
   useEffect(() => {
@@ -65,7 +66,7 @@ export function TelaFontes({ base }: { base: Base }) {
           <h1 className="font-display text-2xl font-semibold tracking-tight">Fontes</h1>
           <p className="mt-1 max-w-xl text-sm text-text-3">
             {fontes.length && pronto && estadoTela === 'normal'
-              ? `${ok} de ${plural(fontes.length, 'fonte funcionando', 'fontes funcionando')}. Cada cartão diz o que a fonte procura, onde, e se precisa de algo.`
+              ? `${ok} de ${plural(fontes.length, 'fonte funcionando', 'fontes funcionando')}. Cada cartão diz o que a fonte procura, onde, e se precisa de algo. Chaves de acesso entram pelas configurações do ambiente, nunca pelo chat.`
               : 'De onde o radar tira os sinais.'}
           </p>
         </div>
@@ -116,7 +117,6 @@ function CartaoFonte({ fonte: f, hoje }: { fonte: Fonte; hoje: string }) {
         {f.requisito ? <KeyRound className={cn('mt-0.5 size-4 shrink-0', st.cor)} strokeWidth={1.5} /> : <Icone className={cn('mt-0.5 size-4 shrink-0', st.cor)} strokeWidth={1.5} />}
         <p>
           {f.resumo}
-          {f.requisito && ' Quem cuida do Radar coloca a chave nas configurações do ambiente; nunca cole a chave no chat.'}
         </p>
       </div>
     </li>

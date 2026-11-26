@@ -2,9 +2,9 @@
 
 import { forwardRef } from 'react';
 import { motion, useMotionValue, useReducedMotion, useTransform, type PanInfo } from 'motion/react';
-import { Archive, CalendarClock, ExternalLink, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { Archive, CalendarClock, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
 import type { Conta, EstadoSinal, Sinal } from '@/lib/tipos';
-import { cn, dataCurta, diasEntre, quando } from '@/lib/utils';
+import { cn, dataCurta, diasEntre, quando, pontos } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/ui/kbd';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -14,10 +14,13 @@ import { IconeSinal } from './icone-sinal';
 import { LogoConta } from './logo-conta';
 import { ScoreTendencia } from './score';
 import { GraficoSinais, type EventoGrafico } from './grafico-sinais';
-import { COR_PAPEL, COR_TIER, NIVEL_GATILHO, rotuloPapel } from '@/lib/papeis';
+import { COR_PAPEL, COR_TIER, NIVEL_GATILHO, papelNoComite, rotuloPapel } from '@/lib/papeis';
 import { ACOES_DE_ABORDAGEM, ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
+import { useApresentacao } from '@/components/ui/use-apresentacao';
+import { Evidencia } from '@/components/ui/evidencia';
+import { SeloQualificada } from '@/components/ui/selo-qualificada';
 
-/** "Sinal de alta relevância": 1 mantém o peso, 2 soma 10%, 3 soma 15% — e o score da conta é recalculado. */
+/** "Sinal de alta relevância": retorno do time para calibrar o modelo; não muda o score (P1-8). */
 function SeletorRelevancia({ valor, onMudar }: { valor?: Relevancia; onMudar: (n: Relevancia) => void }) {
   return (
     <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
@@ -65,7 +68,7 @@ interface Props {
   semAcoes?: boolean;
   deslizavel: boolean;
   onAcao: (acao: AcaoCartao) => void;
-  /** relevância que a pessoa dá ao sinal (1 mantém, 2 +10%, 3 +15%) */
+  /** relevância que a pessoa dá ao sinal (1 comum, 2 forte, 3 decisivo), para calibração */
   onAvaliar?: (n: Relevancia) => void;
   onAbrir: () => void;
   onFoco: () => void;
@@ -76,6 +79,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
   ref,
 ) {
   const reduzir = useReducedMotion();
+  const apresentacao = useApresentacao();
   const x = useMotionValue(0);
   const revelaUtil = useTransform(x, [24, LIMITE_DESLIZE], [0, 1]);
   const revelaArquivar = useTransform(x, [-24, -LIMITE_DESLIZE], [0, 1]);
@@ -90,7 +94,8 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
 
   const negativo = sinal.categoria === 'negativo';
   const nivel = negativo ? { ...NIVEL_GATILHO.C, rotulo: 'Sinal negativo', cor: 'bg-risk-bg text-risk' } : NIVEL_GATILHO[sinal.nivel ?? 'C'];
-  const papelContato = conta.comite.find(p => p.nome === sinal.abordar.nome)?.papelAbm;
+  const contato = conta.comite.find(p => p.nome === sinal.abordar.nome);
+  const papelContato = contato && papelNoComite(contato);
   // eventos do gráfico: cada acontecimento que conta no VSCS, com o que somou ao score + o sinal deste cartão
   const eventos: EventoGrafico[] = (conta.v2?.contribuicoes ?? []).map(c => ({
     data: c.data,
@@ -177,33 +182,34 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                 </Link>
               </h2>
               {conta.tier && (
-                <span className={cn('shrink-0 rounded-chip px-1.5 py-0.5 text-[11px] font-semibold', COR_TIER[conta.tier] ?? COR_TIER.C)} title={(conta.icp?.motivos ?? []).join(' · ')}>
+                <span className={cn('shrink-0 rounded-chip px-1.5 py-0.5 text-xs font-semibold', COR_TIER[conta.tier] ?? COR_TIER.C)} title={(conta.icp?.motivos ?? []).join(' · ')}>
                   Tier {conta.tier}
                 </span>
               )}
+              <SeloQualificada conta={conta} />
               {conta.v2?.via_rapida ? (
-                <span className="shrink-0 rounded-chip bg-risk px-1.5 py-0.5 text-[11px] font-semibold text-white">Via rápida · 48h</span>
+                <span className="shrink-0 rounded-chip bg-risk px-1.5 py-0.5 text-xs font-semibold text-white">Via rápida · 48h</span>
               ) : (
                 conta.acaoRecomendada &&
                 ACOES_DE_ABORDAGEM.has(conta.acaoRecomendada) && (
-                  <span className="shrink-0 rounded-chip bg-ok px-1.5 py-0.5 text-[11px] font-semibold text-white">{conta.acaoRecomendada}</span>
+                  <span className="shrink-0 rounded-chip bg-ok px-1.5 py-0.5 text-xs font-semibold text-white">{conta.acaoRecomendada}</span>
                 )
               )}
             </div>
             <p className="mt-0.5 truncate text-sm text-text-3">{[conta.ramoTI?.nome ?? primeiraMaiuscula(conta.segmento), conta.uf].filter(Boolean).join(' · ')}</p>
           </div>
-          <ScoreTendencia score={conta.score} tendencia={conta.tendencia} serie={conta.serie} status={conta.vscsStatus} compacto />
+          <ScoreTendencia score={pontos(conta.score)} tendencia={conta.tendencia} serie={conta.serie} status={conta.vscsStatus} compacto />
         </header>
 
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_280px] md:gap-6">
           {/* o sinal: nível do gatilho, a sinalização rápida e os pontos — leitura em 2 segundos */}
           <div className="flex min-w-0 flex-col gap-3">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className={cn('inline-flex items-center gap-1 rounded-chip px-1.5 py-0.5 text-[11px] font-semibold', nivel.cor)}>
+              <span className={cn('inline-flex items-center gap-1 rounded-chip px-1.5 py-0.5 text-xs font-semibold', nivel.cor)}>
                 <IconeSinal tipo={sinal.tipo} className="size-3.5" />
                 {nivel.rotulo}
               </span>
-              <span className="rounded-chip bg-secondary px-1.5 py-0.5 text-[11px] text-text-2">{sinal.rotulo}</span>
+              <span className="rounded-chip bg-secondary px-1.5 py-0.5 text-xs text-text-2">{sinal.rotulo}</span>
             </div>
             <div className="flex items-baseline gap-2">
               <p className="text-xl font-semibold leading-snug tracking-tight text-foreground">{sinal.sinal ?? sinal.porQueAgora}</p>
@@ -225,25 +231,8 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                   <time dateTime={sinal.data} className="vr-data text-xs text-text-2">
                     {quando(sinal.data, hoje)}
                   </time>
-                  ·<span>{sinal.fonte}</span>
-                  {sinal.fontes && sinal.fontes.length > 1 && (
-                    <span title={sinal.fontes.map(f => f.fonte).join(', ')}>
-                      +{sinal.fontes.length - 1} {sinal.fontes.length > 2 ? 'fontes' : 'fonte'}
-                    </span>
-                  )}
-                  {sinal.url ? (
-                    <a
-                      href={sinal.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={e => e.stopPropagation()}
-                      className="inline-flex items-center gap-1 rounded-chip text-text-2 underline decoration-border-strong underline-offset-2 hover:text-foreground"
-                    >
-                      ver fonte <ExternalLink className="size-3" strokeWidth={1.5} />
-                    </a>
-                  ) : (
-                    sinal.exemplo && <span className="rounded-chip border border-border px-1 text-[11px] text-text-3">exemplo</span>
-                  )}
+                  ·
+                  <Evidencia className="contents" fonte={sinal.fonte} url={sinal.url} fontes={sinal.fontes} coletadoEm={sinal.coletadoEm} confianca={sinal.confianca} pararPropagacao />
                 </dd>
               </div>
               <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
@@ -251,22 +240,23 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                 <dd className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
                   <span className="min-w-0">{quem}</span>
                   {papelContato && (
-                    <span className={cn('rounded-chip px-1.5 py-0.5 text-[11px] font-medium', COR_PAPEL[papelContato])}>{rotuloPapel(papelContato)}</span>
+                    <span className={cn('rounded-chip px-1.5 py-0.5 text-xs font-medium', COR_PAPEL[papelContato])}>{rotuloPapel(papelContato)}</span>
                   )}
                 </dd>
               </div>
             </dl>
-            {onAvaliar && <SeletorRelevancia valor={estado?.relevancia} onMudar={onAvaliar} />}
+            {/* no modo apresentação a nota sai da tela: ela recalcula o score só neste navegador */}
+            {onAvaliar && !apresentacao && <SeletorRelevancia valor={estado?.relevancia} onMudar={onAvaliar} />}
           </div>
 
           {/* o score da conta no tempo, com cada sinal marcado na data em que aconteceu */}
           <div className="min-w-0 rounded-control border border-border bg-background/40 p-3">
-            <p className="mb-1 flex items-center justify-between text-[11px] text-text-3">
+            <p className="mb-1 flex items-center justify-between text-xs text-text-3">
               <span className="font-medium text-text-2">Score em 90 dias</span>
               <span>cada ponto é um sinal</span>
             </p>
             <GraficoSinais serie={conta.serie} eventos={eventos} hoje={hoje} />
-            <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-text-3">
+            <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-text-3">
               {(['A', 'B', 'C'] as const).map(n => (
                 <span key={n} className="inline-flex items-center gap-1">
                   <span className="size-2 rounded-full" style={{ background: NIVEL_GATILHO[n].ponto }} />

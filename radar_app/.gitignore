@@ -15,3 +15,5 @@ data/*.local.json
 .open-next/
 .wrangler/
 .dev.vars*
+# capturas dos testes de navegador (scripts/jornada.mjs)
+tmp/

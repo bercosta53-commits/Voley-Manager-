@@ -9,6 +9,7 @@ import { Casca } from '@/components/casca/casca';
 import { Aviso, ErroCarregar, SemPermissao } from '@/components/hoje/estados';
 import { useEstados } from '@/components/hoje/estado';
 import { ComoCalcula } from './como-calcula';
+import { VisaoLideranca } from './lideranca';
 
 type EstadoTela = 'normal' | 'carregando' | 'vazio' | 'erro' | 'sem-permissao';
 const ESTADOS: EstadoTela[] = ['carregando', 'vazio', 'erro', 'sem-permissao'];
@@ -30,7 +31,7 @@ export function TelaMetricas({ base }: { base: Base }) {
     const e = new URLSearchParams(location.search).get('estado') as EstadoTela | null;
     if (e && ESTADOS.includes(e)) setEstadoTela(e);
   }, []);
-  const { estados, pronto } = useEstados();
+  const { estados, pronto, status, compartilhado } = useEstados();
   const sinais = estadoTela === 'vazio' ? [] : base.sinais;
 
   const m = useMemo(() => {
@@ -87,10 +88,35 @@ export function TelaMetricas({ base }: { base: Base }) {
   else
     conteudo = (
       <div className="grid gap-3 md:grid-cols-2">
-        {/* 1. precisão */}
+        {/* 1. volume */}
+        <Bloco
+          pergunta="De onde vêm os sinais?"
+          numero={String(sinais.length)}
+          legenda={`sinais na base agora · ${m.exemplos} de exemplo, ${sinais.length - m.exemplos} reais`}
+        >
+          <Barras
+            linhas={m.porFonte.map(f => ({ rotulo: f.fonte, valor: f.total, parte: f.reais, texto: `${f.total}` }))}
+            maximo={Math.max(...m.porFonte.map(f => f.total))}
+            legendaParte="parte escura: reais"
+          />
+        </Bloco>
+
+        {/* 2. latência */}
+        <Bloco
+          pergunta="Quanto demora do fato ao aviso?"
+          numero={`${m.latencia.toLocaleString('pt-BR')} ${m.latencia === 1 ? 'dia' : 'dias'}`}
+          legenda={`mediana entre o fato acontecer e o radar avisar · ${pct(m.noMesmoDia, sinais.length)}% no mesmo dia`}
+        >
+          <Barras
+            linhas={m.porFonte.map(f => ({ rotulo: f.fonte, valor: f.latencia, texto: `${f.latencia.toLocaleString('pt-BR')} d` }))}
+            maximo={Math.max(3, ...m.porFonte.map(f => f.latencia))}
+          />
+        </Bloco>
+
+        {/* 3. precisão */}
         <Bloco
           pergunta="O radar acerta?"
-          numero={m.avaliados ? `${pct(m.util, m.avaliados)}%` : '—'}
+          numero={m.avaliados ? `${pct(m.util, m.avaliados)}%` : undefined}
           legenda={
             m.avaliados
               ? `dos sinais avaliados foram úteis (${m.util} úteis, ${m.ruido} ruído)`
@@ -107,36 +133,15 @@ export function TelaMetricas({ base }: { base: Base }) {
           />
         </Bloco>
 
-        {/* 2. latência */}
-        <Bloco
-          pergunta="Quanto demora do fato ao aviso?"
-          numero={`${m.latencia.toLocaleString('pt-BR')} ${m.latencia === 1 ? 'dia' : 'dias'}`}
-          legenda={`mediana entre o fato acontecer e o radar avisar · ${pct(m.noMesmoDia, sinais.length)}% no mesmo dia`}
-        >
-          <Barras
-            linhas={m.porFonte.map(f => ({ rotulo: f.fonte, valor: f.latencia, texto: `${f.latencia.toLocaleString('pt-BR')} d` }))}
-            maximo={Math.max(3, ...m.porFonte.map(f => f.latencia))}
-          />
-        </Bloco>
-
-        {/* 3. volume */}
-        <Bloco
-          pergunta="De onde vêm os sinais?"
-          numero={String(sinais.length)}
-          legenda={`sinais na base agora · ${m.exemplos} de exemplo, ${sinais.length - m.exemplos} reais`}
-        >
-          <Barras
-            linhas={m.porFonte.map(f => ({ rotulo: f.fonte, valor: f.total, parte: f.reais, texto: `${f.total}` }))}
-            maximo={Math.max(...m.porFonte.map(f => f.total))}
-            legendaParte="parte escura: reais"
-          />
-        </Bloco>
-
         {/* 4. conversão */}
         <Bloco
           pergunta="Quantos sinais viram abordagem?"
-          numero={`${pct(m.abordados, sinais.length)}%`}
-          legenda={`dos sinais recebidos viraram abordagem (${m.abordados} de ${sinais.length})`}
+          numero={m.tratados ? `${pct(m.abordados, sinais.length)}%` : undefined}
+          legenda={
+            m.tratados
+              ? `dos sinais recebidos viraram abordagem (${m.abordados} de ${sinais.length})`
+              : 'Nenhum sinal tratado ainda. Abordar, adiar ou arquivar em Hoje alimenta este funil.'
+          }
         >
           <Funil
             etapas={[
@@ -155,10 +160,11 @@ export function TelaMetricas({ base }: { base: Base }) {
         <div className="mb-6 md:mb-8">
           <h1 className="font-display text-2xl font-semibold tracking-tight">Métricas</h1>
           <p className="mt-1 max-w-xl text-sm text-text-3">
-            Primeiro, como o score é feito. Depois, quatro perguntas sobre o radar: as respostas usam o que você marcou em Hoje (útil, ruído, abordado), guardado
-            neste navegador — por isso começam vazias em outro aparelho.
+            O que o time fez com o que o Radar trouxe, como o score é feito, e quatro perguntas sobre o radar.
+            {compartilhado ? ' As respostas usam o que o time marcou em Hoje.' : ' As respostas usam o que foi marcado em Hoje neste navegador.'}
           </p>
         </div>
+        {pronto && <VisaoLideranca base={base} estados={estados} status={status} compartilhado={compartilhado} />}
         {!base.ficticia && <ComoCalcula base={base} />}
         {conteudo}
       </main>
@@ -166,12 +172,19 @@ export function TelaMetricas({ base }: { base: Base }) {
   );
 }
 
-function Bloco({ pergunta, numero, legenda, aviso, children }: { pergunta: string; numero: string; legenda: string; aviso?: string; children: React.ReactNode }) {
+function Bloco({ pergunta, numero, legenda, aviso, children }: { pergunta: string; numero?: string; legenda: string; aviso?: string; children: React.ReactNode }) {
   return (
     <section className="vr-card flex flex-col p-5">
       <h2 className="text-sm font-semibold">{pergunta}</h2>
-      <p className="mt-3 font-display text-2xl font-semibold tracking-tight tabular-nums">{numero}</p>
-      <p className="mt-0.5 text-sm text-text-3">{legenda}</p>
+      {numero ? (
+        <>
+          <p className="mt-3 font-display text-score leading-none font-semibold tracking-tight tabular-nums">{numero}</p>
+          <p className="mt-0.5 text-sm text-text-3">{legenda}</p>
+        </>
+      ) : (
+        // sem dado ainda: diz o que alimenta o número, em vez de um traço grande que parece defeito
+        <p className="mt-3 rounded-control border border-dashed border-border px-3 py-2.5 text-sm text-text-3">{legenda}</p>
+      )}
       {aviso && <p className="mt-2 rounded-control bg-warm-bg px-2.5 py-1.5 text-xs text-foreground">{aviso}</p>}
       <div className="mt-5 border-t border-border pt-4">{children}</div>
     </section>

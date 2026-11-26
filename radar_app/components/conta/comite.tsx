@@ -1,6 +1,7 @@
 import { UserRound, UserRoundSearch } from 'lucide-react';
 import type { Conta, Pessoa, PapelAbm } from '@/lib/tipos';
 import { cn } from '@/lib/utils';
+import { ocupa, papelNoComite } from '@/lib/papeis';
 
 /** Os três lugares que o ABM precisa ocupar antes de abordar (scripts/qualificar_icp.py classifica pelo cargo). */
 const LUGARES: { papel: PapelAbm; rotulo: string; quem: string }[] = [
@@ -17,17 +18,8 @@ const ROTULO: Record<PapelAbm, string> = {
 };
 const RELEVANCIA = { alta: 'relevância alta', media: 'relevância média', baixa: 'relevância baixa' } as const;
 
-/** Lugar de cada pessoa: papel ABM quando já classificado; senão, o mapa antigo por área. */
-function papelDe(p: Pessoa): PapelAbm {
-  if (p.papelAbm) return p.papelAbm;
-  if (p.area === 'executivo') return 'assina_cheque';
-  if ((p.area === 'marketing' || p.area === 'comercial') && p.papel === 'decisor') return 'decisor';
-  if (p.area === 'marketing' || p.area === 'comercial') return 'dono_da_dor';
-  return 'influenciador';
-}
+const papelDe = papelNoComite;
 
-/** A pessoa ocupa este lugar? (papel principal ou um dos extras) */
-const ocupa = (p: Pessoa, papel: PapelAbm) => papelDe(p) === papel || !!p.papeisExtras?.includes(papel);
 
 function Linha({ p }: { p: Pessoa }) {
   return (
@@ -64,7 +56,7 @@ export function Comite({ conta }: { conta: Conta }) {
           const pessoas = conta.comite.filter(p => ocupa(p, l.papel));
           return (
             <div key={l.papel}>
-              <p className={cn('mb-1.5 text-[11px] font-semibold uppercase tracking-wide', pessoas.length ? 'text-text-2' : 'text-text-3')}>{l.rotulo}</p>
+              <p className={cn('mb-1.5 text-xs font-semibold uppercase tracking-wide', pessoas.length ? 'text-text-2' : 'text-text-3')}>{l.rotulo}</p>
               {pessoas.length ? (
                 <ul className="flex flex-col gap-2.5">
                   {pessoas.map(p => (
@@ -84,7 +76,7 @@ export function Comite({ conta }: { conta: Conta }) {
         })}
         {travas.length > 0 && (
           <div>
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-2">{ROTULO.trava}</p>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-text-2">{ROTULO.trava}</p>
             <ul className="flex flex-col gap-2.5">
               {travas.map(p => (
                 <Linha key={p.nome} p={p} />

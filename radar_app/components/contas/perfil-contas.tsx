@@ -74,7 +74,7 @@ export function PerfilContas({ base, tiersAtivos, onTier }: { base: Base; tiersA
               total={p.contas}
               estilo={b => ({ className: b.id === 'Sem UF' ? 'bg-border' : 'bg-warm', style: { opacity: { Sudeste: 1, Sul: 0.75, Nordeste: 0.55, 'Centro-Oeste': 0.4, Norte: 0.3 }[b.id] ?? 1 } })}
             />
-            <p className="mt-1 truncate text-[11px] text-text-3">
+            <p className="mt-1 truncate text-xs text-text-3">
               {p.ufs
                 .filter(u => u.id !== '__outros')
                 .map(u => `${u.rotulo} ${num(u.valor)}`)
@@ -90,7 +90,7 @@ export function PerfilContas({ base, tiersAtivos, onTier }: { base: Base; tiersA
           </Bloco>
           <Bloco titulo="Capital social" dica="proxy de porte, pela Receita">
             <Ranking barras={p.capital} total={p.comCnpj} unidade="contas" />
-            <p className="mt-2 text-[11px] text-text-3">
+            <p className="mt-2 text-xs text-text-3">
               Número de funcionários: {p.comFuncionarios ? `${p.comFuncionarios} contas com dado.` : 'ainda sem fonte (o Apollo traz quando a cobrança for regularizada).'}
             </p>
           </Bloco>
