@@ -22,7 +22,13 @@ export interface Filtros {
 export const SEM_FILTRO: Filtros = { texto: '', familias: [], tiers: [], status: [], tendencia: '', ufs: [], subsegmentos: [], comSinal: false, semContato: false, scoreMin: 0 };
 
 /** `trabalhadas`: ids das contas com alguma ação do time, para o filtro "quentes sem ação". */
-export function aplicar(contas: Conta[], filtros: Filtros, sinaisPorConta: Map<string, Sinal[]>, trabalhadas: Set<string> = new Set()) {
+/** O que o filtro lê de cada conta: a lista completa ou o índice leve da casca (lib/casca-dados.ts) servem. */
+export type ContaFiltravel = Pick<
+  Conta,
+  'id' | 'nome' | 'razaoSocial' | 'cnpj' | 'dominio' | 'cidade' | 'segmento' | 'braco' | 'tier' | 'statusComercial' | 'tendencia' | 'uf' | 'subsegmentoTI' | 'score'
+> & { especializacao?: { nome: string }; qualificada?: { status: string }; comite: { nome: string }[] };
+
+export function aplicar<C extends ContaFiltravel>(contas: C[], filtros: Filtros, sinaisPorConta: Map<string, unknown[]>, trabalhadas: Set<string> = new Set()): C[] {
   const texto = normalizar(filtros.texto.trim());
   return contas.filter(c => {
     if (texto) {

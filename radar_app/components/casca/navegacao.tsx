@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/ui/kbd';
 import { Tooltip } from '@/components/ui/tooltip';
 import { BotaoTema } from '@/components/hoje/tema';
-import type { Base } from '@/lib/tipos';
+import type { BaseCasca } from '@/lib/casca-dados';
 import { useAgora } from '@/components/ui/use-agora';
 import { frescor, rotuloCarga } from '@/lib/frescor';
 import { definirApresentacao, SECOES_FORA_DA_APRESENTACAO, useApresentacao } from '@/components/ui/use-apresentacao';
@@ -93,7 +93,7 @@ function AvisoExemplo({ ficticia }: { ficticia: boolean }) {
  * Menu lateral (computador): fixo, sólido, com contagens e o estado da base — de quando é o dado e se as
  * fontes estão de pé. No md vira trilho de ícones; no lg mostra os rótulos.
  */
-export function NavLateral({ base, novos, onBuscar }: { base: Base; novos: number; onBuscar: () => void }) {
+export function NavLateral({ base, novos, onBuscar }: { base: BaseCasca; novos: number; onBuscar: () => void }) {
   const ativa = useSecaoAtiva();
   const secoes = useSecoes();
   const contagem: Record<string, number | undefined> = {

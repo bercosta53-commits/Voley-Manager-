@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Link2, Search, SlidersHorizontal } from 'lucide-react';
-import type { Base } from '@/lib/tipos';
+import type { BaseCasca } from '@/lib/casca-dados';
 import { CLASSES, DIMENSOES, ROTULO_CURTO, ROTULO_DIMENSAO, type Dimensao } from '@/lib/prioridade-config';
 import { visaoIntegrada, type SituacaoSweetSpot } from '@/lib/prioridade';
 import {
@@ -130,7 +130,7 @@ function Proximidade({ l }: { l: LinhaPrioridade }) {
   return <span className="text-xs text-text-3">{v.motivosClassificacao.join(' · ')}</span>;
 }
 
-export function TelaPrioridade({ base, linhas: linhasServidor }: { base: Base; linhas: LinhaPrioridade[] }) {
+export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCasca; linhas: LinhaPrioridade[] }) {
   const apresentacao = useApresentacao();
   const [estado, setEstado] = useState<EstadoUrl>(INICIAL);
   const [folha, setFolha] = useState(false);

@@ -76,7 +76,8 @@ export interface DimensaoIntegrada {
   motivoExclusao: string | null;
   dataReferencia: string | null;
   fontes: { url: string; titulo: string | null }[];
-  origem: { campoOrigem: string | null; escalaOriginal: string | null; transformacao: string | null; mapeamento: Mapeamento };
+  /** origem do dado (tabela 5.3); a tela lê a mesma informação da configuração, então o transporte pode omitir */
+  origem?: { campoOrigem: string | null; escalaOriginal: string | null; transformacao: string | null; mapeamento: Mapeamento };
   pendenciasQualidade: string[];
 }
 

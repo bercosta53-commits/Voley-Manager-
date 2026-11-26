@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { lerBase } from '@/lib/dados';
+import { paraCasca } from '@/lib/casca-dados';
 import { notFound } from 'next/navigation';
 import { TelaConta } from '@/components/conta/conta';
 
@@ -13,6 +14,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function Pagina({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const base = await lerBase();
-  if (!base.contas.some(c => c.id === id)) notFound();
-  return <TelaConta base={base} contaId={id} />;
+  const conta = base.contas.find(c => c.id === id);
+  if (!conta) notFound();
+  // S-1: só esta conta e os sinais dela, mais o índice leve da casca (menu, Cmd+K, frescor)
+  return <TelaConta base={{ ...paraCasca(base), conta, sinaisDaConta: base.sinais.filter(s => s.contaId === id) }} contaId={id} />;
 }

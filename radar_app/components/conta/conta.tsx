@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { ArrowDownRight, ArrowUpRight, CalendarClock, Check, ChevronLeft, Copy, ExternalLink, Minus, SearchX, Send } from 'lucide-react';
-import type { Base, Conta, EstadoSinal, Sinal } from '@/lib/tipos';
+import type { Conta, EstadoSinal, Sinal } from '@/lib/tipos';
+import type { BaseCasca } from '@/lib/casca-dados';
 import { ACOES_DE_ABORDAGEM, MATRIZ_ICP, faixaVscs } from '@/lib/avaliacao';
 import { primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, sentido, status } from '@/lib/contas';
 import { gancho, rascunho } from '@/lib/mensagem';
@@ -31,16 +32,19 @@ import { useHoje } from '@/components/ui/use-agora';
 type EstadoTela = 'normal' | 'carregando' | 'vazio' | 'erro' | 'sem-permissao';
 const ESTADOS: EstadoTela[] = ['carregando', 'vazio', 'erro', 'sem-permissao'];
 
-export function TelaConta({ base: baseOriginal, contaId }: { base: Base; contaId: string }) {
+/** S-1: a tela da conta recebe a conta e os sinais dela, mais o índice leve da casca; nunca o snapshot inteiro. */
+export type BaseConta = BaseCasca & { conta?: Conta; sinaisDaConta: Sinal[] };
+
+export function TelaConta({ base, contaId }: { base: BaseConta; contaId: string }) {
   const [estadoTela, setEstadoTela] = useState<EstadoTela>('normal');
   useEffect(() => {
     const e = new URLSearchParams(location.search).get('estado') as EstadoTela | null;
     if (e && ESTADOS.includes(e)) setEstadoTela(e);
   }, []);
   const { estados, salvar, pronto, status: andamentos, salvarStatus, compartilhado } = useEstados();
-  const base = baseOriginal; // o score é o do motor: a avaliação de relevância não o recalcula na tela (P1-8)
-  const conta = estadoTela === 'vazio' ? undefined : base.contas.find(c => c.id === contaId);
-  const sinais = useMemo(() => base.sinais.filter(s => s.contaId === contaId), [base.sinais, contaId]);
+  // o score é o do motor: a avaliação de relevância não o recalcula na tela (P1-8)
+  const conta = estadoTela === 'vazio' || base.conta?.id !== contaId ? undefined : base.conta;
+  const sinais = base.sinaisDaConta;
   // data real das ações (adiar, acompanhar); a data do snapshot só serve para os cálculos da base
   const hoje = useHoje(base.atualizadoEm ?? base.geradoEm);
 

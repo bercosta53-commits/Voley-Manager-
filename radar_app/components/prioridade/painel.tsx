@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ExternalLink, X } from 'lucide-react';
-import { DIMENSOES, LEITURA_CLASSE, PERGUNTA_DIMENSAO, REGRAS, ROTULO_DIMENSAO, type Dimensao } from '@/lib/prioridade-config';
+import { DIMENSOES, LEITURA_CLASSE, ORIGEM, PERGUNTA_DIMENSAO, REGRAS, ROTULO_DIMENSAO, type Dimensao } from '@/lib/prioridade-config';
 import { formatarIntegrada, formatarNota, type CriterioClasse, type DimensaoIntegrada, type VisaoIntegradaConta } from '@/lib/prioridade';
 import type { LinhaPrioridade } from '@/lib/prioridade-filtros';
 import { hrefConta } from '@/lib/contas';
@@ -143,7 +143,7 @@ function Notas({ dims }: { dims: Record<Dimensao, DimensaoIntegrada> }) {
               <span className={cn(x.nota === null ? 'text-right text-xs text-text-3' : 'vr-data font-semibold')}>{textoNota(x)}</span>
             </dt>
             <dd className="text-xs text-text-3">
-              {x.resumo ?? PERGUNTA_DIMENSAO[d]}
+              {x.resumo ?? (x.motivoSemNota === 'metodo_nao_mapeado' && d === 'clima' ? ORIGEM.clima.motivo : PERGUNTA_DIMENSAO[d])}
               {x.status === 'desatualizada' && x.dataReferencia && ` · desatualizado desde ${dataCurta(x.dataReferencia)}, fora do cálculo`}
               {x.pendenciasQualidade.length > 0 && <span className="block text-warm">Pendência: {x.pendenciasQualidade.join('; ')}</span>}
             </dd>

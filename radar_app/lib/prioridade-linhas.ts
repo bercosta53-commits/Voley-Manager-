@@ -1,6 +1,6 @@
 import type { Base } from './tipos';
 import { analisarConta, NIVEIS, type DadosAquisicao } from './aquisicao-maturidade';
-import { dimensaoClima, dimensaoDigital, dimensaoIcp, dimensaoSinais, visaoIntegrada, type AuditoriaDigital } from './prioridade';
+import { dimensaoClima, dimensaoDigital, dimensaoIcp, dimensaoSinais, visaoIntegrada, type AuditoriaDigital, type VisaoIntegradaConta } from './prioridade';
 import type { LinhaPrioridade } from './prioridade-filtros';
 
 /**
@@ -47,7 +47,22 @@ export function linhasPrioridade(base: Base, auditorias: Map<string, AuditoriaDi
       evidencia: forte ? { texto: forte.sinal || forte.porQueAgora || forte.rotulo, fonte: forte.fonte || null, url: /^https?:\/\//i.test(forte.url) ? forte.url : null, data: forte.data } : null,
       acaoOficial: c.acaoRecomendada ?? null,
       acaoDaMatriz: !!c.acaoDaMatriz,
-      visao: visaoIntegrada(c.id, dims),
+      visao: compactar(visaoIntegrada(c.id, dims)),
     };
   });
+}
+
+/**
+ * S-1: o navegador recebe uma linha por conta, então tira o que é igual em todas e já está na configuração
+ * (origem de cada nota, motivo fixo do Clima) e o motivo de exclusão quando repete o resumo.
+ */
+function compactar(v: VisaoIntegradaConta): VisaoIntegradaConta {
+  const dimensoes = Object.fromEntries(
+    Object.entries(v.dimensoes).map(([d, x]) => {
+      const { origem: _, ...resto } = x;
+      const fixo = d === 'clima' && x.motivoSemNota === 'metodo_nao_mapeado';
+      return [d, { ...resto, resumo: fixo ? null : x.resumo, motivoExclusao: fixo || x.motivoExclusao === x.resumo ? null : x.motivoExclusao }];
+    }),
+  ) as VisaoIntegradaConta['dimensoes'];
+  return { ...v, dimensoes };
 }

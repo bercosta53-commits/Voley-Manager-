@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import * as Dialog from '@radix-ui/react-dialog';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ArrowRight, CornerDownLeft, MessageCircleQuestion, Search, UserRound } from 'lucide-react';
-import type { Base } from '@/lib/tipos';
+import type { BaseCasca } from '@/lib/casca-dados';
 import { hrefConta, normalizar } from '@/lib/contas';
 import { aplicar, interpretar, paraUrl } from '@/lib/filtros';
 import { cn, plural, pontos } from '@/lib/utils';
@@ -25,7 +25,7 @@ interface Item {
 }
 
 /** Cmd+K: buscar conta ou pessoa, pular para uma tela, ou fazer uma pergunta simples sobre a base. */
-export function Comando({ base, aberto, onAberto }: { base: Base; aberto: boolean; onAberto: (a: boolean) => void }) {
+export function Comando({ base, aberto, onAberto }: { base: BaseCasca; aberto: boolean; onAberto: (a: boolean) => void }) {
   const router = useRouter();
   const reduzir = useReducedMotion();
   const [q, setQ] = useState('');

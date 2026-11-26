@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { Activity, ArrowDownUp, ArrowRight, CheckCircle2, ChevronRight, CircleHelp, Database, Download, ExternalLink, Layers3, LayoutGrid, MousePointer2, Radar, Search, ShieldCheck, SlidersHorizontal, Table2, Target, X } from 'lucide-react';
 import Link from 'next/link';
 import { Casca } from '@/components/casca/casca';
-import type { Base } from '@/lib/tipos';
+import type { BaseCasca } from '@/lib/casca-dados';
 import { cn } from '@/lib/utils';
 
 type Estado = 'network' | 'html' | 'request' | 'not_observed' | 'not_tested';
@@ -111,7 +111,7 @@ function PainelEmpresa({item,onClose,contaRadarId}:{item:ContaAqu;onClose:()=>vo
   </aside>
  </div>
 }
-export function TelaAquisicao({base,dados}:{base:Base;dados:Dataset}){
+export function TelaAquisicao({base,dados}:{base:BaseCasca;dados:Dataset}){
  const [vista,setVista]=useState<Vista>('panorama');
  const [texto,setTexto]=useState('');const [tier,setTier]=useState('todos');const [grupo,setGrupo]=useState('todos');
  const [status,setStatus]=useState('todos');const [ordenacao,setOrdenacao]=useState('prioridade');

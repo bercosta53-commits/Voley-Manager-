@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { TriangleAlert } from 'lucide-react';
-import type { Base } from '@/lib/tipos';
+import type { BaseCasca } from '@/lib/casca-dados';
 import { cn } from '@/lib/utils';
 import { useAgora } from '@/components/ui/use-agora';
 import { frescor, rotuloCarga, rotuloIdade } from '@/lib/frescor';
@@ -11,7 +11,7 @@ import { frescor, rotuloCarga, rotuloIdade } from '@/lib/frescor';
  * Faixa no topo de todas as telas quando a base passou do prazo da carga diária. Com a base em dia não
  * aparece nada: o carimbo da última carga fica no menu lateral.
  */
-export function AvisoFrescor({ base }: { base: Base }) {
+export function AvisoFrescor({ base }: { base: BaseCasca }) {
   const agora = useAgora();
   if (!agora) return null;
   const iso = base.atualizadoEm ?? base.geradoEm;

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { CircleAlert, CircleCheck, CircleX, KeyRound } from 'lucide-react';
-import type { Base, Fonte, StatusFonte } from '@/lib/tipos';
+import type { Fonte, StatusFonte } from '@/lib/tipos';
+import type { BaseCasca } from '@/lib/casca-dados';
 import { cn, dataCurta, plural, quando } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Casca } from '@/components/casca/casca';
@@ -21,7 +22,7 @@ const ORDEM: Record<StatusFonte, number> = { erro: 0, atencao: 1, ok: 2 };
 
 const frequencia = (dias: number) => (dias <= 1 ? 'todo dia' : dias === 7 ? 'toda semana' : dias >= 28 ? 'todo mês' : `a cada ${dias} dias`);
 
-export function TelaFontes({ base }: { base: Base }) {
+export function TelaFontes({ base }: { base: BaseCasca }) {
   const [estadoTela, setEstadoTela] = useState<EstadoTela>('normal');
   const [pronto, setPronto] = useState(false);
   useEffect(() => {

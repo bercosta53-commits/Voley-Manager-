@@ -13,7 +13,7 @@ import { LUGARES_ESSENCIAIS, faltandoNoComite } from './papeis';
 export const PISO_QUENTE = 55;
 
 /** Quente = VSCS na faixa de oportunidade ou Conta Qualificada pelo motor (D12). */
-export const ehQuente = (c: Pick<Conta, 'score' | 'qualificada'>, piso = PISO_QUENTE) => c.score >= piso || c.qualificada?.status === 'sim';
+export const ehQuente = (c: { score: number; qualificada?: { status: string } }, piso = PISO_QUENTE) => c.score >= piso || c.qualificada?.status === 'sim';
 
 /** Ação do time na conta: qualquer clique do fluxo num sinal dela, ou um andamento registrado. */
 export const teveAcao = (sinaisDaConta: Pick<Sinal, 'id'>[], estados: Record<string, EstadoSinal>, andamento?: { status: StatusConta }) =>

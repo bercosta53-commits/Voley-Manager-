@@ -7,7 +7,7 @@ import {
  Compass, Download, ExternalLink, Eye, Fingerprint, Layers3, Search, ShieldAlert, SlidersHorizontal, Target, X
 } from 'lucide-react';
 import { Casca } from '@/components/casca/casca';
-import type { Base } from '@/lib/tipos';
+import type { BaseCasca } from '@/lib/casca-dados';
 import {
  analisarBase, contagemNiveis, pontuacaoFoco, NIVEIS, GRUPO_TRACKING, GRUPO_MIDIA, GRUPO_CRM,
  NOMES_TECNOLOGIAS, quantidade, type AnaliseAquisicao, type Confianca, type DadosAquisicao, type NivelMaturidade
@@ -188,7 +188,7 @@ function Detalhe({a,onClose}:{a:AnaliseAquisicao;onClose:()=>void}){
   </div>
  </aside></div>;
 }
-export function TelaMaturidade({base,dados}:{base:Base;dados:DadosAquisicao}){
+export function TelaMaturidade({base,dados}:{base:BaseCasca;dados:DadosAquisicao}){
  const todas=useMemo(()=>analisarBase(dados.accounts),[dados]);
  const [busca,setBusca]=useState('');const [tier,setTier]=useState('todos');
  const [nivel,setNivel]=useState(-1);const [confidence,setConfidence]=useState('todos');
