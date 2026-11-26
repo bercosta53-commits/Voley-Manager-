@@ -1,8 +1,12 @@
+'use client';
+
 import { UserRound, UserRoundSearch } from 'lucide-react';
 import type { Conta, Pessoa, PapelAbm } from '@/lib/tipos';
 import { cn } from '@/lib/utils';
 import { ocupa, papelNoComite } from '@/lib/papeis';
 import { Secao } from '@/components/ui/secao';
+import { chavePessoa } from '@/lib/relacionamentos';
+import { RelacaoPessoaCampo, useRelacionamentos } from './relacionamento';
 
 /** Os três lugares que o ABM precisa ocupar antes de abordar (scripts/qualificar_icp.py classifica pelo cargo). */
 const LUGARES: { papel: PapelAbm; rotulo: string; quem: string }[] = [
@@ -22,7 +26,7 @@ const RELEVANCIA = { alta: 'relevância alta', media: 'relevância média', baix
 const papelDe = papelNoComite;
 
 
-function Linha({ p }: { p: Pessoa }) {
+function Linha({ p, rel }: { p: Pessoa; rel?: ReturnType<typeof useRelacionamentos> }) {
   return (
     <li className="flex items-start gap-3">
       <span className="grid size-8 shrink-0 place-items-center rounded-full border border-border bg-secondary text-text-2">
@@ -35,6 +39,7 @@ function Linha({ p }: { p: Pessoa }) {
           {p.relevancia && <> · {RELEVANCIA[p.relevancia]}</>}
           {p.contatoVelora && <> · <span className="font-semibold text-foreground">nosso contato</span></>}
         </p>
+        {rel?.ligado && <RelacaoPessoaCampo nome={p.nome} relacao={rel.pessoas[chavePessoa(p.nome)]} onMudar={n => rel.salvar(p.nome, n)} />}
       </div>
     </li>
   );
@@ -42,6 +47,7 @@ function Linha({ p }: { p: Pessoa }) {
 
 /** Comitê de compra: assina o cheque, decisor e dono da dor; quem trava aparece à parte. */
 export function Comite({ conta }: { conta: Conta }) {
+  const rel = useRelacionamentos(conta.id);
   const conhecidos = LUGARES.filter(l => conta.comite.some(p => ocupa(p, l.papel))).length;
   const travas = conta.comite.filter(p => papelDe(p) === 'trava');
   return (
@@ -64,7 +70,7 @@ export function Comite({ conta }: { conta: Conta }) {
               {pessoas.length ? (
                 <ul className="flex flex-col gap-2.5">
                   {pessoas.map(p => (
-                    <Linha key={p.nome} p={p} />
+                    <Linha key={p.nome} p={p} rel={rel} />
                   ))}
                 </ul>
               ) : (
@@ -83,7 +89,7 @@ export function Comite({ conta }: { conta: Conta }) {
             <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-text-2">{ROTULO.trava}</p>
             <ul className="flex flex-col gap-2.5">
               {travas.map(p => (
-                <Linha key={p.nome} p={p} />
+                <Linha key={p.nome} p={p} rel={rel} />
               ))}
             </ul>
           </div>

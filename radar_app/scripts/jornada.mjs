@@ -48,7 +48,7 @@ for (const c of base.contas) {
 
 // registro compartilhado ligado (radar_acoes em memória no Supabase simulado), com um autor de teste
 const AUTOR = 'demo@velora.teste';
-const app = await subirApp(base, { env: { RADAR_ACOES: '1', RADAR_AUTOR_TESTE: AUTOR } });
+const app = await subirApp(base, { env: { RADAR_ACOES: '1', RADAR_RELACIONAMENTOS: '1', RADAR_AUTOR_TESTE: AUTOR } });
 const navegador = await chromium.launch();
 let falhas = 0;
 function conferir(ok, descricao, detalhe = '') {
@@ -180,6 +180,32 @@ try {
   const depois = await scoreHoje();
   conferir(!!antes && antes === depois, 'relevância 3 não muda o score exibido (score único)', `${antes} → ${depois}`);
   await ph.close();
+
+  // 3f2. Relacionamento 0–5 com pessoas do comitê (privado): grava com o autor do Access, volta depois de recarregar,
+  // vira "via quente" a partir de 4 e, no modo apresentação, só o selo aparece (sem nota nem campo)
+  {
+    const pr = await navegador.newPage({ viewport: { width: 1440, height: 900 } });
+    vigiar(pr);
+    const pessoaRel = contaAlvo.comite[0];
+    await pr.goto(app.url(`/contas/${contaAlvo.id}`), { waitUntil: 'networkidle' });
+    const campo = pr.getByRole('combobox', { name: `Relação da Velora com ${pessoaRel.nome}` });
+    conferir(await campo.isVisible(), 'comitê mostra o campo de relação quando a tabela privada está ligada');
+    await campo.selectOption('5');
+    await pr.waitForTimeout(400);
+    const gravada = app.relacionamentos.find(l => l.conta_id === contaAlvo.id && l.pessoa === pessoaRel.nome);
+    conferir(gravada?.nota === 5 && gravada?.autor_email === AUTOR, 'relação gravada com a nota e o autor do Access', JSON.stringify(gravada));
+    await pr.reload({ waitUntil: 'networkidle' });
+    conferir((await campo.inputValue()) === '5' && (await pr.locator('#comite').innerText()).includes('via quente'), 'relação volta depois de recarregar e marca via quente');
+    await pr.goto(app.url(`/contas/${contaAlvo.id}?apresentacao=1`), { waitUntil: 'networkidle' });
+    const comiteApres = await pr.locator('#comite').innerText();
+    conferir(comiteApres.includes('via quente') && !(await campo.count()), 'modo apresentação mostra só o selo, sem nota nem campo');
+    await pr.goto(app.url('/?apresentacao=0'), { waitUntil: 'networkidle' });
+    const r400 = await pr.evaluate(async id => (await fetch('/api/relacionamentos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contaId: id, pessoa: 'Pessoa Inventada', nota: 5 }) })).status, contaAlvo.id);
+    conferir(r400 === 400, 'API recusa pessoa fora do comitê da conta');
+    const r400b = await pr.evaluate(async id => (await fetch('/api/relacionamentos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contaId: id, pessoa: 'x', nota: 9 }) })).status, contaAlvo.id);
+    conferir(r400b === 400, 'API recusa nota fora de 0–5');
+    await pr.close();
+  }
 
   // 3g. Hoje, fase 1 da tela de sinais: ordem escolhida, contadores por estágio que somam o total e filtram,
   // pontos inteiros, nada de "(a identificar)", filtros na URL e "Limpar filtros"
