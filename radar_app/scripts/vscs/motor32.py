@@ -20,7 +20,8 @@ sys.path.insert(0, str(AQUI.parent))
 import score_v2 as s30  # noqa: E402
 
 from .classificar import (FORA_DE_RECEITA, LIDERANCA, OPERACIONAL, base_bloco, cargo_do_evento, chave_canonica, evidencia_clevel,
-                          familia_cargo, marco_historico, nivel_cargo, norm, papel_na_aquisicao)  # noqa: E402
+                          clevel_com_receita, familia_cargo, marco_historico, nivel_cargo, nivel_no_contexto, norm,
+                          papel_na_aquisicao)  # noqa: E402
 
 VERSAO = "vscs-3.2-contexto-cargos"
 
@@ -113,9 +114,14 @@ def classificar(ev: dict, p: dict) -> dict | None:
         nivel, texto, _ = _nivel(ev)
         if nivel in LIDERANCA:
             return _montar(f"nomeacao_{nivel}", p["cargos_receita"][nivel], p, cargo=texto)
+        if clevel_com_receita(ev):  # COO "responsável por vendas e marketing": diretoria de receita, não C-level genérico
+            return _montar("nomeacao_diretoria_receita", p["cargos_receita"]["diretoria_receita"], p, cargo=texto)
         chave = s30.nivelar(dict(ev, tipo="executivo_chegou", sinal=texto, porQueAgora=""))
         if chave in ("troca_lideranca_ceo", "troca_lideranca_clevel"):
             return _montar(chave, _base_da_chave(chave, p), p, cargo=texto)
+        nivel, trecho = nivel_no_contexto(ev)  # cargo dito no contexto ("promoção de X a diretor comercial")
+        if nivel in LIDERANCA:
+            return _montar(f"nomeacao_{nivel}", p["cargos_receita"][nivel], p, cargo=trecho)
         return None
     if tipo == "fusao_aquisicao":
         papel = papel_na_aquisicao(f'{ev.get("sinal", "")} {ev.get("porQueAgora", "")}', ev.get("_empresa") or "")
@@ -124,11 +130,10 @@ def classificar(ev: dict, p: dict) -> dict | None:
     chave = s30.nivelar(ev)
     if not chave or chave not in s30.P:
         return None
-    if cal.get("base"):  # base decidida na calibração do sinal prevalece sobre a da tabela
-        cl = _montar(chave, cal["base"], p, origem="registro")
-        return cl
     if chave == "declaracao_meta" and marco_historico(f'{ev.get("sinal", "")} {ev.get("porQueAgora", "")}'):
         chave = "declaracao_generica"  # número de resultado passado não é meta futura
+    if cal.get("base"):  # base decidida na calibração do sinal prevalece sobre a da tabela
+        return _montar(chave, cal["base"], p, origem="registro")
     cl = _montar(chave, _base_da_chave(chave, p), p)
     if cl["categoria"] == "contexto" and p.get("contexto", {}).get("exige_classificacao_explicita", True):
         return None  # evento, palestra, prêmio: só pontuam com classificação explícita (revisão ou registro)

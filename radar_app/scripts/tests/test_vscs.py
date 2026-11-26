@@ -517,3 +517,54 @@ class TestRelacionamento(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestClassificadorTexto(unittest.TestCase):
+    """Regressões medidas contra sinais já validados (registro × inferência). Textos sintéticos, sem empresas reais."""
+
+    def cl(self, tipo, sinal, pq="", empresa="Empresa Exemplo"):
+        r = motor32.classificar({"tipo": tipo, "sinal": sinal, "porQueAgora": pq, "_empresa": empresa}, P32)
+        return r["chave"] if r else None
+
+    def test_cargo_da_nomeacao_no_contexto(self):
+        self.assertEqual(self.cl("executivo_chegou", "Pessoa A lidera Comercial e Parcerias",
+                                 "Anunciou a promoção de Pessoa A a diretor comercial e de parcerias."), "nomeacao_diretoria_receita")
+        # o nível mais sênior entre as nomeações do mesmo anúncio
+        self.assertEqual(self.cl("executivo_chegou", "Empresa reorganiza liderança de receita",
+                                 "Anunciou Pessoa B como CCO regional e a promoção de Pessoa C a CRO."), "nomeacao_clevel_receita")
+        self.assertEqual(self.cl("executivo_chegou", "Pessoa D assume Estratégia, Portfólio e Marketing",
+                                 "Contratação para a nova diretoria executiva de Estratégia, Portfólio e Marketing."), "nomeacao_diretoria_receita")
+
+    def test_citacao_solta_no_contexto_nao_vira_cargo(self):
+        self.assertIsNone(self.cl("executivo_chegou", "Pessoa E chega à empresa", "Ex-CRO de outra empresa; reporta ao CEO."))
+
+    def test_mandato_de_receita_sem_titulo(self):
+        self.assertEqual(self.cl("executivo_chegou", "Pessoa F amplia responsabilidades em Marketing e Vendas",
+                                 "Além da liderança executiva, assumiu diretamente Marketing e Vendas."), "nomeacao_diretoria_receita")
+
+    def test_clevel_fora_de_receita_com_responsabilidade_por_vendas(self):
+        self.assertEqual(self.cl("executivo_chegou", "Pessoa G é promovida a COO",
+                                 "Promoveu Pessoa G a COO, responsável por vendas, marketing e operações."), "nomeacao_diretoria_receita")
+        self.assertEqual(self.cl("executivo_chegou", "Pessoa H é promovida a COO", "Responsável por operações e pessoas."), "troca_lideranca_clevel")
+
+    def test_product_marketing_e_receita(self):
+        self.assertEqual(self.cl("executivo_chegou", "Pessoa I assume diretor de Product Marketing na Empresa"), "nomeacao_diretoria_receita")
+
+    def test_lider_verbo_nao_e_cargo(self):
+        self.assertIsNone(nivel_cargo("pessoa lidera comercial e parcerias"))
+        self.assertEqual(nivel_cargo("lider de marketing"), "coordenacao")
+
+    def test_vagas_operacionais_e_especialistas(self):
+        self.assertEqual(self.cl("vaga_area_alvo", "Empresa busca analista de marketing B2B para estruturar ABM"), "vaga_especialista_gtm")
+        self.assertEqual(self.cl("vaga_area_alvo", "Empresa busca especialista de marketing SEO"), "vaga_especialista_gtm")
+        self.assertEqual(self.cl("vaga_area_alvo", "Empresa abre vaga de Novos Negócios para a vertical X"), "vaga_sdr_bdr")
+        self.assertEqual(self.cl("vaga_area_alvo", "Empresa busca copywriter para geração de demanda"), "vaga_sdr_bdr")
+        self.assertEqual(self.cl("vaga_area_alvo", "Empresa busca analista de marketing"), "vaga_sdr_bdr")
+
+    def test_passa_a_integrar_apos_aquisicao_e_aquisicao_sofrida(self):
+        self.assertEqual(self.cl("fusao_aquisicao", "Alfa Software passa a integrar Grupo Beta após aquisição", empresa="Alfa Software"),
+                         "foi_adquirida")
+
+    def test_resultado_passado_nao_e_meta(self):
+        self.assertEqual(self.cl("resultados_crescimento", "Empresa relata crescimento de 300% no MRR",
+                                 "Resultados dos 12 meses anteriores; não são meta futura."), "declaracao_generica")

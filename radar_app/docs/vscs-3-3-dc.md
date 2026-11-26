@@ -244,6 +244,25 @@ alter table public.radar_relacionamentos enable row level security;  -- sem pol�
 
 Para a simulação, exporte `{contaId: {pessoa: {nota, em}}}` (sem autor) e passe com `--relacionamentos`. No modo apresentação, a tela mostra só o selo "via quente", sem nome de quem conhece nem a nota.
 
+### 3.10 Classificador de texto: regras medidas contra o registro (proposta, 26/11)
+
+O classificador de texto só decide sinais **nunca classificados**. Revisão, calibração e registro continuam prevalecendo, e por isso a reconciliação segue 348/348 e a simulação da 3.3 não muda. A medição usa a tabela "registro × inferência" do reconciliador (seção 5 do relatório, gerado fora do repositório): as divergências que não são estruturais caíram de 24 para 11. As 13 estruturais são blocos de vagas e contexto que exige classificação explícita.
+
+| Regra | Antes | Agora |
+|---|---|---|
+| Cargo da nomeação no contexto, só em construção ligada ao fato ("promoção de X a diretor comercial", "anunciou X como CCO", "nova diretoria executiva de … Marketing"); vale o nível mais sênior do anúncio | não pontuava | nível do cargo |
+| Citação solta no contexto ("ex-CRO", "reporta ao CEO") | não pontuava | continua sem pontuar |
+| Mandato de receita sem título ("assumiu diretamente Marketing e Vendas", "amplia responsabilidades em…") | não pontuava | diretoria de receita |
+| C-level fora de receita com responsabilidade explícita por vendas ou marketing (COO "responsável por vendas") | C-level fora de receita (50) | diretoria de receita (85) |
+| Diretor de Product Marketing | não pontuava | diretoria de receita |
+| "Líder de marketing/vendas" (substantivo; o verbo "lidera" não conta) | head pelo tipo da vaga | coordenação |
+| Analista ou especialista com escopo de ABM, SEO, geração de demanda ou marketing ops | SDR/BDR ou nada | especialista GTM |
+| Vaga de Novos Negócios; copywriter | não pontuava | operacional (SDR/BDR) |
+| "X passa a integrar Y após aquisição" | aquisição feita | aquisição sofrida |
+| Resultado passado ("relata crescimento", "marco de", "nos 12 meses anteriores"); "não são meta" negado | meta declarada | declaração genérica |
+
+Ficam para decisão humana, porque o registro reflete um julgamento caso a caso: Head sem gestão de equipe comprovada registrado como especialista, analista de CS enterprise, declaração com plano datado registrada como genérica, e lançamento em vertical nova × comum. Testes sintéticos em `scripts/tests/test_vscs.py` (`TestClassificadorTexto`).
+
 ## 4. Como reproduzir sobre a base real (somente leitura)
 
 ```bash
