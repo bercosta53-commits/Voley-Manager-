@@ -5,6 +5,7 @@ import { ANEIS, BRACOS, type ContaProximidade } from '@/lib/proximidade';
 import { Curva } from '@/components/hoje/score';
 import { PainelFlutuante } from '@/components/ui/painel-flutuante';
 import { cn } from '@/lib/utils';
+import { Rotulo } from '@/components/ui/rotulo';
 
 const ROTULO_PAPEL: Record<ContaProximidade['comite'][number]['papelIcp'], string> = {
   dono_problema: 'Dono do problema',
@@ -109,7 +110,7 @@ export function PainelConta({ conta, aberto, onFechar }: { conta: ContaProximida
         </div>
 
         <div>
-          <h3 className="text-xs font-semibold text-text-3">O que falta</h3>
+          <Rotulo como="h3">O que falta</Rotulo>
           <ul className="mt-2 space-y-1.5">
             {conta.pecasFaltantes.length === 0 ? (
               <li className="flex items-center gap-2 text-sm text-ok">
@@ -138,7 +139,7 @@ export function PainelConta({ conta, aberto, onFechar }: { conta: ContaProximida
         )}
 
         <div>
-          <h3 className="mb-1 text-xs font-semibold text-text-3">Comitê</h3>
+          <Rotulo como="h3" className="mb-1">Comitê</Rotulo>
           {conta.comite.length === 0 ? (
             <p className="flex items-center gap-2 text-sm text-text-3">
               <UserRound className="size-4" strokeWidth={1.5} />

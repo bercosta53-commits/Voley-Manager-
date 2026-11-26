@@ -4,6 +4,7 @@ import type { Conta, EstadoSinal, Sinal } from '@/lib/tipos';
 import { cn, dataCurta, quando } from '@/lib/utils';
 import { IconeSinal } from '@/components/hoje/icone-sinal';
 import { Evidencia } from '@/components/ui/evidencia';
+import { Rotulo } from '@/components/ui/rotulo';
 
 interface Item {
   chave: string;
@@ -78,7 +79,7 @@ export function LinhaDoTempo({
 
   return (
     <section className="vr-card p-5">
-      <h2 className="text-xs font-semibold text-text-3">Linha do tempo</h2>
+      <Rotulo>Linha do tempo</Rotulo>
       {!itens.length ? (
         <p className="mt-3 text-sm text-text-3">Nenhum fato registrado nesta conta ainda. Os coletores trazem os próximos.</p>
       ) : (

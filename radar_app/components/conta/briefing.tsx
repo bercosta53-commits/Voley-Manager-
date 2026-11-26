@@ -12,6 +12,8 @@ import { hrefConta } from '@/lib/contas';
 import { briefingEmTexto, montarBriefing, type Linha } from '@/lib/briefing';
 import { detectarPlaybook } from '@/lib/playbooks';
 import { dataCurta } from '@/lib/utils';
+import { Rotulo } from '@/components/ui/rotulo';
+import { Chip } from '@/components/ui/chip';
 
 /**
  * Briefing de reunião (P3-6): uma página para levar à conversa, com cada fato ligado à fonte. Imprime limpo
@@ -43,7 +45,7 @@ export function TelaBriefing({ base }: { base: BaseCasca & { conta: Conta; sinai
 
         <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-5">
           <div className="min-w-0">
-            <p className="text-xs font-semibold tracking-wide text-text-3 uppercase">Briefing de reunião</p>
+            <Rotulo como="p" caps>Briefing de reunião</Rotulo>
             <h1 className="font-display text-3xl font-semibold tracking-tight">{conta.nome}</h1>
             <p className="mt-1 text-sm text-text-3">
               Dados de {dataCurta(b.dataCarga)} · gerado em {dataCurta(b.geradoEm)} · cada fato tem o número da fonte
@@ -103,7 +105,7 @@ export function TelaBriefing({ base }: { base: BaseCasca & { conta: Conta; sinai
                   {b.roteiro.playbook && <Zap aria-hidden className="size-4 text-warm" strokeWidth={2} />}
                   Roteiro{b.roteiro.playbook ? `: ${b.roteiro.playbook}` : ''}
                 </h2>
-                <span className="rounded-chip border border-border bg-card px-1.5 py-0.5 text-xs text-text-2">recomendação do Radar, não é fato</span>
+                <Chip tom="cartao" className="text-text-2">recomendação do Radar, não é fato</Chip>
               </div>
               <dl className="grid gap-3 text-sm sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-x-4">
                 {b.roteiro.leitura && <Par rotulo="Leitura">{b.roteiro.leitura}</Par>}
@@ -158,7 +160,7 @@ export function TelaBriefing({ base }: { base: BaseCasca & { conta: Conta; sinai
 function Secao({ titulo, vazio, children }: { titulo: string; vazio?: string; children?: React.ReactNode }) {
   return (
     <section aria-label={titulo} className="break-inside-avoid">
-      <h2 className="mb-3 text-xs font-semibold tracking-wide text-text-3 uppercase">{titulo}</h2>
+      <Rotulo caps className="mb-3">{titulo}</Rotulo>
       {vazio ? <p className="text-sm text-text-3">{vazio}</p> : children}
     </section>
   );

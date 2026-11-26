@@ -30,6 +30,8 @@ import { Comite } from './comite';
 import { LinhaDoTempo } from './linha-do-tempo';
 import { Decomposicao } from './decomposicao';
 import { useHoje } from '@/components/ui/use-agora';
+import { Rotulo } from '@/components/ui/rotulo';
+import { Chip } from '@/components/ui/chip';
 
 type EstadoTela = 'normal' | 'carregando' | 'vazio' | 'erro' | 'sem-permissao';
 const ESTADOS: EstadoTela[] = ['carregando', 'vazio', 'erro', 'sem-permissao'];
@@ -156,8 +158,8 @@ function Detalhe({
               {[primeiraMaiuscula(conta.segmento), conta.cidade && `${conta.cidade}/${conta.uf}`].filter(Boolean).join(' · ')}
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              <span className="rounded-chip border border-border px-1.5 py-0.5 text-xs text-text-2">Tier {conta.tier}</span>
-              <span className="rounded-chip border border-border px-1.5 py-0.5 text-xs text-text-2">{rotuloStatus(conta)}</span>
+              <Chip tom="contorno">Tier {conta.tier}</Chip>
+              <Chip tom="contorno">{rotuloStatus(conta)}</Chip>
               <Link
                 href={`${hrefConta(conta.id)}/briefing`}
                 className="inline-flex items-center gap-1 rounded-chip border border-border-strong bg-card px-1.5 py-0.5 text-xs font-medium text-foreground hover:bg-muted"
@@ -299,7 +301,7 @@ function ProximaAcao({
     } else return null; // "esperar um motivo" já está na tese
     return (
       <section className="vr-card p-5">
-        <h2 className="text-xs font-semibold tracking-wide text-text-3 uppercase">Antes do rascunho</h2>
+        <Rotulo caps>Antes do rascunho</Rotulo>
         <p className="mt-2 text-md font-semibold">{titulo}</p>
         <p className="mt-1 text-sm text-text-2">{corpo}</p>
       </section>
@@ -437,7 +439,7 @@ function Cadastro({ conta }: { conta: Conta }) {
   }
   return (
     <section className="vr-card p-5">
-      <h2 className="text-xs font-semibold text-text-3">Dados cadastrais</h2>
+      <Rotulo>Dados cadastrais</Rotulo>
       <dl className="mt-3 grid gap-2.5 text-sm">
         {linhas.map(([k, v]) => (
           <div key={k} className="grid grid-cols-[112px_minmax(0,1fr)] gap-3">

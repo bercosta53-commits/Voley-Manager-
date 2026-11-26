@@ -10,6 +10,7 @@ import { paraUrl, SEM_FILTRO } from '@/lib/filtros';
 import { panorama } from '@/lib/panorama';
 import { rotuloCarga } from '@/lib/frescor';
 import { cn } from '@/lib/utils';
+import { Rotulo } from '@/components/ui/rotulo';
 
 const COR_BARRA_ESTAGIO: Record<StatusVscs, string> = {
   Monitoramento: 'bg-[var(--vr-border-strong)]',
@@ -84,7 +85,7 @@ export function Panorama({ base }: { base: Base }) {
 
       <div className="grid gap-4 px-4 py-3 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-8">
         <div className="min-w-0">
-          <h3 className="text-xs font-semibold text-text-3">Estágio de momento (VSCS)</h3>
+          <Rotulo como="h3">Estágio de momento (VSCS)</Rotulo>
           <div className="mt-2 flex h-2.5 overflow-hidden rounded-full bg-[var(--vr-surface-3)]" role="img" aria-label={estagios.map(e => `${e.estagio}: ${e.n}`).join(', ')}>
             {estagios.map(e =>
               e.n ? <span key={e.estagio} className={cn('h-full', COR_BARRA_ESTAGIO[e.estagio])} style={{ width: `${(e.n / Math.max(1, p.contas)) * 100}%` }} /> : null,
@@ -101,7 +102,7 @@ export function Panorama({ base }: { base: Base }) {
           </ul>
         </div>
         <div className="min-w-0">
-          <h3 className="text-xs font-semibold text-text-3">Sinais dos últimos 30 dias, por tipo</h3>
+          <Rotulo como="h3">Sinais dos últimos 30 dias, por tipo</Rotulo>
           {p.porCategoria30d.length ? (
             <ul className="mt-2 flex flex-wrap gap-1.5">
               {p.porCategoria30d.map(c => (
