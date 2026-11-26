@@ -4,7 +4,7 @@ import { forwardRef } from 'react';
 import { motion, useMotionValue, useReducedMotion, useTransform, type PanInfo } from 'motion/react';
 import { Archive, CalendarClock, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
 import type { Conta, EstadoSinal, Sinal } from '@/lib/tipos';
-import { cn, dataCurta, diasEntre, quando, pontos } from '@/lib/utils';
+import { cn, dataCurta, diasEntre, quando, pontos, seDiferente } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/ui/kbd';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -238,7 +238,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                 {!negativo && <BarraForca forca={forcaDe(sinal)} />}
                 {nivel.rotulo}
               </span>
-              <Chip tom="neutro">{sinal.rotulo}</Chip>
+              {seDiferente(sinal.sinal ?? sinal.porQueAgora, sinal.rotulo) && <Chip tom="neutro">{sinal.rotulo}</Chip>}
               {playbook && <SeloPlaybook ativacao={playbook} />}
               {viaQuente && <SeloViaQuente />}
 

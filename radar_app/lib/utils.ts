@@ -53,3 +53,14 @@ export const plural = (n: number, um: string, varios: string) => `${n} ${n === 1
 
 const FORMATO_MOEDA = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 export const moeda = (n: number) => FORMATO_MOEDA.format(n);
+
+/** O segundo texto só quando acrescenta algo ao primeiro: igual, contido ou começando igual (ignorando caixa,
+ * acentos e pontuação) não se repete na tela. */
+export function seDiferente(principal: string | undefined | null, segundo: string | undefined | null): string | undefined {
+  if (!segundo) return undefined;
+  const n = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const a = n(principal ?? '');
+  const b = n(segundo);
+  if (!b || (a && (a === b || a.includes(b) || b.startsWith(a.slice(0, Math.max(24, Math.floor(a.length * 0.8))))))) return undefined;
+  return segundo;
+}

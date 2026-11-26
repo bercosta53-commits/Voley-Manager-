@@ -57,11 +57,12 @@ export function Faixa({
           →
         </span>
         <ul className="flex min-w-0 flex-1 flex-wrap gap-1.5">
-          {SEGMENTOS.map(s => {
+          {/* segmento com 0 não ocupa a faixa (zero não ganha destaque); um filtro ativo continua visível para poder ser tirado */}
+          {SEGMENTOS.filter(s => contagem[s.id] > 0 || ativos.includes(s.id)).map(s => {
             const n = contagem[s.id];
             const ativo = ativos.includes(s.id);
             return (
-              <li key={s.id} style={{ flexGrow: Math.max(n, total * 0.03), flexBasis: 0 }} className="min-w-[96px]">
+              <li key={s.id} style={{ flexGrow: Math.max(n, total * 0.03), flexBasis: 0 }} className="min-w-[132px]">
                 <button
                   type="button"
                   aria-pressed={ativo}
@@ -74,7 +75,7 @@ export function Faixa({
                 >
                   <span className="flex items-center gap-1.5 text-xs font-semibold tracking-wide whitespace-nowrap text-text-2 uppercase">
                     <span aria-hidden className="size-2 shrink-0 rounded-[2px]" style={ESTILO[s.id].marca} />
-                    {s.grupo}
+                    <span className="truncate" title={s.grupo}>{s.grupo}</span>
                     {ativo && <span className="sr-only">(filtro ativo)</span>}
                   </span>
                   <span className="flex items-baseline gap-1.5">

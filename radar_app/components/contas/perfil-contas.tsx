@@ -31,13 +31,8 @@ export function PerfilContas({ base, tiersAtivos, onTier }: { base: Base; tiersA
         <>
           <Numero rotulo="Contas" valor={num(p.contas)} nota={`${p.tierA} tier A`} />
           <Numero rotulo="Sinal em 30 dias" valor={num(p.comSinal30)} nota={`${pct(p.comSinal30, p.contas)}% da base`} />
-          <Numero
-            rotulo="Atenção ou acima"
-            valor={num(p.atencaoOuMais)}
-            nota={p.paraAbordar ? `${p.paraAbordar} pedem abordagem` : 'nenhuma pede abordagem hoje'}
-            alerta={!p.paraAbordar}
-          />
-          <Numero rotulo="CNPJ confirmado" valor={`${pct(p.comCnpj, p.contas)}%`} nota={`${p.semUf} contas sem UF`} alerta={p.semUf > 0} />
+          <Numero rotulo="A/B com movimento" valor={num(p.abComMovimento)} nota="fato nos últimos 90 dias" />
+          <Numero rotulo="Comitê completo" valor={num(p.comComite)} nota="assina, decide e sente a dor mapeados" />
         </>
       }
       blocos={

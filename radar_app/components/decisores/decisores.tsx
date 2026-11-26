@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Download, ExternalLink, Mail, Search, SearchX, UserRound } from 'lucide-react';
 import type { Area, Base, Papel, PapelAbm } from '@/lib/tipos';
@@ -76,12 +76,17 @@ interface Linha {
 }
 
 /** Lista plana de pessoas (comitê de todas as contas), para achar quem falar sem entrar conta por conta. */
+const POR_PAGINA = 50;
+
 export function TelaDecisores({ base }: { base: Base }) {
   const apresentacao = useApresentacao();
   const [texto, setTexto] = useState('');
   const [areas, setAreas] = useState<Area[]>([]);
   const [papeis, setPapeis] = useState<PapelAbm[]>([]);
   const [niveis, setNiveis] = useState<('alta' | 'media' | 'baixa')[]>([]);
+  // 1.300+ pessoas não cabem numa leitura: 50 por vez; mudar busca ou filtro volta ao começo
+  const [limite, setLimite] = useState(POR_PAGINA);
+  useEffect(() => setLimite(POR_PAGINA), [texto, areas, papeis, niveis]);
 
   const pessoas = useMemo<Linha[]>(
     // papel no comitê pela mesma leitura do comitê da conta: papel ABM quando vem, senão pelo cargo
@@ -89,6 +94,8 @@ export function TelaDecisores({ base }: { base: Base }) {
     [base.contas],
   );
 
+  // nível de influência ainda não vem na base: coluna e filtro só aparecem quando alguém tiver o dado
+  const temNivel = pessoas.some(p => p.relevancia);
   const linhas = useMemo(() => {
     const t = normalizar(texto.trim());
     return pessoas
@@ -139,12 +146,12 @@ export function TelaDecisores({ base }: { base: Base }) {
             valor={papeis}
             onMudar={setPapeis}
           />
-          <MenuFiltro
+          {temNivel && <MenuFiltro
             rotulo="Nível"
             opcoes={(['alta', 'media', 'baixa'] as const).map(n => ({ id: n, rotulo: NIVEL[n].rotulo, qtd: contar(p => p.relevancia === n) }))}
             valor={niveis}
             onMudar={setNiveis}
-          />
+          />}
           <MenuFiltro rotulo="Área" opcoes={AREAS.map(a => ({ ...a, qtd: contar(p => p.area === a.id) })).filter(a => a.qtd)} valor={areas} onMudar={setAreas} />
           <Button
             size="sm"
@@ -186,12 +193,12 @@ export function TelaDecisores({ base }: { base: Base }) {
                   <th scope="col" className="hidden w-[200px] px-3 py-2.5 font-medium sm:table-cell">Conta</th>
                   <th scope="col" className="hidden w-[110px] px-3 py-2.5 font-medium lg:table-cell">Área</th>
                   <th scope="col" className="hidden w-[150px] px-3 py-2.5 font-medium md:table-cell">Papel no comitê</th>
-                  <th scope="col" className="hidden w-[96px] px-3 py-2.5 font-medium md:table-cell">Nível</th>
+                  {temNivel && <th scope="col" className="hidden w-[96px] px-3 py-2.5 font-medium md:table-cell">Nível</th>}
                   <th scope="col" className="w-[84px] px-3 py-2.5 pr-4 text-right font-medium md:w-[96px] md:pr-5">Contato</th>
                 </tr>
               </thead>
               <tbody>
-                {linhas.map((p, i) => (
+                {linhas.slice(0, limite).map((p, i) => (
                   <tr key={`${p.contaId}-${p.nome}-${i}`} className="border-b border-border last:border-b-0 hover:bg-muted">
                     <td className="py-2 pr-3 pl-4 md:pl-5">
                       <div className="flex items-center gap-3">
@@ -207,7 +214,7 @@ export function TelaDecisores({ base }: { base: Base }) {
                           {/* no celular as colunas somem: papel e nível vão para baixo do cargo */}
                           <div className="mt-1 flex items-center gap-2 md:hidden">
                             <TagPapel papel={p.papelAbm} />
-                            <Nivel nivel={p.relevancia} papel={p.papelAbm} />
+                            {temNivel && <Nivel nivel={p.relevancia} papel={p.papelAbm} />}
                           </div>
                         </div>
                       </div>
@@ -222,9 +229,11 @@ export function TelaDecisores({ base }: { base: Base }) {
                     <td className="hidden px-3 py-2.5 md:table-cell">
                       <TagPapel papel={p.papelAbm} />
                     </td>
-                    <td className="hidden px-3 py-2.5 md:table-cell">
-                      <Nivel nivel={p.relevancia} papel={p.papelAbm} />
-                    </td>
+                    {temNivel && (
+                      <td className="hidden px-3 py-2.5 md:table-cell">
+                        <Nivel nivel={p.relevancia} papel={p.papelAbm} />
+                      </td>
+                    )}
                     <td className="px-3 py-2.5 pr-4 md:pr-5">
                       <div className="flex items-center justify-end gap-1">
                         {p.email &&
@@ -249,6 +258,15 @@ export function TelaDecisores({ base }: { base: Base }) {
                 ))}
               </tbody>
             </table>
+            {linhas.length > limite && (
+              <button
+                type="button"
+                onClick={() => setLimite(l => l + POR_PAGINA)}
+                className="w-full border-t border-border px-4 py-3 text-sm font-medium text-text-2 hover:bg-muted hover:text-foreground"
+              >
+                Mostrar mais {Math.min(POR_PAGINA, linhas.length - limite)} · {limite} de {linhas.length}
+              </button>
+            )}
           </div>
         )}
       </main>

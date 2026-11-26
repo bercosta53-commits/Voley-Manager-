@@ -2,7 +2,7 @@
 
 import { forwardRef } from 'react';
 import type { Conta, Sinal } from '@/lib/tipos';
-import { cn, dataCurta } from '@/lib/utils';
+import { cn, dataCurta, seDiferente } from '@/lib/utils';
 import { COR_TIER, NIVEL_GATILHO } from '@/lib/papeis';
 import { LogoConta } from './logo-conta';
 import { BarraForca } from './forca';
@@ -43,7 +43,7 @@ export const LinhaSinal = forwardRef<HTMLButtonElement, { sinal: Sinal; conta: C
             <span className="mt-0.5 block truncate text-sm text-text-2">{sinal.sinal ?? sinal.porQueAgora}</span>
             <span className="mt-1 flex items-center gap-1.5 text-xs text-text-3">
               <span aria-hidden className="size-1.5 shrink-0 rounded-full" style={{ background: cor }} />
-              <span className="truncate">{sinal.rotulo}</span>
+              {seDiferente(sinal.sinal ?? sinal.porQueAgora, sinal.rotulo) && <span className="truncate">{sinal.rotulo}</span>}
               {util && <span className="shrink-0 text-ok">· útil</span>}
               {playbook && (
                 <span title={`Playbook: ${playbook.playbook.nome}`} className="inline-flex min-w-0 items-center gap-0.5 font-semibold text-warm">

@@ -2,8 +2,6 @@ import { Archive, CalendarClock, Flag, Send, ThumbsDown, ThumbsUp } from 'lucide
 import type { StatusConta } from '@/lib/acoes';
 import type { Conta, EstadoSinal, Sinal } from '@/lib/tipos';
 import { cn, dataCurta, quando } from '@/lib/utils';
-import { IconeSinal } from '@/components/hoje/icone-sinal';
-import { Evidencia } from '@/components/ui/evidencia';
 import { Secao } from '@/components/ui/secao';
 
 interface Item {
@@ -17,7 +15,8 @@ interface Item {
   acao?: boolean;
 }
 
-/** Linha do tempo: sinais (abertos e antigos) e o que a equipe fez, do mais recente para o mais antigo. */
+/** O que a equipe fez na conta (abordou, adiou, arquivou, avaliou, andamento), do mais recente para o mais antigo.
+ * Os fatos ficam na Narrativa da conta, sem repetir aqui. */
 const ROTULO_ANDAMENTO: Record<StatusConta, string> = {
   abordado: 'Andamento: abordado',
   respondeu: 'Andamento: respondeu',
@@ -46,15 +45,6 @@ export function LinhaDoTempo({
     itens.push({ chave: 'andamento', data: andamento.em, icone: <Flag className="size-4" strokeWidth={1.5} />, titulo: ROTULO_ANDAMENTO[andamento.status], texto: `por ${andamento.por}`, acao: true });
   for (const s of sinais) {
     const e = estados[s.id];
-    itens.push({
-      chave: s.id,
-      data: s.data,
-      icone: <IconeSinal tipo={s.tipo} className="size-4" />,
-      titulo: s.sinal ?? s.rotulo,
-      texto: s.porQueAgora,
-      novo: !e?.acao,
-      meta: <Evidencia className="mt-0.5 flex text-xs" fonte={s.fonte} url={s.url} fontes={s.fontes} coletadoEm={s.coletadoEm} confianca={s.confianca} extra={!e?.acao ? 'na caixa' : undefined} />,
-    });
     if (e?.acao && e.em) {
       const icones = { abordado: Send, adiado: CalendarClock, arquivado: e.avaliacao === 'ruido' ? ThumbsDown : Archive };
       const Icone = icones[e.acao];
@@ -65,23 +55,13 @@ export function LinhaDoTempo({
       itens.push({ chave: `${s.id}-util`, data: e.em, icone: <ThumbsUp className="size-4" strokeWidth={1.5} />, titulo: 'Marcado como útil', texto: sobre(s, e), acao: true });
     }
   }
-  for (const h of conta.historico)
-    itens.push({
-      chave: `${h.tipo}-${h.data}`,
-      data: h.data,
-      icone: <IconeSinal tipo={h.tipo} className="size-4" />,
-      titulo: h.sinal ?? h.rotulo,
-      texto: h.porQueAgora,
-      meta: <Evidencia className="mt-0.5 flex text-xs" fonte={h.fonte} url={h.url} />,
-    });
   // Ação feita hoje aparece acima do sinal do mesmo dia.
   itens.sort((a, b) => (a.data === b.data ? Number(!!b.acao) - Number(!!a.acao) : b.data.localeCompare(a.data)));
 
+  if (!itens.length) return null;
   return (
-    <Secao titulo="Linha do tempo">
-      {!itens.length ? (
-        <p className="mt-3 text-sm text-text-3">Nenhum fato registrado nesta conta ainda. Os coletores trazem os próximos.</p>
-      ) : (
+    <Secao titulo="O que o time fez">
+      {(
         <ol className="mt-4">
           {itens.map((it, i) => (
             <li key={it.chave} className="relative grid grid-cols-[64px_28px_minmax(0,1fr)] gap-x-3 pb-5 last:pb-0">

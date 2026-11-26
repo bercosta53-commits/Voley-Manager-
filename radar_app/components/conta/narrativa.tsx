@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { Sinal } from '@/lib/tipos';
+import type { Conta, Sinal } from '@/lib/tipos';
 import { movimentos, periodo, resumoNarrativa, TEMAS, dataNarrativa, type Movimento, type Tema } from '@/lib/narrativa';
 import { cn, plural, pontos } from '@/lib/utils';
 import { IconeSinal } from '@/components/hoje/icone-sinal';
@@ -41,11 +41,24 @@ function useUltimaLeitura(contaId: string, hoje: string) {
  * Narrativa da conta: os fatos agrupados em movimentos (tema + proximidade no tempo), do mais recente ao mais
  * antigo, com o período, a força que somam ao score hoje e o que é novo desde a última leitura.
  */
-export function NarrativaConta({ contaId, sinais, hoje }: { contaId: string; sinais: Sinal[]; hoje: string }) {
+export function NarrativaConta({ contaId, sinais, historico = [], hoje }: { contaId: string; sinais: Sinal[]; historico?: Conta['historico']; hoje: string }) {
   const ultimaLeitura = useUltimaLeitura(contaId, hoje);
-  const movs = useMemo(() => movimentos(sinais, { ultimaLeitura }), [sinais, ultimaLeitura]);
+  // fatos abertos (sinais) e antigos (histórico da conta), cada um uma vez
+  const fatos = useMemo(() => {
+    const ids = new Set(sinais.map(s => s.id));
+    const antigos = historico
+      .map((h, i) => ({ ...h, id: `hist-${h.tipo}-${h.data}-${i}`, contaId, pontos: 0, alertaEm: h.data, exemplo: false }) as unknown as Sinal)
+      .filter(h => !ids.has(h.id) && !sinais.some(s => s.data === h.data && (s.sinal ?? s.rotulo) === (h.sinal ?? h.rotulo)));
+    return [...sinais, ...antigos];
+  }, [sinais, historico, contaId]);
+  const movs = useMemo(() => movimentos(fatos, { ultimaLeitura }), [fatos, ultimaLeitura]);
   const resumo = resumoNarrativa(movs);
-  if (!movs.length) return null;
+  if (!movs.length)
+    return (
+      <Secao titulo="Narrativa da conta">
+        <p className="mt-2 text-sm text-text-3">Nenhum fato registrado nesta conta ainda. Os coletores trazem os próximos.</p>
+      </Secao>
+    );
   return (
     <Secao
       titulo="Narrativa da conta"

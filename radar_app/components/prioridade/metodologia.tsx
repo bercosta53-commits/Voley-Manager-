@@ -26,15 +26,15 @@ const ROTULO_MAPEAMENTO = { documentado: 'Documentado', proposto: 'Proposta expe
 
 /**
  * "Como ler a prioridade": os cinco passos, escritos a partir da mesma configuração que o cálculo usa
- * (lib/prioridade-config.ts). Aberto no primeiro acesso; lembra se a pessoa recolheu.
+ * (lib/prioridade-config.ts). Recolhido por padrão; lembra se a pessoa abriu.
  */
 export function Metodologia({ abrirPedido }: { abrirPedido: number }) {
-  const [aberto, setAberto] = useState(true);
+  const [aberto, setAberto] = useState(false);
   const [regra, setRegra] = useState(false);
   const [origem, setOrigem] = useState(false);
   useEffect(() => {
     try {
-      if (localStorage.getItem(CHAVE) === '1') setAberto(false);
+      if (localStorage.getItem(CHAVE) === '0') setAberto(true);
     } catch {}
   }, []);
   useEffect(() => {
@@ -61,7 +61,6 @@ export function Metodologia({ abrirPedido }: { abrirPedido: number }) {
           Como ler a prioridade
         </h2>
         <span className="flex items-center gap-2">
-          <SeloExperimental />
           <ChevronDown className={cn('size-4 text-text-3 transition-transform', aberto && 'rotate-180')} strokeWidth={1.5} />
         </span>
       </button>

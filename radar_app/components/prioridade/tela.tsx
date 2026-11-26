@@ -33,7 +33,7 @@ const PASSOS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
 type Visao = 'lista' | 'matriz' | 'cruzar';
 type ColunaOpcional = 'proximidade' | 'evidencia' | 'cobertura' | 'data';
 const COLUNAS_OPCIONAIS: { id: ColunaOpcional; rotulo: string }[] = [
-  { id: 'proximidade', rotulo: 'Proximidade do sweet spot' },
+  { id: 'proximidade', rotulo: 'Sweet spot' },
   { id: 'evidencia', rotulo: 'Evidência principal' },
   { id: 'cobertura', rotulo: 'Cobertura' },
   { id: 'data', rotulo: 'Data da última avaliação' },
@@ -121,13 +121,20 @@ function Proximidade({ l }: { l: LinhaPrioridade }) {
   const v = l.visao;
   if (v.situacaoSweetSpot === 'sweet_spot') return <span className="text-sm font-medium text-ok">No sweet spot{v.classeIntegrada === 'A1' ? ' (topo)' : ''}</span>;
   if (v.situacaoSweetSpot === 'candidata') return <span className="text-sm">{v.motivosClassificacao[0]}</span>;
-  if (v.criteriosSweetAtendidos !== null)
+  if (v.criteriosSweetAtendidos !== null) {
+    // cinco marcas em vez de três linhas de texto; o que falta fica no título (passar o mouse) e no painel da conta
+    const falta = v.motivosClassificacao.map(m => m.replace(/, falta .*/, '')).join(', ');
     return (
-      <span className="text-sm">
-        Atende {v.criteriosSweetAtendidos} de 5 critérios do sweet spot
-        {v.motivosClassificacao[0] && <span className="block text-xs text-text-3">falta {v.motivosClassificacao.map(m => m.replace(/, falta .*/, '')).join(', ')}</span>}
+      <span className="flex items-center gap-2" title={falta ? `Falta: ${falta}` : undefined} aria-label={`Atende ${v.criteriosSweetAtendidos} de 5 critérios do sweet spot${falta ? `; falta ${falta}` : ''}`}>
+        <span aria-hidden className="flex gap-0.5">
+          {[0, 1, 2, 3, 4].map(i => (
+            <span key={i} className={cn('h-2.5 w-2 rounded-[2px]', i < v.criteriosSweetAtendidos! ? 'bg-ok' : 'bg-secondary')} />
+          ))}
+        </span>
+        <span className="vr-data text-xs text-text-2">{v.criteriosSweetAtendidos}/5</span>
       </span>
     );
+  }
   return <span className="text-xs text-text-3">{v.motivosClassificacao.join(' · ')}</span>;
 }
 
@@ -141,6 +148,7 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
   const [sugerir, setSugerir] = useState(false);
   const [indice, setIndice] = useState(0);
   const [abrirMetodo, setAbrirMetodo] = useState(0);
+  const [maisFiltros, setMaisFiltros] = useState(false);
   const campo = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -166,6 +174,8 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
   // S-1: o servidor manda só as dimensões; a classe é recalculada aqui com as mesmas regras (lib/prioridade.ts)
   const linhas = useMemo(() => expandirLinhas(linhasServidor), [linhasServidor]);
   const { f, o } = estado;
+  // filtros fora dos quatro visíveis que estão ligados: mantêm o painel aberto e aparecem na contagem
+  const avancados = f.situacoes.length + f.coberturas.length + f.faltando.length + f.ufs.length + Object.values(f.notaMin).filter(Boolean).length;
   const mudar = (parte: Partial<FiltrosPrioridade>) => setEstado(e => ({ ...e, f: { ...e.f, ...parte } }));
   const { visiveis, semNotaNoFiltro, naBuscaFora } = useMemo(() => aplicarTudo(linhas, f), [linhas, f]);
   const ordenadas = useMemo(() => ordenarMulti(visiveis, o), [visiveis, o]);
@@ -381,8 +391,23 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
 
         <div className={cn('mb-3 flex-wrap items-center gap-2', folha ? 'fixed inset-x-0 bottom-0 z-40 flex max-h-[80vh] overflow-y-auto rounded-t-overlay border-t border-border bg-background p-4 shadow-3' : 'hidden md:flex')} role={folha ? 'dialog' : undefined} aria-label={folha ? 'Filtros' : undefined}>
           <MenuFiltro rotulo="Prioridade integrada" opcoes={CLASSES.map(c => ({ id: c, rotulo: c, qtd: conta(l => l.visao.classeIntegrada === c) }))} valor={f.classes} onMudar={v => mudar({ classes: v })} />
-          <MenuFiltro rotulo="Sweet spot" opcoes={SITUACOES.map(s => ({ ...s, qtd: conta(l => l.visao.situacaoSweetSpot === s.id) }))} valor={f.situacoes} onMudar={v => mudar({ situacoes: v })} />
           <MenuFiltro rotulo="Setor" opcoes={setores.map(s => ({ id: s, rotulo: s, qtd: conta(l => (l.setor ?? SEM_SETOR) === s) }))} valor={f.setores} onMudar={v => mudar({ setores: v })} />
+          <MenuFiltro rotulo="Tier ICP" opcoes={['A', 'B', 'C'].map(t => ({ id: t, rotulo: `Tier ${t}`, qtd: conta(l => l.tier === t) })).filter(x => x.qtd)} valor={f.tiers} onMudar={v => mudar({ tiers: v })} />
+          {/* o resto fica em "Mais filtros": quatro filtros visíveis bastam para a leitura do dia */}
+          {!folha && (
+            <button
+              type="button"
+              aria-expanded={maisFiltros || avancados > 0}
+              onClick={() => setMaisFiltros(v => !v)}
+              className="h-8 rounded-control border border-border bg-card px-2.5 text-sm text-text-2 hover:border-border-strong max-md:h-10"
+            >
+              {maisFiltros || avancados > 0 ? 'Menos filtros' : 'Mais filtros'}
+              {avancados > 0 && <span className="vr-data ml-1 font-semibold text-foreground">({avancados})</span>}
+            </button>
+          )}
+          {(folha || maisFiltros || avancados > 0) && (
+            <>
+          <MenuFiltro rotulo="Sweet spot" opcoes={SITUACOES.map(s => ({ ...s, qtd: conta(l => l.visao.situacaoSweetSpot === s.id) }))} valor={f.situacoes} onMudar={v => mudar({ situacoes: v })} />
           <MenuFiltro
             rotulo="Cobertura"
             opcoes={[
@@ -412,15 +437,14 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
               </select>
             </label>
           ))}
-          <span className="mx-1 h-5 w-px bg-border" aria-hidden />
-          <span className="text-xs text-text-3">Regras oficiais:</span>
-          <MenuFiltro rotulo="Tier ICP" opcoes={['A', 'B', 'C'].map(t => ({ id: t, rotulo: `Tier ${t}`, qtd: conta(l => l.tier === t) })).filter(x => x.qtd)} valor={f.tiers} onMudar={v => mudar({ tiers: v })} />
           <MenuFiltro
             rotulo="UF"
             opcoes={[...new Set(linhas.map(l => l.uf || 'Sem UF'))].sort().map(u => ({ id: u, rotulo: u, qtd: conta(l => (l.uf || 'Sem UF') === u) }))}
             valor={f.ufs}
             onMudar={v => mudar({ ufs: v })}
           />
+            </>
+          )}
           {folha && (
             <button type="button" onClick={() => setFolha(false)} className="mt-2 h-10 w-full rounded-control bg-foreground text-sm font-semibold text-background">
               Aplicar ({ordenadas.length} contas)
@@ -551,7 +575,7 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
                       {ROTULO_CURTO[d]}
                     </Cabecalho>
                   ))}
-                  {col('proximidade') && <Cabecalho col="proximidade">Proximidade do sweet spot</Cabecalho>}
+                  {col('proximidade') && <Cabecalho col="proximidade">Sweet spot</Cabecalho>}
                   {col('evidencia') && (
                     <th scope="col" className="px-3 py-2 font-medium">
                       Evidência principal

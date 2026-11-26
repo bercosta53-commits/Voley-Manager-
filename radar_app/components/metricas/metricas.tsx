@@ -23,6 +23,7 @@ const mediana = (xs: number[]) => {
   const m = Math.floor(o.length / 2);
   return o.length % 2 ? o[m]! : (o[m - 1]! + o[m]!) / 2;
 };
+const TOP_FONTES = 10;
 const pct = (n: number, d: number) => (d ? Math.round((100 * n) / d) : 0);
 
 export function TelaMetricas({ base }: { base: Base }) {
@@ -35,10 +36,14 @@ export function TelaMetricas({ base }: { base: Base }) {
   const sinais = estadoTela === 'vazio' ? [] : base.sinais;
 
   const m = useMemo(() => {
-    const fontes = [...new Set(sinais.map(s => s.fonte))];
-    const porFonte = fontes
-      .map(f => {
-        const doFonte = sinais.filter(s => s.fonte === f);
+    // variações de grafia do mesmo veículo ("LinkedIn - empresa", "LinkedIn — empresa", "TI INSIDE") contam juntas
+    const chave = (f: string) => f.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const nomePorChave = new Map<string, string>();
+    for (const s of sinais) if (!nomePorChave.has(chave(s.fonte))) nomePorChave.set(chave(s.fonte), s.fonte);
+    const todas = [...nomePorChave.entries()]
+      .map(([k, nome]) => {
+        const doFonte = sinais.filter(s => chave(s.fonte) === k);
+        const f = nome;
         const util = doFonte.filter(s => estados[s.id]?.avaliacao === 'util').length;
         const ruido = doFonte.filter(s => estados[s.id]?.avaliacao === 'ruido').length;
         return {
@@ -51,6 +56,21 @@ export function TelaMetricas({ base }: { base: Base }) {
         };
       })
       .sort((a, b) => b.total - a.total);
+    // as 10 maiores, e o resto numa linha só
+    const resto = todas.slice(TOP_FONTES);
+    const porFonte = resto.length
+      ? [
+          ...todas.slice(0, TOP_FONTES),
+          {
+            fonte: `Outras ${resto.length} fontes`,
+            total: resto.reduce((n, f) => n + f.total, 0),
+            reais: resto.reduce((n, f) => n + f.reais, 0),
+            util: resto.reduce((n, f) => n + f.util, 0),
+            ruido: resto.reduce((n, f) => n + f.ruido, 0),
+            latencia: mediana(sinais.filter(s => resto.some(r => chave(r.fonte) === chave(s.fonte))).map(s => Math.max(0, diasEntre(s.data, s.alertaEm)))),
+          },
+        ]
+      : todas;
     const util = porFonte.reduce((n, f) => n + f.util, 0);
     const ruido = porFonte.reduce((n, f) => n + f.ruido, 0);
     const abordados = sinais.filter(s => estados[s.id]?.acao === 'abordado').length;
