@@ -59,6 +59,7 @@ class Acontecimento:
     janela: str | None = None
     maturacao: str | None = None
     relacionamento: dict | None = None
+    missao: dict | None = None
 
     @property
     def texto(self) -> str:
@@ -183,6 +184,12 @@ def movimentos(acs: list[Acontecimento], empresa: str, janela_dias: int) -> tupl
             if ea.get("movimentoId") and ea.get("movimentoId") == eb.get("movimentoId"):
                 ligar(a, b, "explicito")
                 continue
+            # Mandato e execução: só praça compartilhada não prova nexo. Um vínculo
+            # explícito já foi resolvido acima; coincidência fica auditável para 90+.
+            if a.cl.get("nomeacao") and a.missao and a.missao.get("fator", 1) > 1 and (tb in EXPANSAO_TIPOS or b.cl.get("vaga")):
+                praca = a.missao.get("praca")
+                if praca and norm(praca) in norm(b.texto):
+                    possiveis.append((a.id, b.id, "missao_mesma_praca_possivel"))
             # R1 vaga de liderança → nomeação da mesma área: a contratação concluída
             if a.cl.get("vaga") and a.cl.get("nivel") in LIDERANCA and b.cl.get("nomeacao") and a.cl.get("familia") == b.cl.get("familia"):
                 ligar(a, b, "vaga_concluida")

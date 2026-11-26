@@ -28,6 +28,7 @@ from .adaptador import adaptar, registro_por_sinal
 from .classificar import nivel_cargo, norm
 from .fontes import classificar_fonte, corroborar, testemunhos
 from .tempo import exponencial, janela_lideranca, lideranca_nomeada
+from .missao import selecionar as selecionar_missao
 
 AQUI = Path(__file__).resolve().parent
 VERSAO = "vscs-3.3-dc"
@@ -176,7 +177,9 @@ def preparar(eventos: list[dict], hoje: date, empresa: str = "", p32: dict | Non
         ac.tempo, ac.janela, ac.maturacao = _tempo(ac, hoje, p33, conta, ac.relacionamento)
         fator_rel = ac.relacionamento["fator"] if ac.relacionamento else 1.0
         # a relação só amplifica um fato que já existe (s = 0 continua 0) e não vira corroboração independente
-        ac.s = min(100.0, ac.cl["base"] * ac.fonte_fator * ac.tempo * fator_rel)
+        ac.missao = selecionar_missao(ac, p33.get("missao", {}).get("habilitada", False))
+        fator_missao = ac.missao["fator"] if ac.missao else 1.0
+        ac.s = min(100.0, ac.cl["base"] * ac.fonte_fator * ac.tempo * fator_rel * fator_missao)
     acs = [a for a in acs if a.s > 0]
     if p33["movimento"].get("agrupar", True):
         movs, possiveis = movimentos(acs, empresa, p33["movimento"]["janela_vinculo_dias"])
@@ -285,6 +288,13 @@ def calcular(eventos: list[dict], hoje: date, empresa: str = "", interacoes: lis
     falta = []
     if v >= 90:
         falta = requisitos_90(parcelas, possiveis, pen, hoje, p33)
+        if p33.get("missao", {}).get("habilitada", False) and any((a.missao or {}).get("fator", 1) > 1 for m in movs for a in m.acontecimentos):
+            from copy import deepcopy
+            sem = deepcopy(p33)
+            sem["missao"]["habilitada"] = False
+            controle = calcular(eventos, hoje, empresa, interacoes, p32, sem, conta, revisoes, relacionamentos)
+            if not controle["excepcional"]:
+                falta.append("faixa 90+ não elegível sem amplificação de missão")
         if falta:
             v = min(v, p33["faixa_90"]["teto_sem_requisitos"])
     papel = {m.id: ("dominante" if i == 0 else "corroborador") for i, (m, _) in enumerate(parcelas)}
@@ -307,6 +317,7 @@ def calcular(eventos: list[dict], hoje: date, empresa: str = "", interacoes: lis
                 "maturacao": a.maturacao, "cargo": a.cl.get("cargo"), "revisado": bool(a.cl.get("revisado")),
                 # só nota, fator e data: quem registrou fica na tabela privada
                 "relacionamento": ({k: a.relacionamento[k] for k in ("nota", "fator", "em", "rotulo")} if a.relacionamento else None),
+                "missao": a.missao,
                 "s": round(a.s, 2), "documentos": [d.id for d in a.docs], "superado_por": a.superado_por,
             } for a in sorted(m.acontecimentos, key=lambda a: -a.s)],
         } for m in sorted(movs, key=lambda m: -m.s)],

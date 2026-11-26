@@ -33,6 +33,7 @@ ALIAS_REVISAO = {
     "movimentoId": ("movimentoId", "movimento_id", "movimento"),
     "acontecimentoId": ("acontecimentoId", "acontecimento_id", "evento_grupo"),
     "motivo": ("motivo", "justificativa", "nota"),
+    "missao": ("missao",),
 }
 CONHECIDAS = {a for v in ALIAS_REVISAO.values() for a in v} | {"id", "sinalId", "sinal_id", "revisadoEm", "revisadoPor", "autor", "em"}
 
@@ -187,7 +188,7 @@ def adaptar(ev: dict, revisao: dict | None, p33: dict, registro: dict | None = N
         e["_empresa"] = empresa
     if rev:
         e["_revisao"] = rev
-        for campo in ("data", "dataPrecisao", "confianca", "movimentoId", "acontecimentoId", "vinculoAtual", "responsabilidadeClevel"):
+        for campo in ("data", "dataPrecisao", "confianca", "movimentoId", "acontecimentoId", "vinculoAtual", "responsabilidadeClevel", "missao"):
             if campo in rev:
                 e[campo] = rev[campo]
         if "fonte_nivel" in rev:
