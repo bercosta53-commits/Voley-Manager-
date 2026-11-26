@@ -19,8 +19,8 @@ AQUI = Path(__file__).resolve().parent
 sys.path.insert(0, str(AQUI.parent))
 import score_v2 as s30  # noqa: E402
 
-from .classificar import (FORA_DE_RECEITA, LIDERANCA, OPERACIONAL, base_bloco, cargo_do_evento, evidencia_clevel, familia_cargo,
-                          nivel_cargo, norm)  # noqa: E402
+from .classificar import (FORA_DE_RECEITA, LIDERANCA, OPERACIONAL, base_bloco, cargo_do_evento, chave_canonica, evidencia_clevel,
+                          familia_cargo, marco_historico, nivel_cargo, norm, papel_na_aquisicao)  # noqa: E402
 
 VERSAO = "vscs-3.2-contexto-cargos"
 
@@ -38,58 +38,89 @@ def _nivel(ev: dict) -> tuple[str | None, str, str]:
     return nivel, cargo, origem
 
 
+def _montar(chave: str, base: float, p: dict, categoria: str | None = None, cargo: str = "", origem: str = "inferido") -> dict:
+    """Classificação a partir de uma chave (canônica ou legada): tipo, categoria, nível e flags vêm da chave."""
+    chave = chave_canonica(chave)
+    pr = s30.P.get(chave)
+    if chave.startswith("nomeacao_"):
+        nivel = chave.split("_", 1)[1]
+        tipo, cat, vaga, nomeacao = "troca_lideranca", "lideranca", False, True
+    elif chave.startswith("troca_lideranca"):
+        nivel = {"troca_lideranca_ceo": "ceo", "troca_lideranca_clevel": "clevel_outro"}.get(chave)
+        tipo, cat, vaga, nomeacao = "troca_lideranca", "lideranca", False, True
+    elif chave.startswith("vaga_"):
+        nivel = chave.split("_", 1)[1]
+        tipo = "vaga_lideranca_alvo" if nivel in LIDERANCA else "vaga_area_alvo"
+        cat, vaga, nomeacao = "contratacao", True, False
+    else:
+        nivel, tipo, cat, vaga, nomeacao = None, (pr.tipo if pr else chave), (pr.categoria if pr else "contexto"), False, False
+    return {"chave": chave, "tipo": tipo, "categoria": categoria or cat, "base": base, "nivel": nivel,
+            "familia": familia_cargo(cargo) if cargo else "receita", "cargo": cargo, "vaga": vaga, "nomeacao": nomeacao,
+            # o que já foi classificado (revisão ou registro) não é reagrupado em bloco nem reinterpretado
+            "operacional": origem == "inferido" and nivel in OPERACIONAL, "origem": origem,
+            "revisado": origem == "revisao", "registrado": origem == "registro"}
+
+
+def _base_da_chave(chave: str, p: dict) -> float:
+    chave = chave_canonica(chave)
+    if chave == "vaga_bloco":
+        return p["blocos_operacionais"]["duas"]
+    if chave.startswith(("vaga_", "nomeacao_")):
+        return p["cargos_receita"].get(chave.split("_", 1)[1], 0)
+    if chave == "troca_lideranca_ceo":
+        return p["lideranca_fora_de_receita"]["ceo_socio"]
+    if chave == "troca_lideranca_clevel":
+        return p["lideranca_fora_de_receita"]["clevel_outro"]
+    return p["bases_30"].get(chave, s30.P[chave].base if chave in s30.P else 0)
+
+
 def classificar(ev: dict, p: dict) -> dict | None:
-    """Evento → {chave, tipo, categoria, base, operacional, nivel, familia} ou None (não pontua)."""
+    """Evento → classificação ou None (não pontua). Ordem de autoridade:
+    1. revisão individual (scoreModelo.revisoesPorSinal), inclusive pontua=false;
+    2. classificação registrada no snapshot (v2.contribuicoes: chave, base, categoria, fonte, data);
+    3. decisão registrada de não pontuar (sinal com tipoSpec, categoria e nivel nulos gravados pelo motor);
+    4. inferência pelo texto, só para sinal nunca classificado."""
     tipo = ev["tipo"]
     rev = ev.get("_revisao") or {}
     if rev.get("pontua") is False:
-        return None  # revisão individual: o sinal não pontua
-    if rev.get("chave") and (rev.get("base") is not None or rev["chave"] in s30.P):
-        return _da_revisao(ev, rev, p)
+        return None
+    if rev.get("chave"):
+        base = rev["base"] if rev.get("base") is not None else _base_da_chave(rev["chave"], p)
+        return _montar(rev["chave"], base, p, rev.get("categoria"), norm(rev.get("cargo") or ""), "revisao")
+    reg = ev.get("_registro") or {}
+    if reg.get("chave"):
+        base = reg["base"] if reg.get("base") is not None else _base_da_chave(reg["chave"], p)
+        return _montar(reg["chave"], base, p, reg.get("categoria"), norm(ev.get("cargo") or ""), "registro")
+    if "tipoSpec" in ev and ev.get("tipoSpec") is None and ev.get("categoria") is None and "nivel" in ev and ev.get("nivel") is None:
+        return None  # o motor já decidiu que este sinal não pontua (contexto encerrado, notícia genérica)
     if tipo in ("vaga_area_alvo", "vaga_lideranca_alvo"):
         nivel, texto, _ = _nivel(ev)
         if nivel is None:
             if FORA_DE_RECEITA.search(texto):
                 return None  # vaga de CFO, CTO, TI: não é contratação de receita
             nivel = "head" if tipo == "vaga_lideranca_alvo" else "sdr_bdr"
-        base = p["cargos_receita"][nivel]
-        return {"chave": f"vaga_{nivel}", "tipo": "vaga_lideranca_alvo" if nivel in LIDERANCA else "vaga_area_alvo",
-                "categoria": "contratacao", "base": base, "operacional": nivel in OPERACIONAL, "nivel": nivel,
-                "familia": familia_cargo(texto), "vaga": True, "cargo": texto}
+        return _montar(f"vaga_{nivel}", p["cargos_receita"][nivel], p, cargo=texto)
     if tipo in ("executivo_chegou", "troca_lideranca", "troca_diretoria", "novo_cmo"):
         nivel, texto, _ = _nivel(ev)
         if nivel in LIDERANCA:
-            return {"chave": f"nomeacao_{nivel}", "tipo": "troca_lideranca", "categoria": "lideranca",
-                    "base": p["cargos_receita"][nivel], "operacional": False, "nivel": nivel, "familia": familia_cargo(texto),
-                    "nomeacao": True, "cargo": texto}
-        chave = s30.nivelar(ev) if tipo == "executivo_chegou" else None
-        if chave == "troca_lideranca_ceo":
-            return {"chave": chave, "tipo": "troca_lideranca", "categoria": "lideranca",
-                    "base": p["lideranca_fora_de_receita"]["ceo_socio"], "operacional": False, "nivel": "ceo", "familia": "receita", "nomeacao": True}
-        if chave == "troca_lideranca_clevel":
-            return {"chave": chave, "tipo": "troca_lideranca", "categoria": "lideranca",
-                    "base": p["lideranca_fora_de_receita"]["clevel_outro"], "operacional": False, "nivel": "clevel_outro", "familia": "outro", "nomeacao": True}
+            return _montar(f"nomeacao_{nivel}", p["cargos_receita"][nivel], p, cargo=texto)
+        chave = s30.nivelar(dict(ev, tipo="executivo_chegou", sinal=texto, porQueAgora=""))
+        if chave in ("troca_lideranca_ceo", "troca_lideranca_clevel"):
+            return _montar(chave, _base_da_chave(chave, p), p, cargo=texto)
         return None
+    if tipo == "fusao_aquisicao":
+        papel = papel_na_aquisicao(f'{ev.get("sinal", "")} {ev.get("porQueAgora", "")}', ev.get("_empresa") or "")
+        if papel == "sofrida":
+            return _montar("foi_adquirida", p["bases_30"]["foi_adquirida"], p)
     chave = s30.nivelar(ev)
     if not chave or chave not in s30.P:
         return None
-    pr = s30.P[chave]
-    base = p["bases_30"].get(chave, pr.base)
-    return {"chave": chave, "tipo": pr.tipo, "categoria": pr.categoria, "base": base, "operacional": False, "nivel": None, "familia": None}
-
-
-def _da_revisao(ev: dict, rev: dict, p: dict) -> dict:
-    """Revisão individual registrada no Supabase (scoreModelo.revisoesPorSinal): prevalece sobre a inferência."""
-    chave = rev["chave"]
-    pr = s30.P.get(chave)
-    nivel = rev.get("nivel") or (chave.split("_", 1)[1] if chave.startswith(("vaga_", "nomeacao_")) else None)
-    categoria = rev.get("categoria") or (pr.categoria if pr else ("lideranca" if chave.startswith("nomeacao_") else "contratacao"))
-    tipo = pr.tipo if pr else ("troca_lideranca" if chave.startswith("nomeacao_") else "vaga_area_alvo")
-    base = rev["base"] if rev.get("base") is not None else (pr.base if pr else p["cargos_receita"].get(nivel or "", 0))
-    cargo = norm(rev.get("cargo") or "")
-    return {"chave": chave, "tipo": tipo, "categoria": categoria, "base": base, "operacional": nivel in OPERACIONAL,
-            "nivel": nivel, "familia": familia_cargo(cargo) if cargo else "receita", "cargo": cargo,
-            "vaga": chave.startswith("vaga_"), "nomeacao": chave.startswith("nomeacao_") or categoria == "lideranca", "revisado": True}
+    if chave == "declaracao_meta" and marco_historico(f'{ev.get("sinal", "")} {ev.get("porQueAgora", "")}'):
+        chave = "declaracao_generica"  # número de resultado passado não é meta futura
+    cl = _montar(chave, _base_da_chave(chave, p), p)
+    if cl["categoria"] == "contexto" and p.get("contexto", {}).get("exige_classificacao_explicita", True):
+        return None  # evento, palestra, prêmio: só pontuam com classificação explícita (revisão ou registro)
+    return cl
 
 
 def _blocos(itens: list[tuple[dict, dict]], p: dict) -> list[tuple[dict, dict]]:
@@ -146,12 +177,17 @@ def contribuicoes(eventos: list[dict], hoje: date, p: dict | None = None, intera
     classificados += _blocos(operacionais, p)
 
     por_evento: dict[str, s30.Contribuicao] = {}
+    texto_ev: dict[str, dict] = {}
     for ev, cl in classificados:
         pr = s30.Param(cl["tipo"], cl["categoria"], cl["base"], s30.P[cl["chave"]].antes if cl["chave"] in s30.P else 0)
-        dias = (hoje - date.fromisoformat(ev["data"][:10])).days
-        c = s30.Contribuicao(cl["chave"], cl["tipo"], cl["categoria"], pr.nivel, cl["base"], s30.fator_fonte(ev),
-                             round(_tempo(pr, dias, p), 4), 1.0, 0.0, ev["data"][:10], ev.get("sinal") or ev.get("porQueAgora", ""),
+        reg = ev.get("_registro") or {}
+        data = str(reg.get("data") or ev["data"])[:10]
+        dias = (hoje - date.fromisoformat(data)).days
+        fonte = float(reg["fonte"]) if reg.get("fonte") is not None else s30.fator_fonte(ev)  # fonte efetiva preservada
+        c = s30.Contribuicao(cl["chave"], cl["tipo"], cl["categoria"], pr.nivel, cl["base"], fonte,
+                             round(_tempo(pr, dias, p), 4), 1.0, 0.0, data, ev.get("sinal") or ev.get("porQueAgora", ""),
                              ev.get("id") or ev.get("url", ""))
+        texto_ev[c.id] = ev
         if c.pre <= 0:
             continue
         grupo = ev.get("grupo") or ev.get("url") or c.id or f"{c.chave}-{c.data}"
@@ -163,8 +199,11 @@ def contribuicoes(eventos: list[dict], hoje: date, p: dict | None = None, intera
         if k not in por_texto or c.pre > por_texto[k].pre:
             por_texto[k] = c
     contrs = list(por_texto.values())
+    # declaração encerrada só quando o fato posterior executa a MESMA decisão (mesmo lugar, texto próximo ou
+    # movimentoId igual); uma vaga de liderança qualquer não encerra uma meta de crescimento (correção de 26/11)
     fatos = [c for c in contrs if c.categoria == "expansao" and c.tipo != "declaracao_expansao" or c.tipo == "vaga_lideranca_alvo"]
-    contrs = [c for c in contrs if not (c.tipo == "declaracao_expansao" and any(f.data >= c.data for f in fatos))]
+    contrs = [c for c in contrs if not (c.tipo == "declaracao_expansao" and any(
+        f.data >= c.data and mesma_decisao(texto_ev.get(c.id, {}), texto_ev.get(f.id, {})) for f in fatos))]
     por_cat: dict[str, list[s30.Contribuicao]] = {}
     for c in contrs:
         por_cat.setdefault(c.categoria, []).append(c)
@@ -182,6 +221,15 @@ def contribuicoes(eventos: list[dict], hoje: date, p: dict | None = None, intera
         c.marginal = 100 * resto * K * c.s / 100
         resto *= 1 - K * c.s / 100
     return contrs
+
+
+def mesma_decisao(a: dict, b: dict) -> bool:
+    from .agrupar import _jaccard, _lugares, _tokens
+    if a.get("movimentoId") and a.get("movimentoId") == b.get("movimentoId"):
+        return True
+    ta = f'{a.get("sinal", "")} {a.get("porQueAgora", "")}'
+    tb = f'{b.get("sinal", "")} {b.get("porQueAgora", "")}'
+    return bool(_lugares(ta) & _lugares(tb)) or _jaccard(_tokens(ta), _tokens(tb)) >= 0.3
 
 
 def _tempo(pr: s30.Param, dias: int, p: dict) -> float:
@@ -208,6 +256,19 @@ def vscs(contrs: list[s30.Contribuicao], p: dict | None = None) -> dict:
     return {"versao": VERSAO, "vscs": v, "vscs_base": round(base, 2), "bonus_convergencia": bonus, "penalidade": round(pen, 2)}
 
 
+def _anotar(e: dict, rev: dict | None, reg: dict | None, empresa: str | None) -> dict:
+    if not (rev or reg or empresa):
+        return e
+    e = dict(e)
+    if rev:
+        e["_revisao"] = rev
+    if reg:
+        e["_registro"] = reg
+    if empresa:
+        e["_empresa"] = empresa
+    return e
+
+
 def _prod(it):
     r = 1.0
     for x in it:
@@ -216,10 +277,14 @@ def _prod(it):
 
 
 def calcular(eventos: list[dict], hoje: date, p: dict | None = None, interacoes: list[dict] | None = None,
-             revisoes: dict[str, dict] | None = None) -> dict:
-    """`revisoes` = scoreModelo.revisoesPorSinal normalizado (adaptador.revisoes): a revisão individual prevalece."""
+             revisoes: dict[str, dict] | None = None, conta: dict | None = None) -> dict:
+    """`revisoes` = scoreModelo.revisoesPorSinal normalizado; `conta` dá o registro de classificação (v2.contribuicoes)
+    e o nome da empresa (sujeito × objeto em aquisições). Revisão > registro > inferência."""
+    from .adaptador import registro_por_sinal
     p = p or parametros()
-    if revisoes:
-        eventos = [dict(e, _revisao=revisoes[str(e.get("id"))]) if str(e.get("id")) in revisoes else e for e in eventos]
+    revisoes = revisoes or {}
+    registro = registro_por_sinal(conta)
+    empresa = (conta or {}).get("nome")
+    eventos = [_anotar(e, revisoes.get(str(e.get("id"))), registro.get(str(e.get("id"))), empresa) for e in eventos]
     cs = contribuicoes(eventos, hoje, p, interacoes)
     return vscs(cs, p) | {"contribuicoes": [replace(c).__dict__ | {"s": round(c.s, 2), "pontos": round(c.marginal, 2)} for c in cs]}

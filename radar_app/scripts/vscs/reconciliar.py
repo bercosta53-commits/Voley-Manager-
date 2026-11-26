@@ -18,7 +18,8 @@ from collections import Counter, defaultdict
 from datetime import date
 
 from . import motor32
-from .adaptador import parametros_do_modelo, revisoes
+from .adaptador import parametros_do_modelo, registro_por_sinal, revisoes
+from .classificar import chave_canonica
 
 
 def carregar(caminho: str) -> dict:
@@ -85,17 +86,64 @@ def main() -> None:
         out.append(f"| {chave} | {bases} | {par if par is not None else '—'} | {ok} |")
     out.append("")
 
-    difs_conta = []
+    difs_conta, motivos_total, pares = [], Counter(), Counter()
     for c in base["contas"]:
-        r = motor32.calcular(eventos_da_conta(c, base.get("sinais", [])), hoje, p, c.get("interacoes"), revs)
-        difs_conta.append((abs(r["vscs"] - float(c.get("score") or 0)), c.get("nome"), c.get("tier"), float(c.get("score") or 0), r["vscs"]))
+        evs = eventos_da_conta(c, base.get("sinais", []))
+        # recalcula na data em que a conta foi calculada, para o tempo não criar divergência falsa
+        dia = hoje if a.hoje else date.fromisoformat(str((c.get("v2") or {}).get("calculadoEm") or hoje.isoformat())[:10])
+        r = motor32.calcular(evs, dia, p, c.get("interacoes"), revs, c)
+        g = float(c.get("score") or 0)
+        motivos = explicar(c, r, p) if abs(r["vscs"] - g) > 0.05 else []
+        motivos_total.update({m.split(":")[0] for m in motivos})
+        difs_conta.append((abs(r["vscs"] - g), c.get("nome"), c.get("tier"), g, r["vscs"], motivos))
+        # registro × inferência: o que o classificador de texto faria com sinais já validados (regressões do classificador)
+        reg = registro_por_sinal(c)
+        for e in evs:
+            rg = reg.get(str(e.get("id")))
+            if not rg or str(e.get("id")) in revs:
+                continue
+            inf = motor32.classificar(dict(e, _empresa=c.get("nome")), p)
+            ch_inf = inf["chave"] if inf else "não pontua"
+            if ch_inf != chave_canonica(rg.get("chave", "")):
+                pares[(chave_canonica(rg.get("chave", "")), ch_inf)] += 1
     batem = sum(1 for d in difs_conta if d[0] <= 0.05)
     out += [f"## 4. Score recalculado pela 3.2 canônica: {batem} de {len(difs_conta)} contas batem (±0,05)", "",
-            "| conta | tier | gravado | 3.2 canônica | diferença |", "|---|---|---:|---:|---:|"]
-    for d, nome, tier, g, r in sorted(difs_conta, reverse=True)[:40]:
+            "Causas das divergências (uma conta pode ter mais de uma): " + (", ".join(f"{k} ({n})" for k, n in motivos_total.most_common()) or "nenhuma"), "",
+            "| conta | tier | gravado | 3.2 canônica | diferença | explicação |", "|---|---|---:|---:|---:|---|"]
+    for d, nome, tier, g, r, motivos in sorted(difs_conta, key=lambda x: -x[0]):
         if d > 0.05:
-            out.append(f"| {nome} | {tier} | {g:.2f} | {r:.2f} | {r - g:+.2f} |")
+            out.append(f"| {nome} | {tier} | {g:.2f} | {r:.2f} | {r - g:+.2f} | {'; '.join(motivos) or 'SEM EXPLICAÇÃO — investigar'} |")
+    out += ["", "## 5. Registro × inferência pelo texto (sinais já validados que o classificador leria diferente)", "",
+            "O motor usa o registro; esta tabela mede onde o classificador de texto erraria em sinais novos.", "",
+            "| chave registrada | inferência pelo texto | sinais |", "|---|---|---:|"]
+    out += [f"| {a_} | {b_} | {n_} |" for (a_, b_), n_ in pares.most_common()] or ["| — | — | 0 |"]
     print("\n".join(out))
+
+
+def explicar(conta: dict, r: dict, p: dict) -> list[str]:
+    """Por que o recálculo difere do gravado: compara as contribuições sinal a sinal."""
+    v2 = conta.get("v2") or {}
+    gravadas = {str(x.get("id")): x for x in v2.get("contribuicoes") or []}
+    novas = {str(x.get("id")): x for x in r["contribuicoes"]}
+    motivos = []
+    for sid, g in gravadas.items():
+        n = novas.get(sid)
+        if n is None:
+            motivos.append(f"gravada sem recálculo: {g.get('chave')} (sinal ausente do snapshot, deduplicado ou expirado)")
+            continue
+        for campo, rotulo in (("base", "base"), ("fonte", "fonte"), ("correlacao", "correlação")):
+            if g.get(campo) is not None and abs(float(g[campo]) - float(n[campo])) > 1e-6:
+                motivos.append(f"{rotulo} diferente: {g.get('chave')} {g[campo]} → {n[campo]}")
+        if g.get("tempo") is not None and abs(float(g["tempo"]) - float(n["tempo"])) > 1e-3:
+            motivos.append(f"tempo diferente: {g.get('chave')} {g['tempo']} → {n['tempo']} (data {g.get('data')} → {n['data']})")
+    for sid, n in novas.items():
+        if sid not in gravadas:
+            motivos.append(f"pontuada agora sem registro: {n['chave']} (classificação inferida pelo texto)")
+    if float(v2.get("bonus_convergencia") or 0) != float(r["bonus_convergencia"]):
+        motivos.append(f"bônus diferente: {v2.get('bonus_convergencia')} → {r['bonus_convergencia']}")
+    if abs(float(v2.get("penalidade") or 0) - float(r["penalidade"])) > 0.05:
+        motivos.append(f"penalidade diferente: {v2.get('penalidade')} → {r['penalidade']}")
+    return motivos
 
 
 if __name__ == "__main__":

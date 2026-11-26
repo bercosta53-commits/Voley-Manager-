@@ -19,6 +19,10 @@ AREA_RECEITA = r"(marketing|vendas|comercial|growth|receita|revenue|negocios|par
 # ordem importa: do mais sênior ao mais operacional; o primeiro que casa decide
 # títulos operacionais que contêm "manager": decididos antes da gerência
 OPERACIONAL_COM_MANAGER = re.compile(r"\b(customer success manager|account manager|key account manager|success manager|csm|kam)\b")
+# contribuidor individual com título de gerente: hunter, farmer, gerente de contas/relacionamento, "executivo/gerente".
+# Gerência só vale com mandato de gestão; título sozinho não promove (decisão de 26/11).
+CONTRIBUIDOR_INDIVIDUAL = re.compile(r"\b(hunter|farmer|closer|gerente de (contas|relacionamento|negocios regionais)|executiv[oa]\s*/\s*gerente"
+                                     r"|gerente\s*/\s*executiv[oa]|gerente comercial (pj|autonomo|externo)|representante)\b")
 
 REGRAS_CARGO: list[tuple[str, re.Pattern]] = [
     ("clevel_receita", re.compile(r"\b(cro|cmo|cco|cso|c-level|chief (revenue|marketing|commercial|sales|growth) officer|chief (revenue|marketing|commercial|sales|growth))\b")),
@@ -40,6 +44,8 @@ def nivel_cargo(texto: str) -> str | None:
     """Senioridade do cargo de receita citado no texto, ou None quando não é cargo de receita."""
     t = norm(texto)
     if OPERACIONAL_COM_MANAGER.search(t) and not re.search(r"\b(head|diretor|diretora|vp|gerente)\b", t):
+        return "sdr_bdr"
+    if CONTRIBUIDOR_INDIVIDUAL.search(t) and not re.search(r"\b(head|diretor|diretora|vp|cro|cmo)\b", t):
         return "sdr_bdr"
     for nivel, rx in REGRAS_CARGO:
         if rx.search(t):
@@ -112,3 +118,50 @@ def cargo_do_evento(ev: dict) -> tuple[str, str]:
 def evidencia_clevel(ev: dict) -> bool:
     rev = ev.get("_revisao") or {}
     return bool(rev.get("responsabilidadeClevel") or ev.get("responsabilidadeClevel"))
+
+
+# ---------------------------------------------------------------- chaves legadas e semântica de fatos
+
+# chaves de revisões e contribuições antigas → chave da 3.2 (tipo e categoria vêm da chave nova)
+LEGADO = {
+    "troca_lideranca_head": "nomeacao_head",
+    "troca_lideranca_owner": "nomeacao_diretoria_receita",
+    "troca_lideranca_cxo": "nomeacao_clevel_receita",
+    "vaga_lideranca_growth": "vaga_head",
+    "vaga_lideranca_alvo": "vaga_head",
+    "vaga_area_time": "vaga_bloco",
+}
+
+
+def chave_canonica(chave: str) -> str:
+    return LEGADO.get(chave, chave)
+
+
+GENERICAS_EMPRESA = {"empresa", "grupo", "sistemas", "sistema", "software", "softwares", "tecnologia", "tecnologias", "solutions", "solucoes",
+                     "servicos", "brasil", "ltda", "s.a", "informatica", "digital", "consultoria", "the", "group", "company", "tech"}
+ADQUIRE = r"(adquire|adquiriu|adquirira|compra|comprou|incorpora|incorporou|assume o controle d[ae]|anuncia a? ?(aquisicao|compra) d[ae]|conclui a? ?(aquisicao|compra) d[ae]|aquisicao d[ae]|compra d[ae])"
+
+
+def papel_na_aquisicao(texto: str, empresa: str) -> str | None:
+    """'sofrida' quando a conta é o OBJETO da compra ("Grupo Beta adquire a Conta X"), 'realizada' quando é o
+    sujeito ("Conta X adquire a Y"). None quando o texto não permite dizer (fica a regra antiga)."""
+    t, e = norm(texto), norm(empresa)
+    if not e:
+        return None
+    distintas = [w for w in re.findall(r"[a-z0-9]+", e) if len(w) >= 3 and w not in GENERICAS_EMPRESA]
+    nucleo = re.escape(distintas[0] if distintas else e)
+    if re.search(ADQUIRE + r"\s+(a |o |da |do |de )?" + nucleo, t) or re.search(nucleo + r"[\w\s.]{0,30}\b(e |foi |sera )?(adquirida|comprada|vendida|incorporada)\b", t):
+        return "sofrida"
+    if re.search(nucleo + r"[\w\s.]{0,30}\b" + ADQUIRE, t):
+        return "realizada"
+    return None
+
+
+PASSADO = re.compile(r"\b(atingiu|alcancou|fechou|registrou|cresceu|faturou|bateu|superou|encerrou|obteve|teve crescimento|chegou a)\b")
+FUTURO = re.compile(r"\b(projeta|projetam|preve|planeja|pretende|meta de|metas?|vai|vao|quer|mira|miram|espera|busca|almeja|objetivo|ate 20[2-3][0-9]|em 20(2[7-9]|3[0-9]))\b")
+
+
+def marco_historico(texto: str) -> bool:
+    """Número que descreve resultado passado (marco), não meta futura: não vale 65."""
+    t = norm(texto)
+    return bool(PASSADO.search(t)) and not FUTURO.search(t)

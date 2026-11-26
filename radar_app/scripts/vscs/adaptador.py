@@ -64,6 +64,38 @@ def revisoes(modelo: dict | None) -> dict[str, dict]:
     return out
 
 
+# equivalências SEMÂNTICAS entre o registro do Supabase (scoreModelo) e o parametros_32.json; nomes parecidos não bastam
+EQUIVALENCIAS = {
+    "senioridade.operacional": "cargos_receita.sdr_bdr",
+    "senioridade.especialistaGTM": "cargos_receita.especialista_gtm",
+    "senioridade.coordenacao": "cargos_receita.coordenacao",
+    "senioridade.gerencia": "cargos_receita.gerencia",
+    "senioridade.head": "cargos_receita.head",
+    "senioridade.diretoriaReceita": "cargos_receita.diretoria_receita",
+    "senioridade.cLevelReceita": "cargos_receita.clevel_receita",
+    "vagasOperacionais.1": "blocos_operacionais.uma",
+    "vagasOperacionais.2": "blocos_operacionais.duas",
+    "vagasOperacionais.3-4": "blocos_operacionais.tres_a_quatro",
+    "vagasOperacionais.5+": "blocos_operacionais.cinco_ou_mais",
+    "janelaAgrupamentoDias": "blocos_operacionais.janela_dias",
+    "meiaVidaDias": "meia_vida.contratacao",
+    "metaQuantificada": "bases_30.declaracao_meta",
+}
+# descrição e metadados: nunca sobrescrevem parâmetros
+METADADOS_MODELO = {"contexto", "criterio", "aprovadoEm", "versao", "atualizadoEm", "descricao", "revisoesPorSinal"}
+
+
+def _achatar(d: dict, prefixo: str = "") -> dict[str, object]:
+    out = {}
+    for k, v in d.items():
+        caminho = f"{prefixo}{k}"
+        if isinstance(v, dict):
+            out.update(_achatar(v, caminho + "."))
+        else:
+            out[caminho] = v
+    return out
+
+
 def parametros_do_modelo(modelo: dict | None, p32: dict) -> tuple[dict, list[tuple[str, object, object]], list[str]]:
     """Sobrepõe ao parametros_32.json os valores do scoreModelo que casam por nome. Devolve (parâmetros, diferenças
     [(caminho, json, modelo)], chaves do modelo sem correspondência)."""
@@ -93,14 +125,66 @@ def parametros_do_modelo(modelo: dict | None, p32: dict) -> tuple[dict, list[tup
                 destino[alvo] = v
 
     fonte = modelo.get("parametros") if isinstance(modelo.get("parametros"), dict) else modelo
-    mesclar(p, fonte, "")
+    fonte = {k: v for k, v in fonte.items() if k not in METADADOS_MODELO}
+    # 1) equivalências semânticas explícitas
+    resto = {}
+    for caminho, valor in _achatar(fonte).items():
+        alvo = EQUIVALENCIAS.get(caminho)
+        if alvo is None:
+            resto[caminho] = valor
+            continue
+        grupo, campo = alvo.split(".")
+        if p[grupo].get(campo) != valor:
+            difs.append((alvo, p[grupo].get(campo), valor))
+        p[grupo][campo] = valor
+    # 2) o que sobrou: casamento por nome (camelCase/snake_case) para chaves de primeiro nível
+    soltos: dict = {}
+    for caminho, valor in resto.items():
+        partes = caminho.split(".")
+        d = soltos
+        for x in partes[:-1]:
+            d = d.setdefault(x, {})
+        d[partes[-1]] = valor
+    mesclar(p, soltos, "")
     return p, difs, sobras
 
 
-def adaptar(ev: dict, revisao: dict | None, p33: dict) -> dict:
-    """Sinal histórico → sinal 3.3. Não altera o original; a revisão individual prevalece."""
+def nivel_por_fator(f: float) -> str:
+    if f >= 0.999:
+        return "institucional"
+    if f >= 0.80:
+        return "secundaria"
+    if f > 0:
+        return "indicio"
+    return "descartado"
+
+
+def registro_por_sinal(conta: dict | None) -> dict[str, dict]:
+    """Classificação JÁ REGISTRADA de cada sinal no snapshot (v2.contribuicoes): chave, tipo, categoria, base, fator
+    de fonte e data do fato. É o contrato de classificação; s, tempo e correlação NÃO entram (são temporais)."""
+    out = {}
+    for c in ((conta or {}).get("v2") or {}).get("contribuicoes") or []:
+        sid = str(c.get("id") or "")
+        if not sid or c.get("categoria") is None:
+            continue
+        out[sid] = {k: c.get(k) for k in ("chave", "tipo", "categoria", "base", "fonte", "data") if c.get(k) is not None}
+    return out
+
+
+def adaptar(ev: dict, revisao: dict | None, p33: dict, registro: dict | None = None, empresa: str | None = None) -> dict:
+    """Sinal histórico → sinal 3.3. Não altera o original. Ordem de autoridade da classificação:
+    revisão individual > classificação registrada no snapshot > inferência pelo texto."""
     e = dict(ev)
     rev = revisao or {}
+    if registro:
+        e["_registro"] = registro
+        if registro.get("data"):
+            e["data"] = str(registro["data"])[:10]
+        if registro.get("fonte") is not None:  # fonte efetiva já validada: não sobe nem desce por nome de veículo
+            e["fonteFatorRevisado"] = float(registro["fonte"])
+            e["fonteNivelRevisado"] = nivel_por_fator(float(registro["fonte"]))
+    if empresa:
+        e["_empresa"] = empresa
     if rev:
         e["_revisao"] = rev
         for campo in ("data", "dataPrecisao", "confianca", "movimentoId", "acontecimentoId", "vinculoAtual", "responsabilidadeClevel"):

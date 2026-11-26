@@ -193,8 +193,9 @@ def movimentos(acs: list[Acontecimento], empresa: str, janela_dias: int) -> tupl
                 continue
             # R3 declaração → execução da mesma frente
             par = {ta, tb}
-            if "declaracao_expansao" in par and par & {"expansao_comercial", "nova_filial"}:
-                ligar(a, b, "declaracao_executada")
+            if "declaracao_expansao" in par and par & {"expansao_comercial", "nova_filial"} and \
+                    (_lugares(a.texto) & _lugares(b.texto) or _jaccard(_tokens(a.texto), _tokens(b.texto)) >= 0.3):
+                ligar(a, b, "declaracao_executada")  # só quando o fato executa a MESMA decisão (correção de 26/11)
                 continue
             # R4 mesmo lugar: expansão, filial, parceria e vagas que citam a mesma praça
             if (ta in EXPANSAO_TIPOS or a.cl.get("vaga")) and (tb in EXPANSAO_TIPOS or b.cl.get("vaga")) and (ta in EXPANSAO_TIPOS or tb in EXPANSAO_TIPOS):

@@ -207,7 +207,7 @@ def _corrob(*evs):
     for i, e in enumerate(evs):
         n, _ = classificar_fonte(e, P33)
         docs.append((n, testemunhos(e, n, f"d{i}", P33)))
-    return corroborar([n for n, _ in docs], [x for _, ts in docs for x in ts], P33)[0]
+    return corroborar([(n, classificar_fonte(e, P33)[1]) for (n, _), e in zip(docs, evs)], [x for _, ts in docs for x in ts], P33)[0]
 
 
 class TestCorrecoes26(unittest.TestCase):
@@ -343,6 +343,111 @@ class TestCorrecoes26(unittest.TestCase):
         self.assertEqual(calc([ev("noticia_setorial", 2, "Setor de software cresce 10%")])["vscs"], 0.0)
         ctx = calc([ev("presenca_evento", 2, "Patrocina evento", evento={"papel": "patrocinador"})])
         self.assertLessEqual(ctx["vscs"], 0.85 * 45 + 1e-6)
+
+
+# ---------------------------------------------------------------- regressões da reconciliação preliminar de 26/11
+
+
+def conta_com(contribs, nome="Empresa Alfa Software"):
+    return {"id": "c", "nome": nome, "comite": [], "v2": {"contribuicoes": contribs}}
+
+
+class TestRegressoes26b(unittest.TestCase):
+    def test_aliases_semanticos_do_scoremodelo(self):
+        modelo = {"senioridade": {"operacional": 20, "head": 81, "cLevelReceita": 95}, "vagasOperacionais": {"1": 20, "2": 31, "3-4": 50, "5+": 70},
+                  "janelaAgrupamentoDias": 30, "meiaVidaDias": 45, "metaQuantificada": 66,
+                  "contexto": "texto descritivo da política de cargos", "criterio": "x", "aprovadoEm": "2026-11-26"}
+        p, difs, sobras = adaptador.parametros_do_modelo(modelo, P32)
+        self.assertEqual(p["cargos_receita"]["head"], 81)
+        self.assertEqual(p["blocos_operacionais"]["duas"], 31)
+        self.assertEqual(p["meia_vida"]["contratacao"], 45)
+        self.assertEqual(p["bases_30"]["declaracao_meta"], 66)
+        self.assertEqual(p["contexto"], P32["contexto"])  # a descrição não sobrescreve o objeto de parâmetros
+        self.assertFalse([s for s in sobras if s.split(".")[0] in ("senioridade", "vagasOperacionais", "contexto", "criterio", "aprovadoEm")])
+
+    def test_1_aquisicao_sofrida_nao_vira_aquisicao_realizada(self):
+        e = ev("fusao_aquisicao", 20, "Grupo Beta adquire a Alfa Software")
+        r = motor32.calcular([e], HOJE, P32, None, None, conta_com([]))
+        self.assertEqual(r["contribuicoes"][0]["chave"], "foi_adquirida")
+        self.assertEqual(r["vscs"], 0.0)
+        e2 = ev("fusao_aquisicao", 20, "Alfa Software adquire a startup Beta")
+        self.assertEqual(motor32.calcular([e2], HOJE, P32, None, None, conta_com([]))["contribuicoes"][0]["chave"], "aquisicao_feita")
+        # registro prevalece sobre o texto
+        reg = conta_com([{"id": e2["id"], "chave": "foi_adquirida", "categoria": "negativo", "base": 30, "fonte": 0.85}])
+        self.assertEqual(motor32.calcular([e2], HOJE, P32, None, None, reg)["contribuicoes"][0]["chave"], "foi_adquirida")
+
+    def test_2_gerente_hunter_sem_gestao_nao_e_gerencia(self):
+        for titulo in ("Executivo/Gerente Hunter", "Gerente Comercial Hunter", "Gerente de Contas", "Gerente de Relacionamento"):
+            self.assertEqual(nivel_cargo(titulo), "sdr_bdr", titulo)
+        self.assertEqual(nivel_cargo("Gerente de Vendas"), "gerencia")
+
+    def test_3_chave_legada_de_revisao_mantem_lideranca(self):
+        e = ev("executivo_chegou", 30, "texto qualquer", id="s1")
+        r = motor32.calcular([e], HOJE, P32, None, {"s1": {"chave": "troca_lideranca_head", "base": 80}})
+        c = r["contribuicoes"][0]
+        self.assertEqual((c["chave"], c["categoria"], c["tipo"]), ("nomeacao_head", "lideranca", "troca_lideranca"))
+        for chave in ("vaga_gerencia", "vaga_coordenacao"):
+            e = ev("vaga_area_alvo", 5, "texto", id="s2")
+            c = motor32.calcular([e], HOJE, P32, None, {"s2": {"chave": chave, "base": 70}})["contribuicoes"][0]
+            self.assertEqual((c["tipo"], c["categoria"]), ("vaga_lideranca_alvo", "contratacao"), chave)
+        r33 = motor33.calcular([ev("executivo_chegou", 30, "texto qualquer", id="s3")], HOJE, "x", None, P32, P33, None,
+                               {"s3": {"chave": "troca_lideranca_head", "base": 80}})
+        self.assertEqual(r33["movimentos"][0]["acontecimentos"][0]["janela_lideranca"], "diagnostico")
+
+    def test_4_nomeacao_registrada_nao_se_perde_quando_o_texto_nao_tem_cargo(self):
+        e = ev("executivo_chegou", 20, "Empresa anuncia mudança na liderança")
+        reg = conta_com([{"id": e["id"], "chave": "troca_lideranca_owner", "categoria": "lideranca", "base": 85, "fonte": 0.85}])
+        self.assertEqual(motor32.calcular([e], HOJE, P32, None, None, conta_com([]))["contribuicoes"], [])
+        c = motor32.calcular([e], HOJE, P32, None, None, reg)["contribuicoes"][0]
+        self.assertEqual((c["chave"], c["base"], c["fonte"]), ("nomeacao_diretoria_receita", 85, 0.85))
+
+    def test_5_bloco_registrado_nao_e_reagrupado_e_familias_nao_se_misturam(self):
+        evs = [ev("vaga_area_alvo", 3, "SDR"), ev("vaga_area_alvo", 5, "BDR")]
+        reg = conta_com([{"id": evs[0]["id"], "chave": "vaga_area_alvo", "categoria": "contratacao", "base": 20, "fonte": 1.0},
+                         {"id": evs[1]["id"], "chave": "vaga_area_alvo", "categoria": "contratacao", "base": 20, "fonte": 1.0}])
+        cs = motor32.calcular(evs, HOJE, P32, None, None, reg)["contribuicoes"]
+        self.assertEqual(sorted(c["base"] for c in cs), [20, 20])  # cada registro fica como foi validado
+
+    def test_6_contexto_so_pontua_com_classificacao_explicita(self):
+        e = ev("presenca_evento", 2, "Patrocina evento do setor", evento={"papel": "patrocinador"})
+        self.assertEqual(motor32.calcular([e], HOJE, P32)["contribuicoes"], [])
+        reg = conta_com([{"id": e["id"], "chave": "presenca_patrocinador", "categoria": "contexto", "base": 45, "fonte": 1.0}])
+        self.assertEqual(len(motor32.calcular([e], HOJE, P32, None, None, reg)["contribuicoes"]), 1)
+        decidido = dict(ev("palestra_lideranca", 2, "Palestra"), tipoSpec=None, categoria=None, nivel=None)
+        self.assertEqual(motor32.calcular([decidido], HOJE, P32)["contribuicoes"], [])
+
+    def test_7_fonte_efetiva_registrada_e_preservada(self):
+        e = ev("expansao_mercado", 5, "Chega a Curitiba com equipe comercial", fonte="Comunicado oficial da empresa")
+        reg = conta_com([{"id": e["id"], "chave": "expansao_comercial", "categoria": "expansao", "base": 85, "fonte": 0.85}])
+        self.assertEqual(motor32.calcular([e], HOJE, P32, None, None, reg)["contribuicoes"][0]["fonte"], 0.85)
+        a = motor33.calcular([e], HOJE, "x", None, P32, P33, reg)["movimentos"][0]["acontecimentos"][0]
+        self.assertEqual(a["fator_fonte"], 0.85)
+        self.assertEqual(classificar_fonte({"sinal": "x", "fonte": "Site oficial da empresa"}, P33)[0], "institucional")
+        self.assertEqual(classificar_fonte({"sinal": "x", "fonte": "Página de Carreiras"}, P33)[0], "institucional")
+
+    def test_8_marco_historico_nao_e_meta(self):
+        marco = ev("expansao_mercado", 5, "Empresa fechou 2025 com faturamento de R$ 50 milhões e cresceu 40%")
+        meta = ev("expansao_mercado", 5, "Empresa projeta faturar R$ 18 milhões em 2026")
+        self.assertNotEqual(motor32.calcular([marco], HOJE, P32)["contribuicoes"][0]["chave"], "declaracao_meta")
+        self.assertEqual(motor32.calcular([meta], HOJE, P32)["contribuicoes"][0]["chave"], "declaracao_meta")
+
+    def test_9_registro_nao_congela_o_tempo(self):
+        e = ev("vaga_expansao_comercial", 40, "Contrata 6 executivos comerciais")
+        reg = conta_com([{"id": e["id"], "chave": "expansao_comercial", "categoria": "expansao", "base": 85, "fonte": 1.0,
+                          "tempo": 1.0, "s": 85, "correlacao": 1.0}])
+        c = motor32.calcular([e], HOJE, P32, None, None, reg)["contribuicoes"][0]
+        self.assertLess(c["tempo"], 1.0)  # o tempo é recalculado na data de referência; s gravado não vira peso permanente
+
+    def test_10_declaracao_so_e_encerrada_pela_mesma_decisao(self):
+        meta = ev("expansao_mercado", 60, "Planeja crescer 50% e abrir operação no México em 2027")
+        vaga = ev("vaga_lideranca_alvo", 10, "Head de Marketing")
+        cs = motor32.calcular([meta, vaga], HOJE, P32)["contribuicoes"]
+        self.assertIn("declaracao_meta", [c["chave"] for c in cs])
+        execucao = ev("nova_unidade", 10, "Abre escritório no México")
+        cs = motor32.calcular([meta, execucao], HOJE, P32)["contribuicoes"]
+        self.assertNotIn("declaracao_meta", [c["chave"] for c in cs])
+        r = motor33.calcular([ev("expansao_mercado", 60, "Planeja expansão nacional"), ev("nova_unidade", 10, "Abre escritório em Curitiba")], HOJE, "x", None, P32, P33)
+        self.assertEqual(len(r["movimentos"]), 2)  # sem vínculo causal, R3 não junta
 
 
 if __name__ == "__main__":

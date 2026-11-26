@@ -178,6 +178,27 @@ Para publicar, o mapeamento para `v2.contribuicoes` é: um registro por aconteci
    Sem isso, vale o decaimento convencional, e o acontecimento grava `maturacao: "suspensa: …"`. CEO/sócio (70) e C-level fora de receita (50) não amadurecem. A simulação traz uma **auditoria da maturação**: ganho de cada liderança contra o decaimento convencional, para revisão manual dos maiores ganhos.
 9. **Contexto e notícia setorial.** Contexto tem contribuição limitada: base ≤ 45 e não corrobora. Notícia setorial genérica vale 0.
 
+### 3.8 Reconciliação de 26/11: o contrato de classificação
+
+A reconciliação preliminar mostrou que o problema principal não era aritmética: era **reclassificar pelo texto sinais já validados**. A partir daqui, a classificação de um sinal tem uma ordem fixa de autoridade, igual na 3.2 e na 3.3:
+
+1. **Revisão individual** (`scoreModelo.revisoesPorSinal`), inclusive `pontua: false`. Chaves legadas são traduzidas por uma tabela explícita (`classificar.LEGADO`): `troca_lideranca_head` vira `nomeacao_head`, com categoria liderança e tipo `troca_lideranca`. `vaga_gerencia` e `vaga_coordenacao` continuam vagas de liderança, sem fallback operacional.
+2. **Classificação registrada no snapshot** (`v2.contribuicoes`): `chave`, `base`, `categoria`, **fator de fonte efetivo** e **data do fato**. `s`, `tempo` e `correlacao` **não** entram: são temporais e recalculados na data de referência. Item registrado não é reagrupado em bloco nem reinterpretado.
+3. **Decisão registrada de não pontuar.** Sinal com `tipoSpec`, `categoria` e `nivel` nulos gravados pelo motor não pontua.
+4. **Inferência pelo texto**, só para sinal nunca classificado, com as salvaguardas abaixo.
+
+| Salvaguarda | Regra |
+|---|---|
+| Aquisição sofrida × realizada | Decide pelo papel da conta na frase: "X adquire a [conta]" é `foi_adquirida` (negativo); "[conta] adquire X" é aquisição realizada |
+| Contribuidor individual com título de gerente | Hunter, farmer, gerente de contas ou relacionamento e "executivo/gerente" são operacionais. O título sozinho não promove a gerência |
+| Contexto | Evento, palestra e prêmio só pontuam com classificação explícita. Notícia setorial vale 0 |
+| Marco histórico × meta | Número de resultado passado ("fechou 2025 com…") é declaração genérica, não meta quantificada |
+| Declaração encerrada | Só quando o fato posterior executa a **mesma** decisão (mesmo lugar, texto próximo ou `movimentoId`). Vale na 3.2 e na regra R3 da 3.3 |
+| Fonte | Nome de veículo normalizado (sem acento nem caixa, "site", "comunicado", "carreiras"…). O fator efetivo registrado é preservado: não sobe nem desce por nome |
+| `scoreModelo` | Equivalências semânticas explícitas (`adaptador.EQUIVALENCIAS`: `senioridade.*`, `vagasOperacionais.*`, `janelaAgrupamentoDias`, `meiaVidaDias`, `metaQuantificada`). `contexto`, `criterio` e `aprovadoEm` são metadados e não sobrescrevem parâmetros |
+
+O reconciliador recalcula cada conta na data `v2.calculadoEm`, para o tempo não criar divergência falsa. Para cada conta divergente, ele explica a causa sinal a sinal: gravada sem recálculo, pontuada sem registro, base, fonte, tempo, correlação, bônus ou penalidade. Também mostra a tabela **registro × inferência pelo texto**, que mede onde o classificador erraria em sinais novos. O objetivo é 100% das contas explicadas, com cada diferença marcada como correção válida ou regressão.
+
 ## 4. Como reproduzir sobre a base real (somente leitura)
 
 ```bash
@@ -185,7 +206,7 @@ cd radar_app/scripts
 python3 -m vscs.reconciliar --snapshot ~/privado/payload.json --hoje 2026-11-26 > ~/privado/reconciliacao.md
 python3 -m vscs.simular     --snapshot ~/privado/payload.json --hoje 2026-11-26 > ~/privado/simulacao-33.md
 python3 -m vscs.casos                                                             # contrafactuais sintéticos
-python3 -m unittest discover -s tests -p 'test_*.py'                              # 71 testes
+python3 -m unittest discover -s tests -p 'test_*.py'                              # 82 testes
 ```
 
 O payload é o JSON do campo `payload` de `radar_snapshots` (`id = 'current'`), exportado por quem tem acesso. Ele e as saídas **ficam fora do repositório**.

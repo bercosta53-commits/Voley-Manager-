@@ -83,7 +83,7 @@ def main() -> None:
     linhas = []
     for c in base["contas"]:
         evs = eventos_da_conta(c, base.get("sinais", []))
-        r = {"gravado": float(c.get("score") or 0), "3.2 canônica": motor32.calcular(evs, hoje, p32, c.get("interacoes"), revs)["vscs"]}
+        r = {"gravado": float(c.get("score") or 0), "3.2 canônica": motor32.calcular(evs, hoje, p32, c.get("interacoes"), revs, c)["vscs"]}
         detalhe = None
         for nome, pv in vs.items():
             res = motor33.calcular(evs, hoje, c.get("nome", ""), c.get("interacoes"), p32, pv, c, revs)

@@ -27,12 +27,20 @@ def _dominio(url: str) -> str:
     return h[4:] if h.startswith("www.") else h
 
 
+INSTITUCIONAL_CONTEM = ("site", "comunicado", "carreira", "vagas", "relacoes com investidores", "investidores", "press release oficial",
+                        "pagina oficial", "linkedin da empresa", "linkedin oficial", "indeed", "gupy", "diario oficial", "cvm",
+                        "junta comercial", "pagina do evento", "blog oficial")
+
+
 def _nivel_por_nome(nome: str, ev: dict, f: dict) -> str:
-    if nome in f["institucionais"] or ev.get("evento"):
+    """Nome do veículo normalizado (sem acento e caixa): 'Site oficial da empresa', 'Comunicado à imprensa' e
+    'Página de Carreiras' são institucionais sem depender de grafia exata."""
+    n = norm(nome)
+    if nome in f["institucionais"] or ev.get("evento") or any(x in n for x in INSTITUCIONAL_CONTEM):
         return "institucional"
-    if nome in f["declaracao"] or ev.get("fonteTipo") == "declaracao_executivo":
+    if nome in f["declaracao"] or ev.get("fonteTipo") == "declaracao_executivo" or any(x in n for x in ("entrevista do executivo", "linkedin do executivo", "post do executivo")):
         return "declaracao_direta"
-    if nome in f["reputadas"]:
+    if nome in f["reputadas"] or n in {norm(x) for x in f["reputadas"]}:
         return "imprensa_reputada"
     return "secundaria"
 
@@ -99,13 +107,14 @@ def testemunhos(ev: dict, nivel_doc: str, doc_id: str, p33: dict) -> list[tuple[
 ORDEM = ["descartado", "indicio", "secundaria", "imprensa_reputada", "secundaria_corroborada", "declaracao_direta", "institucional"]
 
 
-def corroborar(niveis: list[str], testemunhas: list[tuple[str, str]], p33: dict) -> tuple[str, float]:
-    """Vários documentos do MESMO acontecimento. Fica o melhor nível dos documentos; imprensa (secundária ou
-    reputada) sobe para "corroborada" só com duas ou mais testemunhas independentes (chaves distintas, cada uma
-    com nível de pelo menos secundária). Indício nunca é promovido. Não soma pontos."""
+def corroborar(docs: list[tuple[str, float]], testemunhas: list[tuple[str, str]], p33: dict) -> tuple[str, float]:
+    """Vários documentos do MESMO acontecimento, cada um (nível, fator). Fica o documento de maior fator — o fator
+    EFETIVO (registrado ou revisado) é preservado, não reconstruído pelo rótulo. Imprensa (secundária ou reputada)
+    sobe para "corroborada" só com duas ou mais testemunhas independentes (chaves distintas, cada uma com nível de
+    pelo menos secundária). Indício nunca é promovido. Não soma pontos."""
     f = p33["fonte"]
-    melhor = max(niveis, key=ORDEM.index)
+    melhor, fator = max(docs, key=lambda d: (d[1], ORDEM.index(d[0])))
     chaves = {k for k, n in testemunhas if ORDEM.index(n) >= ORDEM.index("secundaria")}
     if melhor in ("secundaria", "imprensa_reputada") and len(chaves) >= 2:
-        return "secundaria_corroborada", f["secundaria_corroborada"]
-    return melhor, 0.0 if melhor == "descartado" else f[melhor]
+        return "secundaria_corroborada", max(fator, f["secundaria_corroborada"])
+    return melhor, fator

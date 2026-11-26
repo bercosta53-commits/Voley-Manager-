@@ -24,7 +24,7 @@ from pathlib import Path
 
 from . import motor32
 from .agrupar import Acontecimento, Documento, Movimento, acontecimentos, movimentos
-from .adaptador import adaptar
+from .adaptador import adaptar, registro_por_sinal
 from .classificar import nivel_cargo, norm
 from .fontes import classificar_fonte, corroborar, testemunhos
 from .tempo import exponencial, janela_lideranca, lideranca_nomeada
@@ -100,7 +100,9 @@ def preparar(eventos: list[dict], hoje: date, empresa: str = "", p32: dict | Non
     if p32 is None or p33 is None:
         p32, p33 = parametros()
     revisoes = revisoes or {}
-    eventos = [adaptar(e, revisoes.get(str(e.get("id"))), p33) for e in eventos]
+    registro = registro_por_sinal(conta)
+    eventos = [adaptar(e, revisoes.get(str(e.get("id"))), p33, registro.get(str(e.get("id"))), (conta or {}).get("nome") or empresa)
+               for e in eventos]
     evs = list(eventos) + [{"tipo": i["tipo"], "data": i["data"], "interacao": True, "sinal": i.get("rotulo") or i["tipo"],
                             "id": f'int-{i["tipo"]}-{i["data"]}'} for i in (interacoes or [])]
     docs, operacionais = [], []
@@ -126,7 +128,7 @@ def preparar(eventos: list[dict], hoje: date, empresa: str = "", p32: dict | Non
         documentos.append(Documento(did, ev, cl, date.fromisoformat(ev["data"][:10]), nivel, fator, testemunhos(ev, nivel, did, p33)))
     acs = acontecimentos(documentos, p33["movimento"]["janela_acontecimento_dias"], p33["movimento"]["janela_vinculo_dias"])
     for ac in acs:
-        ac.fonte_nivel, ac.fonte_fator = corroborar([d.fonte_nivel for d in ac.docs], [x for d in ac.docs for x in d.testemunhas], p33)
+        ac.fonte_nivel, ac.fonte_fator = corroborar([(d.fonte_nivel, d.fonte_fator) for d in ac.docs], [x for d in ac.docs for x in d.testemunhas], p33)
         ac.tempo, ac.janela, ac.maturacao = _tempo(ac, hoje, p33, conta)
         ac.s = min(100.0, ac.cl["base"] * ac.fonte_fator * ac.tempo)
     acs = [a for a in acs if a.s > 0]
