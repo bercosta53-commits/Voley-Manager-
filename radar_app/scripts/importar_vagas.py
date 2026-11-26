@@ -5,8 +5,8 @@ uso: python3 scripts/importar_vagas.py vagas.json
 
 O Indeed só existe aqui como conector (MCP, sem endpoint para script — ver coletar_vagas.py), então a
 varredura roda pelo Claude, que grava um arquivo com as vagas achadas:
-  [{"empresa": "Neogrid Carreiras", "titulo": "Gerente de Growth", "local": "Joinville, SC",
-    "data": "2026-10-27", "url": "https://to.indeed.com/...", "fonte": "Indeed", "ti": true}, ...]
+  [{"empresa": "Empresa Exemplo", "titulo": "Gerente de Growth", "local": "Cidade, UF",
+    "data": "2026-01-01", "url": "https://exemplo.invalid/vaga", "fonte": "Indeed", "ti": true}, ...]
 
 Para cada vaga: classifica pelo cargo (mesma regra de coletar_vagas.py: área-alvo, gerente pra cima é
 liderança, Growth/Revenue é o foco), casa o empregador com uma conta da base pelo nome e grava o sinal.

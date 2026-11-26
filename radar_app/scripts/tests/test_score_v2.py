@@ -155,7 +155,7 @@ class Status(unittest.TestCase):
             self.assertEqual(s.status_vscs(v), st)
 
     def test_cro_novo_sozinho_nao_abre_abordagem(self):
-        # caso Neogrid: CRO novo em notícia (95 × 0.85 ≈ 81) dá ~40 de VSCS — no máximo "Atenção"
+        # caso ilustrativo: CRO novo em notícia (95 × 0.85 ≈ 81) dá ~40 de VSCS — no máximo "Atenção"
         r = s.calcular(CONTA, [ev("executivo_chegou", 2, **CRO)], HOJE)
         self.assertLess(r.vscs, 45)
         self.assertFalse(r.sinal_ativo)
