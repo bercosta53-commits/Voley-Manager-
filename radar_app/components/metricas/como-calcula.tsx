@@ -4,6 +4,7 @@ import type { Base } from '@/lib/tipos';
 import { hrefConta } from '@/lib/contas';
 import { cn, pontos } from '@/lib/utils';
 import { FAIXAS_VSCS, MATRIZ_ICP } from '@/lib/avaliacao';
+import { Rotulo } from '@/components/ui/rotulo';
 
 const CATEGORIAS = [
   { nome: 'Mudança de liderança', faixa: '70–95', meiaVida: 60, ex: 'CMO/CRO novo ~95 · diretor comercial ~85' },
@@ -81,7 +82,7 @@ export function ComoCalcula({ base }: { base: Base }) {
 
       <div className="mt-6 grid gap-6 md:grid-cols-2">
         <div className="min-w-0">
-          <h3 className="text-xs font-semibold text-text-3">Quanto vale cada tipo de fato</h3>
+          <Rotulo como="h3">Quanto vale cada tipo de fato</Rotulo>
           <table className="mt-2 w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-text-3">
@@ -106,7 +107,7 @@ export function ComoCalcula({ base }: { base: Base }) {
         </div>
 
         <div className="min-w-0">
-          <h3 className="text-xs font-semibold text-text-3">Ação por tier de ICP e faixa de score</h3>
+          <Rotulo como="h3">Ação por tier de ICP e faixa de score</Rotulo>
           <div className="mt-2 overflow-x-auto">
             <table className="w-full min-w-[420px] text-xs">
               <thead>

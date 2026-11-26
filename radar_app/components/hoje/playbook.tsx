@@ -6,17 +6,21 @@ import { Button } from '@/components/ui/button';
 import type { Conta, Sinal } from '@/lib/tipos';
 import { cn, dataCurta, plural } from '@/lib/utils';
 import { OFERTAS, mensagemPlaybook, oportunidadeDe, pessoasParaPlaybook, type Ativacao, type Oferta } from '@/lib/playbooks';
+import { Rotulo } from '@/components/ui/rotulo';
+import { Chip } from '@/components/ui/chip';
 
 /** Selo do playbook combinado ativo na conta (linha da caixa e cartão). */
 export function SeloPlaybook({ ativacao, className }: { ativacao: Ativacao; className?: string }) {
   return (
-    <span
+    <Chip
+      tom="quente"
+      peso="forte"
       title={`Playbook combinado: ${ativacao.playbook.nome}, ${plural(ativacao.diasRestantes, 'dia restante', 'dias restantes')}`}
-      className={cn('inline-flex shrink-0 items-center gap-1 rounded-chip bg-warm-bg px-1.5 py-0.5 text-xs font-semibold text-warm', className)}
+      className={cn('shrink-0', className)}
     >
       <Zap aria-hidden className="size-3" strokeWidth={2} />
       {ativacao.playbook.nome}
-    </span>
+    </Chip>
   );
 }
 
@@ -24,9 +28,9 @@ function ChipsOferta({ ofertas }: { ofertas: Oferta[] }) {
   return (
     <span className="flex flex-wrap gap-1">
       {ofertas.map(o => (
-        <span key={o} className="rounded-chip border border-border bg-card px-1.5 py-0.5 text-xs font-medium text-foreground">
+        <Chip key={o} tom="cartao" peso="medio">
           {OFERTAS[o]}
-        </span>
+        </Chip>
       ))}
     </span>
   );
@@ -69,9 +73,6 @@ const iniciais = (nome: string) =>
     .map(p => p[0]!.toUpperCase())
     .join('');
 
-function Rotulo({ children }: { children: React.ReactNode }) {
-  return <p className="mb-2 text-xs font-semibold tracking-wide text-text-3 uppercase">{children}</p>;
-}
 
 /**
  * O bloco do playbook combinado (seção 5.6), em quatro faixas de leitura rápida:
@@ -123,7 +124,7 @@ export function BlocoPlaybook({ ativacao, conta, className }: { ativacao: Ativac
 
       {/* 2. a história */}
       <div className="border-b border-border bg-muted/40 px-5 py-4">
-        <Rotulo>Por que agora</Rotulo>
+        <Rotulo como="p" caps className="mb-2">Por que agora</Rotulo>
         <ol className="flex flex-wrap items-center gap-2">
           {evidencia.map((s, i) => (
             <li key={s.id} className="flex items-center gap-2">
@@ -145,7 +146,7 @@ export function BlocoPlaybook({ ativacao, conta, className }: { ativacao: Ativac
       <div className="grid gap-6 p-5 md:grid-cols-[minmax(0,1fr)_220px]">
         <div className="flex min-w-0 flex-col gap-5">
           <div>
-            <Rotulo>Com quem falar</Rotulo>
+            <Rotulo como="p" caps className="mb-2">Com quem falar</Rotulo>
             <ul className="flex flex-wrap gap-2">
               {pessoas.map(p => (
                 <li key={p.nome} className="flex items-center gap-2 rounded-control border border-border px-2 py-1.5">
@@ -169,7 +170,7 @@ export function BlocoPlaybook({ ativacao, conta, className }: { ativacao: Ativac
           </div>
 
           <div>
-            <Rotulo>Ângulo</Rotulo>
+            <Rotulo como="p" caps className="mb-2">Ângulo</Rotulo>
             <p className="text-base font-medium leading-snug">{pb.angulo}</p>
           </div>
 
@@ -177,7 +178,7 @@ export function BlocoPlaybook({ ativacao, conta, className }: { ativacao: Ativac
             <div className="flex items-start gap-2">
               <HelpCircle aria-hidden className="mt-0.5 size-4 shrink-0 text-text-3" strokeWidth={1.5} />
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-text-3">Pergunta de descoberta</p>
+                <Rotulo como="p">Pergunta de descoberta</Rotulo>
                 <p className="mt-0.5 text-sm">{pb.descoberta}</p>
               </div>
               <button
@@ -203,7 +204,7 @@ export function BlocoPlaybook({ ativacao, conta, className }: { ativacao: Ativac
         </div>
 
         <aside className="rounded-control bg-warm-bg/50 p-4">
-          <Rotulo>Velora oferece</Rotulo>
+          <Rotulo como="p" caps className="mb-2">Velora oferece</Rotulo>
           <ul className="flex flex-col gap-2">
             {pb.ofertas.map(o => (
               <li key={o} className="flex items-start gap-2 text-sm font-medium">

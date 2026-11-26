@@ -23,6 +23,7 @@ import { BarraForca } from './forca';
 import { forcaDe, pontosInteiros } from '@/lib/caixa';
 import type { Ativacao } from '@/lib/playbooks';
 import { OportunidadeVelora, SeloPlaybook } from './playbook';
+import { Chip } from '@/components/ui/chip';
 
 /** "Sinal de alta relevância": retorno do time para calibrar o modelo; não muda o score (P1-8). */
 function SeletorRelevancia({ valor, onMudar }: { valor?: Relevancia; onMudar: (n: Relevancia) => void }) {
@@ -212,11 +213,11 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
               )}
               <SeloQualificada conta={conta} />
               {conta.v2?.via_rapida ? (
-                <span className="shrink-0 rounded-chip bg-risk px-1.5 py-0.5 text-xs font-semibold text-white">Via rápida · 48h</span>
+                <Chip tom="risco-solido" peso="forte" className="shrink-0">Via rápida · 48h</Chip>
               ) : (
                 conta.acaoRecomendada &&
                 ACOES_DE_ABORDAGEM.has(conta.acaoRecomendada) && (
-                  <span className="shrink-0 rounded-chip bg-ok px-1.5 py-0.5 text-xs font-semibold text-white">{conta.acaoRecomendada}</span>
+                  <Chip tom="ok-solido" peso="forte" className="shrink-0">{conta.acaoRecomendada}</Chip>
                 )
               )}
             </div>
@@ -234,7 +235,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                 {!negativo && <BarraForca forca={forcaDe(sinal)} />}
                 {nivel.rotulo}
               </span>
-              <span className="rounded-chip bg-secondary px-1.5 py-0.5 text-xs text-text-2">{sinal.rotulo}</span>
+              <Chip tom="neutro">{sinal.rotulo}</Chip>
               {playbook && <SeloPlaybook ativacao={playbook} />}
 
             </div>

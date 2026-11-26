@@ -2,6 +2,7 @@
 
 import { SEGMENTOS, type Segmento } from '@/lib/prioridade-filtros';
 import { cn, plural } from '@/lib/utils';
+import { Rotulo } from '@/components/ui/rotulo';
 
 /** Intensidade decrescente numa só cor (preenchimento e marcador); o texto mantém contraste em todos. */
 const ESTILO: Record<Segmento, { fundo: string; marca: React.CSSProperties }> = {
@@ -48,7 +49,7 @@ export function Faixa({
       </h2>
       <div className="flex flex-wrap items-stretch gap-1.5 xl:flex-nowrap">
         <div className="flex w-full min-w-[118px] flex-col justify-center rounded-control border border-border bg-card px-3 py-2 sm:w-auto">
-          <span className="text-xs font-semibold tracking-wide text-text-3 uppercase">Ambiente</span>
+          <Rotulo como="span" caps>Ambiente</Rotulo>
           <span className="vr-data text-lg leading-tight font-semibold">{total}</span>
           <span className="text-xs text-text-3">{completas} com as 4 dimensões</span>
         </div>

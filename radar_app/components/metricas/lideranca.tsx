@@ -8,6 +8,7 @@ import { lideranca } from '@/lib/lideranca';
 import { hrefConta } from '@/lib/contas';
 import { plural, pontos } from '@/lib/utils';
 import { SeloQualificada } from '@/components/ui/selo-qualificada';
+import { Rotulo } from '@/components/ui/rotulo';
 
 const ROTULO_ANDAMENTO: [StatusConta, string][] = [
   ['abordado', 'Abordadas'],
@@ -79,7 +80,7 @@ export function VisaoLideranca({
 
       <div className="grid gap-4 border-t border-border px-4 py-3 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-8">
         <div className="min-w-0">
-          <h3 className="text-xs font-semibold text-text-3">Em oportunidade e ainda sem nenhuma ação</h3>
+          <Rotulo como="h3">Em oportunidade e ainda sem nenhuma ação</Rotulo>
           {!compartilhado ? (
             <p className="mt-2 text-sm text-text-3">
               Depende do registro compartilhado.
@@ -113,7 +114,7 @@ export function VisaoLideranca({
           )}
         </div>
         <div className="min-w-0">
-          <h3 className="text-xs font-semibold text-text-3">Andamento registrado (opcional)</h3>
+          <Rotulo como="h3">Andamento registrado (opcional)</Rotulo>
           {compartilhado && andamento.length ? (
             <ul className="mt-2 flex flex-wrap gap-1.5">
               {andamento.map(([s, rotulo]) => (

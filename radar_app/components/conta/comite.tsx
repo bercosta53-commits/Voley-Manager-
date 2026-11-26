@@ -2,6 +2,7 @@ import { UserRound, UserRoundSearch } from 'lucide-react';
 import type { Conta, Pessoa, PapelAbm } from '@/lib/tipos';
 import { cn } from '@/lib/utils';
 import { ocupa, papelNoComite } from '@/lib/papeis';
+import { Rotulo } from '@/components/ui/rotulo';
 
 /** Os três lugares que o ABM precisa ocupar antes de abordar (scripts/qualificar_icp.py classifica pelo cargo). */
 const LUGARES: { papel: PapelAbm; rotulo: string; quem: string }[] = [
@@ -46,7 +47,7 @@ export function Comite({ conta }: { conta: Conta }) {
   return (
     <section id="comite" className="vr-card scroll-mt-20 p-5">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-xs font-semibold text-text-3">Comitê de compra</h2>
+        <Rotulo>Comitê de compra</Rotulo>
         <span className="vr-data text-xs text-text-3">
           {conhecidos}/{LUGARES.length}
         </span>
