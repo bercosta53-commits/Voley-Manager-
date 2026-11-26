@@ -1,14 +1,10 @@
-import type { Base, Conta, Pessoa } from './tipos';
-import { ACOES_DE_ABORDAGEM } from './avaliacao';
+import type { Base, Conta } from './tipos';
 import { normalizar } from './contas';
-import { diasEntre } from './utils';
 import { faltandoNoComite, papelNoComite } from './papeis';
 
 /**
- * Aba ICP: a mesma regra de tier de scripts/qualificar_icp.py (regras em data/icp.json), conta a conta, com
- * alavancas para simular "e se" — SaaS como ramo principal, sede ainda não confirmada, faturamento validado
- * obrigatório, região e um mínimo de gatilhos comportamentais no Tier A. Com tudo desligado, reproduz os
- * tiers atuais da base.
+ * ICP oficial = tier persistido no snapshot. O simulador é apenas um cenário, calculado
+ * sobre as evidências da requalificação 2G. Nunca altera o ICP ou o VSCS gravado.
  */
 
 export interface RegrasIcp {
@@ -22,6 +18,7 @@ export interface RegrasIcp {
 }
 
 export interface Alavancas {
+  oficial?: boolean;
   saas: boolean;
   sedeNaoConfirmada: boolean;
   exigirFaturamento: boolean;
@@ -30,7 +27,7 @@ export interface Alavancas {
 }
 
 export type Tier = 'A' | 'B' | 'C';
-export type MotivoExclusao = 'regiao' | 'porte' | 'ramo' | 'b2c';
+export type MotivoExclusao = 'regiao' | 'porte' | 'ramo' | 'b2c' | 'outro';
 
 /** Barreiras de compra (G3): o que alonga o ciclo. */
 export const BARREIRAS = [
@@ -80,11 +77,11 @@ const VERTICAIS_REGULADAS = ['ESP01', 'ESP02', 'ESP03', 'ESP15', 'ESP14'];
 
 /** Gatilhos comportamentais: como a empresa vende hoje (dores que o diagnóstico da Velora resolve). */
 export const GATILHOS = [
-  { id: 1, tag: 'Pedido', curto: 'Lid. rasa', nome: 'Liderança comercial rasa', def: 'Vendas no máximo até coordenação e marketing no máximo até gerência.', como: 'cargos do comitê: maior nível em vendas e em marketing.' },
-  { id: 2, tag: 'Pedido', curto: 'Customiz.', nome: 'Produto customizado e pouco escalável', def: 'Receita de serviço ou projeto: implantação, fábrica, outsourcing, integração.', como: 'modelo de negócio + o que a empresa faz.' },
-  { id: 3, tag: 'Pedido', curto: 'Ciclo longo', nome: 'Ciclo de venda médio a longo', def: 'Deduzido da oferta: homologação, compliance exigido do fornecedor, prova técnica, integração ou licitação alongam a compra.', como: 'tipo de oferta + quem a empresa atende (regulado, enterprise, governo).' },
-  { id: 4, tag: 'Sugestão', curto: 'Fundador', nome: 'Venda nas mãos do fundador', def: 'CEO ou sócio no comitê e ninguém acima de gerente em vendas ou marketing: o fundador é o gargalo comercial.', como: 'cargos do comitê.' },
-  { id: 5, tag: 'Sugestão', curto: 'Platô', nome: 'Maturidade sem tração nova', def: '10+ anos de CNPJ e nenhum sinal de crescimento no Radar: cresceu por indicação e bateu teto.', como: 'data de abertura + ausência de captação, expansão, vaga ou filial.' },
+  { id: 1, tag: 'Pedido', curto: 'Lid. rasa', nome: 'Liderança comercial rasa', def: 'Vendas no máximo até coordenação e marketing no máximo até gerência.', como: 'Pesquisa registrada da estrutura e dos mandatos; comitê incompleto não comprova ausência.' },
+  { id: 2, tag: 'Pedido', curto: 'Customiz.', nome: 'Produto customizado e pouco escalável', def: 'Receita de serviço ou projeto: implantação, fábrica, outsourcing, integração.', como: 'Evidência registrada de projetos customizados; modelo de serviço isolado não basta.' },
+  { id: 3, tag: 'Pedido', curto: 'Ciclo longo', nome: 'Ciclo de venda médio a longo', def: 'Deduzido da oferta: homologação, compliance exigido do fornecedor, prova técnica, integração ou licitação alongam a compra.', como: 'Barreiras documentadas ou inferência de alta confiança na requalificação.' },
+  { id: 4, tag: 'Sugestão', curto: 'Fundador', nome: 'Venda nas mãos do fundador', def: 'Dependência efetiva do fundador para gerar ou fechar negócios.', como: 'Evidência do mandato comercial, não ausência de cargos no cadastro.' },
+  { id: 5, tag: 'Sugestão', curto: 'Platô', nome: 'Maturidade sem tração nova', def: 'Maturidade com estagnação ou pouca tração demonstrada por trajetória comparável.', como: 'Série de receita, clientes ou equipe; falta de sinais não prova estagnação.' },
 ] as const;
 
 export interface ContaIcp {
@@ -99,7 +96,9 @@ export interface ContaIcp {
   ramo: 'principal' | 'secundario' | 'fora' | 'sem';
   b2c: boolean;
   ufConfirmada: boolean;
-  porte: 'abaixo' | 'validado' | 'sem';
+  porte: 'abaixo' | 'acima' | 'validado' | 'sem';
+  revisaoEstruturalPendente: boolean;
+  statusIcp?: string;
   /** gatilhos que batem (1–5) e os medidos com dado incompleto */
   gatilhos: Set<number>;
   incompletos: Set<number>;
@@ -109,33 +108,20 @@ export interface ContaIcp {
   comiteCompleto: boolean;
 }
 
-const NIVEL_CARGO: [number, RegExp][] = [
-  [5, /\b(ceo|cfo|cto|coo|cmo|cro|cco|cio|cso|cpo|chief|presidente|founder|fundador|fundadora|co-founder|cofundador|socio|socia|partner|owner)\b/],
-  [4, /\b(vp|vice|diretor|diretora|director)\b/],
-  [3.5, /\bhead\b/],
-  [3, /\b(gerente|manager|gestor|gestora)\b/],
-  [2, /\b(coordenador|coordenadora|supervisor|supervisora|lider|lead)\b/],
-];
-const nivel = (p: Pessoa) => NIVEL_CARGO.find(([, r]) => r.test(normalizar(p.cargo)))?.[0] ?? 1;
-const FUNDADOR = /\b(ceo|founder|fundador|fundadora|co-founder|cofundador|socio|socia|owner|presidente)\b/;
 const CLIENTE_GOVERNO = /\b(governo|prefeitura|setor publico|publico|municipios|orgaos)\b/;
 const CLIENTE_ENTERPRISE = /\b(enterprise|grandes empresas|corporativ|multinaciona|industrias)\b/;
 const CLIENTE_REGULADO = /\b(banco|bancos|financeir|seguradora|saude|hospita|energia|telecom|regulad)\b/;
 
 /** Features da conta para o simulador (calculado uma vez). */
 export function prepararContas(base: Base, regras: RegrasIcp): ContaIcp[] {
-  const hoje = base.geradoEm;
-  const crescimento = new Set(
-    [...base.sinais.map(s => ({ id: s.contaId, s })), ...base.contas.flatMap(c => c.historico.map(h => ({ id: c.id, s: h })))]
-      .filter(({ s }) => ['captacao', 'expansao_mercado', 'nova_unidade', 'vaga_area_alvo', 'vaga_lideranca_alvo', 'vaga_expansao_comercial'].includes(s.tipo) && diasEntre(s.data, hoje) <= 365)
-      .map(({ id }) => id),
-  );
   return base.contas.map(c => {
-    const codRamo = c.ramoTI?.codigo ?? 'A classificar';
+    const revisao = c.icpEvidencia?.requalificacao2G;
+    const codRamo = revisao?.ramoAvaliado ?? c.ramoTI?.codigo ?? 'A classificar';
     const esp = c.especializacao?.codigo ?? 'GEN';
-    const uf = (c.uf ?? '').toUpperCase();
+    const uf = (revisao?.sede?.uf || c.uf || '').toUpperCase();
+    const modelo = revisao?.modeloAvaliado ?? c.modeloNegocio;
     const ramo: ContaIcp['ramo'] = regras.ramosPrincipais.includes(codRamo)
-      ? c.modeloNegocio === 'produto'
+      ? modelo === 'produto'
         ? 'secundario'
         : 'principal'
       : regras.ramosSecundarios.includes(codRamo)
@@ -143,20 +129,20 @@ export function prepararContas(base: Base, regras: RegrasIcp): ContaIcp[] {
         : regras.ramosFora.includes(codRamo)
           ? 'fora'
           : 'sem';
+    const faturamento = revisao?.faturamento?.status;
     const porteTxt = normalizar(c.porte ?? '');
-    const porte: ContaIcp['porte'] = !porteTxt ? 'sem' : regras.portesAbaixo.some(p => normalizar(p) === porteTxt) ? 'abaixo' : 'validado';
-
-    // G1/G4: níveis em vendas e marketing pelo comitê
-    const vendas = c.comite.filter(p => p.area === 'comercial').map(nivel);
-    const mkt = c.comite.filter(p => p.area === 'marketing').map(nivel);
-    const maxV = Math.max(0, ...vendas);
-    const maxM = Math.max(0, ...mkt);
-    const semComercial = !vendas.length && !mkt.length;
+    const porte: ContaIcp['porte'] = faturamento === 'faixa' ? 'validado'
+      : faturamento === 'acima' ? 'acima'
+      : faturamento === 'abaixo' || (!faturamento && regras.portesAbaixo.some(p => normalizar(p) === porteTxt)) ? 'abaixo'
+      : 'sem';
+    // Só evidência persistida favorável conta. Desconhecido não é positivo.
     const gatilhos = new Set<number>();
     const incompletos = new Set<number>();
-    if (maxV <= 2 && maxM <= 3) gatilhos.add(1);
-    if (semComercial) incompletos.add(1).add(4);
-    if (c.modeloNegocio === 'servico' || c.modeloNegocio === 'misto') gatilhos.add(2);
+    for (const i of [1, 2, 3, 4, 5]) {
+      const g = revisao?.gatilhos?.[`g${i}`];
+      if (g?.contaParaTierA === true) gatilhos.add(i);
+      else if (!g?.status || !g.status.startsWith('contrario')) incompletos.add(i);
+    }
     // G3: ciclo deduzido da oferta + do cliente atendido
     const texto = normalizar(`${c.oQueFaz ?? ''} ${c.segmento ?? ''}`);
     const of = OFERTA[c.ramoTI?.nome ?? ''];
@@ -177,26 +163,19 @@ export function prepararContas(base: Base, regras: RegrasIcp): ContaIcp[] {
       }
       ciclo = Math.min(4, ciclo);
     }
-    if (ciclo >= 2) gatilhos.add(3);
-    const temFundador = c.comite.some(p => FUNDADOR.test(normalizar(p.cargo)));
-    if (temFundador && maxV <= 3 && maxM <= 3) gatilhos.add(4);
-    const fundacao = c.dataAbertura ?? (c.anoFundacao ? `${c.anoFundacao}-07-01` : null);
-    if (fundacao) {
-      if (diasEntre(fundacao, hoje) >= 3652 && !crescimento.has(c.id)) gatilhos.add(5);
-      if (!c.dataAbertura) incompletos.add(5); // ano de fundação de pesquisa: medição ainda a validar
-    } else incompletos.add(5);
-
     return {
       conta: c,
       uf,
       vertical: esp === 'GEN' ? 'Generalista' : (c.especializacao?.nome ?? 'Generalista'),
       familia: c.ramoTI?.familia || 'Sem classificação',
       segmento: c.ramoTI?.nome && c.ramoTI.nome !== 'A classificar' ? c.ramoTI.nome : 'Sem segmento',
-      tierAtual: (c.icp?.tier ?? c.tier ?? 'C') as Tier,
+      tierAtual: (['A', 'B', 'C'].includes(c.tier) ? c.tier : c.icp?.tier ?? 'C') as Tier,
       ramo,
       b2c: ramo === 'fora' || regras.especializacoesExcluidas.includes(esp),
-      ufConfirmada: !!uf && (c.ufFonte === 'receita' || c.ufFonte === 'site'),
+      ufConfirmada: !!uf && (!!revisao?.sede?.url || c.ufFonte === 'receita' || c.ufFonte === 'site'),
       porte,
+      statusIcp: revisao?.status,
+      revisaoEstruturalPendente: !revisao || (revisao.pendencias ?? []).includes('validacao_estrutural'),
       gatilhos,
       incompletos,
       ciclo,
@@ -209,26 +188,31 @@ export function prepararContas(base: Base, regras: RegrasIcp): ContaIcp[] {
 
 /** Tier simulado + por que a conta ficou fora (para os cards de exclusão). */
 export function tierSimulado(a: ContaIcp, al: Alavancas): { tier: Tier; exclusao?: MotivoExclusao } {
+  if (al.oficial) {
+    if (a.tierAtual !== 'C') return { tier: a.tierAtual };
+    const exclusao: MotivoExclusao = a.b2c ? 'b2c' : a.uf && !al.regiao.includes(a.uf) ? 'regiao' : a.porte === 'abaixo' || a.porte === 'acima' ? 'porte' : a.ramo === 'sem' ? 'ramo' : 'outro';
+    return { tier: 'C', exclusao };
+  }
   if (a.b2c) return { tier: 'C', exclusao: 'b2c' };
   if (a.ramo === 'sem') return { tier: 'C', exclusao: 'ramo' };
   if (a.uf && !al.regiao.includes(a.uf)) return { tier: 'C', exclusao: 'regiao' };
-  if (a.porte === 'abaixo') return { tier: 'C', exclusao: 'porte' };
+  if (a.porte === 'abaixo' || a.porte === 'acima') return { tier: 'C', exclusao: 'porte' };
   const ramoOk = a.ramo === 'principal' || (a.ramo === 'secundario' && al.saas);
   const sedeOk = !!a.uf && (a.ufConfirmada || al.sedeNaoConfirmada);
   const porteOk = !al.exigirFaturamento || a.porte === 'validado';
-  let tier: Tier = ramoOk && sedeOk && porteOk ? 'A' : 'B';
+  let tier: Tier = ramoOk && sedeOk && porteOk && !a.revisaoEstruturalPendente ? 'A' : 'B';
   if (tier === 'A' && a.gatilhos.size < al.minGatilhos) tier = 'B';
   return { tier };
 }
 
-export const ALAVANCAS_ATUAIS = (regras: RegrasIcp): Alavancas => ({ saas: false, sedeNaoConfirmada: false, exigirFaturamento: false, regiao: [...regras.regiao], minGatilhos: 0 });
+export const ALAVANCAS_ATUAIS = (regras: RegrasIcp): Alavancas => ({ oficial: true, saas: false, sedeNaoConfirmada: false, exigirFaturamento: false, regiao: [...regras.regiao], minGatilhos: 2 });
 
 /** Tudo o que a aba mostra para um cenário de alavancas. */
 export function simular(contas: ContaIcp[], al: Alavancas) {
   const linhas = contas.map(a => ({ ...a, ...tierSimulado(a, al) }));
   const conta = (t: Tier) => linhas.filter(l => l.tier === t).length;
   const A = linhas.filter(l => l.tier === 'A');
-  const exclusoes = (['regiao', 'porte', 'ramo', 'b2c'] as MotivoExclusao[]).map(m => ({ motivo: m, n: linhas.filter(l => l.exclusao === m).length }));
+  const exclusoes = (['regiao', 'porte', 'ramo', 'b2c', 'outro'] as MotivoExclusao[]).map(m => ({ motivo: m, n: linhas.filter(l => l.exclusao === m).length }));
   const umAUm = A.filter(l => l.conta.score >= 40).length;
   const umMany = linhas.filter(l => l.tier === 'B' && l.uf && al.regiao.includes(l.uf)).length;
   const entram = linhas.filter(l => l.tier === 'A' && l.tierAtual !== 'A').sort((x, y) => y.conta.score - x.conta.score);
@@ -249,10 +233,12 @@ export function simular(contas: ContaIcp[], al: Alavancas) {
     { rotulo: 'Ramo classificado, sem exclusão', n: classificadas },
     { rotulo: 'Tier A', n: A.length },
     { rotulo: 'Tier A com comitê completo', n: A.filter(l => l.comiteCompleto).length },
-    { rotulo: 'Prontas para ativar', n: A.filter(l => l.conta.acaoRecomendada && ACOES_DE_ABORDAGEM.has(l.conta.acaoRecomendada)).length },
+    { rotulo: 'Prontas para ativar', n: A.filter(l => l.conta.qualificada?.status === 'sim').length },
   ];
   return {
     linhas,
+    oficial: al.oficial === true,
+    aValidadas: A.filter(l => l.statusIcp === 'a_validado' && l.tierAtual === 'A').length,
     nA: A.length,
     nB: conta('B'),
     nC: conta('C'),

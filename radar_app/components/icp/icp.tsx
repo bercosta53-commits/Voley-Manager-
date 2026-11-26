@@ -20,7 +20,7 @@ const COLUNAS_VERTICAL = ['Generalista', 'Fintech', 'Retailtech', 'Regtech', 'Lo
 
 /**
  * Aba ICP: quem a Velora quer ganhar, o que a base diz sobre isso e o que acontece com o Tier A quando uma
- * regra muda. Com as alavancas no padrão, a regra reproduz os tiers atuais conta a conta.
+ * regra muda. O modo oficial mostra os tiers persistidos e não recalcula a classificação.
  */
 export function TelaIcp({ base, regras }: { base: Base; regras: RegrasIcp }) {
   const contas = useMemo(() => prepararContas(base, regras), [base, regras]);
@@ -46,15 +46,15 @@ export function TelaIcp({ base, regras }: { base: Base; regras: RegrasIcp }) {
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight">ICP</h1>
           <p className="mt-1 max-w-[820px] text-sm text-text-2">
-            Quem a Velora quer ganhar, o que a base diz sobre isso e o que acontece com o Tier A quando uma regra muda. A regra abaixo reproduz os tiers atuais conta a conta.
+            Quem a Velora quer ganhar, o que a base diz sobre isso e o que acontece com o Tier A quando uma regra muda. O ICP oficial é lido do Supabase; alterações nas alavancas apenas simulam cenários.
           </p>
           <p className="mt-1 text-xs text-text-3">
-            Base lida em {base.geradoEm.split('-').reverse().join('/')} · {sim.linhas.length} contas · regras em data/icp.json
+            Base lida em {base.geradoEm.split('-').reverse().join('/')} · {sim.linhas.length} contas · {sim.oficial ? 'ICP oficial · Supabase' : 'Cenário simulado · sem gravação'}
           </p>
         </div>
 
         <Definicao sim={sim} regras={regras} al={al} />
-        <Simulador sim={sim} al={al} regras={regras} porUf={porUf} semUf={sim.linhas.filter(l => !l.uf).length} onMudar={m => setAl(a => ({ ...a, ...m }))} onRestaurar={() => setAl(ALAVANCAS_ATUAIS(regras))} />
+        <Simulador sim={sim} al={al} regras={regras} porUf={porUf} semUf={sim.linhas.filter(l => !l.uf).length} onMudar={m => setAl(a => ({ ...a, ...m, oficial: false }))} onRestaurar={() => setAl(ALAVANCAS_ATUAIS(regras))} />
         <Gatilhos linhas={sim.linhas} escopo={escopoGat} onEscopo={setEscopoGat} sel={gatSel} onSel={setGatSel} />
 
         <div className="flex flex-wrap gap-6">
@@ -63,7 +63,7 @@ export function TelaIcp({ base, regras }: { base: Base; regras: RegrasIcp }) {
               <h2 id="fun-t" className="font-display text-xl font-semibold">
                 Da base às contas prontas
               </h2>
-              <p className="mt-0.5 text-sm text-text-3">O gargalo não é achar conta: é completar o comitê de quem já é Tier A.</p>
+              <p className="mt-0.5 text-sm text-text-3">O Tier A não significa ativação automática: valide faturamento, comitê e CQ-1.</p>
             </div>
             <svg viewBox="0 0 560 300" className="w-full" role="img" aria-label={`Funil: ${sim.funil.map(f => `${f.rotulo} ${f.n}`).join(', ')}`}>
               {sim.funil.map((f, i) => {
@@ -101,7 +101,7 @@ export function TelaIcp({ base, regras }: { base: Base; regras: RegrasIcp }) {
                 </h2>
                 <p className="mt-0.5 text-sm text-text-3">% de contas com ao menos uma pessoa em cada papel.</p>
               </div>
-              <Alternar rotulo="Escopo" valor={escopoComite} onMudar={setEscopoComite} opcoes={[['all', 'Toda a base'], ['A', 'Tier A simulado']]} />
+              <Alternar rotulo="Escopo" valor={escopoComite} onMudar={setEscopoComite} opcoes={[['all', 'Toda a base'], ['A', 'Tier A do cenário']]} />
             </div>
             {PAPEIS_COMITE.map(([id, rotulo]) => {
               const n = escopo.filter(l => (id === 'completo' ? l.comiteCompleto : l.papeis.has(id))).length;

@@ -11,10 +11,10 @@ type Simulacao = ReturnType<typeof simular>;
 const POS: Record<string, [number, number]> = { AP: [5, 1], CE: [7, 2], PE: [8, 3], BA: [7, 4], GO: [5, 5], DF: [6, 5], MG: [6, 6], ES: [7, 6], SP: [5, 7], RJ: [6, 7], PR: [4, 8], SC: [4, 9], RS: [3, 10] };
 
 export function Definicao({ sim, regras, al }: { sim: Simulacao; regras: RegrasIcp; al: Alavancas }) {
-  const rotuloExcl = { regiao: 'Fora da região', porte: 'Micro e pequena empresa', ramo: 'Ramo sem classificação', b2c: 'B2C, martech e adtech' } as const;
+  const rotuloExcl = { regiao: 'Fora da região', porte: 'Porte fora da faixa', ramo: 'Ramo sem classificação', b2c: 'B2C, martech e adtech', outro: 'Outras exclusões registradas' } as const;
   return (
     <section aria-label="Definição do ICP" className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
-      <Cartao borda="var(--vr-ok)" rotulo="Principal" corRotulo="var(--vr-ok)" n={sim.nA} titulo="Serviços de tecnologia B2B" nota="Contas Tier A no cenário atual do simulador.">
+      <Cartao borda="var(--vr-ok)" rotulo="Principal" corRotulo="var(--vr-ok)" n={sim.nA} titulo="Serviços de tecnologia B2B" nota={sim.oficial ? `${sim.aValidadas} de ${sim.nA} Tier A formalmente validadas. Demais: qualificação pendente ou provisória.` : "Contas Tier A no cenário simulado, sem alterar o ICP oficial."}>
         <Chip>ramo principal: serviços</Chip>
         <Chip>sede {al.regiao.join('/') || '—'}</Chip>
         <Chip>faturamento {regras.faturamentoAlvo.split(' (')[0].replace(' por ano', '')}</Chip>
@@ -116,10 +116,10 @@ export function Simulador({
           <h2 id="sim-t" className="font-display text-xl font-semibold">
             Simulador de ICP
           </h2>
-          <p className="mt-0.5 text-sm text-text-3">Mude uma regra e veja o Tier A, a capacidade e o programa ABM se mexerem.</p>
+          <p className="mt-0.5 text-sm text-text-3">{sim.oficial ? "ICP oficial · classificação gravada no Supabase. Mude uma regra para iniciar a simulação." : "Cenário simulado · alterações não são gravadas no Supabase."}</p>
         </div>
         <Interruptor ligado={al.saas} rotulo="Software e SaaS como ramo principal" sub={`Decide a pendência sobre SaaS · ${sim.saasAfetadas} contas afetadas`} onMudar={() => onMudar({ saas: !al.saas })} />
-        <Interruptor ligado={al.sedeNaoConfirmada} rotulo="Aceitar sede ainda não confirmada na Receita" sub="Hoje a sede precisa estar confirmada para virar Tier A" onMudar={() => onMudar({ sedeNaoConfirmada: !al.sedeNaoConfirmada })} />
+        <Interruptor ligado={al.sedeNaoConfirmada} rotulo="Aceitar sede ainda não confirmada na Receita" sub="No cenário simulado, aceitar sede sem confirmação documental" onMudar={() => onMudar({ sedeNaoConfirmada: !al.sedeNaoConfirmada })} />
         <Interruptor
           ligado={al.exigirFaturamento}
           rotulo="Exigir faturamento validado para Tier A"
@@ -129,7 +129,7 @@ export function Simulador({
         <div className={cn('flex flex-col gap-2.5 rounded-card border p-3.5', al.minGatilhos ? 'border-ok/50 bg-ok-bg/50' : 'border-border bg-[var(--vr-surface-2)]')}>
           <div>
             <div className="text-sm font-bold">Mínimo de gatilhos comportamentais no Tier A</div>
-            <div className="text-xs text-text-3">Tier A que não bate o mínimo cai para B</div>
+            <div className="text-xs text-text-3">Regra vigente: mínimo de 2 evidências favoráveis. Ajuste para testar hipóteses.</div>
           </div>
           <div role="group" aria-label="Mínimo de gatilhos" className="grid grid-cols-6 gap-1">
             {[0, 1, 2, 3, 4, 5].map(k => (
@@ -171,11 +171,11 @@ export function Simulador({
           </div>
           <div className="mt-2 flex gap-3.5 text-xs text-text-3">
             <span>número = contas na base</span>
-            <span>· {semUf} contas sem UF ficam no Tier B</span>
+            <span>· {semUf} contas sem UF no cadastro</span>
           </div>
         </div>
         <button type="button" onClick={onRestaurar} className="h-9 self-start rounded-control border border-border-strong px-3.5 text-sm hover:bg-[var(--vr-surface-2)]">
-          Restaurar ICP atual ({regras.regiao.join('/')})
+          Restaurar ICP oficial ({regras.regiao.join('/')})
         </button>
       </div>
 
@@ -183,7 +183,7 @@ export function Simulador({
         <div className="grid grid-cols-3 gap-3">
           {(
             [
-              ['A', sim.nA, 'prioridade de ativação', true],
+              ['A', sim.nA, 'prioridade de qualificação', true],
               ['B', sim.nB, 'nutrir e pesquisar', null],
               ['C', sim.nC, 'fora do ICP', false],
             ] as const
@@ -239,14 +239,14 @@ export function Simulador({
             <text x={620} y={12} textAnchor="end" className="fill-text-3 text-[11px]">{max} contas</text>
           </svg>
           <div className="grid grid-cols-3 gap-2.5">
-            <Faixa cor="var(--vr-ok)" rotulo={`1:1 · ${umAUm}`} texto="Tier A com VSCS ≥ 40: abordagem individual, sócio na conversa" />
+            <Faixa cor="var(--vr-ok)" rotulo={`1:1 · ${umAUm}`} texto="Tier A com VSCS ≥ 40: planejamento individual (sujeito a CQ-1)" />
             <Faixa cor="color-mix(in srgb, var(--vr-ok) 60%, var(--vr-text-3))" rotulo={`1:few · ${umFew}`} texto="Demais Tier A, agrupados por vertical" />
             <Faixa cor="var(--vr-cool)" rotulo={`1:many · ${umMany}`} texto="Tier B na região: conteúdo e presença" />
           </div>
         </div>
 
         <div className="grid gap-3.5 md:grid-cols-2">
-          <Movimento titulo="Entram no Tier A" n={sim.entram.length} sinalMais vazio="Nenhuma mudança: ligue uma regra ao lado." itens={sim.entram.map(l => ({ id: l.conta.id, nome: l.conta.nome, extra: `${l.uf || 'sem UF'} · ${l.vertical}`, vscs: l.conta.score }))} />
+          <Movimento titulo="Entram no Tier A" n={sim.entram.length} sinalMais vazio="Nenhuma mudança: altere uma alavanca para simular." itens={sim.entram.map(l => ({ id: l.conta.id, nome: l.conta.nome, extra: `${l.uf || 'sem UF'} · ${l.vertical}`, vscs: l.conta.score }))} />
           <Movimento titulo="Saem do Tier A" n={sim.saem.length} vazio="Ninguém sai." itens={sim.saem.map(l => ({ id: l.conta.id, nome: l.conta.nome, extra: `${l.uf || 'sem UF'} · ${sim.porque(l)}`, vscs: l.conta.score }))} />
         </div>
       </div>
