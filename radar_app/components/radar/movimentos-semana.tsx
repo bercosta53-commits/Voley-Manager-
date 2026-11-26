@@ -95,7 +95,7 @@ function Lista({ titulo, itens, vazio, onAbrir }: { titulo: string; itens: Movim
                 onClick={() => onAbrir(conta.id)}
                 className="grid w-full grid-cols-[20px_minmax(0,9rem)_minmax(0,1fr)_auto_2.75rem] items-center gap-2 rounded-control px-1 py-1 text-left text-xs hover:bg-[var(--vr-surface-2)]"
               >
-                <LogoConta nome={conta.nome} dominio={conta.dominio} tamanho={20} className="rounded-[4px]" />
+                <LogoConta nome={conta.nome} dominio={conta.dominio} tamanho={20} className="rounded-chip" />
                 <span className="truncate font-medium text-foreground">{conta.nome}</span>
                 <span className="truncate text-text-3">{sinal ? (sinal.sinal ?? sinal.porQueAgora) : 'perdeu força com o tempo'}</span>
                 {conta.vscsStatus && <span className={cn('rounded-chip px-1 text-xs', COR_STATUS_VSCS[conta.vscsStatus])}>{conta.vscsStatus}</span>}

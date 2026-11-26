@@ -110,7 +110,7 @@ export function TelaIcp({ base, regras }: { base: Base; regras: RegrasIcp }) {
               return (
                 <div key={id} className="grid items-center gap-2.5" style={{ gridTemplateColumns: '150px 1fr 96px' }}>
                   <span className={cn('text-sm', id === 'completo' ? 'font-bold' : 'font-medium')}>{rotulo}</span>
-                  <div className="h-3.5 overflow-hidden rounded-[3px] bg-[var(--vr-surface-3)]">
+                  <div className="h-3.5 overflow-hidden rounded-chip bg-[var(--vr-surface-3)]">
                     <div className="h-3.5 transition-[width] duration-300" style={{ width: `${(p * 100).toFixed(1)}%`, background: cor }} />
                   </div>
                   <span className="vr-data text-right text-xs">
@@ -151,7 +151,7 @@ export function TelaIcp({ base, regras }: { base: Base; regras: RegrasIcp }) {
                         <div
                           key={c}
                           title={`${f} × ${c}: ${l.length} contas, ${a} Tier A`}
-                          className="flex h-11 flex-col items-center justify-center rounded-[3px] leading-tight"
+                          className="flex h-11 flex-col items-center justify-center rounded-chip leading-tight"
                           style={{ background: l.length ? `color-mix(in srgb, var(--vr-cool) ${Math.round(8 + t * 55)}%, var(--vr-surface))` : 'var(--vr-surface-2)' }}
                         >
                           <span className={cn('vr-data text-sm', t > 0.7 ? 'text-white' : 'text-foreground')}>{l.length || '·'}</span>
@@ -181,9 +181,9 @@ export function TelaIcp({ base, regras }: { base: Base; regras: RegrasIcp }) {
 function Linha({ nome, total, a, children }: { nome: string; total: number; a: number; children: React.ReactNode }) {
   return (
     <>
-      <div className="flex h-11 items-center rounded-[3px] bg-[var(--vr-surface-2)] px-2 font-semibold">{nome}</div>
+      <div className="flex h-11 items-center rounded-chip bg-[var(--vr-surface-2)] px-2 font-semibold">{nome}</div>
       {children}
-      <div className="flex h-11 flex-col items-center justify-center rounded-[3px] bg-[var(--vr-surface-2)] leading-tight">
+      <div className="flex h-11 flex-col items-center justify-center rounded-chip bg-[var(--vr-surface-2)] leading-tight">
         <span className="vr-data text-sm">{total}</span>
         <span className="vr-data text-xs font-semibold text-ok">{a} A</span>
       </div>

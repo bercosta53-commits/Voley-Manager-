@@ -67,7 +67,7 @@ export function MenuFiltro<T extends string>({
                 }}
                 className="flex min-h-9 w-full items-center gap-2 rounded-control px-2 text-left text-sm hover:bg-secondary max-md:min-h-11"
               >
-                <span className={cn('grid size-4 place-items-center rounded-[4px] border', marcado ? 'border-foreground bg-foreground text-background' : 'border-border-strong')}>
+                <span className={cn('grid size-4 place-items-center rounded-chip border', marcado ? 'border-foreground bg-foreground text-background' : 'border-border-strong')}>
                   {marcado && <Check className="size-3" strokeWidth={2} />}
                 </span>
                 <span className="flex-1">{o.rotulo}</span>

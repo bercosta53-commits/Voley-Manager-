@@ -91,17 +91,17 @@ function Linha({ v, cels, sel, onSel }: { v: Vertical; cels: { v: string; fundo:
       <button
         type="button"
         onClick={() => onSel(v.id)}
-        className={cn('flex h-[30px] items-center gap-2 rounded-[3px] px-2 text-left text-xs font-semibold', sel ? 'bg-acid-soft text-foreground' : 'bg-[var(--vr-surface-2)]')}
+        className={cn('flex h-[30px] items-center gap-2 rounded-chip px-2 text-left text-xs font-semibold', sel ? 'bg-acid-soft text-foreground' : 'bg-[var(--vr-surface-2)]')}
       >
         <span className="size-2 shrink-0 rounded-full" style={{ background: COR_CLIMA[v.estado] }} />
         {v.nome}
       </button>
       {cels.map((c, i) => (
-        <div key={i} title={c.titulo} className={cn('vr-data flex h-[30px] items-center justify-center rounded-[3px] text-xs', c.forte ? 'font-semibold text-white' : 'text-foreground')} style={{ background: c.fundo }}>
+        <div key={i} title={c.titulo} className={cn('vr-data flex h-[30px] items-center justify-center rounded-chip text-xs', c.forte ? 'font-semibold text-white' : 'text-foreground')} style={{ background: c.fundo }}>
           {c.v}
         </div>
       ))}
-      <div className="vr-data flex h-[30px] items-center justify-center rounded-[3px] bg-[var(--vr-surface-2)] text-xs font-semibold" style={{ color: COR_CLIMA[v.estado] }}>
+      <div className="vr-data flex h-[30px] items-center justify-center rounded-chip bg-[var(--vr-surface-2)] text-xs font-semibold" style={{ color: COR_CLIMA[v.estado] }}>
         {fmtClima(v.S)}
       </div>
     </>

@@ -68,7 +68,7 @@ export function SetoresImpactados({ t, contas }: { t: Indicador; contas: Conta[]
               {lista.map(c => (
                 <li key={c.id}>
                   <Link href={hrefConta(c.id)} className="flex items-center gap-3 py-2.5 hover:bg-[var(--vr-surface-2)]">
-                    <LogoConta nome={c.nome} dominio={c.dominio} tamanho={28} className="rounded-[6px]" />
+                    <LogoConta nome={c.nome} dominio={c.dominio} tamanho={28} className="rounded-control" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold">{c.nome}</span>
                       <span className="block truncate text-xs text-text-3">

@@ -263,7 +263,7 @@ function Linhas({ r, pool, comax }: { r: (typeof GATILHOS)[number]; pool: Linha[
           <div
             key={c.id}
             title={`${r.nome} + ${c.nome}: ${n}`}
-            className={cn('vr-data flex h-[38px] items-center justify-center rounded-[3px] text-xs', diag ? 'font-bold' : '', t > 0.65 ? 'text-white' : 'text-foreground')}
+            className={cn('vr-data flex h-[38px] items-center justify-center rounded-chip text-xs', diag ? 'font-bold' : '', t > 0.65 ? 'text-white' : 'text-foreground')}
             style={{ background: `color-mix(in srgb, ${diag ? 'var(--vr-ok)' : 'var(--vr-cool)'} ${Math.round(10 + t * 62)}%, var(--vr-surface))` }}
           >
             {n}
