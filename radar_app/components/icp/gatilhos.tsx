@@ -144,10 +144,10 @@ export function Gatilhos({
                   <rect x={x} y={190 - hC} width={40} height={hC} fill={COR_TIER_ICP.C} />
                   <rect x={x} y={190 - hC - hB} width={40} height={hB} fill={COR_TIER_ICP.B} />
                   <rect x={x} y={190 - hC - hB - hA} width={40} height={hA} fill={COR_TIER_ICP.A} />
-                  <text x={x + 20} y={184 - hA - hB - hC} textAnchor="middle" className="vr-data fill-foreground text-[12px]">
+                  <text x={x + 20} y={184 - hA - hB - hC} textAnchor="middle" className="vr-data fill-foreground text-xs">
                     {h.n}
                   </text>
-                  <text x={x + 20} y={208} textAnchor="middle" className="vr-data fill-text-3 text-[12px]">
+                  <text x={x + 20} y={208} textAnchor="middle" className="vr-data fill-text-3 text-xs">
                     {h.k}
                   </text>
                 </g>

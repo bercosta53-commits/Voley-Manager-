@@ -74,7 +74,7 @@ export function TelaIcp({ base, regras }: { base: Base; regras: RegrasIcp }) {
                 const forte = ant !== null && ant > 0 && (ant - f.n) / ant > 0.5;
                 return (
                   <g key={f.rotulo}>
-                    <text x={0} y={y - 5} className="fill-text-2 text-[12px] font-semibold">
+                    <text x={0} y={y - 5} className="fill-text-2 text-xs font-semibold">
                       {f.rotulo}
                     </text>
                     <rect x={0} y={y} width={w} height={22} rx={4} fill={i >= 3 ? 'var(--vr-ok)' : 'var(--vr-cool)'} fillOpacity={i >= 3 ? 0.85 : 0.6} />

@@ -32,6 +32,7 @@ import { Decomposicao } from './decomposicao';
 import { useHoje } from '@/components/ui/use-agora';
 import { Rotulo } from '@/components/ui/rotulo';
 import { Chip } from '@/components/ui/chip';
+import { Secao } from '@/components/ui/secao';
 
 type EstadoTela = 'normal' | 'carregando' | 'vazio' | 'erro' | 'sem-permissao';
 const ESTADOS: EstadoTela[] = ['carregando', 'vazio', 'erro', 'sem-permissao'];
@@ -438,8 +439,7 @@ function Cadastro({ conta }: { conta: Conta }) {
     linhas.push(['Sócios', conta.socios.map(s => (s.qualificacao ? `${s.nome} (${s.qualificacao})` : s.nome)).join(', ')]);
   }
   return (
-    <section className="vr-card p-5">
-      <Rotulo>Dados cadastrais</Rotulo>
+    <Secao titulo="Dados cadastrais">
       <dl className="mt-3 grid gap-2.5 text-sm">
         {linhas.map(([k, v]) => (
           <div key={k} className="grid grid-cols-[112px_minmax(0,1fr)] gap-3">
@@ -448,7 +448,7 @@ function Cadastro({ conta }: { conta: Conta }) {
           </div>
         ))}
       </dl>
-    </section>
+    </Secao>
   );
 }
 

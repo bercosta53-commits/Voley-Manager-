@@ -58,10 +58,10 @@ export function Losango({ dims, tamanho = 220, compacto = false }: { dims: Recor
           const base = dy < 0 ? -4 : dy > 0 ? 12 : 4;
           return (
             <g key={d}>
-              <text x={x} y={y + base - (dy === 0 ? 7 : dy < 0 ? 13 : 0)} textAnchor={anchor} className={cn('fill-text-2 font-medium', 'text-[12px]')}>
+              <text x={x} y={y + base - (dy === 0 ? 7 : dy < 0 ? 13 : 0)} textAnchor={anchor} className={cn('fill-text-2 font-medium', 'text-xs')}>
                 {compacto ? ({ icp: 'ICP', sinais: 'Sinais', clima: 'Clima', oportunidadeDigital: 'Digital' } as const)[d] : ROTULO_DIMENSAO[d]}
               </text>
-              <text x={x} y={y + base + (dy === 0 ? 7 : dy < 0 ? 0 : 13)} textAnchor={anchor} className={cn(notas[i] !== null ? 'vr-data fill-foreground font-semibold' : 'fill-text-3', 'text-[12px]')}>
+              <text x={x} y={y + base + (dy === 0 ? 7 : dy < 0 ? 0 : 13)} textAnchor={anchor} className={cn(notas[i] !== null ? 'vr-data fill-foreground font-semibold' : 'fill-text-3', 'text-xs')}>
                 {notas[i] !== null ? formatarNota(Math.round(notas[i]! * 10) / 10) : 'Sem avaliação'}
               </text>
             </g>

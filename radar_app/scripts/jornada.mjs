@@ -152,7 +152,7 @@ try {
   vigiar(terceiro);
   await terceiro.goto(app.url(`/contas/${contaAlvo.id}`), { waitUntil: 'networkidle' });
   await terceiro.locator('#andamento-conta').waitFor();
-  const textoAndamento = await terceiro.locator('section:has(#andamento-conta)').innerText();
+  const textoAndamento = await terceiro.locator('#andamento-conta').innerText();
   conferir(textoAndamento.includes(`Reunião · por ${AUTOR}`), 'outro navegador vê o andamento com autor', textoAndamento.replace(/\s+/g, ' ').slice(0, 90));
   await terceiro.getByRole('group', { name: 'Andamento da conta' }).getByRole('button', { name: 'Reunião' }).click();
   await terceiro.waitForTimeout(500);

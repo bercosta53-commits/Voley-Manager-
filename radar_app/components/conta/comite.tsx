@@ -2,7 +2,7 @@ import { UserRound, UserRoundSearch } from 'lucide-react';
 import type { Conta, Pessoa, PapelAbm } from '@/lib/tipos';
 import { cn } from '@/lib/utils';
 import { ocupa, papelNoComite } from '@/lib/papeis';
-import { Rotulo } from '@/components/ui/rotulo';
+import { Secao } from '@/components/ui/secao';
 
 /** Os três lugares que o ABM precisa ocupar antes de abordar (scripts/qualificar_icp.py classifica pelo cargo). */
 const LUGARES: { papel: PapelAbm; rotulo: string; quem: string }[] = [
@@ -45,13 +45,16 @@ export function Comite({ conta }: { conta: Conta }) {
   const conhecidos = LUGARES.filter(l => conta.comite.some(p => ocupa(p, l.papel))).length;
   const travas = conta.comite.filter(p => papelDe(p) === 'trava');
   return (
-    <section id="comite" className="vr-card scroll-mt-20 p-5">
-      <div className="flex items-baseline justify-between gap-2">
-        <Rotulo>Comitê de compra</Rotulo>
+    <Secao
+      id="comite"
+      titulo="Comitê de compra"
+      className="scroll-mt-20"
+      extra={
         <span className="vr-data text-xs text-text-3">
           {conhecidos}/{LUGARES.length}
         </span>
-      </div>
+      }
+    >
       <div className="mt-3 flex flex-col gap-4">
         {LUGARES.map(l => {
           const pessoas = conta.comite.filter(p => ocupa(p, l.papel));
@@ -90,6 +93,6 @@ export function Comite({ conta }: { conta: Conta }) {
         Papel pelo cargo: quem assina o cheque aprova o orçamento, o decisor decide na área, o dono da dor vive o problema e puxa a conversa, a trava pode barrar
         (TI, compras, jurídico).
       </p>
-    </section>
+    </Secao>
   );
 }

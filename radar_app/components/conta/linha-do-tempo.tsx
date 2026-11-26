@@ -4,7 +4,7 @@ import type { Conta, EstadoSinal, Sinal } from '@/lib/tipos';
 import { cn, dataCurta, quando } from '@/lib/utils';
 import { IconeSinal } from '@/components/hoje/icone-sinal';
 import { Evidencia } from '@/components/ui/evidencia';
-import { Rotulo } from '@/components/ui/rotulo';
+import { Secao } from '@/components/ui/secao';
 
 interface Item {
   chave: string;
@@ -78,8 +78,7 @@ export function LinhaDoTempo({
   itens.sort((a, b) => (a.data === b.data ? Number(!!b.acao) - Number(!!a.acao) : b.data.localeCompare(a.data)));
 
   return (
-    <section className="vr-card p-5">
-      <Rotulo>Linha do tempo</Rotulo>
+    <Secao titulo="Linha do tempo">
       {!itens.length ? (
         <p className="mt-3 text-sm text-text-3">Nenhum fato registrado nesta conta ainda. Os coletores trazem os próximos.</p>
       ) : (
@@ -110,7 +109,7 @@ export function LinhaDoTempo({
           ))}
         </ol>
       )}
-    </section>
+    </Secao>
   );
 }
 
