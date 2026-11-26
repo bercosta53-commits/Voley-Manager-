@@ -67,8 +67,8 @@ function Checagem({ c }: { c: CriterioClasse }) {
 
 /** Por que esta classe, e não a de cima: a mesma regra do cálculo, em texto. */
 function PorQueClasse({ v }: { v: VisaoIntegradaConta }) {
-  if (!v.classeIntegrada || !v.criteriosA1) return null;
-  if (v.classeIntegrada === 'A1') return <p className="text-sm">Atende todos os critérios do sweet spot.</p>;
+  if (!v.classeIntegrada || !v.criteriosSweet) return null;
+  if (v.classeIntegrada === 'A1') return <p className="text-sm">No topo do sweet spot: atende todos os critérios de A1.</p>;
   const acima = v.classeIntegrada === 'A2' ? 'A1' : 'A2';
   const regra = acima === 'A1' ? REGRAS.A1 : REGRAS.A2;
   const crit: CriterioClasse[] = [
@@ -81,7 +81,7 @@ function PorQueClasse({ v }: { v: VisaoIntegradaConta }) {
   return (
     <div>
       <h3 className="text-sm font-semibold">
-        Por que {v.classeIntegrada} e não {acima}?
+        Por que {v.classeIntegrada} e não {acima}?{acima === 'A2' && <span className="font-normal text-text-3"> (entrada do sweet spot)</span>}{v.classeIntegrada === 'A2' && <span className="font-normal text-text-3"> (já no sweet spot; A1 é o topo)</span>}
       </h3>
       {v.classeIntegrada === 'C' && <p className="mt-1 text-sm text-text-2">{v.motivosClassificacao[0]}</p>}
       <ul className="mt-1.5 grid gap-1">
@@ -94,7 +94,7 @@ function PorQueClasse({ v }: { v: VisaoIntegradaConta }) {
 }
 
 function SweetSpot({ v }: { v: VisaoIntegradaConta }) {
-  if (v.situacaoSweetSpot === 'a1') return null;
+  if (v.situacaoSweetSpot === 'sweet_spot') return null;
   if (v.situacaoSweetSpot === 'candidata' && v.investigacao) {
     const i = v.investigacao;
     return (
@@ -107,12 +107,16 @@ function SweetSpot({ v }: { v: VisaoIntegradaConta }) {
           <li>
             <span className="text-text-3">O que resolveria:</span> {i.evidenciaNecessaria}
           </li>
-          {i.notaMinimaParaA1 !== null && (
+          {i.notaMinimaParaSweet !== null && (
             <li>
-              <span className="text-text-3">Para A1:</span> {ROTULO_DIMENSAO[i.dimensao]} precisa ser ≥ {nota1(Math.ceil(i.notaMinimaParaA1 * 10 - 1e-6) / 10)}.
+              <span className="text-text-3">Para o sweet spot (A2):</span> {ROTULO_DIMENSAO[i.dimensao]} precisa ser ≥ {nota1(Math.ceil(i.notaMinimaParaSweet * 10 - 1e-6) / 10)}.
             </li>
           )}
-          <li className="text-text-2">{i.podeChegarA2 ? 'Também pode chegar a A2.' : 'Não chega a A2 com as notas que já tem.'}</li>
+          <li className="text-text-2">
+            {i.notaMinimaParaA1 !== null
+              ? `Para o topo (A1): ≥ ${nota1(Math.ceil(i.notaMinimaParaA1 * 10 - 1e-6) / 10)}.`
+              : 'O topo (A1) não é alcançável com as notas que já tem.'}
+          </li>
         </ul>
         <p className="mt-2 text-xs text-text-3">A investigação não autoriza abordagem.</p>
       </div>
@@ -121,7 +125,7 @@ function SweetSpot({ v }: { v: VisaoIntegradaConta }) {
   return (
     <div>
       <h3 className="text-sm font-semibold">Para chegar ao sweet spot</h3>
-      {v.criteriosA1Atendidos !== null && <p className="mt-1 text-sm">Atende {v.criteriosA1Atendidos} de 5 critérios de A1.</p>}
+      {v.criteriosSweetAtendidos !== null && <p className="mt-1 text-sm">Atende {v.criteriosSweetAtendidos} de 5 critérios de entrada (A2).</p>}
       <ul className="mt-1 grid gap-0.5 text-sm text-text-2">
         {v.motivosClassificacao.map(m => (
           <li key={m}>{v.situacaoSweetSpot === 'fora_por_falta_de_dados' ? `${m}: fora do sweet spot até completar.` : m}</li>

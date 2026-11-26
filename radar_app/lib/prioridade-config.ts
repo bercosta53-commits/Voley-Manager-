@@ -43,9 +43,16 @@ export const REGRAS = {
   B1: { nota: 3.25 },
 } as const;
 
+/**
+ * Sweet spot = A1 ou A2 (decisão D2 de Bernardo, 26/11). A entrada no sweet spot segue as regras de A2; A1 é o
+ * topo, com a maior convergência. Candidata = uma dimensão faltando e A2 ainda alcançável.
+ */
+export const SWEET_SPOT: Classe[] = ['A1', 'A2'];
+export const ENTRADA_SWEET_SPOT = 'A2' as const;
+
 export const LEITURA_CLASSE: Record<Classe, string> = {
-  A1: 'Sweet spot: maior convergência',
-  A2: 'Alta prioridade',
+  A1: 'Sweet spot, topo: maior convergência',
+  A2: 'Sweet spot: alta prioridade',
   B1: 'Boa conta para desenvolvimento',
   B2: 'Monitorar ou validar antes de priorizar',
   C: 'Baixa prioridade no modelo integrado',
@@ -55,7 +62,7 @@ export const LEITURA_CLASSE: Record<Classe, string> = {
 export const ATALHOS = {
   bomEncaixeTimingFraco: { icpMin: 4, sinaisAbaixoDe: 3 },
   timingForteEncaixeDuvidoso: { sinaisMin: 4, icpAbaixoDe: 4 },
-  pertoDoSweetSpot: { criteriosA1: 4 },
+  pertoDoSweetSpot: { criteriosEntrada: 4 },
 } as const;
 
 /**
@@ -67,9 +74,9 @@ export const ORIGEM = {
   icp: {
     campoOrigem: 'conta.icp.tier (ou conta.tier)',
     escalaOriginal: 'Tier ICP A / B / C (regras em data/icp.json)',
-    transformacao: 'A → 4,0 · B → 3,0 · C → 2,0',
-    mapeamento: 'proposto' as const,
-    nota: { A: 4, B: 3, C: 2 } as Record<string, number>,
+    transformacao: 'A → 5,0 · B → 3,0 · C → 2,0 (decisão D5, 26/11)',
+    mapeamento: 'documentado' as const,
+    nota: { A: 5, B: 3, C: 2 } as Record<string, number>,
   },
   sinais: {
     campoOrigem: 'conta.score (= v2.vscs, VSCS 3.0)',
@@ -91,7 +98,7 @@ export const ORIGEM = {
     mapeamento: 'proposto' as const,
     nota: { 1: 2, 2: 4, 3: 4, 4: 2, 5: 1 } as Record<number, number>,
     /** validade proposta para a auditoria web; mais antiga que isso, mostra a nota mas não entra no cálculo */
-    validadeDias: 60,
+    validadeDias: 135, // decisão D7 (26/11): um trimestre e meio
   },
 };
 

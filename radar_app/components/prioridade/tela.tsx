@@ -23,11 +23,11 @@ import { CruzarDimensoes, MatrizSetorPrioridade, ResumoDoSetor } from './visoes'
 import { dataCurta } from '@/lib/utils';
 
 const SITUACOES: { id: SituacaoSweetSpot; rotulo: string }[] = [
-  { id: 'a1', rotulo: 'A1 (sweet spot)' },
+  { id: 'sweet_spot', rotulo: 'No sweet spot (A1 ou A2)' },
   { id: 'candidata', rotulo: 'Candidata (1 a investigar)' },
   { id: 'fora_por_criterio', rotulo: 'Fora por critério' },
   { id: 'fora_por_falta_de_dados', rotulo: 'Fora por falta de dados' },
-  { id: 'fora_por_classe', rotulo: 'Completa, fora de A1' },
+  { id: 'fora_por_classe', rotulo: 'Completa, fora do sweet spot' },
 ];
 const PASSOS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
 
@@ -120,12 +120,12 @@ function Indicador({ l, d }: { l: LinhaPrioridade; d: Dimensao }) {
 
 function Proximidade({ l }: { l: LinhaPrioridade }) {
   const v = l.visao;
-  if (v.situacaoSweetSpot === 'a1') return <span className="text-sm font-medium text-ok">No sweet spot</span>;
+  if (v.situacaoSweetSpot === 'sweet_spot') return <span className="text-sm font-medium text-ok">No sweet spot{v.classeIntegrada === 'A1' ? ' (topo)' : ''}</span>;
   if (v.situacaoSweetSpot === 'candidata') return <span className="text-sm">{v.motivosClassificacao[0]}</span>;
-  if (v.criteriosA1Atendidos !== null)
+  if (v.criteriosSweetAtendidos !== null)
     return (
       <span className="text-sm">
-        Atende {v.criteriosA1Atendidos} de 5 critérios de A1
+        Atende {v.criteriosSweetAtendidos} de 5 critérios do sweet spot
         {v.motivosClassificacao[0] && <span className="block text-xs text-text-3">falta {v.motivosClassificacao.map(m => m.replace(/, falta .*/, '')).join(', ')}</span>}
       </span>
     );
@@ -220,7 +220,7 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
   const linhaConta = (l: LinhaPrioridade) => {
     const v = l.visao;
     const naComparacao = estado.cmp.includes(l.contaId);
-    const enfase = v.classeIntegrada === 'A1' ? 'bg-ok/10' : v.situacaoSweetSpot === 'candidata' ? 'shadow-[inset_3px_0_0_var(--vr-ok)]' : '';
+    const enfase = v.situacaoSweetSpot === 'sweet_spot' ? 'bg-ok/10' : v.situacaoSweetSpot === 'candidata' ? 'shadow-[inset_3px_0_0_var(--vr-ok)]' : '';
     const datas = DIMENSOES.map(d => v.dimensoes[d].dataReferencia).filter((x): x is string => !!x).sort();
     return (
       <tr key={l.contaId} className={cn('hover:bg-secondary/60', enfase, estado.sel === l.contaId && 'bg-secondary')}>

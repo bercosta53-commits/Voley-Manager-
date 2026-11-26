@@ -18,8 +18,8 @@ const ESTILO: Record<Segmento, { fundo: string; marca: React.CSSProperties }> = 
 export function textoFaixa(total: number, completas: number, c: Record<Segmento, number>) {
   return (
     `${plural(total, 'conta monitorada', 'contas monitoradas')}, ${completas} com as quatro dimensões: ` +
-    `${c.a1} em A1, ${c.candidata} candidatas com 1 dimensão a investigar, ${c.A2} em A2, ${c.B1} em B1, ${c.B2} em B2, ${c.C} em C, ` +
-    `${c.fora_por_criterio} com 1 faltando e A1 fora de alcance, ${c.sem_metrica} sem métrica por terem 2 ou mais dimensões faltando.`
+    `${c.a1 + c.A2} no sweet spot (${c.a1} em A1 e ${c.A2} em A2), ${c.candidata} candidatas com 1 dimensão a investigar, ${c.B1} em B1, ${c.B2} em B2, ${c.C} em C, ` +
+    `${c.fora_por_criterio} com 1 faltando e o sweet spot fora de alcance, ${c.sem_metrica} sem métrica por terem 2 ou mais dimensões faltando.`
   );
 }
 
@@ -40,7 +40,7 @@ export function Faixa({
   ativos: Segmento[];
   onAlternar: (s: Segmento) => void;
 }) {
-  const semA1 = contagem.a1 === 0;
+  const semSweet = contagem.a1 + contagem.A2 === 0;
   return (
     <section aria-labelledby="faixa-titulo" className="mb-4">
       <h2 id="faixa-titulo" className="sr-only">
@@ -87,9 +87,9 @@ export function Faixa({
         </ul>
       </div>
       <p className="sr-only">{textoFaixa(total, completas, contagem)}</p>
-      {semA1 && completas === 0 && (
+      {semSweet && completas === 0 && (
         <p className="mt-2 text-xs text-text-3">
-          Nenhuma conta tem as quatro dimensões avaliadas nesta carga, então não há A1 a mostrar. O Clima do setor ainda não tem nota por conta.
+          Nenhuma conta tem as quatro dimensões avaliadas nesta carga, então não há conta no sweet spot a mostrar. O Clima do setor ainda não tem nota por conta.
         </p>
       )}
     </section>

@@ -1,7 +1,7 @@
 import type { Conta } from './tipos';
 import {
-  CLASSES, DIMENSOES, EVIDENCIA_NECESSARIA, ORIGEM, PESOS, REGRAS, ROTULO_CURTO, ROTULO_DIMENSAO, SINAIS_PENDENTES_ENTRAM,
-  TOLERANCIA, VERSAO_MODELO, type Classe, type Dimensao,
+  CLASSES, DIMENSOES, ENTRADA_SWEET_SPOT, EVIDENCIA_NECESSARIA, ORIGEM, PESOS, REGRAS, ROTULO_CURTO, ROTULO_DIMENSAO, SINAIS_PENDENTES_ENTRAM,
+  SWEET_SPOT, TOLERANCIA, VERSAO_MODELO, type Classe, type Dimensao,
 } from './prioridade-config';
 
 /**
@@ -38,6 +38,9 @@ function criterios(n: Notas, media: number, regra: { nota: number; minimos: Reco
 }
 export const criteriosA1 = (n: Notas, media = notaIntegrada(n)) => criterios(n, media, REGRAS.A1);
 export const criteriosA2 = (n: Notas, media = notaIntegrada(n)) => criterios(n, media, REGRAS.A2);
+/** Critérios de entrada no sweet spot (as regras da classe mais baixa dele, A2). */
+export const criteriosSweet = (n: Notas, media = notaIntegrada(n)) => criterios(n, media, REGRAS[ENTRADA_SWEET_SPOT]);
+export const noSweetSpot = (c: Classe) => SWEET_SPOT.includes(c);
 
 /** Classe na ordem da configuração: C (trava), A1, A2, B1, B2. */
 export function classificar(n: Notas): Classe {
@@ -50,16 +53,19 @@ export function classificar(n: Notas): Classe {
 }
 
 /**
- * Nota mínima da dimensão faltante para a conta virar A1: o maior entre o que falta para a nota integrada chegar
- * ao piso de A1 e o mínimo individual daquela dimensão. Acima de 5, A1 é impossível (retorna null).
+ * Nota mínima da dimensão faltante para a conta chegar a uma classe: o maior entre o que falta para a nota
+ * integrada chegar ao piso da classe e o mínimo individual daquela dimensão. Acima de 5, é impossível (null).
  */
-export function notaMinimaParaA1(conhecidas: Partial<Notas>, faltante: Dimensao): number | null {
+function notaMinimaPara(regra: { nota: number; minimos: Record<Dimensao, number> }, conhecidas: Partial<Notas>, faltante: Dimensao): number | null {
   const pesoTotal = DIMENSOES.reduce((s, d) => s + PESOS[d], 0);
   const soma = DIMENSOES.filter(d => d !== faltante).reduce((s, d) => s + (conhecidas[d] ?? 0) * PESOS[d], 0);
-  const pelaMedia = (REGRAS.A1.nota * pesoTotal - soma) / PESOS[faltante];
-  const minimo = Math.max(pelaMedia, REGRAS.A1.minimos[faltante]);
+  const pelaMedia = (regra.nota * pesoTotal - soma) / PESOS[faltante];
+  const minimo = Math.max(pelaMedia, regra.minimos[faltante]);
   return minimo > 5 + TOLERANCIA ? null : minimo;
 }
+export const notaMinimaParaA1 = (conhecidas: Partial<Notas>, faltante: Dimensao) => notaMinimaPara(REGRAS.A1, conhecidas, faltante);
+/** Para entrar no sweet spot (regras de A2). */
+export const notaMinimaParaSweet = (conhecidas: Partial<Notas>, faltante: Dimensao) => notaMinimaPara(REGRAS[ENTRADA_SWEET_SPOT], conhecidas, faltante);
 
 // ---------------------------------------------------------------- adaptador
 
@@ -81,7 +87,7 @@ export interface DimensaoIntegrada {
   pendenciasQualidade: string[];
 }
 
-export type SituacaoSweetSpot = 'a1' | 'candidata' | 'fora_por_criterio' | 'fora_por_falta_de_dados' | 'fora_por_classe';
+export type SituacaoSweetSpot = 'sweet_spot' | 'candidata' | 'fora_por_criterio' | 'fora_por_falta_de_dados' | 'fora_por_classe';
 
 export interface VisaoIntegradaConta {
   contaId: string;
@@ -91,16 +97,20 @@ export interface VisaoIntegradaConta {
   classeIntegrada: Classe | null;
   versaoModelo: typeof VERSAO_MODELO;
   motivosClassificacao: string[];
-  criteriosA1: CriterioClasse[] | null;
-  criteriosA1Atendidos: number | null;
+  /** critérios de entrada no sweet spot (regras de A2) */
+  criteriosSweet: CriterioClasse[] | null;
+  criteriosSweetAtendidos: number | null;
   dimensoesFaltantes: Dimensao[];
   situacaoSweetSpot: SituacaoSweetSpot;
   investigacao: {
     dimensao: Dimensao;
     motivo: string | null;
     evidenciaNecessaria: string | null;
+    /** nota mínima da dimensão faltante para entrar no sweet spot (A2) */
+    notaMinimaParaSweet: number | null;
+    /** e para chegar ao topo (A1); null se A1 já está fora de alcance */
     notaMinimaParaA1: number | null;
-    podeChegarA2: boolean;
+    podeChegarA1: boolean;
   } | null;
 }
 
@@ -197,18 +207,18 @@ export function visaoIntegrada(
     const n = Object.fromEntries(DIMENSOES.map(d => [d, dims[d].nota!])) as Notas;
     const media = notaIntegrada(n);
     const classe = classificar(n);
-    const crit = criteriosA1(n, media);
+    const crit = criteriosSweet(n, media);
     const motivos =
       classe === 'C'
         ? [!atinge(n.icp, REGRAS.C.icpAbaixoDe) ? `ICP ${fmt1(n.icp)} abaixo de ${fmt1(REGRAS.C.icpAbaixoDe)} (trava)` : `Nota integrada ${formatarIntegrada(media)} abaixo de ${fmt1(REGRAS.C.notaAbaixoDe)}`]
         : crit.filter(c => !c.atendido).map(c => `${c.rotulo} ${c.dimensao === 'nota' ? formatarIntegrada(c.valor) : fmt1(c.valor)}, falta ${fmt1(Math.round((c.minimo - c.valor) * 100) / 100)}`);
     return {
-      ...base, notaIntegrada: media, classeIntegrada: classe, motivosClassificacao: motivos, criteriosA1: crit,
-      criteriosA1Atendidos: crit.filter(c => c.atendido).length, situacaoSweetSpot: classe === 'A1' ? 'a1' : 'fora_por_classe', investigacao: null,
+      ...base, notaIntegrada: media, classeIntegrada: classe, motivosClassificacao: noSweetSpot(classe) ? [] : motivos, criteriosSweet: crit,
+      criteriosSweetAtendidos: crit.filter(c => c.atendido).length, situacaoSweetSpot: noSweetSpot(classe) ? 'sweet_spot' : 'fora_por_classe', investigacao: null,
     };
   }
 
-  const semClasse = { ...base, notaIntegrada: null, classeIntegrada: null, criteriosA1: null, criteriosA1Atendidos: null };
+  const semClasse = { ...base, notaIntegrada: null, classeIntegrada: null, criteriosSweet: null, criteriosSweetAtendidos: null };
   if (faltantes.length >= 2)
     return { ...semClasse, motivosClassificacao: [`Faltam ${faltantes.map(d => ROTULO_CURTO[d]).join(', ')}`], situacaoSweetSpot: 'fora_por_falta_de_dados', investigacao: null };
 
@@ -217,9 +227,9 @@ export function visaoIntegrada(
   const conhecidas = Object.fromEntries(validas.map(d => [d, dims[d].nota!])) as Partial<Notas>;
   const teste = { ...conhecidas, [falta]: 5 } as Notas;
   const media = notaIntegrada(teste);
-  const quebram = criteriosA1(teste, media).filter(c => !c.atendido && c.dimensao !== falta);
-  const minima = notaMinimaParaA1(conhecidas, falta);
-  const podeChegarA2 = criteriosA2(teste, media).every(c => c.atendido);
+  const quebram = criteriosSweet(teste, media).filter(c => !c.atendido && c.dimensao !== falta);
+  const minima = notaMinimaParaSweet(conhecidas, falta);
+  const podeChegarA1 = criteriosA1(teste, media).every(c => c.atendido);
   if (quebram.length || minima === null) {
     const motivos = quebram
       .filter(c => c.dimensao !== 'nota')
@@ -227,16 +237,19 @@ export function visaoIntegrada(
     return {
       ...semClasse,
       // o teto usa a faltante no máximo da escala; mostra só o teto da média, nunca a nota de teste
-      motivosClassificacao: motivos.length ? motivos : [`Teto da nota integrada ${formatarIntegrada(media)} (A1 pede ${formatarIntegrada(REGRAS.A1.nota)})`],
+      motivosClassificacao: motivos.length ? motivos : [`Teto da nota integrada ${formatarIntegrada(media)} (o sweet spot pede ${formatarIntegrada(REGRAS[ENTRADA_SWEET_SPOT].nota)})`],
       situacaoSweetSpot: 'fora_por_criterio',
       investigacao: null,
     };
   }
   return {
     ...semClasse,
-    motivosClassificacao: [`Investigar ${ROTULO_DIMENSAO[falta]}: precisa de nota ≥ ${fmt1(Math.ceil(minima * 10 - 1e-6) / 10)} para A1`],
+    motivosClassificacao: [`Investigar ${ROTULO_DIMENSAO[falta]}: precisa de nota ≥ ${fmt1(Math.ceil(minima * 10 - 1e-6) / 10)} para o sweet spot`],
     situacaoSweetSpot: 'candidata',
-    investigacao: { dimensao: falta, motivo: dims[falta].resumo, evidenciaNecessaria: EVIDENCIA_NECESSARIA[falta], notaMinimaParaA1: minima, podeChegarA2 },
+    investigacao: {
+      dimensao: falta, motivo: dims[falta].resumo, evidenciaNecessaria: EVIDENCIA_NECESSARIA[falta],
+      notaMinimaParaSweet: minima, notaMinimaParaA1: notaMinimaParaA1(conhecidas, falta), podeChegarA1,
+    },
   };
 }
 

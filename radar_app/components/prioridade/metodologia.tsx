@@ -79,7 +79,7 @@ export function Metodologia({ abrirPedido }: { abrirPedido: number }) {
                 <Termo termo="Travas" definicao="Mínimos que nenhuma média alta compensa." />: ICP abaixo de {n(REGRAS.C.icpAbaixoDe)} vira C. Para A: ICP ≥ {n(a1.icp)}, Sinais ≥ {n(a2.sinais)} (A2) ou ≥ {n(a1.sinais)} (A1), Clima e Oportunidade digital ≥ {n(a1.clima)}.
               </>,
               <>
-                Classe: A1 <Termo termo="sweet spot" definicao="Convergência dos quatro eixos com todos os mínimos atendidos (classe A1)." /> · A2 alta · B1 boa · B2 monitorar · C baixa prioridade.
+                Classe: A1 e A2 formam o <Termo termo="sweet spot" definicao="Contas A1 ou A2: os quatro eixos convergem e os mínimos de A são atendidos. A1 é o topo." /> (A1 é o topo) · B1 boa · B2 monitorar · C baixa prioridade.
               </>,
               <>
                 Sem evidência = &quot;Sem avaliação&quot;, nunca vira nota nem entra na média. Falta 1 dimensão: a conta segue candidata e vira investigação. Faltam 2 ou mais: sai do sweet spot até completar.

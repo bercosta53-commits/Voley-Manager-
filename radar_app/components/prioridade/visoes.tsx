@@ -32,7 +32,7 @@ export function MatrizSetorPrioridade({
         <label className="flex items-center gap-1.5 text-sm text-text-2">
           Ordenar por
           <select value={ordem} onChange={e => onOrdem(e.target.value as 'a1' | 'candidata' | 'nome')} className="rounded-control border border-border bg-card px-1.5 py-1">
-            <option value="a1">mais A1</option>
+            <option value="a1">mais no sweet spot</option>
             <option value="candidata">mais candidatas</option>
             <option value="nome">nome do setor</option>
           </select>

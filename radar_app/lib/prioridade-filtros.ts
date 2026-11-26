@@ -26,11 +26,11 @@ export type Segmento = 'a1' | 'candidata' | 'A2' | 'B1' | 'B2' | 'C' | 'fora_por
 export const SEGMENTOS: { id: Segmento; rotulo: string; grupo: string }[] = [
   { id: 'a1', rotulo: 'A1', grupo: 'Sweet spot' },
   { id: 'candidata', rotulo: '1 a investigar', grupo: 'Candidatas' },
-  { id: 'A2', rotulo: 'A2', grupo: 'Aproximadas' },
+  { id: 'A2', rotulo: 'A2', grupo: 'Sweet spot' },
   { id: 'B1', rotulo: 'B1', grupo: 'Aproximadas' },
   { id: 'B2', rotulo: 'B2', grupo: 'Enfraquece' },
   { id: 'C', rotulo: 'C', grupo: 'Enfraquece' },
-  { id: 'fora_por_criterio', rotulo: '1 faltando, sem A1', grupo: 'Incompletas' },
+  { id: 'fora_por_criterio', rotulo: '1 faltando, fora de alcance', grupo: 'Incompletas' },
   { id: 'sem_metrica', rotulo: '2+ faltando', grupo: 'Sem métrica' },
 ];
 
@@ -93,9 +93,9 @@ export function bateBusca(l: LinhaPrioridade, termo: string): boolean {
 function bateAtalho(l: LinhaPrioridade, a: Atalho): boolean {
   const v = l.visao;
   const icp = nota(l, 'icp'), sinais = nota(l, 'sinais');
-  if (a === 'sweet') return v.classeIntegrada === 'A1';
+  if (a === 'sweet') return v.situacaoSweetSpot === 'sweet_spot';
   if (a === 'investigar') return v.situacaoSweetSpot === 'candidata';
-  if (a === 'perto') return v.cobertura === 4 && v.classeIntegrada !== 'A1' && (v.criteriosA1Atendidos ?? 0) >= ATALHOS.pertoDoSweetSpot.criteriosA1;
+  if (a === 'perto') return v.situacaoSweetSpot === 'fora_por_classe' && (v.criteriosSweetAtendidos ?? 0) >= ATALHOS.pertoDoSweetSpot.criteriosEntrada;
   if (a === 'encaixe_timing_fraco') return icp !== null && sinais !== null && icp >= ATALHOS.bomEncaixeTimingFraco.icpMin && sinais < ATALHOS.bomEncaixeTimingFraco.sinaisAbaixoDe;
   return icp !== null && sinais !== null && sinais >= ATALHOS.timingForteEncaixeDuvidoso.sinaisMin && icp < ATALHOS.timingForteEncaixeDuvidoso.icpAbaixoDe;
 }
@@ -174,7 +174,7 @@ const GRUPO_ORDEM = (v: VisaoIntegradaConta) => (v.cobertura === 4 ? 0 : v.situa
 
 /**
  * Ordem inicial: completas pela nota integrada (empate: ICP, Sinais, nome); depois candidatas pela menor nota
- * exigida para A1; depois as com uma faltando fora de alcance; por fim as sem métrica. Nada some.
+ * exigida para o sweet spot; depois as com uma faltando fora de alcance; por fim as sem métrica. Nada some.
  */
 export function ordemInicial(a: LinhaPrioridade, b: LinhaPrioridade): number {
   const ga = GRUPO_ORDEM(a.visao), gb = GRUPO_ORDEM(b.visao);
@@ -182,7 +182,7 @@ export function ordemInicial(a: LinhaPrioridade, b: LinhaPrioridade): number {
   const desc = (x: number | null, y: number | null) => (y ?? -1) - (x ?? -1);
   return (
     (ga === 0 ? desc(a.visao.notaIntegrada, b.visao.notaIntegrada) : 0) ||
-    (ga === 1 ? (a.visao.investigacao?.notaMinimaParaA1 ?? 9) - (b.visao.investigacao?.notaMinimaParaA1 ?? 9) : 0) ||
+    (ga === 1 ? (a.visao.investigacao?.notaMinimaParaSweet ?? 9) - (b.visao.investigacao?.notaMinimaParaSweet ?? 9) : 0) ||
     desc(nota(a, 'icp'), nota(b, 'icp')) ||
     desc(nota(a, 'sinais'), nota(b, 'sinais')) ||
     a.nome.localeCompare(b.nome, 'pt-BR')
@@ -194,7 +194,7 @@ export type ColunaOrdem = 'inicial' | 'nome' | 'integrada' | 'proximidade' | Dim
 export function ordenar(linhas: LinhaPrioridade[], col: ColunaOrdem, desc = true): LinhaPrioridade[] {
   if (col === 'inicial') return [...linhas].sort(ordemInicial);
   const valor = (l: LinhaPrioridade): number | string | null =>
-    col === 'nome' ? l.nome : col === 'integrada' ? l.visao.notaIntegrada : col === 'proximidade' ? (l.visao.criteriosA1Atendidos ?? null) : nota(l, col);
+    col === 'nome' ? l.nome : col === 'integrada' ? l.visao.notaIntegrada : col === 'proximidade' ? (l.visao.criteriosSweetAtendidos ?? null) : nota(l, col);
   return [...linhas].sort((a, b) => {
     const va = valor(a), vb = valor(b);
     if (va === null && vb === null) return ordemInicial(a, b);

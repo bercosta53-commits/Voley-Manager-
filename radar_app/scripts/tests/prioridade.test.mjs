@@ -59,7 +59,8 @@ test('ausência de cada dimensão: nota e classe nulas, cobertura 3 de 4, candid
 });
 
 test('regra de faltas: 0 classifica, 1 viável é candidata, 1 que já falha é fora por critério, 2 é fora por falta de dados', () => {
-  assert.equal(visao(5, 5, 5, 5).situacaoSweetSpot, 'a1');
+  assert.equal(visao(5, 5, 5, 5).situacaoSweetSpot, 'sweet_spot'); // A1 (topo)
+  assert.equal(visao(4, 3.5, 4.5, 4).situacaoSweetSpot, 'sweet_spot'); // A2 também está no sweet spot (D2)
   assert.equal(visao(4, 3.5, 4, 4).situacaoSweetSpot, 'fora_por_classe');
   assert.equal(visao(5, 5, null, 5).situacaoSweetSpot, 'candidata');
   const criterio = visao(3.5, 5, null, 5);
@@ -77,21 +78,28 @@ test('regra de faltas: 0 classifica, 1 viável é candidata, 1 que já falha é 
 
 test('nota mínima para A1: soma 12,5 pede 5,5 (cai); soma 14 pede 4,0; ICP faltando pede ≥ 4; Clima faltando pede ≥ 3', () => {
   assert.equal(notaMinimaParaA1(N(4, 4, null, 4.5), 'clima'), null); // 12,5 → 5,5
-  assert.equal(visao(4, 4, null, 4.5).situacaoSweetSpot, 'fora_por_criterio');
+  // com A2 no sweet spot (D2), a mesma conta é candidata: entrar pede média 4,0, ou seja Clima ≥ 3,5
+  const c = visao(4, 4, null, 4.5);
+  assert.equal(c.situacaoSweetSpot, 'candidata');
+  assert.equal(c.investigacao.notaMinimaParaSweet, 3.5);
+  assert.equal(c.investigacao.notaMinimaParaA1, null);
+  assert.equal(c.investigacao.podeChegarA1, false);
+  assert.equal(visao(3, 5, null, 5).situacaoSweetSpot, 'fora_por_criterio'); // ICP 3 < 4: nem A2
   assert.equal(notaMinimaParaA1(N(5, 4.5, null, 4.5), 'clima'), 4); // 14 → 4,0
   assert.equal(notaMinimaParaA1(N(null, 5, 5, 5), 'icp'), 4); // 18 − 15 = 3, mas o mínimo de ICP é 4
   assert.equal(notaMinimaParaA1(N(5, 5, null, 5), 'clima'), 3);
   const v = visao(5, 4.5, null, 4.5);
   assert.equal(v.investigacao.notaMinimaParaA1, 4);
-  assert.equal(v.investigacao.podeChegarA2, true);
-  assert.match(v.motivosClassificacao[0], /Clima do setor: precisa de nota ≥ 4 para A1/);
+  assert.equal(v.investigacao.podeChegarA1, true);
+  assert.equal(v.investigacao.notaMinimaParaSweet, 3); // entrar (A2) pede média 4,0 e Clima ≥ 3
+  assert.match(v.motivosClassificacao[0], /Clima do setor: precisa de nota ≥ 3 para o sweet spot/);
 });
 
 test('o 5,0 do teste de viabilidade nunca aparece no estado', () => {
   const v = visao(4.2, 4.6, null, 4.4);
   assert.equal(v.dimensoes.clima.nota, null);
   assert.equal(v.notaIntegrada, null);
-  assert.equal(v.criteriosA1, null);
+  assert.equal(v.criteriosSweet, null);
   assert.doesNotMatch(JSON.stringify(v), /"nota":5[,}]/);
 });
 
@@ -99,14 +107,16 @@ test('candidata que completa a dimensão é classificada normalmente, sem herdar
   const antes = visao(5, 4.5, null, 4.5);
   const depois = visao(5, 4.5, 4, 4.5);
   assert.equal(antes.situacaoSweetSpot, 'candidata');
-  assert.equal(depois.situacaoSweetSpot, 'a1');
+  assert.equal(depois.situacaoSweetSpot, 'sweet_spot');
   assert.equal(depois.investigacao, null);
   assert.equal(depois.cobertura, 4);
 });
 
 test('dimensão desatualizada aparece mas não conta na cobertura', () => {
   const agora = new Date('2026-11-25T12:00:00Z');
-  const velha = dimensaoDigital({ nivel: 2, confianca: 'adequada', dataReferencia: '2026-08-01', fonte: null, resumo: 'L2' }, agora);
+  // validade de 135 dias (D7): agosto ainda vale; junho já está fora
+  assert.equal(dimensaoDigital({ nivel: 2, confianca: 'adequada', dataReferencia: '2026-08-01', fonte: null, resumo: 'L2' }, agora).entraNoCalculo, true);
+  const velha = dimensaoDigital({ nivel: 2, confianca: 'adequada', dataReferencia: '2026-06-01', fonte: null, resumo: 'L2' }, agora);
   assert.equal(velha.nota, 4);
   assert.equal(velha.status, 'desatualizada');
   assert.equal(velha.entraNoCalculo, false);
@@ -130,7 +140,7 @@ test('mapeamentos: VSCS vira 1 + 4v/100; sem achados não é lido como nota da r
   assert.equal(zero.semAchados, true);
   assert.equal(zero.resumo, 'Nenhum sinal relevante encontrado');
   assert.deepEqual(dimensaoSinais({ score: 40, scorePendente: true }).pendenciasQualidade, ['VSCS pendente de certificação pelo motor']);
-  assert.equal(dimensaoIcp({ icp: { tier: 'A', motivos: [] } }).nota, 4);
+  assert.equal(dimensaoIcp({ icp: { tier: 'A', motivos: [] } }).nota, 5); // D5
   assert.equal(dimensaoIcp({ tier: '' }).nota, null);
   assert.equal(dimensaoClima().nota, null);
   assert.equal(dimensaoClima().origem.mapeamento, 'indisponivel');

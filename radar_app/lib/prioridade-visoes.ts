@@ -22,7 +22,7 @@ export const AGRUPAMENTOS: { id: Agrupamento; rotulo: string }[] = [
   { id: 'cobertura', rotulo: 'Cobertura' },
   { id: 'faltante', rotulo: 'Dimensão faltante' },
 ];
-const ROTULO_SITUACAO = { a1: 'No sweet spot (A1)', candidata: 'Candidatas', fora_por_criterio: 'Fora por critério', fora_por_falta_de_dados: 'Fora por falta de dados', fora_por_classe: 'Completas fora de A1' };
+const ROTULO_SITUACAO = { sweet_spot: 'No sweet spot (A1 ou A2)', candidata: 'Candidatas', fora_por_criterio: 'Fora por critério', fora_por_falta_de_dados: 'Fora por falta de dados', fora_por_classe: 'Completas fora do sweet spot' };
 
 /** Chave e rótulo do grupo de uma conta; quem não tem o atributo cai num grupo "sem", nunca some. */
 function grupoDe(l: LinhaPrioridade, a: Agrupamento): { chave: string; rotulo: string; ordem: number }[] {
@@ -87,7 +87,7 @@ export const ordemEmTexto = (cs: CriterioOrdem[]) => cs.map((c, i) => `${i + 1}�
 /** Ordena por vários critérios em sequência; sem valor vai sempre para o fim; empate final pela ordem inicial. */
 export function ordenarMulti(linhas: LinhaPrioridade[], cs: CriterioOrdem[]): LinhaPrioridade[] {
   const valor = (l: LinhaPrioridade, col: ColunaOrdem): number | string | null =>
-    col === 'nome' ? l.nome : col === 'integrada' ? l.visao.notaIntegrada : col === 'proximidade' ? l.visao.criteriosA1Atendidos : col === 'inicial' ? null : notaValida(l, col);
+    col === 'nome' ? l.nome : col === 'integrada' ? l.visao.notaIntegrada : col === 'proximidade' ? l.visao.criteriosSweetAtendidos : col === 'inicial' ? null : notaValida(l, col);
   const criterios = cs.filter(c => c.col !== 'inicial');
   return [...linhas].sort((a, b) => {
     for (const c of criterios) {
@@ -120,7 +120,7 @@ export const COLUNAS_MATRIZ: { id: Segmento; rotulo: string }[] = [
   { id: 'B1', rotulo: 'B1' },
   { id: 'B2', rotulo: 'B2' },
   { id: 'C', rotulo: 'C' },
-  { id: 'fora_por_criterio', rotulo: 'Incompletas, sem A1' },
+  { id: 'fora_por_criterio', rotulo: 'Incompletas, fora de alcance' },
   { id: 'sem_metrica', rotulo: 'Sem métrica' },
 ];
 
@@ -144,7 +144,10 @@ export function setorPorPrioridade(linhas: LinhaPrioridade[], ordem: 'a1' | 'can
   }
   const rows = [...m.entries()].map(([setor, celulas]) => ({ setor, celulas, total: Object.values(celulas).reduce((a, b) => a + b, 0) }));
   rows.sort((a, b) =>
-    ordem === 'nome' ? a.setor.localeCompare(b.setor, 'pt-BR') : b.celulas[ordem] - a.celulas[ordem] || b.total - a.total || a.setor.localeCompare(b.setor, 'pt-BR'),
+    ordem === 'nome'
+      ? a.setor.localeCompare(b.setor, 'pt-BR')
+      : // "mais no sweet spot" soma A1 e A2 (decisão D2)
+        (ordem === 'a1' ? b.celulas.a1 + b.celulas.A2 - a.celulas.a1 - a.celulas.A2 : b.celulas[ordem] - a.celulas[ordem]) || b.total - a.total || a.setor.localeCompare(b.setor, 'pt-BR'),
   );
   return { linhas: rows, totaisColuna, total: linhas.length };
 }
