@@ -217,15 +217,25 @@ try {
   const blocoPb = pc.locator('section[aria-label="Playbook: Liderança nova montando time"]');
   await blocoPb.waitFor();
   const textoPb = await blocoPb.innerText();
-  conferir(textoPb.includes('Growth Leader as a Service') && textoPb.includes('Pergunte') && /dias? restantes?|último dia/.test(textoPb), 'bloco do playbook com leitura, pergunta, janela e oferta Velora');
+  conferir(textoPb.includes('Growth Leader as a Service') && /pergunta de descoberta/i.test(textoPb) && /janela de ação/i.test(textoPb) && /com quem falar/i.test(textoPb), 'bloco do playbook com leitura, pergunta, janela e oferta Velora');
   conferir(textoPb.includes(sinalVagaPb.sinal), 'evidência do playbook cita os sinais que o formam');
   const semPb = pc.locator('main [role="option"]').filter({ hasNotText: contaPb.nome }).first();
   await semPb.click();
   await pc.waitForTimeout(150);
   conferir((await pc.locator('main').innerText()).includes('Oportunidade Velora') && !(await blocoPb.count()), 'sinal isolado mostra a Oportunidade Velora, sem bloco de playbook');
   await pc.locator('main [role="option"]', { hasText: contaPb.nome }).first().click();
+  await pc.setViewportSize({ width: 1440, height: 900 });
   await blocoPb.screenshot({ path: path.join(SAIDA, '3h-playbook.png') });
   await pc.locator('main ul[aria-label="Sinal selecionado"]').screenshot({ path: path.join(SAIDA, '3i-cartao-playbook.png') });
+  await blocoPb.getByRole('button', { name: 'Ver mensagem' }).click();
+  conferir((await blocoPb.innerText()).includes('Faz sentido trocar 20 minutos'), '"Ver mensagem" mostra o rascunho antes de copiar');
+  await blocoPb.screenshot({ path: path.join(SAIDA, '3j-playbook-mensagem.png') });
+  {
+    const cel = await navegador.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+    await cel.goto(app.url(`/contas/${contaPb.id}`), { waitUntil: 'networkidle' });
+    await cel.locator('section[aria-label^="Playbook:"]').screenshot({ path: path.join(SAIDA, '3k-playbook-celular.png') });
+    await cel.close();
+  }
   conferir(
     (await pc.locator('main svg [aria-label="Playbook ativado: Liderança nova montando time"]').count()) === 1,
     'gráfico do cartão marca o dia em que o playbook ativou',
