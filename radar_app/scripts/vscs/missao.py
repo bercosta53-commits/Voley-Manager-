@@ -29,7 +29,7 @@ ALVOS = (
     ("estruturar_time_canal", r"\b(montar (o |um )?time (comercial|de vendas|de growth)|estruturar canais|criar a area comercial)\b"),
     ("lancamento_produto", r"\b(lancar (o |um )?produto|go-to-market do lancamento)\b"),
 )
-VERBO = re.compile(r"\b(abrir|dobrar|triplicar|ampliar|aumentar|reduzir|melhorar|estruturar|montar|criar|escalar|recuperar|lancar|expandir|entrar|conquistar|acelerar|transformar|diversificar|fortalecer|liderar a entrada)\b")
+VERBO = re.compile(r"\b(abrir|dobrar|triplicar|ampliar|aumentar|reduzir|melhorar|estruturar|montar|criar|escalar|recuperar|lancar|expandir|entrar|conquistar|acelerar|transformar|diversificar|fortalecer|liderar a entrada|desenvolver|executar|construir|negociar|gerar|implementar|aprofundar|otimizar|reunir|reunindo|ampliacao|expansao|fortalecimento)\b")
 META = re.compile(r"\b(dobrar|triplicar|quadruplicar)\b|\d+(?:[.,]\d+)?\s*(?:%|por cento|milhoes|bilhoes|vezes)\b|\b\d+(?:[.,]\d+)?%")
 
 def _normalizar(ev: dict, bruto: dict) -> dict | None:
@@ -56,10 +56,13 @@ def _normalizar(ev: dict, bruto: dict) -> dict | None:
     fator = 1.0
     if especifica and confianca >= .6 and isinstance(url, str) and url.startswith(("https://", "http://")):
         fator = 1.20 if meta or praca else 1.15
+    if (ev.get("missaoRevisao") or {}).get("status") == "confirmada_pendente_elegibilidade":
+        fator = 1.0
     oferta, angulo = TIPOS[tipo]
     return {"tipo": tipo, "texto": texto, "especifica": especifica, "meta": meta, "praca": praca,
-            "confianca": confianca, "fonteUrl": url, "fator": fator, "oferta": oferta if fator > 1 else None,
-            "angulo": angulo if fator > 1 else None, "origem": "classificador"}
+            "confianca": confianca, "fonteUrl": url, "fator": fator, "oferta": oferta if especifica and confianca >= .6 else None,
+            "angulo": angulo if especifica and confianca >= .6 else None, "origem": "classificador",
+            "tensaoExecucao": bruto.get("tensaoExecucao"), "aderenciaVelora": bruto.get("aderenciaVelora")}
 
 def extrair(ev: dict) -> dict | None:
     if "missao" in ev:  # um campo explícito inválido/baixo nunca pode ser promovido pelo fallback
