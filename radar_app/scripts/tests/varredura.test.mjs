@@ -54,3 +54,15 @@ test('resumo: conta por estado e tier, e lista A/B a varrer (nunca varridas prim
   assert.equal(r.porTier.A.com_fato, 1);
   assert.deepEqual(r.aVarrer.map(x => x.nome), ['Beta', 'Delta']);
 });
+
+test('resumo valoriza o que se sabe: contas com informação, frescor e o fato mais recente', () => {
+  const contas = [{ id: '1', nome: 'Alfa', tier: 'A' }, { id: '2', nome: 'Beta', tier: 'B' }, { id: '3', nome: 'Gama', tier: 'C' }];
+  const sinais = [
+    { contaId: '1', data: '2026-11-24', sinal: 'Alfa contrata CRO' },
+    { contaId: '1', data: '2026-10-01', sinal: 'Alfa abre vaga' },
+    { contaId: '2', data: '2026-09-15', sinal: 'Beta lança produto' },
+  ];
+  const r = resumoCobertura(contas, sinais, undefined, HOJE);
+  assert.deepEqual(r.comInformacao.map(c => [c.nome, c.fato, c.fatos]), [['Alfa', 'Alfa contrata CRO', 2], ['Beta', 'Beta lança produto', 1]]);
+  assert.deepEqual(r.frescor, { ate7: 1, ate30: 0, ate90: 1 });
+});

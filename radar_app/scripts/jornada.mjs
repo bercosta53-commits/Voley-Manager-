@@ -366,8 +366,9 @@ try {
   await pagina.goto(app.url('/fontes'), { waitUntil: 'networkidle' });
   const cob = pagina.locator('section[aria-labelledby="cobertura-titulo"]');
   conferir((await cob.count()) === 1, 'Fontes mostra a cobertura das contas');
-  const somaCob = await cob.locator('li .vr-data.text-xl').evaluateAll(es => es.reduce((n, e) => n + Number(e.textContent), 0));
-  conferir(somaCob === base.contas.length, 'cobertura: com fato + sem fato + vencida + nunca varrida = total', `${somaCob} de ${base.contas.length}`);
+  const comInfo = Number(await cob.locator('.vr-data.text-4xl').innerText());
+  const esperado = new Set(base.sinais.filter(s => !s.exemplo && (Date.parse(base.geradoEm) - Date.parse(s.data)) / 864e5 <= 90).map(s => s.contaId)).size;
+  conferir(comInfo === esperado, 'cobertura: contas com informação = contas com fato nos últimos 90 dias', `${comInfo} de ${esperado}`);
 
   // 6. Régua de acabamento nas telas da demo, a 1440 e a 360 px
   const rotas = ['/', '/radar', '/contas', `/contas/${contaAlvo.id}`, '/decisores', '/aquisicao', '/icp', '/clima', '/fontes', '/metricas', `/contas/${contaAlvo.id}/briefing`];

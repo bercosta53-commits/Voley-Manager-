@@ -468,7 +468,7 @@ function ChipCobertura({ contaId, sinais, varredura, hoje }: { contaId: string; 
   const quando = cb.ultimaVarredura ?? cb.ultimoFato;
   return (
     <span title={EXPLICA_COBERTURA[cb.estado]}>
-      <Chip tom={cb.estado === 'sem_fato' ? 'contorno' : 'quente'}>
+      <Chip tom="contorno">
         {ROTULO_COBERTURA[cb.estado]}
         {quando && ` · ${quando.slice(8, 10)}/${quando.slice(5, 7)}`}
       </Chip>
