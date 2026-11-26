@@ -248,6 +248,19 @@ try {
   conferir(linhasPb.length > 0 && linhasPb.every(x => x.includes(contaPb.nome)), 'filtro "Qualquer playbook" deixa só as contas com playbook', `${linhasPb.length} linhas`);
   await pc.goto(app.url(`/contas/${contaPb.id}`), { waitUntil: 'networkidle' });
   conferir(await pc.locator('section[aria-label="Playbook: Liderança nova montando time"]').isVisible(), 'a página da conta mostra o playbook combinado');
+  // P3-6: briefing de reunião, cada fato com fonte, sem contato pessoal, roteiro marcado como recomendação
+  await pc.getByRole('link', { name: 'Briefing de reunião' }).click();
+  await pc.waitForURL(/\/briefing$/);
+  await pc.locator('main h1').waitFor();
+  const textoBr = await pc.locator('main').innerText();
+  conferir(textoBr.includes(sinalVagaPb.sinal) && /\[\d+\]/.test(textoBr), 'briefing lista os fatos com o número da fonte');
+  conferir(!/@|linkedin\.com/i.test(textoBr), 'briefing sem e-mail nem LinkedIn das pessoas');
+  conferir(/recomendação do Radar, não é fato/.test(textoBr) && textoBr.includes('Liderança nova montando time'), 'roteiro do briefing vem do playbook e é rotulado como recomendação');
+  conferir((await pc.title()).startsWith('Briefing: '), 'briefing tem título próprio');
+  await pc.screenshot({ path: path.join(SAIDA, '3l-briefing.png'), fullPage: true });
+  await pc.emulateMedia({ media: 'print' });
+  conferir(!(await pc.locator('nav[aria-label="Seções"]').first().isVisible()), 'na impressão o menu sai do papel');
+  await pc.emulateMedia({ media: 'screen' });
   await pc.close();
 
   await pagina.goto(app.url('/metricas'), { waitUntil: 'networkidle' });
@@ -324,7 +337,7 @@ try {
   conferir((await menu(pagina)).includes('Clima'), 'o selo desliga o modo apresentação');
 
   // 6. Régua de acabamento nas telas da demo, a 1440 e a 360 px
-  const rotas = ['/', '/radar', '/contas', `/contas/${contaAlvo.id}`, '/decisores', '/aquisicao', '/icp', '/clima', '/fontes', '/metricas'];
+  const rotas = ['/', '/radar', '/contas', `/contas/${contaAlvo.id}`, '/decisores', '/aquisicao', '/icp', '/clima', '/fontes', '/metricas', `/contas/${contaAlvo.id}/briefing`];
   for (const largura of [1440, 360]) {
     const p = await navegador.newPage({ viewport: { width: largura, height: 800 } });
     vigiar(p);

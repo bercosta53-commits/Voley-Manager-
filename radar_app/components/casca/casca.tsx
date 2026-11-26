@@ -13,13 +13,20 @@ export function Casca({ base, novos = 0, children }: { base: BaseCasca; novos?: 
   useParametroApresentacao();
   return (
     <>
-      <NavLateral base={base} novos={novos} onBuscar={() => setBuscar(true)} />
-      <div className="md:pl-16 lg:pl-60">
-        <TopoCelular ficticia={!!base.ficticia} onBuscar={() => setBuscar(true)} />
+      {/* na impressão (briefing de reunião) só o conteúdo sai no papel */}
+      <div className="print:hidden">
+        <NavLateral base={base} novos={novos} onBuscar={() => setBuscar(true)} />
+      </div>
+      <div className="md:pl-16 lg:pl-60 print:pl-0">
+        <div className="print:hidden">
+          <TopoCelular ficticia={!!base.ficticia} onBuscar={() => setBuscar(true)} />
+        </div>
         <AvisoFrescor base={base} />
         {children}
       </div>
-      <NavInferior novos={novos} />
+      <div className="print:hidden">
+        <NavInferior novos={novos} />
+      </div>
       <Comando base={base} aberto={buscar} onAberto={setBuscar} />
     </>
   );
