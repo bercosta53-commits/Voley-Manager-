@@ -1,5 +1,6 @@
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
 import { cn, pontos } from '@/lib/utils';
+import { textoVariacao } from '@/lib/caixa';
 
 export function Curva({ serie, largura, altura, classe }: { serie: number[]; largura: number; altura: number; classe: string }) {
   const min = Math.min(...serie),
@@ -20,6 +21,7 @@ export function Curva({ serie, largura, altura, classe }: { serie: number[]; lar
 export function ScoreTendencia({ score, tendencia, serie, status, compacto = false }: { score: number; tendencia: number; serie: number[]; status?: string; compacto?: boolean }) {
   const sentido = tendencia >= 3 ? 'sobe' : tendencia <= -3 ? 'desce' : 'estavel';
   const cor = sentido === 'sobe' ? 'text-warm' : sentido === 'desce' ? 'text-cool' : 'text-text-3';
+  const variacao = textoVariacao({ score, tendencia });
   const Seta = sentido === 'sobe' ? ArrowUpRight : sentido === 'desce' ? ArrowDownRight : Minus;
   const rotulo =
     sentido === 'sobe'
@@ -32,13 +34,13 @@ export function ScoreTendencia({ score, tendencia, serie, status, compacto = fal
       {!compacto && <Curva serie={serie} largura={64} altura={22} classe={cor} />}
       <div className="flex flex-col items-end leading-none">
         <span className="font-display text-xl font-semibold tracking-tight tabular-nums">{pontos(score)}</span>
-        <span className={cn('vr-data mt-1 flex items-center gap-0.5 text-xs', cor)}>
+        <span className={cn('vr-data mt-1 flex items-center gap-0.5 whitespace-nowrap text-xs', cor)} title={variacao.longo}>
           {sentido === 'estavel' ? (
-            'estável'
+            compacto ? variacao.curto : 'estável'
           ) : (
             <>
               <Seta className="size-3.5" strokeWidth={1.5} />
-              {`${tendencia > 0 ? '+' : '−'}${pontos(Math.abs(tendencia))}`}
+              {compacto ? variacao.curto : `${tendencia > 0 ? '+' : '−'}${pontos(Math.abs(tendencia))}`}
             </>
           )}
         </span>

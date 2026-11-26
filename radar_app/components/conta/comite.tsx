@@ -44,7 +44,7 @@ export function Comite({ conta }: { conta: Conta }) {
   const conhecidos = LUGARES.filter(l => conta.comite.some(p => ocupa(p, l.papel))).length;
   const travas = conta.comite.filter(p => papelDe(p) === 'trava');
   return (
-    <section className="vr-card p-5">
+    <section id="comite" className="vr-card scroll-mt-20 p-5">
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="text-xs font-semibold text-text-3">Comitê de compra</h2>
         <span className="vr-data text-xs text-text-3">

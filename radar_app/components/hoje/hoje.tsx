@@ -25,6 +25,11 @@ import { hrefConta } from '@/lib/contas';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEstados } from './estado';
+import { MenuFiltro } from '@/components/contas/menu-filtro';
+import {
+  ORDENS, ORDEM_PADRAO, SEM_FILTROS_CAIXA, contarOpcoes, dentroDaJanela, filtrarCaixa, ordenarCaixa, porEstagio, temFiltroCaixa,
+  type FiltrosCaixa, type Ordem,
+} from '@/lib/caixa';
 
 export type EstadoTela = 'normal' | 'carregando' | 'vazio' | 'erro' | 'sem-permissao';
 
@@ -108,21 +113,68 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
     }
     return { caixa, adiados, concluidos };
   }, [sinais, estados, naCaixa]);
-  const lista = listas[visao];
-  const contagens = { caixa: listas.caixa.length, adiados: listas.adiados.length, concluidos: listas.concluidos.length };
+  // janela de validade por tipo: sinal vencido sai da caixa e fica só na conta e no gráfico (lib/caixa.ts)
+  const caixaValida = useMemo(() => listas.caixa.filter(s => dentroDaJanela(s, dataCarga)), [listas.caixa, dataCarga]);
+  const vencidos = listas.caixa.length - caixaValida.length;
+  // ordenação e filtros escolhidos pela pessoa, guardados na URL (um link abre a mesma visão)
+  const [ordem, setOrdem] = useState<Ordem>(ORDEM_PADRAO);
+  const [filtros, setFiltros] = useState<FiltrosCaixa>(SEM_FILTROS_CAIXA);
+  const [urlLida, setUrlLida] = useState(false);
+  useEffect(() => {
+    const q = new URLSearchParams(location.search);
+    const o = q.get('ordem') as Ordem | null;
+    if (o && ORDENS.some(x => x.id === o)) setOrdem(o);
+    try {
+      const f = q.get('f');
+      if (f) setFiltros({ ...SEM_FILTROS_CAIXA, ...JSON.parse(f) });
+    } catch {}
+    setUrlLida(true);
+  }, []);
+  useEffect(() => {
+    if (!urlLida) return;
+    const q = new URLSearchParams(location.search);
+    if (ordem === ORDEM_PADRAO) q.delete('ordem');
+    else q.set('ordem', ordem);
+    if (temFiltroCaixa(filtros)) q.set('f', JSON.stringify(filtros));
+    else q.delete('f');
+    const s = q.toString();
+    history.replaceState(null, '', s ? `?${s}` : location.pathname);
+  }, [ordem, filtros, urlLida]);
+  const mudarFiltro = (parte: Partial<FiltrosCaixa>) => setFiltros(f => ({ ...f, ...parte }));
+  // mudar filtro ou ordem volta o foco do j/k para o primeiro da nova lista
+  useEffect(() => setFoco(0), [ordem, filtros]);
+  const lista = useMemo(
+    () => ordenarCaixa(filtrarCaixa(caixaValida, filtros, contas, dataCarga), ordem, contas),
+    [caixaValida, filtros, contas, dataCarga, ordem],
+  );
+  const contagens = { caixa: caixaValida.length, adiados: listas.adiados.length, concluidos: listas.concluidos.length };
   // "novos" = fatos da data da última carga em diante; o rótulo só diz "de hoje" se a carga for de hoje
-  const novosHoje = listas.caixa.filter(s => s.data >= dataCarga).length;
+  const novosHoje = caixaValida.filter(s => s.data >= dataCarga).length;
   const rotuloNovos = dataCarga === hoje ? `${novosHoje} de hoje` : `${novosHoje} da carga de ${dataCurta(dataCarga)}`;
-  // contas com sinal na caixa, por faixa do score: o resumo do dia antes da lista
-  const porStatus = useMemo(() => {
-    const ids = new Set(listas.caixa.map(s => s.contaId));
-    const n = new Map<StatusVscs, number>();
-    for (const id of ids) {
-      const st = contas.get(id)?.vscsStatus;
-      if (st) n.set(st, (n.get(st) ?? 0) + 1);
-    }
-    return FAIXAS_VSCS.map(([, st]) => [st, n.get(st) ?? 0] as const).filter(([, q]) => q > 0);
-  }, [listas.caixa, contas]);
+  // sinais por estágio do score (todas as faixas, com os outros filtros aplicados): os contadores somam o total
+  const semEstagio = useMemo(() => filtrarCaixa(caixaValida, filtros, contas, dataCarga, 'estagios'), [caixaValida, filtros, contas, dataCarga]);
+  const porStatus = useMemo(
+    () => porEstagio(semEstagio, contas, [...FAIXAS_VSCS].map(([, st]) => st)).filter(x => x.n > 0),
+    [semEstagio, contas],
+  );
+  const opcoes = useMemo(
+    () => ({
+      tipos: contarOpcoes(caixaValida, filtros, contas, dataCarga, 'tipos'),
+      tiers: contarOpcoes(caixaValida, filtros, contas, dataCarga, 'tiers'),
+      setores: contarOpcoes(caixaValida, filtros, contas, dataCarga, 'setores'),
+      ufs: contarOpcoes(caixaValida, filtros, contas, dataCarga, 'ufs'),
+    }),
+    [caixaValida, filtros, contas, dataCarga],
+  );
+  // estado vazio por filtro: sugere tirar o filtro que mais devolve sinais
+  const sugestao = useMemo(() => {
+    if (lista.length || !temFiltroCaixa(filtros)) return null;
+    const grupos: [keyof FiltrosCaixa, string][] = [['estagios', 'estágio'], ['tipos', 'tipo de sinal'], ['tiers', 'tier'], ['setores', 'setor'], ['ufs', 'UF'], ['janela', 'janela']];
+    return grupos
+      .filter(([g]) => (g === 'janela' ? filtros.janela : (filtros[g] as string[]).length))
+      .map(([g, rotulo]) => ({ g, rotulo, n: filtrarCaixa(caixaValida, filtros, contas, dataCarga, g).length }))
+      .sort((a, b) => b.n - a.n)[0] ?? null;
+  }, [lista.length, filtros, caixaValida, contas, dataCarga]);
 
   // ---------- ações ----------
 
@@ -230,6 +282,24 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
   if (estadoTela === 'carregando' || !pronto) conteudo = <ListaEsqueleto />;
   else if (estadoTela === 'erro') conteudo = <ErroCarregar onTentar={() => location.reload()} />;
   else if (estadoTela === 'sem-permissao') conteudo = <SemPermissao />;
+  else if (!lista.length && temFiltroCaixa(filtros))
+    conteudo = (
+      <div className="vr-card max-w-[760px] p-6 text-center text-sm">
+        <p className="font-medium">Nenhum sinal com estes filtros.</p>
+        {sugestao && sugestao.n > 0 && (
+          <button
+            type="button"
+            onClick={() => mudarFiltro({ [sugestao.g]: sugestao.g === 'janela' ? null : [] } as Partial<FiltrosCaixa>)}
+            className="mt-2 font-semibold underline decoration-border-strong underline-offset-4"
+          >
+            Tirar o filtro de {sugestao.rotulo} ({plural(sugestao.n, 'sinal', 'sinais')})
+          </button>
+        )}
+        <button type="button" onClick={() => setFiltros(SEM_FILTROS_CAIXA)} className="mt-2 ml-3 text-text-2 underline decoration-border-strong underline-offset-4">
+          Limpar filtros
+        </button>
+      </div>
+    );
   else if (!lista.length) conteudo = <CaixaVazia visao={visao} />;
   else if (largo) {
     const atual = lista[Math.min(foco, lista.length - 1)]!;
@@ -237,7 +307,9 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
       <div className="grid grid-cols-[minmax(340px,420px)_minmax(0,1fr)] items-start gap-6">
         <div className="vr-card sticky top-6 overflow-hidden">
           <div className="flex items-center justify-between border-b border-border px-3.5 py-2 text-xs text-text-3">
-            <span>{plural(lista.length, 'sinal', 'sinais')} · mais forte primeiro</span>
+            <span>
+              {plural(lista.length, 'sinal', 'sinais')} · {ORDENS.find(o => o.id === ordem)!.rotulo.toLowerCase()}
+            </span>
             <span className="flex items-center gap-1"><Kbd>j</Kbd><Kbd>k</Kbd></span>
           </div>
           <ul role="listbox" aria-label="Sinais na caixa" className="max-h-[calc(100dvh-180px)] divide-y divide-border overflow-y-auto">
@@ -358,18 +430,78 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
             </p>
           </div>
           {!semDados && !carregando && porStatus.length > 0 && (
-            <ul aria-label="Contas com sinal na caixa, por faixa do score" className="flex flex-wrap items-center gap-1.5">
-              {porStatus.map(([st, q]) => (
-                <li key={st} className={cn('flex items-center gap-1.5 rounded-chip px-2 py-1 text-xs', COR_STATUS_VSCS[st])}>
-                  <span className="vr-data font-semibold">{q}</span>
-                  {st}
-                </li>
-              ))}
+            <ul aria-label={`Sinais na caixa por estágio do score: ${semEstagio.length} no total`} className="flex flex-wrap items-center gap-1.5">
+              {porStatus.map(({ estagio: st, n: q }) => {
+                const ativo = st !== 'Sem estágio' && filtros.estagios.includes(st);
+                return (
+                  <li key={st}>
+                    <button
+                      type="button"
+                      aria-pressed={ativo}
+                      disabled={st === 'Sem estágio'}
+                      onClick={() =>
+                        st !== 'Sem estágio' && mudarFiltro({ estagios: ativo ? filtros.estagios.filter(x => x !== st) : [...filtros.estagios, st] })
+                      }
+                      className={cn(
+                        'flex items-center gap-1.5 rounded-chip px-2 py-1 text-xs transition-shadow',
+                        st === 'Sem estágio' ? 'bg-secondary text-text-2' : COR_STATUS_VSCS[st],
+                        ativo && 'ring-2 ring-foreground',
+                      )}
+                    >
+                      <span className="vr-data font-semibold">{q}</span>
+                      {st}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
 
         {!semDados && !carregando && visao === 'caixa' && <Agenda eventos={base.agenda ?? []} />}
+
+        {!semDados && !carregando && caixaValida.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center gap-2" aria-label="Ordenação e filtros da caixa">
+            <label className="flex h-8 items-center gap-1.5 rounded-control border border-border bg-card px-2 text-sm text-text-2 max-md:h-10">
+              Ordenar por
+              <select value={ordem} onChange={e => setOrdem(e.target.value as Ordem)} aria-label="Ordenar a caixa" className="bg-transparent font-medium text-foreground">
+                {ORDENS.map(o => (
+                  <option key={o.id} value={o.id} title={o.dica}>
+                    {o.rotulo}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <MenuFiltro rotulo="Tipo de sinal" opcoes={opcoes.tipos.map(([id, qtd]) => ({ id, rotulo: id, qtd }))} valor={filtros.tipos} onMudar={v => mudarFiltro({ tipos: v })} />
+            <MenuFiltro rotulo="Tier" opcoes={opcoes.tiers.map(([id, qtd]) => ({ id, rotulo: `Tier ${id}`, qtd }))} valor={filtros.tiers} onMudar={v => mudarFiltro({ tiers: v })} />
+            <MenuFiltro rotulo="Setor" opcoes={opcoes.setores.map(([id, qtd]) => ({ id, rotulo: id, qtd }))} valor={filtros.setores} onMudar={v => mudarFiltro({ setores: v })} />
+            <MenuFiltro rotulo="UF" opcoes={opcoes.ufs.map(([id, qtd]) => ({ id, rotulo: id, qtd }))} valor={filtros.ufs} onMudar={v => mudarFiltro({ ufs: v })} />
+            <label className="flex h-8 items-center gap-1.5 rounded-control border border-border bg-card px-2 text-sm text-text-2 max-md:h-10">
+              Janela
+              <select
+                value={filtros.janela ?? ''}
+                onChange={e => mudarFiltro({ janela: e.target.value ? (Number(e.target.value) as 7 | 30 | 90) : null })}
+                aria-label="Só sinais dos últimos dias"
+                className="bg-transparent font-medium text-foreground"
+              >
+                <option value="">toda a validade</option>
+                <option value="7">7 dias</option>
+                <option value="30">30 dias</option>
+                <option value="90">90 dias</option>
+              </select>
+            </label>
+            {temFiltroCaixa(filtros) && (
+              <button type="button" onClick={() => setFiltros(SEM_FILTROS_CAIXA)} className="text-sm font-medium underline decoration-border-strong underline-offset-4">
+                Limpar filtros
+              </button>
+            )}
+            {vencidos > 0 && (
+              <span className="ml-auto text-xs text-text-3" title="Cada tipo de sinal tem uma janela de ação; depois dela o sinal fica só na conta e no gráfico">
+                {plural(vencidos, 'sinal fora da janela de ação ficou', 'sinais fora da janela de ação ficaram')} só na conta
+              </span>
+            )}
+          </div>
+        )}
 
         {conteudo}
 

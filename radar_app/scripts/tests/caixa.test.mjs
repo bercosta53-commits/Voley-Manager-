@@ -1,0 +1,75 @@
+// Testes de lib/caixa.ts (tela de Sinais, fase 1). Rodar: npm test.
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  SEM_FILTROS_CAIXA, contarOpcoes, dentroDaJanela, filtrarCaixa, forcaDe, ordenarCaixa, porEstagio, pontosInteiros, textoVariacao, variacao,
+} from '../../lib/caixa.ts';
+
+const conta = (id, extra = {}) => ({ id, score: 50, tier: 'B', uf: 'SC', segmento: 'Fintech', vscsStatus: 'Monitoramento', serie: [], tendencia: 0, ...extra });
+const sinal = (id, contaId, data, extra = {}) => ({ id, contaId, data, tipo: 'lancamento_produto', rotulo: 'Lançamento de produto', pontos: 10, nivel: 'B', ...extra });
+const CARGA = '2026-11-26';
+
+test('1.1: a ordem segue o critério exibido; empate pela data mais recente', () => {
+  const contas = new Map([['a', conta('a')], ['b', conta('b')]]);
+  const l = [sinal('bridge', 'a', '2026-11-20', { pontos: 8.34 }), sinal('contraktor', 'b', '2026-11-10', { pontos: 21.94 }), sinal('x', 'a', '2026-11-25', { pontos: 8.34 })];
+  const f = ordenarCaixa(l, 'forca', contas);
+  assert.deepEqual(f.map(s => s.id), ['contraktor', 'x', 'bridge']);
+  for (let i = 1; i < f.length; i++) assert.ok(f[i].pontos <= f[i - 1].pontos);
+  assert.deepEqual(ordenarCaixa(l, 'recente', contas).map(s => s.id), ['x', 'bridge', 'contraktor']);
+  assert.deepEqual(l.map(s => s.id), ['bridge', 'contraktor', 'x']); // não muda a lista recebida
+});
+
+test('ordenar por aceleração (7 dias), score e tier', () => {
+  const serie = n => Array.from({ length: 31 }, (_, i) => (i >= 29 ? n : 10)); // 31 pontos em 90 dias: passo 3 d
+  const contas = new Map([
+    ['quente', conta('quente', { score: 40, serie: serie(40), tier: 'C' })],
+    ['parada', conta('parada', { score: 80, serie: Array(31).fill(80), tier: 'A' })],
+  ]);
+  const l = [sinal('p', 'parada', '2026-11-20'), sinal('q', 'quente', '2026-11-20')];
+  assert.equal(variacao(contas.get('quente')), 30);
+  assert.deepEqual(ordenarCaixa(l, 'aceleracao', contas).map(s => s.id), ['q', 'p']);
+  assert.deepEqual(ordenarCaixa(l, 'score', contas).map(s => s.id), ['p', 'q']);
+  assert.deepEqual(ordenarCaixa(l, 'tier', contas).map(s => s.id), ['p', 'q']);
+});
+
+test('1.2: janela de validade por tipo; liderança amadurece e fica 135 dias', () => {
+  assert.equal(dentroDaJanela(sinal('1', 'a', '2026-10-12', { tipo: 'lancamento_produto' }), CARGA), true); // 45 d
+  assert.equal(dentroDaJanela(sinal('2', 'a', '2026-10-11', { tipo: 'lancamento_produto' }), CARGA), false); // 46 d
+  assert.equal(dentroDaJanela(sinal('3', 'a', '2026-10-26', { tipo: 'vaga_area_alvo' }), CARGA), false); // 31 d > 30
+  assert.equal(dentroDaJanela(sinal('4', 'a', '2026-08-01', { tipo: 'troca_lideranca' }), CARGA), true); // 117 d
+  assert.equal(dentroDaJanela(sinal('5', 'a', '2026-06-10', { tipo: 'nova_filial' }), CARGA), false);
+  assert.equal(dentroDaJanela(sinal('6', 'a', '2026-12-10', { tipo: 'presenca_evento' }), CARGA), true); // futuro
+});
+
+test('1.3 e 1.4: variação com período e base; contribuição inteira e força em 3 níveis', () => {
+  assert.equal(textoVariacao({ score: 33, tendencia: 18 }).curto, '+18 em 30 dias (era 15)');
+  assert.equal(textoVariacao({ score: 33.4, tendencia: -4.6 }).curto, '−5 em 30 dias (era 38)');
+  assert.equal(textoVariacao({ score: 20, tendencia: 0.3 }).curto, 'estável em 30 dias');
+  assert.equal(pontosInteiros(23.25), '+23');
+  assert.equal(pontosInteiros(-19.61), '−20');
+  assert.deepEqual(['A', 'B', 'C', null].map(n => forcaDe({ nivel: n })), ['forte', 'medio', 'contexto', 'contexto']);
+});
+
+test('1.6: contadores por estágio somam o total da caixa', () => {
+  const contas = new Map([['a', conta('a', { vscsStatus: 'Atenção' })], ['b', conta('b')], ['c', conta('c', { vscsStatus: undefined })]]);
+  const l = [sinal('1', 'a', CARGA), sinal('2', 'a', CARGA), sinal('3', 'b', CARGA), sinal('4', 'c', CARGA)];
+  const p = porEstagio(l, contas, ['Atenção', 'Monitoramento']);
+  assert.equal(p.reduce((n, x) => n + x.n, 0), l.length);
+  assert.deepEqual(p, [{ estagio: 'Atenção', n: 2 }, { estagio: 'Monitoramento', n: 1 }, { estagio: 'Sem estágio', n: 1 }]);
+});
+
+test('2.2: OU dentro do filtro, E entre filtros; janela; contagem por opção', () => {
+  const contas = new Map([['a', conta('a', { tier: 'A', uf: 'SP' })], ['b', conta('b', { tier: 'B' })]]);
+  const l = [
+    sinal('1', 'a', '2026-11-25'),
+    sinal('2', 'b', '2026-11-25', { tipo: 'nova_parceria', rotulo: 'Nova parceria' }),
+    sinal('3', 'b', '2026-10-01'),
+  ];
+  const ids = f => filtrarCaixa(l, { ...SEM_FILTROS_CAIXA, ...f }, contas, CARGA).map(s => s.id);
+  assert.deepEqual(ids({ tipos: ['Lançamento de produto', 'Nova parceria'] }), ['1', '2', '3']);
+  assert.deepEqual(ids({ tipos: ['Lançamento de produto'], tiers: ['B'] }), ['3']);
+  assert.deepEqual(ids({ janela: 7 }), ['1', '2']);
+  assert.deepEqual(ids({ ufs: ['SP'] }), ['1']);
+  assert.deepEqual(contarOpcoes(l, { ...SEM_FILTROS_CAIXA, tiers: ['B'] }, contas, CARGA, 'tipos'), [['Lançamento de produto', 1], ['Nova parceria', 1]]);
+  assert.deepEqual(contarOpcoes(l, { ...SEM_FILTROS_CAIXA, tiers: ['B'] }, contas, CARGA, 'tiers'), [['B', 2], ['A', 1]]); // o próprio grupo não se filtra
+});
