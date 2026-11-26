@@ -1,6 +1,6 @@
 # VSCS 3.1 — maturação dos sinais de liderança (proposta, 26/11/2026)
 
-**Origem:** decisão de Bernardo em 26/11. **Estado:** implementado em `scripts/score_v2.py` (`VERSAO = "vscs-3.1"`),
+**Origem:** decisão de Bernardo em 26/11; curva confirmada no mesmo dia, valendo também para contratação de head. **Estado:** implementado em `scripts/score_v2.py` (`VERSAO = "vscs-3.1"`),
 aguardando alinhamento com a inteligência antes de rodar na carga diária. Nada muda no contrato do snapshot: os
 campos são os mesmos; mudam os valores de `v2.contribuicoes[].tempo`, `s`, `pontos` e, por consequência, o VSCS.
 
@@ -20,7 +20,9 @@ e pouco ela ganha domínio da posição e do orçamento. O 3.1 trata a categoria
 | depois de 450 | cai pela metade a cada 90 dias |
 | depois de 720 | 0 |
 
-As demais categorias não mudam. Os parâmetros ficam em `MATURACAO` no motor, para calibrar sem mexer no código.
+A mesma curva vale para a **contratação de head** (tipos `vaga_lideranca_alvo` e `vaga_lideranca_growth`, em
+`MATURACAO_POR_TIPO`): o head contratado amadurece como o diretor novo. Vagas de time (SDR, analista) e as demais
+categorias não mudam. Os parâmetros ficam em `MATURACAO` no motor, para calibrar sem mexer no código.
 
 ## Efeito esperado
 
@@ -32,6 +34,7 @@ As demais categorias não mudam. Os parâmetros ficam em `MATURACAO` no motor, p
 
 1. Validar a curva (início 0,60, carência 90, pico 365, platô até 450, meia-vida 90 depois).
 2. Rodar o motor 3.1 na carga e conferir o efeito nas contas com troca de liderança.
-3. Manter o histórico do fato de liderança por pelo menos 720 dias na base (antes, 180 bastavam).
+3. Manter o histórico dos fatos de liderança e de contratação de head por pelo menos 720 dias na base (antes,
+   180 e 135 dias bastavam).
 
 A tela já mostra a regra nova em Métricas → "Como o score é calculado" (tabela e histórico do modelo).

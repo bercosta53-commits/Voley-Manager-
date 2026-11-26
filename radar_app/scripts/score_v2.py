@@ -67,6 +67,9 @@ class Maturacao:
 
 
 MATURACAO = {"lideranca": Maturacao(inicio=0.6, carencia=90, pico=365, plato_ate=450, meia_vida=90)}
+# Mesma curva para a contratação de head (vaga de liderança comercial ou growth/revenue), confirmada por Bernardo
+# em 26/11: o head contratado amadurece como o diretor novo. Vagas de time (SDR, analista) seguem a meia-vida.
+MATURACAO_POR_TIPO = {"vaga_lideranca_alvo": MATURACAO["lideranca"]}
 
 CATEGORIA_ROTULO = {"lideranca": "Mudança de liderança", "expansao": "Expansão e investimento",
                     "gtm": "Transformação comercial", "contratacao": "Contratações estratégicas",
@@ -263,10 +266,10 @@ def nivelar(ev: dict) -> str | None:
 
 def fator_temporal(p: Param, dias: int) -> float:
     """dias = hoje - data do fato (negativo = evento futuro). 0.5^(idade/meia-vida), zero depois de 3 meias-vidas.
-    Categorias com maturação (MATURACAO, hoje só liderança) sobem antes de cair."""
+    Liderança e contratação de head (MATURACAO, MATURACAO_POR_TIPO) sobem antes de cair."""
     if dias < 0:
         return 1.0 if -dias <= p.antes else 0.0
-    m = MATURACAO.get(p.categoria)
+    m = MATURACAO_POR_TIPO.get(p.tipo) or MATURACAO.get(p.categoria)
     if m:
         if dias < m.carencia:
             return m.inicio

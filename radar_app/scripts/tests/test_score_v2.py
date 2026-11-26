@@ -78,7 +78,7 @@ class Sinal(unittest.TestCase):
         self.assertAlmostEqual(s.fator_temporal(p, 60), 0.5)
         self.assertAlmostEqual(s.fator_temporal(p, 180), 0.125)
         self.assertEqual(s.fator_temporal(p, 181), 0.0)
-        self.assertAlmostEqual(s.fator_temporal(s.P["vaga_lideranca_growth"], 30), 0.63, places=2)
+        self.assertAlmostEqual(s.fator_temporal(s.P["vaga_area_alvo"], 30), 0.63, places=2)  # vaga de time: meia-vida 45
 
     def test_lideranca_amadurece_antes_de_envelhecer(self):
         """VSCS 3.1: diretor novo vale 60% nos 3 primeiros meses, chega a 100% em 1 ano, fica até 15 meses e só
@@ -95,8 +95,13 @@ class Sinal(unittest.TestCase):
         self.assertEqual(s.fator_temporal(p, 721), 0.0)
         # mais valor depois de 6 meses do que na chegada: o fato amadurece, não envelhece
         self.assertGreater(s.fator_temporal(p, 180), s.fator_temporal(p, 0))
-        # só liderança matura; as outras categorias seguem a meia-vida
-        self.assertEqual(s.fator_temporal(s.P["vaga_lideranca_growth"], 0), 1.0)
+        # contratação de head matura igual (confirmado em 26/11); vaga de time e outras categorias seguem a meia-vida
+        for head in ("vaga_lideranca_growth", "vaga_lideranca_alvo"):
+            self.assertEqual(s.fator_temporal(s.P[head], 0), 0.6)
+            self.assertEqual(s.fator_temporal(s.P[head], 400), 1.0)
+        self.assertEqual(s.fator_temporal(s.P["vaga_area_alvo"], 0), 1.0)
+        self.assertEqual(s.fator_temporal(s.P["vaga_area_time"], 136), 0.0)
+        self.assertEqual(s.fator_temporal(s.P["aquisicao_feita"], 0), 1.0)
 
     def test_evento_futuro_conta_ate_30_dias_antes(self):
         p = s.P["presenca_patrocinador"]
@@ -117,7 +122,8 @@ class Sinal(unittest.TestCase):
 
     def test_vaga_de_lideranca_growth_vale_85(self):
         c = s.contribuicoes([ev("vaga_lideranca_alvo", 0, "Head de Growth", fonte="Indeed", focoGrowthRevenue=True)], HOJE)[0]
-        self.assertEqual((c.base, c.s), (85, 85.0))
+        # base 85; no dia do anúncio vale 60% (VSCS 3.1: contratação de head amadurece como liderança)
+        self.assertEqual((c.base, c.s), (85, 51.0))
 
     def test_correlacao_tres_vagas_do_mesmo_time(self):
         # seção 2.4: três eventos diferentes da mesma categoria valem 1.0, 0.7 e 0.5
