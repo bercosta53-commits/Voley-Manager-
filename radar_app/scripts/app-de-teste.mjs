@@ -36,6 +36,7 @@ export async function baseDeTeste() {
 export async function subirApp(base, { porta, env = {} } = {}) {
   const corpo = JSON.stringify([{ payload: base }]);
   const acoes = []; // radar_acoes em memória: só inserção, como a tabela real
+  const relacionamentos = []; // radar_relacionamentos em memória
   const supabase = http.createServer(async (req, res) => {
     const responder = (status, dados) => {
       res.writeHead(status, { 'content-type': 'application/json' });
@@ -44,6 +45,21 @@ export async function subirApp(base, { porta, env = {} } = {}) {
     if (req.headers.apikey !== 'chave-de-teste') return responder(401, '{"message":"nao autorizado"}');
     const u = new URL(req.url, 'http://x');
     if (u.pathname === '/rest/v1/radar_snapshots') return responder(200, corpo);
+    if (u.pathname === '/rest/v1/radar_relacionamentos' && req.method === 'POST') {
+      // upsert por (conta_id, pessoa, autor_email), como o on_conflict da tabela real
+      let texto = '';
+      for await (const parte of req) texto += parte;
+      for (const l of [].concat(JSON.parse(texto))) {
+        const i = relacionamentos.findIndex(x => x.conta_id === l.conta_id && x.pessoa === l.pessoa && x.autor_email === l.autor_email);
+        if (i >= 0) relacionamentos[i] = { ...relacionamentos[i], ...l };
+        else relacionamentos.push(l);
+      }
+      return responder(201, '');
+    }
+    if (u.pathname === '/rest/v1/radar_relacionamentos') {
+      const conta = u.searchParams.get('conta_id')?.replace(/^eq\./, '');
+      return responder(200, relacionamentos.filter(l => !conta || l.conta_id === conta));
+    }
     if (u.pathname === '/rest/v1/radar_acoes' && req.method === 'POST') {
       let texto = '';
       for await (const parte of req) texto += parte;
@@ -85,7 +101,7 @@ export async function subirApp(base, { porta, env = {} } = {}) {
   for (let i = 0; i < 60; i++) {
     try {
       await fetch(url('/api/estados'));
-      return { url, parar, porta: portaApp, acoes, get log() { return estado.log; } };
+      return { url, parar, porta: portaApp, acoes, relacionamentos, get log() { return estado.log; } };
     } catch {
       await new Promise(r => setTimeout(r, 500));
     }

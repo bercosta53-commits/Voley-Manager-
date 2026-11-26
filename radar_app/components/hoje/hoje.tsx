@@ -28,6 +28,7 @@ import { useEstados } from './estado';
 import { MenuFiltro } from '@/components/contas/menu-filtro';
 import { playbooksPorConta } from '@/lib/playbooks';
 import { BlocoPlaybook } from './playbook';
+import { useViasQuentes } from '@/components/conta/relacionamento';
 import {
   ORDENS, ORDEM_PADRAO, QUALQUER_PLAYBOOK, SEM_FILTROS_CAIXA, contarOpcoes, dentroDaJanela, filtrarCaixa, ordenarCaixa, porEstagio, temFiltroCaixa,
   type FiltrosCaixa, type Ordem,
@@ -117,6 +118,8 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
   }, [sinais, estados, naCaixa]);
   // playbooks combinados por conta (fase 3): leem todos os sinais da carga, não só os da caixa
   const playbooks = useMemo(() => playbooksPorConta(sinais, dataCarga), [sinais, dataCarga]);
+  // contas com via quente (relação 4–5 registrada pelo time; vazio quando a tabela privada está desligada)
+  const viasQuentes = useViasQuentes();
   // contas com o nome do playbook ativo, para o filtro "Playbook" (lib/caixa.ts)
   const contasFiltro = useMemo(() => {
     const m = new Map<string, Conta & { playbook?: string }>();
@@ -355,6 +358,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
               onAbrir={() => router.push(hrefConta(atual.contaId))}
               onFoco={() => {}}
               playbook={playbooks.get(atual.contaId)}
+              viaQuente={viasQuentes.has(atual.contaId)}
             />
           </ul>
           {playbooks.get(atual.contaId) && <BlocoPlaybook key={atual.contaId} ativacao={playbooks.get(atual.contaId)!} conta={contas.get(atual.contaId)!} />}
@@ -408,6 +412,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
               sinal={s}
               conta={contas.get(s.contaId)!}
               playbook={playbooks.get(s.contaId)}
+              viaQuente={viasQuentes.has(s.contaId)}
               estado={estados[s.id]}
               hoje={hoje}
               naCaixa={visao === 'caixa'}
@@ -576,6 +581,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
                 sinal={detalhe}
                 conta={detalheConta}
                 playbook={playbooks.get(detalhe.contaId)}
+                viaQuente={viasQuentes.has(detalhe.contaId)}
                 estado={estados[detalhe.id]}
                 hoje={hoje}
                 naCaixa={naCaixa(estados[detalhe.id])}
