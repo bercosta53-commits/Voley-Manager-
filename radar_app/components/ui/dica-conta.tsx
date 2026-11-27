@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import { cn } from '@/lib/utils';
 
@@ -23,16 +24,59 @@ const TOM = { ok: 'text-ok', warm: 'text-warm', neutro: 'text-foreground' } as c
 
 /**
  * Resumo da conta ao passar o mouse (ou focar pelo teclado) sobre o nome: contexto, números principais, o radar
- * quando houver e o último fato. Só leitura; o clique continua levando à conta.
+ * quando houver e o último fato. Só leitura; o clique continua levando à conta. No celular, onde não há mouse,
+ * o toque longo (meio segundo) abre o cartão sem abrir a conta; o toque normal segue abrindo a conta.
  */
+const TOQUE_LONGO_MS = 500;
 export function DicaConta({ resumo, children, lado = 'right' }: { resumo: ResumoConta; children: React.ReactNode; lado?: 'top' | 'right' | 'bottom' | 'left' }) {
   const { nome, contexto, descricao, numeros, grafico, fato, leitura } = resumo;
+  const [aberto, setAberto] = useState(false);
+  // tela estreita (celular): o cartão abre embaixo do nome, que é onde cabe
+  const [estreito, setEstreito] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const ver = () => setEstreito(mq.matches);
+    ver();
+    mq.addEventListener('change', ver);
+    return () => mq.removeEventListener('change', ver);
+  }, []);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const foiLongo = useRef(false);
+  const cancelar = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+  };
   return (
-    <TooltipPrimitive.Root delayDuration={250}>
-      <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
+    <TooltipPrimitive.Root delayDuration={250} open={aberto} onOpenChange={setAberto}>
+      <TooltipPrimitive.Trigger
+        asChild
+        onPointerDown={e => {
+          if (e.pointerType !== 'touch') return;
+          foiLongo.current = false;
+          cancelar();
+          timer.current = setTimeout(() => {
+            foiLongo.current = true;
+            setAberto(true);
+          }, TOQUE_LONGO_MS);
+        }}
+        onPointerUp={cancelar}
+        onPointerCancel={cancelar}
+        onPointerMove={e => e.pointerType === 'touch' && Math.abs(e.movementY) > 6 && cancelar()}
+        // depois de um toque longo, o "clique" que o navegador dispara ao soltar não abre a conta
+        onClickCapture={e => {
+          if (foiLongo.current) {
+            e.preventDefault();
+            e.stopPropagation();
+            foiLongo.current = false;
+          }
+        }}
+        onContextMenu={e => foiLongo.current && e.preventDefault()}
+      >
+        {children}
+      </TooltipPrimitive.Trigger>
       <TooltipPrimitive.Portal>
         <TooltipPrimitive.Content
-          side={lado}
+          side={estreito ? 'bottom' : lado}
           align="start"
           sideOffset={8}
           collisionPadding={12}
