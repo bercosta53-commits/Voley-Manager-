@@ -20,6 +20,8 @@ import { Metodologia, SeloExperimental } from './metodologia';
 import { ClasseExperimental, Comparacao, PainelConta, textoNota } from './painel';
 import { AmbienteDecisao } from './ambiente';
 import { LosangoMini } from './losango';
+import { resumoDaLinha } from './resumo-linha';
+import { DicaConta } from '@/components/ui/dica-conta';
 import { CruzarDimensoes, MatrizSetorPrioridade, ResumoDoSetor } from './visoes';
 import { dataCurta } from '@/lib/utils';
 
@@ -252,9 +254,11 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
           />
         </td>
         <td className="px-3 py-2.5">
-          <button type="button" onClick={() => setEstado(e => ({ ...e, sel: l.contaId }))} className="text-left font-semibold hover:underline">
-            {l.nome}
-          </button>
+          <DicaConta resumo={resumoDaLinha(l)}>
+            <button type="button" onClick={() => setEstado(e => ({ ...e, sel: l.contaId }))} className="text-left font-semibold hover:underline">
+              {l.nome}
+            </button>
+          </DicaConta>
           <span className="block text-xs text-text-3">{l.setor ?? 'Sem setor'}</span>
         </td>
         <td className="px-1 py-1">

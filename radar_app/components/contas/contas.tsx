@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { ArrowDown, ArrowUp, BookmarkPlus, Download, ExternalLink, Search, SearchX, X } from 'lucide-react';
 import type { Base, Conta, Sinal } from '@/lib/tipos';
+import { DicaConta } from '@/components/ui/dica-conta';
 import { FAMILIAS, STATUS, familia, hrefConta, primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, status } from '@/lib/contas';
 import { SEM_FILTRO, aplicar, daUrl, mesmosFiltros, temFiltro, type Filtros } from '@/lib/filtros';
 import { SeloQualificada } from '@/components/ui/selo-qualificada';
@@ -349,9 +350,25 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
                               <LogoConta nome={c.nome} dominio={c.dominio} tamanho={28} />
                               <div className="min-w-0">
                                 <span className="flex min-w-0 items-center gap-1">
-                                  <Link href={hrefConta(c.id)} className="inline-flex min-h-6 min-w-0 items-center truncate rounded-chip font-semibold text-foreground">
-                                    {c.nome}
-                                  </Link>
+                                  <DicaConta
+                                    resumo={{
+                                      nome: c.nome,
+                                      contexto: [c.ramoTI?.nome ?? primeiraMaiuscula(c.segmento), c.cidade ? `${c.cidade}/${c.uf}` : c.uf, c.tier && `Tier ${c.tier}`].filter(Boolean).join(' · '),
+                                      descricao: c.oQueFaz,
+                                      numeros: [
+                                        { rotulo: 'Score (VSCS)', valor: Math.round(c.score) },
+                                        { rotulo: 'Estágio', valor: c.vscsStatus ?? '—' },
+                                        { rotulo: 'Decisores mapeados', valor: c.comite.length },
+                                        { rotulo: 'Sinais na caixa', valor: sinaisPorConta.get(c.id)?.length ?? 0, tom: sinaisPorConta.get(c.id)?.length ? 'warm' : 'neutro' },
+                                      ],
+                                      fato: s ? { texto: s.rotulo, data: quando(s.data, base.geradoEm) } : h ? { texto: h.rotulo, data: quando(h.data, base.geradoEm) } : null,
+                                      leitura: c.acaoRecomendada ?? null,
+                                    }}
+                                  >
+                                    <Link href={hrefConta(c.id)} className="inline-flex min-h-6 min-w-0 items-center truncate rounded-chip font-semibold text-foreground">
+                                      {c.nome}
+                                    </Link>
+                                  </DicaConta>
                                   <SeloQualificada conta={c} />
                                   {subTrabalhada(c) && (
                                     <Chip tom="quente" peso="medio" className="shrink-0" title="Conta quente e ninguém do time agiu nela ainda">
