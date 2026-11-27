@@ -163,6 +163,19 @@ export interface Conta {
 
 export type StatusVscs = 'Monitoramento' | 'Atenção' | 'Oportunidade emergente' | 'Alta prioridade' | 'Prioridade máxima';
 
+export interface HorizontePlano {
+  tipo: string;
+  dataAnuncio: string;
+  inicio: string;
+  fim: string;
+  status: string;
+  fase?: string;
+  ultimaConfirmacaoConsiderada?: string;
+  a_revalidar?: boolean;
+  revalidar?: boolean;
+  vigente?: boolean;
+  fator?: number;
+}
 export interface ContribuicaoVscs {
   id: string;
   chave?: string;
@@ -174,6 +187,9 @@ export interface ContribuicaoVscs {
   tempo: number;
   correlacao: number;
   s: number;
+  horizontePlano?: HorizontePlano | null;
+  vaga_aberta?: boolean;
+  revalidar_vaga?: boolean;
   janela_lideranca?: string | null;
   maturacao?: string | null;
   /** s / 100 */
@@ -185,6 +201,7 @@ export interface ContribuicaoVscs {
 
 export interface Sinal {
   id: string;
+  horizontePlano?: HorizontePlano | null;
   contaId: string;
   tipo: string;
   rotulo: string;
