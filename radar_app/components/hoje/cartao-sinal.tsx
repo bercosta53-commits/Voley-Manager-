@@ -291,8 +291,8 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
           {/* o score da conta no tempo, com cada sinal marcado na data em que aconteceu */}
           <div className="min-w-0 rounded-control border border-border bg-background/40 p-3">
             <p className="mb-1 flex items-center justify-between text-xs text-text-3">
-              <span className="font-medium text-text-2">{comGrafico ? (historico180 ? 'Score em 180 dias' : 'Impacto atual dos sinais · 180 dias') : 'O que somou ao score'}</span>
-              {comGrafico && <span>{historico180 ? 'reconstruído · cada ponto é um sinal' : 'sem série histórica de score'}</span>}
+              <span className="font-medium text-text-2">{comGrafico ? (historico180 ? 'Temperatura comercial · 180 dias' : 'Impacto atual dos sinais · 180 dias') : 'O que somou ao score'}</span>
+              {comGrafico && <span>{historico180 ? (conta.serie180?.metodo === 'movimentos_registrados' ? 'estimativa dos movimentos registrados' : 'reconstruído · cada ponto é um sinal') : 'sem série histórica de score'}</span>}
             </p>
             {comGrafico ? (
               <GraficoSinais serie={historico180 ? serie180 : []} eventos={eventos} hoje={historico180 ? conta.serie180!.ate : hoje} marca={playbook && { data: playbook.ativadoEm, rotulo: playbook.playbook.nome }} />
