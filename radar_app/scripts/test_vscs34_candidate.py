@@ -37,5 +37,26 @@ class TestMotor34(unittest.TestCase):
         b=event("v","vaga_gerencia",70,"2026-11-20","Vaga gerente comercial","contratacao")
         rev={"n":{"chave":"nomeacao_diretoria_receita","base":85},"v":{"chave":"vaga_gerencia","base":70}}
         self.assertEqual(run([a],rev)["vscs"],run([a,b],rev)["vscs"])
+    def test_vaga_contextual_seniority_decay_and_zero_score(self):
+        from datetime import timedelta
+        day=(NOW-timedelta(days=60)).isoformat()
+        cases={"vaga_sdr_bdr":30,"vaga_especialista_gtm":45,"vaga_bloco":60,"vaga_coordenacao":60,"vaga_gerencia":75,"vaga_head":90,"vaga_diretoria_receita":90,"vaga_clevel_receita":120}
+        for key,half_life in cases.items():
+            with self.subTest(key=key):
+                e=event("v",key,40,day,"Vaga comercial","contratacao")
+                r=run([e],{"v":{"chave":key,"base":40}})
+                self.assertEqual(r["vscs"],0)
+                ac=r["movimentos"][0]["acontecimentos"][0]
+                self.assertAlmostEqual(ac["tempo"],0.5**(60/half_life),places=4)
+                self.assertEqual(ac["vaga_contextual"],True)
+                self.assertEqual(ac["revalidar_vaga"],60>=half_life)
+    def test_vaga_contextual_expiry(self):
+        from datetime import timedelta
+        day=(NOW-timedelta(days=271)).isoformat()
+        e=event("v","vaga_diretoria_receita",85,day,"Vaga diretor comercial","contratacao")
+        r=run([e],{"v":{"chave":"vaga_diretoria_receita","base":85}})
+        self.assertEqual(r["vscs"],0)
+        self.assertEqual(r["movimentos"],[])
+
 if __name__=="__main__":
     unittest.main()
