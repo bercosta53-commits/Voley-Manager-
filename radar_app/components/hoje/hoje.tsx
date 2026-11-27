@@ -31,7 +31,7 @@ import { playbooksPorConta } from '@/lib/playbooks';
 import { BlocoPlaybook } from './playbook';
 import { useViasQuentes } from '@/components/conta/relacionamento';
 import {
-  ORDENS, ORDEM_PADRAO, QUALQUER_PLAYBOOK, SEM_FILTROS_CAIXA, contarOpcoes, dentroDaJanela, filtrarCaixa, ordenarCaixa, porEstagio, temFiltroCaixa,
+  ORDENS, ORDEM_PADRAO, QUALQUER_PLAYBOOK, SEM_FILTROS_CAIXA, contarOpcoes, dentroDaJanela, elegivelCaixa, podeAbordar, filtrarCaixa, ordenarCaixa, porEstagio, temFiltroCaixa,
   type FiltrosCaixa, type Ordem,
 } from '@/lib/caixa';
 
@@ -120,7 +120,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
     return { caixa, adiados, concluidos };
   }, [sinais, estados, naCaixa]);
   // playbooks combinados por conta (fase 3): leem todos os sinais da carga, não só os da caixa
-  const playbooks = useMemo(() => playbooksPorConta(sinais, dataCarga), [sinais, dataCarga]);
+  const playbooks = useMemo(() => playbooksPorConta(sinais.filter(elegivelCaixa), dataCarga), [sinais, dataCarga]);
   // contas com via quente (relação 4–5 registrada pelo time; vazio quando a tabela privada está desligada)
   const viasQuentes = useViasQuentes();
   // contas com o nome do playbook ativo, para o filtro "Playbook" (lib/caixa.ts)
@@ -130,8 +130,12 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
     return m;
   }, [contas, playbooks]);
   // janela de validade por tipo: sinal vencido sai da caixa e fica só na conta e no gráfico (lib/caixa.ts)
-  const caixaValida = useMemo(() => listas.caixa.filter(s => dentroDaJanela(s, dataCarga)), [listas.caixa, dataCarga]);
-  const vencidos = listas.caixa.length - caixaValida.length;
+  const caixaPontuada = useMemo(() => listas.caixa.filter(elegivelCaixa), [listas.caixa]);
+  const caixaValida = useMemo(() => caixaPontuada.filter(s => dentroDaJanela(s, hoje, contas.get(s.contaId))), [caixaPontuada, hoje, contas]);
+  const vencidos = caixaPontuada.length - caixaValida.length;
+  const contextuais = listas.caixa.filter(s => Number.isFinite(s.pontos) && s.pontos === 0 || s.categoria === 'contexto' && Number.isFinite(s.pontos) && s.pontos > 0).length;
+  const pendentes = listas.caixa.filter(s => !Number.isFinite(s.pontos)).length;
+  const negativos = listas.caixa.filter(s => Number.isFinite(s.pontos) && (s.pontos < 0 || s.categoria === 'negativo')).length;
   // ordenação e filtros escolhidos pela pessoa, guardados na URL (um link abre a mesma visão)
   const [ordem, setOrdem] = useState<Ordem>(ORDEM_PADRAO);
   const [filtros, setFiltros] = useState<FiltrosCaixa>(SEM_FILTROS_CAIXA);
@@ -168,6 +172,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
     [caixaValida, filtros, contas, dataCarga, ordem],
   );
   const gruposCelular = useMemo(() => {
+    if (ordem !== 'recente') return [{ id: 'ordenados', rotulo: ORDENS.find(o => o.id === ordem)!.rotulo, ate: Infinity, itens: lista.map((s,i) => ({s,i})) }];
     const grupos = [
       { id: 'semana', rotulo: 'Esta semana', ate: 7, itens: [] as { s: Sinal; i: number }[] },
       { id: 'mes', rotulo: 'Este mês', ate: 30, itens: [] as { s: Sinal; i: number }[] },
@@ -175,7 +180,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
     ];
     lista.forEach((s, i) => grupos.find(g => diasEntre(s.data, dataCarga) <= g.ate)!.itens.push({ s, i }));
     return grupos.filter(g => g.itens.length);
-  }, [lista, dataCarga]);
+  }, [lista, dataCarga, ordem]);
   const contagens = { caixa: caixaValida.length, adiados: listas.adiados.length, concluidos: listas.concluidos.length };
   // "novos" = fatos da data da última carga em diante; o rótulo só diz "de hoje" se a carga for de hoje
   const novosHoje = caixaValida.filter(s => s.data >= dataCarga).length;
@@ -236,7 +241,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
     (s: Sinal, acao: AcaoCartao) => {
       const conta = contas.get(s.contaId)!;
       const e = estados[s.id];
-      if (acao === 'abordar') return setAbordarAlvo(s);
+      if (acao === 'abordar') { if (!podeAbordar(s, conta)) return toast('Sinal para pesquisa ou monitoramento; não é uma recomendação de abordagem.'); return setAbordarAlvo(s); }
       if (acao === 'adiar') {
         const ate = somarDias(hoje, ADIAR_DIAS);
         return mudar(s, { acao: 'adiado', ate }, `${conta.nome}: adiado até ${dataCurta(ate)}`, <CalendarClock className="size-4" strokeWidth={1.5} />);
@@ -518,7 +523,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
 
         {!semDados && !carregando && visao === 'caixa' && <Agenda eventos={base.agenda ?? []} />}
 
-        {!semDados && !carregando && caixaValida.length > 0 && (
+        {!semDados && !carregando && (caixaValida.length > 0 || contextuais + pendentes + negativos + vencidos > 0) && (
           <div className="mb-4 flex flex-wrap items-center gap-2" aria-label="Ordenação e filtros da caixa">
             <label className="flex h-8 items-center gap-1.5 rounded-control border border-border bg-card px-2 text-sm text-text-2 max-md:h-10">
               Ordenar por
@@ -584,6 +589,12 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
               </span>
             )}
           </div>
+        )}
+
+        {!semDados && !carregando && contextuais + pendentes + negativos > 0 && (
+          <p className="-mt-2 mb-4 text-xs text-text-3">
+            Fora da fila comercial: {contextuais} contextos ou sinais absorvidos · {pendentes} a pontuar · {negativos} negativos. Evidências preservadas na conta.
+          </p>
         )}
 
         {conteudo}
