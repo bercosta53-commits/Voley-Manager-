@@ -56,7 +56,7 @@ export const DESCONTO_CAUSA_COMUM = 0.5;
 export const JANELA_CAUSA_DIAS = 365;
 
 /** status do pipeline que tornam o resultado inutilizável (comparação sem acento e sem caixa) */
-const STATUS_BLOQUEIO = /bloque|nao[_ ]?compar|sem[_ ]?dado|indispon|erro|insuf|invalid/;
+const STATUS_BLOQUEIO = /bloque|nao[_ ]?compar|nao[_ ]?valid|sem[_ ]?dado|indispon|erro|insuf|invalid/;
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 const semAcento = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();

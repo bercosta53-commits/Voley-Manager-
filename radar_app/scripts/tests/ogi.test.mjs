@@ -17,6 +17,8 @@ test('ausência e base não comparável dão null, nunca zero nem penalidade', (
   assert.equal(estadoOgi(R(10, 10, 90, 0.3)), 'nao_comparavel'); // base 0: a empresa não existia há 12 meses
   assert.equal(estadoOgi(R(80, 20, 60, 0.4, 0.5, { status: 'Bloqueado pela fonte' })), 'nao_comparavel');
   assert.equal(estadoOgi(R(80, 20, 60, 0.4, 0.5, { status: 'não comparável' })), 'nao_comparavel');
+  assert.equal(estadoOgi(R(80, 20, 60, 0.4, 0.5, { status: 'escopo_local_nao_validado' })), 'nao_comparavel');
+  assert.equal(estadoOgi(R(80, 20, 60, 0.4, 0.5, { status: 'simulacao_nao_publicada' })), 'crescimento');
   for (const r of [undefined, R(10, 10, 90, 0.3)]) assert.equal(notaOgi(r).nota, null);
 });
 
@@ -98,6 +100,19 @@ test('5ª dimensão com peso 1: entra na média e o neutro (3) dilui quem está 
   assert.equal(classeAtual(N(5, 5, 3, 5)), 'A1');
   assert.equal(classificarComOgi(N(5, 5, 3, 5), 3), 'A2');
   assert.equal(classificarComOgi(N(5, 5, 3, 5), 2.9), 'B1');
+});
+
+test('modo ancorado: OGI neutro não muda nota nem classe; só o afastamento do neutro mexe', () => {
+  const A = { modo: 'ancorado' };
+  assert.equal(notaComOgi(N(5, 4, 3, 4), 3, 1, 'ancorado'), notaComOgi(N(5, 4, 3, 4), null));
+  assert.equal(classificarComOgi(N(5, 4, 3, 4), 3, A), 'A2'); // no modo média, o neutro derrubava para B1
+  // conta fraca (média 2,4) não sobe de C para B2 com OGI neutro ou em retração leve
+  const fraca = N(3, 2, 2.4, 2.2); // média 2,4
+  assert.equal(classificarComOgi(fraca, 3, A), 'C');
+  assert.equal(classificarComOgi(fraca, 2.9, A), 'C');
+  assert.equal(classificarComOgi(fraca, 3, {}), 'B2'); // o efeito de diluição que o modo ancorado evita
+  // crescimento forte ainda soma: +2 de OGI × 1/4,5 ≈ +0,44 na nota
+  assert.ok(notaComOgi(fraca, 5, 1, 'ancorado') - notaComOgi(fraca, null) > 0.44);
 });
 
 test('travas preservadas: ICP < 3 é C mesmo com OGI máximo; OGI não substitui o mínimo de Sinais', () => {

@@ -59,6 +59,8 @@ const VARIANTES = [
   { id: 'dedup_total', rotulo: 'Causa comum zera o afastamento', o: { descontoCausaComum: 1 } },
   { id: 'sem_conf', rotulo: 'Sem confiabilidade (força cheia)', o: { usarConfiabilidade: false } },
   { id: 'escala_90', rotulo: 'Escala 90 (metade da inclinação)', o: { escala: 90 } },
+  { id: 'ancorado', rotulo: 'Ancorado no neutro (OGI 3 não muda a nota)', o: {}, modo: 'ancorado' },
+  { id: 'ancorado_sem_conf', rotulo: 'Ancorado no neutro, sem confiabilidade', o: { usarConfiabilidade: false }, modo: 'ancorado' },
 ];
 
 const notasAtuais = c => {
@@ -81,13 +83,14 @@ for (const v of VARIANTES) {
     const n = notasAtuais(c);
     const o = notaOgi(resultados[c.id], { ...v.o, sinais: sinaisPorConta.get(c.id) ?? [], referencia: resultados[c.id]?.consultadoEm?.slice(0, 10) || referencia });
     const antes = classeAtual(n);
-    const depois = classificarComOgi(n, o.nota);
+    const depois = classificarComOgi(n, o.nota, { modo: v.modo });
     const notaAntes = Object.keys(n).length ? notaIntegrada(n) : null;
-    linhas.push({ contaId: c.id, antes, depois, notaAntes, notaDepois: notaComOgi(n, o.nota), movimento: movimento(antes, depois) });
-    if (v.id === 'padrao')
+    linhas.push({ contaId: c.id, antes, depois, notaAntes, notaDepois: notaComOgi(n, o.nota, 1, v.modo), movimento: movimento(antes, depois) });
+    if (v.id === 'padrao' || v.id === 'ancorado')
       detalhe.push({
+        variante: v.id,
         id: c.id, nome: c.nome, tier: c.icp?.tier ?? c.tier ?? '', vscs: c.score ?? null, estado: o.estado, ogiNota: o.nota, ogiForca: o.forca,
-        provisoria: o.provisoria, deduplicacao: o.deduplicacao, classeAntes: antes, classeDepois: depois, notaAntes: r2(notaAntes), notaDepois: r2(notaComOgi(n, o.nota)),
+        provisoria: o.provisoria, deduplicacao: o.deduplicacao, classeAntes: antes, classeDepois: depois, notaAntes: r2(notaAntes), notaDepois: r2(notaComOgi(n, o.nota, 1, v.modo)),
         movimento: movimento(antes, depois), delta365: resultados[c.id]?.delta365 ?? null, total: resultados[c.id]?.total ?? null,
       });
   }
@@ -95,7 +98,7 @@ for (const v of VARIANTES) {
 }
 
 const estados = {};
-for (const d of detalhe) estados[d.estado] = (estados[d.estado] ?? 0) + 1;
+for (const d of detalhe.filter(x => x.variante === 'padrao')) estados[d.estado] = (estados[d.estado] ?? 0) + 1;
 const out = {
   aviso: 'PRIVADO — simulação; não altera VSCS, classe, Tier nem a tela. Não publicar.',
   referencia, scoreVersao: base.scoreVersao ?? null, contas: base.contas.length, sinais: (base.sinais ?? []).length,
@@ -114,9 +117,11 @@ const p = porVariante.padrao;
 const cl = ['A1', 'A2', 'B1', 'B2', 'C', 'sem'];
 md.push('', '## Matriz de classes (variante padrão; linhas = hoje, colunas = simulado)', '', `| | ${cl.join(' | ')} |`, `|---|${cl.map(() => '---').join('|')}|`);
 for (const a of cl) md.push(`| **${a}** | ${cl.map(b => p.matriz[a][b] || '·').join(' | ')} |`);
-const mov = detalhe.filter(d => d.movimento !== 'igual').sort((a, b) => Math.abs((b.notaDepois ?? 0) - (b.notaAntes ?? 0)) - Math.abs((a.notaDepois ?? 0) - (a.notaAntes ?? 0)));
-md.push('', '## Contas que mudam de classe (variante padrão)', '', '| Conta | Tier | VSCS | OGI | Estado | Classe | Nota | Causa comum |', '|---|---|---|---|---|---|---|---|');
-for (const d of mov) md.push(`| ${d.nome} | ${d.tier} | ${fmt(d.vscs)} | ${fmt(d.ogiNota)}${d.provisoria ? '*' : ''} | ${ROTULO_ESTADO_OGI[d.estado]} | ${d.classeAntes ?? '—'} → ${d.classeDepois ?? '—'} | ${fmt(d.notaAntes)} → ${fmt(d.notaDepois)} | ${d.deduplicacao ? d.deduplicacao.causa : ''} |`);
+for (const vid of ['padrao', 'ancorado']) {
+  const mov = detalhe.filter(d => d.variante === vid && d.movimento !== 'igual').sort((a, b) => Math.abs((b.notaDepois ?? 0) - (b.notaAntes ?? 0)) - Math.abs((a.notaDepois ?? 0) - (a.notaAntes ?? 0)));
+  md.push('', `## Contas que mudam de classe (${porVariante[vid].rotulo})`, '', '| Conta | Tier | VSCS | OGI | Estado | Classe | Nota | Causa comum |', '|---|---|---|---|---|---|---|---|');
+  for (const d of mov) md.push(`| ${d.nome} | ${d.tier} | ${fmt(d.vscs)} | ${fmt(d.ogiNota)}${d.provisoria ? '*' : ''} | ${ROTULO_ESTADO_OGI[d.estado]} | ${d.classeAntes ?? '—'} → ${d.classeDepois ?? '—'} | ${fmt(d.notaAntes)} → ${fmt(d.notaDepois)} | ${d.deduplicacao ? d.deduplicacao.causa : ''} |`);
+}
 md.push('', '\\* nota provisória (confiabilidade abaixo de 1).');
 writeFileSync(resolve(saida, 'simulacao-ogi.md'), md.join('\n'));
 console.log(`OK: ${resolve(saida, 'simulacao-ogi.md')}`);

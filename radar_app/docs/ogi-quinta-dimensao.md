@@ -46,14 +46,23 @@ Ausência nunca vira zero nem penalidade.
   - **Reorganização:** fusão e aquisição, reestruturação. Explica tanto alta quanto queda.
 - Vagas genéricas não são causa: abrir uma vaga não é expandir a empresa.
 
-## Achado do teste de regra
+## Dois modos de entrada na nota (em teste)
 
-Um OGI neutro (3) com peso 1 **dilui** quem está acima de 4.
+- **Média:** o OGI é mais uma dimensão na média ponderada. Com isso, o neutro (3) puxa toda conta para 3, o que dilui as fortes e levanta as fracas:
+  - uma conta A2 com média 4,14 cai para B1;
+  - uma C com média 2,4 sobe para B2, mesmo com a empresa em retração leve.
+- **Ancorado no neutro:** só o afastamento do neutro mexe na nota.
+  - Fórmula: `nota4 + peso × (OGI − 3) / peso total das cinco`.
+  - Ruído e estagnação neutra não mudam nada; crescimento soma e retração subtrai.
+  - Com peso 1, o efeito máximo é de ±0,44 ponto de nota.
 
-- Uma conta A2 com média 4,14 cai para 3,89 (B1).
-- Uma conta A1 com média 4,71 cai para 4,33 (A2).
+Os dois modos estão nos testes (`scripts/tests/ogi.test.mjs`) e na simulação.
 
-Ou seja, a 5ª dimensão com peso 1 também tira contas do sweet spot só por não terem crescido. Os testes deixam isso registrado (`scripts/tests/ogi.test.mjs`). A medida real vem da simulação.
+## Status do pipeline
+
+- `simulacao_nao_publicada` é um resultado utilizável.
+- `escopo_local_nao_validado` é tratado como base não comparável: o headcount pode ser global e não da operação no Brasil.
+- Os limites entre as faixas seguem as regras gravadas em `payload.ogi.simulacaoAssimetria.regras`.
 
 ## Como rodar a simulação
 

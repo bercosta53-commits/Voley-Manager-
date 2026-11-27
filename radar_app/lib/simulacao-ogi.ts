@@ -20,14 +20,26 @@ export interface OpcoesSimulacao {
   minimoOgi?: number;
   /** dimensões que podem faltar (das cinco) e a conta ainda ser classificada; padrão 1 */
   maxFaltantes?: number;
+  /**
+   * 'media': o OGI é mais uma dimensão na média ponderada (neutro 3 puxa toda conta para 3: dilui as fortes e
+   * levanta as fracas). 'ancorado': só o afastamento do neutro mexe na nota (nota4 + peso × (OGI − 3) / peso
+   * total das cinco); ruído e estagnação neutra não mudam nada.
+   */
+  modo?: 'media' | 'ancorado';
 }
 
 const atinge = (v: number, limite: number) => v >= limite - TOLERANCIA;
 
-export function notaComOgi(n: Partial<Notas>, ogi: number | null, pesoOgi = PESO_OGI): number | null {
+export function notaComOgi(n: Partial<Notas>, ogi: number | null, pesoOgi = PESO_OGI, modo: 'media' | 'ancorado' = 'media'): number | null {
   const ds = DIMENSOES.filter(d => n[d] !== undefined);
-  const peso = ds.reduce((s, d) => s + PESOS[d], 0) + (ogi === null ? 0 : pesoOgi);
+  const peso4 = ds.reduce((s, d) => s + PESOS[d], 0);
+  const peso = peso4 + (ogi === null ? 0 : pesoOgi);
   if (!peso) return null;
+  if (modo === 'ancorado') {
+    if (!peso4) return null;
+    const media4 = ds.reduce((s, d) => s + n[d]! * PESOS[d], 0) / peso4;
+    return ogi === null ? media4 : Math.min(5, Math.max(1, media4 + (pesoOgi * (ogi - 3)) / peso));
+  }
   return (ds.reduce((s, d) => s + n[d]! * PESOS[d], 0) + (ogi === null ? 0 : ogi * pesoOgi)) / peso;
 }
 
@@ -35,7 +47,7 @@ export function notaComOgi(n: Partial<Notas>, ogi: number | null, pesoOgi = PESO
 export function classificarComOgi(n: Partial<Notas>, ogi: number | null, o: OpcoesSimulacao = {}): Classe | null {
   const faltantes = DIMENSOES.filter(d => n[d] === undefined).length + (ogi === null ? 1 : 0);
   if (faltantes > (o.maxFaltantes ?? 1)) return null;
-  const media = notaComOgi(n, ogi, o.pesoOgi ?? PESO_OGI);
+  const media = notaComOgi(n, ogi, o.pesoOgi ?? PESO_OGI, o.modo ?? 'media');
   if (media === null) return null;
   if ((n.icp !== undefined && !atinge(n.icp, REGRAS.C.icpAbaixoDe)) || !atinge(media, REGRAS.C.notaAbaixoDe)) return 'C';
   const minimoOgi = o.minimoOgi ?? MINIMO_OGI_SWEET;
