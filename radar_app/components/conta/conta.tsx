@@ -9,12 +9,11 @@ import type { BaseCasca } from '@/lib/casca-dados';
 import { ACOES_DE_ABORDAGEM, MATRIZ_ICP, faixaVscs } from '@/lib/avaliacao';
 import { hrefConta, primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, sentido, status } from '@/lib/contas';
 import { gancho, rascunho } from '@/lib/mensagem';
-import { papelNoComite } from '@/lib/papeis';
 import { cobertura } from '@/lib/cobertura';
 import { coberturaDaConta, EXPLICA_COBERTURA, ROTULO_COBERTURA, type Varredura } from '@/lib/varredura';
 import { ACAO_DO_ANDAMENTO, teseDaConta } from '@/lib/tese';
 import { TeseConta } from './tese';
-import { cn, dataComAno, dataCurta, moeda, plural, somarDias, pontos } from '@/lib/utils';
+import { cn, dataComAno, dataCurta, diasEntre, moeda, plural, somarDias, pontos } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PainelFlutuante } from '@/components/ui/painel-flutuante';
@@ -31,6 +30,11 @@ import { Comite } from './comite';
 import { LinhaDoTempo } from './linha-do-tempo';
 import { NarrativaConta } from './narrativa';
 import { RadarConta } from './radar-conta';
+import { Losango } from '@/components/prioridade/losango';
+import { expandirLinhas } from '@/lib/prioridade-transporte';
+import { formatarIntegrada, type VisaoIntegradaConta } from '@/lib/prioridade';
+import { LEITURA_CLASSE } from '@/lib/prioridade-config';
+import { faltandoNoComite, papelNoComite } from '@/lib/papeis';
 import type { LinhaTransporte } from '@/lib/prioridade-transporte';
 import { Decomposicao } from './decomposicao';
 import { useHoje } from '@/components/ui/use-agora';
@@ -148,6 +152,7 @@ function Detalhe({
   linhaRadar?: LinhaTransporte;
 }) {
   const [decompor, setDecompor] = useState(false);
+  const visaoRadar = useMemo(() => (linhaRadar ? expandirLinhas([linhaRadar])[0]!.visao : null), [linhaRadar]);
   const tese = useMemo(
     () =>
       teseDaConta(conta, sinais, {
@@ -164,19 +169,30 @@ function Detalhe({
   );
   return (
     <>
-      {/* cabeçalho: quem é + calor */}
-      <header className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+      {/* abertura: quem é, o radar das quatro dimensões e o calor (score), numa só caixa */}
+      <header className="vr-card grid gap-6 p-5 md:p-6 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-center">
         <div className="flex min-w-0 items-start gap-4">
-          <LogoConta nome={conta.nome} dominio={conta.dominio} tamanho={56} />
+          <LogoConta nome={conta.nome} dominio={conta.dominio} tamanho={60} />
           <div className="min-w-0">
             <h1 className="font-display text-2xl leading-tight font-semibold tracking-tight">{conta.nome}</h1>
             <p className="mt-1 text-sm text-text-3">
-              {[primeiraMaiuscula(conta.segmento), conta.cidade && `${conta.cidade}/${conta.uf}`].filter(Boolean).join(' · ')}
+              {[conta.ramoTI?.nome ?? primeiraMaiuscula(conta.segmento), conta.cidade ? `${conta.cidade}/${conta.uf}` : conta.uf].filter(Boolean).join(' · ')}
             </p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
+            {conta.oQueFaz && <p className="mt-2 line-clamp-2 max-w-xl text-sm text-text-2">{conta.oQueFaz}</p>}
+            <div className="mt-3 flex flex-wrap gap-1.5">
               <Chip tom="contorno">Tier {conta.tier}</Chip>
               <Chip tom="contorno">{rotuloStatus(conta)}</Chip>
               <ChipCobertura contaId={conta.id} sinais={sinais} varredura={varredura} hoje={dataBase ?? hoje} />
+              {conta.dominio && (
+                <a
+                  href={`https://${conta.dominio}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-chip border border-border px-1.5 py-0.5 text-xs text-text-2 hover:text-foreground"
+                >
+                  {conta.dominio} <ExternalLink aria-hidden className="size-3" strokeWidth={1.5} />
+                </a>
+              )}
               <Link
                 href={`${hrefConta(conta.id)}/briefing`}
                 className="inline-flex items-center gap-1 rounded-chip border border-border-strong bg-card px-1.5 py-0.5 text-xs font-medium text-foreground hover:bg-muted"
@@ -187,17 +203,24 @@ function Detalhe({
             </div>
           </div>
         </div>
-        <ScoreGrande conta={conta} onAbrir={() => setDecompor(true)} />
+        {visaoRadar && (
+          <div className="flex flex-col items-center border-border lg:border-x lg:px-6">
+            <Losango dims={visaoRadar.dimensoes} tamanho={230} />
+          </div>
+        )}
+        <ScoreGrande conta={conta} onAbrir={() => setDecompor(true)} embutido />
       </header>
 
-      <div className="mt-8 grid gap-6 md:grid-cols-[minmax(0,1fr)_320px]">
+      <LeituraRapida conta={conta} sinais={sinais} hoje={hoje} visao={visaoRadar} acao={tese.acao.titulo} />
+
+      <div className="mt-6 grid gap-6 md:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-6">
           <TeseConta tese={tese} nomeConta={conta.nome} semAcaoDoTime={compartilhado && cobertura(conta, sinais, estados, andamento).subTrabalhada} />
           <div id="proxima-acao" className="scroll-mt-6 empty:hidden">
             <ProximaAcao conta={conta} sinais={sinais} estados={estados} hoje={hoje} onMudar={onMudar} andamento={andamento} />
           </div>
           {playbook && <BlocoPlaybook ativacao={playbook} conta={conta} className="mt-0" />}
-          {linhaRadar && <RadarConta linha={linhaRadar} />}
+          {linhaRadar && <RadarConta linha={linhaRadar} semDesenho />}
           <NarrativaConta contaId={conta.id} sinais={sinais} historico={conta.historico} hoje={hoje} />
           <LinhaDoTempo conta={conta} sinais={sinais} estados={estados} hoje={hoje} andamento={andamento} />
         </div>
@@ -220,8 +243,38 @@ function Detalhe({
   );
 }
 
+/** Faixa escaneável logo abaixo da abertura: os cinco números que respondem "como está esta conta". */
+function LeituraRapida({ conta, sinais, hoje, visao, acao }: { conta: Conta; sinais: Sinal[]; hoje: string; visao: VisaoIntegradaConta | null; acao: string }) {
+  const fatos = sinais.filter(s => s.tipo !== 'noticia_setorial' && s.data && diasEntre(s.data.slice(0, 10), hoje) <= 90);
+  const ultimo = [...sinais].filter(s => s.data).sort((a, b) => b.data.localeCompare(a.data))[0];
+  const lugares = 3 - Math.min(3, faltandoNoComite(conta).length);
+  const itens: { rotulo: string; valor: React.ReactNode; nota?: React.ReactNode; tom?: string }[] = [
+    {
+      rotulo: 'Prioridade integrada',
+      valor: visao?.classeIntegrada ? `${visao.classeIntegrada} · ${formatarIntegrada(visao.notaIntegrada!)}` : 'sem métrica',
+      nota: visao?.classeIntegrada ? LEITURA_CLASSE[visao.classeIntegrada] : 'faltam dimensões',
+      tom: visao?.situacaoSweetSpot === 'sweet_spot' ? 'text-ok' : undefined,
+    },
+    { rotulo: 'Fatos em 90 dias', valor: fatos.length, nota: fatos.length ? plural(new Set(fatos.map(f => f.tipo)).size, 'tipo de fato', 'tipos de fato') : 'nenhum fato recente' },
+    { rotulo: 'Comitê de compra', valor: `${lugares} de 3`, nota: lugares === 3 ? 'completo' : `${plural(3 - lugares, 'papel', 'papéis')} a mapear`, tom: lugares === 3 ? 'text-ok' : undefined },
+    { rotulo: 'Último fato', valor: ultimo ? dataCurta(ultimo.data) : '—', nota: ultimo ? `há ${plural(diasEntre(ultimo.data.slice(0, 10), hoje), 'dia', 'dias')}` : 'sem fato registrado' },
+    { rotulo: 'Próxima ação', valor: acao, nota: conta.vscsStatus ?? undefined },
+  ];
+  return (
+    <dl className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-card border border-border bg-border sm:grid-cols-3 lg:grid-cols-5" aria-label="Leitura rápida da conta">
+      {itens.map((i, n) => (
+        <div key={i.rotulo} className={cn('min-w-0 bg-card px-4 py-3', n === itens.length - 1 && 'col-span-2 sm:col-span-1')}>
+          <dt className="text-xs text-text-3">{i.rotulo}</dt>
+          <dd className={cn('vr-data mt-0.5 truncate text-lg font-semibold', i.tom)}>{i.valor}</dd>
+          {i.nota && <dd className="truncate text-xs text-text-3">{i.nota}</dd>}
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 /** Score grande com a curva de 90 dias. É um botão: abre a decomposição. */
-function ScoreGrande({ conta, onAbrir }: { conta: Conta; onAbrir: () => void }) {
+function ScoreGrande({ conta, onAbrir, embutido = false }: { conta: Conta; onAbrir: () => void; embutido?: boolean }) {
   const s = sentido(conta.tendencia);
   const cor = s === 'sobe' ? 'text-warm' : s === 'desce' ? 'text-cool' : 'text-text-3';
   const Seta = s === 'sobe' ? ArrowUpRight : s === 'desce' ? ArrowDownRight : Minus;
@@ -230,7 +283,10 @@ function ScoreGrande({ conta, onAbrir }: { conta: Conta; onAbrir: () => void }) 
     <button
       onClick={onAbrir}
       aria-label={`Score ${pontos(conta.score)}, ${texto}. Ver de onde vem`}
-      className="vr-card flex items-center gap-5 px-5 py-4 text-left transition-[box-shadow,border-color] duration-[var(--vr-dur-hover)] hover:border-border-strong hover:shadow-2"
+      className={cn(
+        'flex items-center gap-5 text-left transition-[box-shadow,border-color,background-color] duration-[var(--vr-dur-hover)]',
+        embutido ? 'rounded-control px-3 py-2 hover:bg-[var(--vr-surface-2)]' : 'vr-card px-5 py-4 hover:border-border-strong hover:shadow-2',
+      )}
     >
       <div className="flex flex-col">
         <Curva serie={conta.serie} largura={168} altura={44} classe={cor} />
@@ -414,19 +470,10 @@ function Cadastro({ conta }: { conta: Conta }) {
       </span>,
     ],
   ];
-  if (conta.icp)
-    linhas.push([
-      'ICP',
-      <span key="icp">
-        <span className="font-medium text-foreground">Tier {conta.icp.tier}</span>
-        <span className="text-text-3"> · {conta.icp.motivos.join(' · ')}</span>
-      </span>,
-    ]);
   if (conta.ramoTI) linhas.push(['Ramo de TI', `${conta.ramoTI.nome} (${conta.ramoTI.familia})`]);
   else linhas.push(['Segmento', primeiraMaiuscula(conta.segmento) || '—']);
   if (conta.especializacao) linhas.push(['Especialização', conta.especializacao.nome]);
   if (conta.modeloNegocio) linhas.push(['Modelo', { servico: 'Serviços', produto: 'Produto / software', misto: 'Produto e serviços' }[conta.modeloNegocio]]);
-  if (conta.oQueFaz) linhas.push(['O que faz', conta.oQueFaz]);
   if (conta.braco) linhas.push(['Braço do ICP', conta.braco]);
   linhas.push(['Status comercial', primeiraMaiuscula(conta.statusComercial.toLowerCase()) || '—']);
   if (conta.subsegmentoTI) linhas.push(['Subsegmento de TI', rotuloSubsegmentoTI(conta.subsegmentoTI)]);

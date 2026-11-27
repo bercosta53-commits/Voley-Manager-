@@ -100,8 +100,11 @@ try {
   conferir(cabecalhoTese.includes('Qualificada'), 'tese mostra o selo de Conta Qualificada', cabecalhoTese);
   conferir(cabecalhoTese.includes('Quente e sem ação do time'), 'cobertura: conta quente ainda sem ação do time ganha o alerta', cabecalhoTese);
   conferir(resposta('Por que a').includes('Conta qualificada desde 20 nov'), 'tese diz desde quando e por quê', resposta('Por que a').slice(0, 120));
-  const fimTese = await pagina.locator('#tese-da-conta').evaluate(el => el.closest('section').getBoundingClientRect().bottom);
-  conferir(fimTese <= 900, 'tese cabe sem rolar a 1440×900', `termina em ${Math.round(fimTese)} px`);
+  // a decisão fica à vista sem rolar: abertura (quem é, radar, score) e a leitura rápida com a próxima ação
+  // terminam na primeira tela, e a tese começa nela (redesenho da página da conta, 27/11)
+  const fimLeitura = await pagina.locator('dl[aria-label="Leitura rápida da conta"]').evaluate(el => el.getBoundingClientRect().bottom);
+  const inicioTese = await pagina.locator('#tese-da-conta').evaluate(el => el.closest('section').getBoundingClientRect().top);
+  conferir(fimLeitura <= 900 && inicioTese < 900 && (await pagina.locator('dl[aria-label="Leitura rápida da conta"]').innerText()).includes('Próxima ação'), 'abertura e leitura rápida (com a próxima ação) cabem sem rolar a 1440×900; a tese começa na primeira tela', `leitura termina em ${Math.round(fimLeitura)} px, tese começa em ${Math.round(inicioTese)} px`);
   // a tela não pode se contradizer: rascunho de mensagem aberto só quando a tese também pede contato
   const temRascunho = (await pagina.locator('#proxima-acao textarea').count()) > 0;
   const tesePedeContato = resposta('Próxima ação').includes('Abrir o rascunho da abordagem');
