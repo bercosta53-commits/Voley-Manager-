@@ -71,11 +71,11 @@ function Alvo({
         <text x={c} y={L - 6} textAnchor="middle" className="fill-text-2 text-xs font-medium">Clima favorável</text>
         <text x={L - 4} y={c - 8} textAnchor="end" className="fill-text-2 text-xs font-medium">Sinais fortes</text>
         <text x={4} y={c - 8} className="fill-text-2 text-xs font-medium">Digital com espaço</text>
-        {/* rótulos das faixas no quadrante de baixo à esquerda (Clima e Digital raramente afastam: fica livre) */}
+        {/* rótulos das faixas na diagonal de cima à direita (ICP e Sinais fortes juntos são raros: fica livre) */}
         {(['proximo', 'aproximacao', 'distante'] as FaixaAmbiente[]).map(f => {
           const r = R * (RAIO_FAIXA[f] - 0.05);
           return (
-            <text key={f} x={c - r * 0.707} y={c + r * 0.707} textAnchor="middle" className="fill-text-3 text-xs" style={{ paintOrder: 'stroke', stroke: 'var(--vr-surface)', strokeWidth: 3 }}>
+            <text key={f} x={c + r * 0.707} y={c - r * 0.707} textAnchor="middle" className="fill-text-3 text-xs" style={{ paintOrder: 'stroke', stroke: 'var(--vr-surface)', strokeWidth: 3 }}>
               {FAIXAS_AMBIENTE.find(x => x.id === f)!.rotulo}
             </text>
           );
