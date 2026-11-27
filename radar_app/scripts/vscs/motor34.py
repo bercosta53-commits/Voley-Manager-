@@ -3,7 +3,7 @@
 Pipeline por conta:
   1. classificação 3.2 (tabela de cargos, blocos de vagas) — motor32.classificar
   2. fonte pela taxonomia 3.3 (fontes.py) e tempo 3.3 (tempo.py): liderança NOMEADA na dupla janela;
-     vaga aberta em curva contextual própria, sem contribuição ao VSCS
+     vaga aberta em curva própria, com contribuição limitada de intenção de contratação
   3. documentos → acontecimentos (corroboração documental sobe a fonte) → movimentos (agrupar.py)
   4. intensidade do movimento: s_M = min(s₁ + teto, 100·[1 − (1 − s₁/100)·Π(1 − γ·s_k/100)])
   5. DC entre movimentos:
@@ -112,7 +112,7 @@ def vinculo_atual(ac: Acontecimento, conta: dict | None, hoje: date, rel: dict |
 
 
 def _tempo(ac: Acontecimento, hoje: date, p33: dict, conta: dict | None = None, rel: dict | None = None) -> tuple[float, str | None, str | None]:
-    """(fator, janela, maturação). Vagas: decaimento contextual por cargo ou bloco; demais fatos: decaimento convencional. Liderança nomeada: dupla janela
+    """(fator, janela, maturação). Vagas: decaimento por cargo ou bloco; demais fatos: decaimento convencional. Liderança nomeada: dupla janela
     só com mandato de receita e, depois dos 90 dias, vínculo atual confirmado; senão, decaimento convencional."""
     dias = (hoje - ac.data).days
     if ac.cl.get("nomeacao"):
@@ -129,9 +129,9 @@ def _tempo(ac: Acontecimento, hoje: date, p33: dict, conta: dict | None = None, 
     antes = 30 if ac.cl["chave"].startswith(("presenca_", "palestra_")) else 0
     mv = p33.get("meia_vida_por_chave", {}).get(ac.cl["chave"])
     if ac.cl.get("vaga"):
-        cfg = p33.get("meia_vida_vagas_contextuais", {})
+        cfg = p33.get("meia_vida_vagas_abertas", {})
         mv = cfg.get(ac.cl["chave"], cfg.get("padrao", 30))
-        # A força contextual descreve a intenção registrada; não confirma que a vaga permanece aberta.
+        # A força da vaga descreve a intenção registrada; não confirma que a vaga permanece aberta.
     if mv is not None:
         fator = 0.0 if dias < 0 or dias > 3 * mv else 0.5 ** (dias / mv)
         return fator, None, None
@@ -170,8 +170,24 @@ def preparar(eventos: list[dict], hoje: date, empresa: str = "", p32: dict | Non
             continue
         (operacionais if cl["operacional"] else docs).append((ev, cl))
     docs += motor32._blocos(operacionais, p32)
-    # Vagas são contexto informativo, nunca contribuem para VSCS nem reforçam movimentos.
-    docs = [(ev, dict(cl, categoria="vaga_contextual") if cl.get("vaga") else cl) for ev, cl in docs]
+    # Vagas são intenção real, com peso próprio reduzido, fora da convergência de fatos consumados.
+    cfg = p33["vagas_abertas"]
+    classificados = []
+    for ev, cl in docs:
+        if cl.get("vaga"):
+            if str(ev.get("statusVaga") or "").lower() in ("cancelada", "encerrada", "preenchida", "closed", "filled", "cancelled"):
+                continue
+            caps = cfg["base_maxima_por_chave"]
+            cap = caps.get(cl["chave"], caps["padrao"])
+            if cl["chave"] == "vaga_bloco":
+                qtd = cl.get("qtd") or (ev.get("calibracao") or {}).get("qtdVagas") or ev.get("qtdVagas")
+                if not qtd:
+                    regras = p32["blocos_operacionais"]
+                    qtd = 5 if cl["base"] >= regras["cinco_ou_mais"] else 3 if cl["base"] >= regras["tres_a_quatro"] else 2
+                cap = cfg["blocos"]["cinco_ou_mais" if int(qtd) >= 5 else "tres_a_quatro" if int(qtd) >= 3 else "duas"]
+            cl = dict(cl, categoria="vaga_aberta", base=min(cl["base"], cap))
+        classificados.append((ev, cl))
+    docs = classificados
     documentos = []
     for ev, cl in docs:
         nivel, fator = classificar_fonte(ev, p33)
@@ -223,7 +239,7 @@ def agregar(movs: list[Movimento], p33: dict) -> tuple[float, float, list[tuple[
 
     dc = p33["dc"]
     a, b, M, rep = dc["a"], dc["b"], dc["max_corroboradores"], dc["mesma_categoria"]
-    pos = sorted((m for m in movs if m.categoria not in (NEGATIVO, "vaga_contextual", *dc["nao_corrobora"])), key=lambda m: -m.s)
+    pos = sorted((m for m in movs if m.categoria not in (NEGATIVO, "vaga_aberta", *dc["nao_corrobora"])), key=lambda m: -m.s)
     melhor, escolha, pesos = 0.0, [], []
     for i, dom in enumerate(pos):
         outros = pos[:i] + pos[i + 1:]
@@ -290,19 +306,38 @@ def calcular(eventos: list[dict], hoje: date, empresa: str = "", interacoes: lis
         p32, p33 = parametros()
     movs, possiveis = preparar(eventos, hoje, empresa, p32, p33, interacoes, conta, revisoes, relacionamentos)
     principal, contexto, parcelas = agregar(movs, p33)
+    # Uma única contribuição de vagas por conta: o maior movimento elegível.
+    # Não ocupa vaga de corroboração material nem habilita faixa excepcional.
+    base_fatos = max(principal, contexto)
+    vagas = [m for m in movs if m.categoria == "vaga_aberta"]
+    cfg = p33["vagas_abertas"]
+    melhor_vaga = max(vagas, key=lambda m: (m.s, m.id), default=None)
+    bonus_vaga = 0.0
+    if melhor_vaga is not None:
+        isolado = min(cfg["teto_sem_fato_material"], cfg["fator_isolado"] * melhor_vaga.s)
+        complementar = min(cfg["teto_complementar"], cfg["fator_complementar"] * melhor_vaga.s * (1 - base_fatos / 100))
+        # Uma vaga não pode levar uma conta para a faixa 90+.
+        bonus_vaga = max(0.0, min(max(0.0, 89.9 - base_fatos), max(isolado - base_fatos, complementar)))
     pen = max((m.s for m in movs if m.categoria == NEGATIVO), default=0.0)
-    v = max(0.0, min(100.0, max(principal, contexto)) - pen)
+    v = max(0.0, min(100.0, (base_fatos + bonus_vaga)) - pen)
     falta = []
     if v >= 90:
         falta = requisitos_90(parcelas, possiveis, pen, hoje, p33)
         if falta:
             v = min(v, p33["faixa_90"]["teto_sem_requisitos"])
+    # Requisitos 90 usam apenas fatos; a parcela de vagas é adicionada depois.
+    if melhor_vaga is not None and bonus_vaga > 0:
+        parcelas = parcelas + [(melhor_vaga, bonus_vaga)]
     papel = {m.id: ("dominante" if i == 0 else "corroborador") for i, (m, _) in enumerate(parcelas)}
+    if melhor_vaga is not None and bonus_vaga > 0:
+        papel[melhor_vaga.id] = "intencao_contratacao"
     parcela = {m.id: x for m, x in parcelas}
     return {
         "versao": VERSAO,
         "vscs": round(v, 2),
-        "vscs_base": round(max(principal, contexto), 2),
+        "vscs_base": round(base_fatos + bonus_vaga, 2),
+        "contribuicao_vagas": round(bonus_vaga, 2),
+        "vscs_sem_vagas": round(max(0.0, base_fatos - pen), 2),
         "bonus_convergencia": 0,
         "penalidade": round(pen, 2),
         "excepcional": v >= 90,
@@ -315,8 +350,8 @@ def calcular(eventos: list[dict], hoje: date, empresa: str = "", interacoes: lis
                 "id": a.id, "chave": a.cl["chave"], "categoria": a.cl["categoria"], "base": a.cl["base"], "data": a.data.isoformat(),
                 "fonte": a.fonte_nivel, "fator_fonte": a.fonte_fator, "tempo": round(a.tempo, 4), "janela_lideranca": a.janela,
                 "maturacao": a.maturacao, "cargo": a.cl.get("cargo"),
-                "vaga_contextual": a.cl.get("vaga", False),
-                "revalidar_vaga": bool(a.cl.get("vaga") and (hoje - a.data).days >= p33.get("meia_vida_vagas_contextuais", {}).get(a.cl["chave"], p33.get("meia_vida_vagas_contextuais", {}).get("padrao", 30))), "revisado": bool(a.cl.get("revisado")),
+                "vaga_aberta": a.cl.get("vaga", False),
+                "revalidar_vaga": bool(a.cl.get("vaga") and (hoje - a.data).days >= p33.get("meia_vida_vagas_abertas", {}).get(a.cl["chave"], p33.get("meia_vida_vagas_abertas", {}).get("padrao", 30))), "revisado": bool(a.cl.get("revisado")),
                 # só nota, fator e data: quem registrou fica na tabela privada
                 "relacionamento": ({k: a.relacionamento[k] for k in ("nota", "fator", "em", "rotulo")} if a.relacionamento else None),
                 "s": round(a.s, 2), "documentos": [d.id for d in a.docs], "superado_por": a.superado_por,
