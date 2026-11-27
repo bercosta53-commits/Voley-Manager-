@@ -48,28 +48,28 @@ function ReguaMaturidade({analises,ativo,onPick}:{analises:AnaliseAquisicao[];at
     {faixas.filter(f=>c[f.nivel as NivelMaturidade]>0).map(f=>{const n=c[f.nivel as NivelMaturidade];const sweet=f.nivel===2||f.nivel===3;return <button key={f.nivel} type="button" onClick={()=>onPick(ativo===f.nivel?-1:f.nivel)} aria-pressed={ativo===f.nivel} title={`${f.curto} · ${f.titulo}: ${n} contas`}
      className={cn('relative flex min-w-[44px] flex-col justify-center px-2 text-left transition-[filter] hover:brightness-95',ativo===f.nivel&&'ring-2 ring-inset ring-foreground')}
      style={{width:`${100*n/total}%`,background:f.cor,opacity:sweet?1:.55}}>
-     <span className={cn('vr-data text-sm font-semibold',f.nivel<=1?'text-foreground':'text-white')}>{n}</span>
+     <span className={cn('vr-data text-sm font-semibold',sweet?'text-white':'text-foreground')}>{n}</span>
     </button>;})}
    </div>
    {foco>0&&(()=>{const antes=c[0]+c[1];return <div aria-hidden className="pointer-events-none absolute -top-5 flex flex-col items-center" style={{left:`${100*antes/total}%`,width:`${100*foco/total}%`}}>
     <span className="rounded-chip bg-foreground px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-background">Sweet spot Velora · L2 + L3</span>
    </div>;})()}
   </div>
-  <ol className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 lg:grid-cols-6">
+  <ol className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 lg:grid-cols-5">
    {faixas.map(f=>{const n=c[f.nivel as NivelMaturidade];const sweet=f.nivel===2||f.nivel===3;return <li key={f.nivel} className={cn('flex items-start gap-2 rounded-control px-2 py-1.5',sweet&&'bg-[var(--vr-surface-2)]')}>
     <span aria-hidden className="mt-1 size-2.5 shrink-0 rounded-[2px]" style={{background:f.cor,opacity:sweet?1:.55}}/>
-    <span className="min-w-0"><span className="block text-xs font-semibold">{f.curto==='?'?'Inconclusiva':`${f.curto} · ${f.titulo}`}</span><span className="vr-data text-xs text-text-3">{n} contas</span>{f.nivel>=4&&n===0&&<span className="block text-xs text-text-3">exige validação interna</span>}</span>
+    <span className="min-w-0"><span className="block text-xs font-semibold">{f.curto==='?'?'Inconclusiva':`${f.curto} · ${f.titulo}`}</span><span className="vr-data text-xs text-text-3">{n} contas</span></span>
    </li>;})}
   </ol>
  </section>;
 }
 
-/** Medidor de 5 casas: preenchido até o nível da empresa; as casas L2 e L3 têm a faixa do sweet spot. */
+/** Medidor de 4 casas: preenchido até o nível da empresa; as casas L2 e L3 têm a faixa do sweet spot. */
 function Medidor({nivel}:{nivel:number}){
- return <span className="inline-flex items-center gap-1.5" aria-label={nivel?`Maturidade L${nivel} de 5`:'Maturidade não aferida'}>
+ return <span className="inline-flex items-center gap-1.5" aria-label={nivel?`Maturidade L${nivel} de 4`:'Maturidade não aferida'}>
   <span className="relative flex gap-0.5 rounded-[3px] p-0.5">
-   <span aria-hidden className="absolute inset-y-0 rounded-[3px] bg-ok-bg" style={{left:'calc(20% - 1px)',width:'calc(40% + 2px)'}}/>
-   {[1,2,3,4,5].map(i=><span key={i} className="relative h-3 w-4 rounded-[2px]" style={{background:i<=nivel?corNivel(nivel):'var(--vr-surface-3)'}}/>)}
+   <span aria-hidden className="absolute inset-y-0 rounded-[3px] bg-ok-bg" style={{left:'calc(25% - 1px)',width:'calc(50% + 2px)'}}/>
+   {[1,2,3,4].map(i=><span key={i} className="relative h-3 w-5 rounded-[2px]" style={{background:i<=nivel?corNivel(nivel):'var(--vr-surface-3)'}}/>)}
   </span>
   <span className="vr-data text-xs font-semibold">{nivel?`L${nivel}`:'—'}</span>
  </span>;
@@ -89,7 +89,7 @@ function ListaMaturidade({rows,onSelect,soFoco,onSoFoco}:{rows:AnaliseAquisicao[
  const lista=(soFoco?rows.filter(a=>a.foco):rows).slice().sort((a,b)=>Number(b.foco)-Number(a.foco)||pontuacaoFoco(b)-pontuacaoFoco(a));
  return <section className={cn(secao,'min-w-0 overflow-hidden')}>
   <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-4 md:px-6">
-   <div><LabelCaps>Onde cada empresa está</LabelCaps><h2 className="mt-1 text-lg font-semibold tracking-tight">{soFoco?'Empresas no sweet spot':'Todas as empresas'}</h2><p className="mt-1 text-xs text-text-3">Medidor de L1 a L5 (faixa verde = sweet spot) e capacidades observadas no site. Ordenadas por atratividade.</p></div>
+   <div><LabelCaps>Onde cada empresa está</LabelCaps><h2 className="mt-1 text-lg font-semibold tracking-tight">{soFoco?'Empresas no sweet spot':'Todas as empresas'}</h2><p className="mt-1 text-xs text-text-3">Medidor de L1 a L4 (faixa verde = sweet spot) e capacidades observadas no site. Ordenadas por atratividade.</p></div>
    <div role="radiogroup" aria-label="Quais empresas" className="flex rounded-control border border-border bg-card p-0.5 text-xs">
     {[[true,'Sweet spot'],[false,'Todas']].map(([v,r])=><button key={String(v)} role="radio" aria-checked={soFoco===v} onClick={()=>{onSoFoco(v as boolean);setLimite(25)}} className={cn('rounded-[calc(var(--radius-control)-2px)] px-3 py-1.5',soFoco===v?'bg-foreground text-background':'text-text-2 hover:bg-muted')}>{r as string}</button>)}
    </div>
@@ -167,13 +167,13 @@ function MapaCalor({rows}:{rows:AnaliseAquisicao[]}){
        <div className="vr-data grid h-10 place-items-center rounded-chip text-xs font-medium" style={v===null?{background:'var(--vr-surface-2)',color:'var(--vr-text-3)'}:{background:'color-mix(in srgb, var(--vr-ok) '+Math.round(Math.max(5,v*.50))+'%, var(--vr-surface) )',color:v>68?'var(--vr-text-inverse)':'var(--vr-text-2)'}}>{v===null?'—':Math.round(v)}</div>
       </td>})}</tr>})}</tbody>
   </table>
-  <div className="mt-2 flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-text-3">0 a 100 = intensidade de <strong>evidências web positivas</strong>, não índice de performance.</span><span className="text-xs text-text-3">L4/L5 exigem validação interna antes de contar</span></div></div>
-  <div className="mx-5 mb-5 rounded-control border-l-[3px] border-warm bg-warm-bg p-3 text-xs leading-5 text-text-2 md:mx-6"><strong>Leitura estratégica:</strong> o salto de L2 para L3 indica mais ferramentas observáveis. O salto para L4 depende de acesso ao fluxo real de leads, campanhas e receita.</div>
+  <div className="mt-2 flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-text-3">0 a 100 = intensidade de <strong>evidências web positivas</strong>, não índice de performance.</span><span className="text-xs text-text-3">Integração com receita: selo à parte, só com validação interna</span></div></div>
+  <div className="mx-5 mb-5 rounded-control border-l-[3px] border-warm bg-warm-bg p-3 text-xs leading-5 text-text-2 md:mx-6"><strong>Leitura estratégica:</strong> o salto de L2 para L3 indica mais ferramentas observáveis. L4 tem o stack completo à vista; saber se ele está integrado à receita depende de acesso ao fluxo real de leads, campanhas e receita.</div>
  </section>;
 }
 function Exportar({rows}:{rows:AnaliseAquisicao[]}){
  const exportar=()=>{
-  const cab=['ID','Empresa','Domínio','Tier','Maturidade estimada','Cobertura','Qualidade da evidência','Atratividade','Potencial L4','Maturidade validada','Fornecedor CRM','Profundidade CRM','Prova do CRM','Mensuração','Mídia','Captação','CRM Web','Evento','Hipótese'];
+  const cab=['ID','Empresa','Domínio','Tier','Maturidade estimada','Cobertura','Qualidade da evidência','Atratividade','Stack multicanal completo','Integração validada','Fornecedor CRM','Profundidade CRM','Prova do CRM','Mensuração','Mídia','Captação','CRM Web','Evento','Hipótese'];
   const csv=[cab.join(';'),...rows.map(a=>[
    a.conta.id,a.conta.name,a.conta.domain,a.conta.tier,a.nivel||'Não aferido',a.confianca,a.qualidadeEvidencia,a.atratividadeVelora,a.potencialL4?'SIM':'NÃO',a.maturidadeConfirmada?'SIM':'NÃO',a.crm.fornecedor,a.crm.score,a.crm.confirmado?'VALIDADO':a.crm.origem,
    a.dimensoes.medicao,a.dimensoes.midia,a.dimensoes.captacao,a.dimensoes.orquestracao,a.dimensoes.eventos??'N/A',a.hipotese
@@ -188,16 +188,16 @@ function Detalhe({a,onClose}:{a:AnaliseAquisicao;onClose:()=>void}){
  return <div className="fixed inset-0 z-50 bg-black/35" onMouseDown={onClose}><aside role="dialog" aria-modal="true" aria-label={'Maturidade de '+c.name} onMouseDown={e=>e.stopPropagation()} className="ml-auto h-full w-full max-w-[590px] overflow-y-auto border-l border-border bg-background shadow-3">
   <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-border bg-background px-6 py-5"><div><LabelCaps>Diagnóstico exploratório · {c.id}</LabelCaps><h2 className="mt-1 font-display text-2xl font-semibold tracking-tight">{c.name}</h2><p className="mt-1 text-xs text-text-3">{c.domain} · Tier {c.tier}</p></div><button type="button" onClick={onClose} aria-label="Fechar" className="rounded-control border border-border p-2 hover:bg-[var(--vr-surface-2)]"><X className="size-4"/></button></div>
   <div className="space-y-5 p-6">
-   <div className="flex flex-wrap gap-2"><SeloNivel nivel={a.nivel}/><SeloConfianca estado={a.confianca}/><span className="vr-data rounded-chip border border-border px-2 py-1 text-xs">Atratividade {a.atratividadeVelora}/100</span>{a.potencialL4&&<span className="rounded-chip border border-cool/40 bg-[var(--vr-surface-2)] px-2 py-1 text-xs">Potencial L4 · validar</span>}{c.sourceCohort&&<span className="rounded-chip border border-ok/30 bg-ok-bg px-2 py-1 text-xs font-semibold text-ok">NOVA L12</span>}</div>
+   <div className="flex flex-wrap gap-2"><SeloNivel nivel={a.nivel}/><SeloConfianca estado={a.confianca}/><span className="vr-data rounded-chip border border-border px-2 py-1 text-xs">Atratividade {a.atratividadeVelora}/100</span>{a.integracaoValidada&&<span className="rounded-chip border border-ok/30 bg-ok-bg px-2 py-1 text-xs font-semibold text-ok">Integração com receita validada</span>}{c.sourceCohort&&<span className="rounded-chip border border-ok/30 bg-ok-bg px-2 py-1 text-xs font-semibold text-ok">NOVA L12</span>}</div>
    {c.sourceCohort&&<div className="rounded-control border border-warm/30 bg-warm-bg px-3 py-3 text-xs leading-5 text-text-2"><strong>Conta em pesquisa:</strong> {c.sector||"Segmento a confirmar"}{c.region?" · "+c.region:""}. ICP, faturamento e decisores não validados; não liberar automaticamente para cadência comercial.</div>}
    <div className="grid grid-cols-3 gap-2">
     <div className="rounded-control border border-border bg-card p-3"><LabelCaps>Maturidade</LabelCaps><p className="vr-data mt-2 text-xl font-semibold">{a.nivel?'L'+a.nivel:'—'}</p></div>
     <div className="rounded-control border border-border bg-card p-3"><LabelCaps>Evidência</LabelCaps><p className="vr-data mt-2 text-xl font-semibold">{a.qualidadeEvidencia}<span className="text-xs text-text-3">/100</span></p></div>
     <div className="rounded-control border border-border bg-card p-3"><LabelCaps>Atratividade</LabelCaps><p className="vr-data mt-2 text-xl font-semibold">{a.atratividadeVelora}<span className="text-xs text-text-3">/100</span></p></div>
    </div>
-   {a.potencialL4&&<section className="rounded-card border border-cool/35 bg-[var(--vr-surface-2)] p-4">
-    <strong className="text-sm">Candidata a L4 — não certificada</strong>
-    <p className="mt-2 text-xs leading-5 text-text-2">Mensuração, mídia multicanal, automação web e captação observáveis; {a.potencialL4ComEvento?'há também indício de evento comercial específico.':'não foi comprovada a entrega de evento comercial neste teste.'} Permanece em L3 até verificar CRM e receita.</p>
+   {a.potencialL4&&!a.integracaoValidada&&<section className="rounded-card border border-cool/35 bg-[var(--vr-surface-2)] p-4">
+    <strong className="text-sm">L4 observável · integração não validada</strong>
+    <p className="mt-2 text-xs leading-5 text-text-2">Mensuração, mídia multicanal, automação web e captação observáveis; {a.potencialL4ComEvento?'há também indício de evento comercial específico.':'não foi comprovada a entrega de evento comercial neste teste.'} A ligação com CRM, pipeline e receita só se confirma com validação interna.</p>
     <p className="mt-2 text-xs text-text-3">{a.requisitosPendentes.slice(0,2).join(' · ')}</p>
    </section>}
    <div className="rounded-card border border-border bg-card p-5"><LabelCaps>Posicionamento estimado</LabelCaps><h3 className="mt-1 text-lg font-semibold">{nivel?.titulo||'Evidência insuficiente'}</h3><p className="mt-2 text-sm leading-6 text-text-2">{nivel?.descricao||'Não foi possível determinar o estágio a partir das páginas e tecnologias públicas auditadas.'}</p><p className="mt-2 text-xs text-text-3">{a.caracterizacaoNivel}</p></div>
@@ -229,15 +229,14 @@ export function TelaMaturidade({base,dados}:{base:BaseCasca;dados:DadosAquisicao
  const todas=useMemo(()=>analisarBase(dados.accounts),[dados]);
  const [busca,setBusca]=useState('');const [tier,setTier]=useState('todos');
  const [nivel,setNivel]=useState(-1);const [confidence,setConfidence]=useState('todos');
- const [selected,setSelected]=useState<AnaliseAquisicao|null>(null);const [focusOnly,setFocusOnly]=useState(false);const [onlyNew,setOnlyNew]=useState(false);const [potentialOnly,setPotentialOnly]=useState(false);const [crmFilter,setCrmFilter]=useState<'todos'|'enterprise'|'rd'|'verificado'>('todos');const [soFocoLista,setSoFocoLista]=useState(true);
+ const [selected,setSelected]=useState<AnaliseAquisicao|null>(null);const [focusOnly,setFocusOnly]=useState(false);const [onlyNew,setOnlyNew]=useState(false);const [crmFilter,setCrmFilter]=useState<'todos'|'enterprise'|'rd'|'verificado'>('todos');const [soFocoLista,setSoFocoLista]=useState(true);
  const rows=useMemo(()=>todas.filter(a=>{
    const match=!busca||[a.conta.name,a.conta.domain,a.conta.id].join(' ').toLocaleLowerCase('pt-BR').includes(busca.toLocaleLowerCase('pt-BR'));
    return match&&(tier==='todos'||a.conta.tier===tier)&&(nivel===-1||a.nivel===nivel)&&
-    (confidence==='todos'||a.confianca===confidence)&&(!focusOnly||a.foco)&&(!onlyNew||!!a.conta.sourceCohort)&&(!potentialOnly||a.potencialL4)&& (crmFilter==='todos'||crmFilter==='enterprise'&&a.crm.potencialEnterprise||crmFilter==='rd'&&a.conta.tags.rdStation==='network'||crmFilter==='verificado'&&a.crm.confirmado);
-  }),[todas,busca,tier,nivel,confidence,focusOnly,onlyNew,potentialOnly,crmFilter]);
+    (confidence==='todos'||a.confianca===confidence)&&(!focusOnly||a.foco)&&(!onlyNew||!!a.conta.sourceCohort)&& (crmFilter==='todos'||crmFilter==='enterprise'&&a.crm.potencialEnterprise||crmFilter==='rd'&&a.conta.tags.rdStation==='network'||crmFilter==='verificado'&&a.crm.confirmado);
+  }),[todas,busca,tier,nivel,confidence,focusOnly,onlyNew,crmFilter]);
  const novos=todas.filter(x=>!!x.conta.sourceCohort);
- const potenciaisL4=todas.filter(a=>a.potencialL4);
- const activeFilters=busca||tier!=='todos'||nivel!==-1||confidence!=='todos'||focusOnly||onlyNew||potentialOnly||crmFilter!=='todos';
+ const activeFilters=busca||tier!=='todos'||nivel!==-1||confidence!=='todos'||focusOnly||onlyNew||crmFilter!=='todos';
  return <Casca base={base}>
   <main className="mx-auto w-full max-w-[1560px] px-4 pb-28 pt-4 md:px-8 md:pb-16 md:pt-8">
    <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
@@ -246,7 +245,7 @@ export function TelaMaturidade({base,dados}:{base:BaseCasca;dados:DadosAquisicao
      <p className="mt-1 max-w-2xl text-sm text-text-3">Onde existe capacidade instalada, mas ainda há espaço para transformar aquisição em crescimento previsível.</p></div>
     <div className="flex flex-wrap items-center gap-2"><span className="vr-data rounded-control border border-border bg-card px-2.5 py-2 text-xs text-text-3">Evidências · 08 NOV 2026</span><span className="vr-data rounded-control border border-ok/35 bg-ok-bg px-2.5 py-2 text-xs font-semibold text-ok">+{novos.length} contas L12</span><Link href="/aquisicao/stack" className="inline-flex h-9 items-center gap-2 rounded-control border border-border bg-card px-3 text-xs font-semibold hover:bg-[var(--vr-surface-2)]"><Layers3 className="size-3.5"/> Stack detalhado <ArrowUpRight className="size-3"/></Link></div>
    </header>
-   <ReguaMaturidade analises={todas} ativo={nivel} onPick={x=>{setNivel(x);setFocusOnly(false);setPotentialOnly(false)}}/>
+   <ReguaMaturidade analises={todas} ativo={nivel} onPick={x=>{setNivel(x);setFocusOnly(false)}}/>
    <div className="mt-4 flex flex-wrap items-center gap-2 rounded-card border border-border bg-card px-3 py-3">
     <SlidersHorizontal className="ml-1 size-4 text-text-3"/><div className="relative min-w-[180px] flex-1 md:max-w-[320px]"><Search className="absolute left-3 top-2.5 size-3.5 text-text-3"/><input value={busca} onChange={e=>setBusca(e.target.value)} className="h-9 w-full rounded-control border border-border-strong bg-background py-1.5 pl-9 pr-3 text-xs outline-none" placeholder="Buscar empresa ou domínio" aria-label="Buscar empresa ou domínio"/></div>
     <select value={tier} onChange={e=>setTier(e.target.value)} aria-label="Filtrar Tier" className="h-9 rounded-control border border-border-strong bg-background px-3 text-xs"><option value="todos">Todos os tiers</option><option value="A">Tier A</option><option value="B">Tier B</option><option value="C">Tier C</option></select>
@@ -254,14 +253,13 @@ export function TelaMaturidade({base,dados}:{base:BaseCasca;dados:DadosAquisicao
     <select value={confidence} onChange={e=>setConfidence(e.target.value)} aria-label="Filtrar cobertura" className="h-9 rounded-control border border-border-strong bg-background px-3 text-xs"><option value="todos">Toda cobertura</option><option value="adequada">Adequada</option><option value="parcial">Parcial</option><option value="insuficiente">Insuficiente</option></select>
     <button type="button" onClick={()=>{setFocusOnly(!focusOnly);setNivel(-1)}} className={cn('inline-flex h-9 items-center gap-2 rounded-control border px-3 text-xs font-semibold',focusOnly?'border-foreground bg-foreground text-background':'border-border bg-card text-text-2')}><Target className="size-3.5"/>Só foco L2/L3</button>
     <button type="button" onClick={()=>setOnlyNew(!onlyNew)} className={cn("inline-flex h-9 items-center gap-2 rounded-control border px-3 text-xs font-semibold",onlyNew?"border-foreground bg-foreground text-background":"border-border bg-card text-text-2")}>Novas L12 ({novos.length})</button>
-    <button type="button" onClick={()=>{setPotentialOnly(!potentialOnly);setNivel(-1);setFocusOnly(false)}} className={cn("inline-flex h-9 items-center gap-2 rounded-control border px-3 text-xs font-semibold",potentialOnly?"border-foreground bg-foreground text-background":"border-border bg-card text-text-2")}>Potencial L4 ({potenciaisL4.length})</button>
-    {activeFilters&&<button onClick={()=>{setBusca('');setTier('todos');setNivel(-1);setConfidence('todos');setFocusOnly(false);setOnlyNew(false);setPotentialOnly(false);setCrmFilter('todos')}} className="px-2 text-xs font-medium text-text-3 hover:text-foreground">Limpar</button>}
+    {activeFilters&&<button onClick={()=>{setBusca('');setTier('todos');setNivel(-1);setConfidence('todos');setFocusOnly(false);setOnlyNew(false);setCrmFilter('todos')}} className="px-2 text-xs font-medium text-text-3 hover:text-foreground">Limpar</button>}
     <span className="ml-auto flex items-center gap-3"><span className="vr-data text-xs text-text-3">{rows.length} contas</span><Exportar rows={rows}/></span>
    </div>
    <div className="mt-4"><ListaMaturidade rows={rows} onSelect={setSelected} soFoco={soFocoLista} onSoFoco={setSoFocoLista}/></div>
    {/* o detalhe do método fica recolhido: totais, CRM, mapa de capacidades e perfil por estágio */}
    <details className="group mt-4 rounded-card border border-border bg-card">
-    <summary className="cursor-pointer select-none px-5 py-4 text-sm font-semibold md:px-6">Ver o método e o detalhe <span className="font-normal text-text-3">· {fmt(todas.length)} contas monitoradas, {fmt(todas.filter(a=>a.conta.validPages>0).length)} sites auditados, {fmt(potenciaisL4.length)} com potencial L4, {fmt(novos.length)} novas (L12), CRM e mapa de capacidades</span></summary>
+    <summary className="cursor-pointer select-none px-5 py-4 text-sm font-semibold md:px-6">Ver o método e o detalhe <span className="font-normal text-text-3">· {fmt(todas.length)} contas monitoradas, {fmt(todas.filter(a=>a.conta.validPages>0).length)} sites auditados, {fmt(novos.length)} novas (L12), CRM e mapa de capacidades</span></summary>
     <div className="flex flex-col gap-4 border-t border-border p-4 md:p-5">
    <section className="mb-4 rounded-card border border-border bg-card p-4 md:px-6 md:py-5">
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><LabelCaps>Inteligência comercial · CRM</LabelCaps><h2 className="mt-1 text-lg font-semibold">A profundidade do CRM muda o patamar</h2>
@@ -292,7 +290,7 @@ export function TelaMaturidade({base,dados}:{base:BaseCasca;dados:DadosAquisicao
      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_.8fr]"><Mapa rows={rows} onSelect={setSelected}/><MapaCalor rows={rows}/></div>
     </div>
    </details>
-   <div className="mt-4 flex items-start gap-3 rounded-card border border-border bg-[var(--vr-surface-2)] px-4 py-4 text-xs leading-5 text-text-3"><ShieldAlert className="mt-0.5 size-4 shrink-0"/><div><strong className="text-text-2">Limite da pesquisa:</strong> este modelo separa maturidade estimada, qualidade da evidência e atratividade comercial. L4/L5 são atingíveis mediante dados operacionais verificados; potenciais L4 não são promovidas automaticamente. “Não observado” não significa ausência. Pixels não comprovam campanhas ativas, e scripts web não comprovam CRM integrado. <Link className="ml-1 underline underline-offset-2" href="/aquisicao/stack">Ver os dados brutos</Link>.</div></div>
+   <div className="mt-4 flex items-start gap-3 rounded-card border border-border bg-[var(--vr-surface-2)] px-4 py-4 text-xs leading-5 text-text-3"><ShieldAlert className="mt-0.5 size-4 shrink-0"/><div><strong className="text-text-2">Limite da pesquisa:</strong> este modelo separa maturidade estimada, qualidade da evidência e atratividade comercial. A régua vai de L1 a L4 com o que o site mostra; integração com receita é um selo à parte, só com dados operacionais verificados. “Não observado” não significa ausência. Pixels não comprovam campanhas ativas, e scripts web não comprovam CRM integrado. <Link className="ml-1 underline underline-offset-2" href="/aquisicao/stack">Ver os dados brutos</Link>.</div></div>
   </main>
   {selected&&<Detalhe a={selected} onClose={()=>setSelected(null)}/>}
  </Casca>;

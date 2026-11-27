@@ -1,31 +1,39 @@
-# Velora Radar — Calibração de maturidade de aquisição v2
+# Velora Radar — Calibração de maturidade de aquisição v3
 
-Data: 08/11/2026. Escopo: 200 empresas de TI, 173 sites efetivamente inspecionados.
+Data: 27/11/2026 (v3, régua de 4 níveis observáveis). Versão anterior: v2, 08/11/2026. Escopo: 200 empresas de TI, 173 sites efetivamente inspecionados.
+
+## O que mudou na v3 (decisão de 27/11/2026)
+
+Na v2, L4 e L5 só abriam com evidência interna (CRM ligado à receita, atribuição, governança), que o site público nunca mostra. Resultado: **0 contas em L4 e L5**, dois níveis vazios na régua. A v3 recalibra a régua para o que é observável:
+
+- **L4 passa a ser "Multicanal completa"**: o antigo critério de "potencial L4" (GA4 + GTM, duas ou mais mídias, CRM/automação web e canal de captação). São **20 contas**, que antes ficavam em L3.
+- **L5 sai da régua.** A integração com receita vira um **selo à parte** (`integracaoValidada`), só com `evidenciaOperacional` verificada (fonte, revisor, data); a otimização (experimentação, incrementabilidade, previsão) é o selo `otimizacaoValidada`. Uma conta com integração validada fica em L4 e recebe o selo.
+- **Sweet spot da Velora continua L2 + L3**: passa de 117 para **97** contas. O L4 já tem operação madura, com menos espaço para a Velora.
+- **Nota da Oportunidade digital na prioridade integrada**: L1 → 2 · L2 → 4 · L3 → 4 · **L4 → 3** (antes L4 → 2 e L5 → 1, níveis que nunca ocorriam). O L4 atinge o mínimo de A2 (3), mas fica abaixo do sweet spot. No snapshot atual, 1 conta ligada à auditoria passa de 4 para 3, e nenhuma classe A/B muda.
+- **Atratividade Velora**: o componente de zona já valia 14 (L2), 12 (L3) e 6 (L4); as 20 contas L4 passam a usar o 6.
 
 ## Três dimensões independentes — evitar misturar notas
 
-1. **Maturidade estimada (L0–L5).** Captura somente capacidades com evidência positiva. L0 = sem dados suficientes, nunca "maturidade zero".
+1. **Maturidade estimada (L0–L4).** Captura somente capacidades com evidência positiva. L0 = sem dados suficientes, nunca "maturidade zero".
 2. **Qualidade da evidência (0–100).** Leitura observacional combinando páginas válidas, diversidade de famílias de tecnologia e evento de CTA auditado. É cobertura técnica do scanner, não grau de certeza estatística.
 3. **Atratividade Velora (0–100).** Fit Tier, amplitude de sinais, qualidade da evidência e prioridade de investigação; reduz a nota provisória quando o ICP/faturamento está explicitamente não validado. Não é score de falha nem probabilidade de fechamento.
 
-## Cinco níveis — definições e confirmação
+## Quatro níveis observáveis e dois selos
 
 | Nível | Definição operacional | Critério público / gate |
 |---|---|---|
 | **L1 — Presença inicial** | Evidência positiva em apenas uma família (mensuração, mídia, CRM web ou captação). | Site válido; uma família observada. Isso não prova ausência das demais. |
 | **L2 — Aquisição emergente** | Capacidades positivas em duas ou mais famílias, sem evidências suficientes para classificar L3. | Site válido, pelo menos duas famílias web. |
-| **L3 — Aquisição estruturada** | Operação multicanal observável, ainda sem demonstração da integração Marketing–Vendas–Receita. | Quatro famílias; **ou** mensuração+mídia multicanal+captação; **ou** mensuração+mídia+CRM web com evento comercial identificado; **ou** mídia multicanal+CRM web+captação. Não exige que o script do CRM apareça no front-end. |
-| **L4 — Integrada por dados** | CRM/pipeline ligado à receita, atribuição de origem e governança comercial. | Requer **evidência operacional**, fonte verificável, data e revisor. O stack público sozinho não qualifica. |
-| **L5 — Otimização contínua** | L4 + experimentação documentada, incrementabilidade e previsão/otimização de receita. | Exige **todos os requisitos L4**, mais evidências internas verificadas. |
+| **L3 — Operação estruturada** | Operação multicanal observável, ainda sem o stack completo. | Quatro famílias; **ou** mensuração+mídia multicanal+captação; **ou** mensuração+mídia+CRM web com evento comercial identificado; **ou** mídia multicanal+CRM web+captação; **ou** CRM verificado forte+mensuração+captação. Não exige que o script do CRM apareça no front-end. |
+| **L4 — Multicanal completa** | Stack completo observável: GTM e GA4, duas ou mais mídias em rede, CRM/automação web (ou CRM verificado forte) e captação visível. | Critério público. **Não comprova integração com receita.** |
+| Selo **integração validada** | CRM/pipeline ligado à receita, atribuição de origem e governança comercial. | Requer **evidência operacional**, fonte verificável, data e revisor. Leva a conta a L4. |
+| Selo **otimização validada** | Integração validada + experimentação, incrementabilidade e previsão. | Exige o selo anterior e evidências internas verificadas. |
 
-A regra de L4/L5 agora **não contém limite fixo em L3**: a promoção está habilitada na estrutura `evidenciaOperacional` com trilha de fonte, revisor e data. Nenhuma das 200 contas possui essa validação ainda, portanto os dois níveis permanecem com **zero comprovadas**, sem concluir que elas não existam.
+Nenhuma das 200 contas tem os selos ainda; isso não conclui que a integração não exista.
 
-## Hipótese separada: potencial L4
+## Leitura do L4
 
-**Potencial L4 = L3 com GTM e GA4 carregados, no mínimo duas plataformas de mídia em rede, ao menos um script web de CRM/automação em rede e um ponto de captação visível.**
-
-- Contar como **candidata à verificação**, nunca como L4 certificada.
-- A existência de evento comercial específico após CTA aumenta interesse na investigação; resposta de endpoint não certifica CRM integrado.
+- A existência de evento comercial específico após CTA aumenta o interesse na investigação (1 das 20); resposta de endpoint não certifica CRM integrado.
 - Os sinais de histórico Clay/BuiltWith **não** entram na classificação positiva até serem observados no navegador.
 - Não inferir campanha ativa apenas por pixel/Ads e não inferir CRM operacional só por script web.
 
@@ -41,14 +49,24 @@ A regra de L4/L5 agora **não contém limite fixo em L3**: a promoção está ha
 | L5 validado | 0 | 0 | 0 |
 | **Foco L2+L3** | **115** | **117** | **+2** |
 
-**20 candidatas a potencial L4** (ainda L3). **1** delas combina o stack exigido com evento comercial específico no consolidado.
+Na v2 eram **20 candidatas a potencial L4** (ainda em L3). Na v3 elas formam o L4:
+
+| Classe | v2 | v3 |
+|---|---:|---:|
+| L0 — Insuficiente | 43 | 43 |
+| L1 | 40 | 40 |
+| L2 | 61 | 61 |
+| L3 | 56 | 36 |
+| L4 — Multicanal completa | 0 | 20 |
+| L5 | 0 | — (selo à parte) |
+| **Sweet spot L2+L3** | **117** | **97** |
 
 A mudança em L3 resolve um viés: empresas B2B podem ter aquisição multicanal e CRM server-side invisível. A mudança é baseada em **evidências positivas**, não em suposta ausência de sistemas.
 
 ## Aplicação no fluxo ABM
 
 - Público central: L2 e L3, priorizado por Atratividade Velora e qualidade da evidência.
-- Candidatas L4: investigar integração CRM/pipeline/receita para distinguir integração real de stack fragmentado.
+- L4: investigar integração CRM/pipeline/receita para distinguir integração real de stack fragmentado; menos espaço para a Velora.
 - L1/inconclusivas: primeiro confirmar ICP e operação; não descartar automaticamente.
 - Manter os 80 cadastros L12 como **pesquisa, sem cadência comercial automática**, até validar ICP, faturamento, responsável econômico e deduplicação.
 - Dados históricos e scores comerciais originais são preservados.

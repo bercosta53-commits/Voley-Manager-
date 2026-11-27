@@ -203,7 +203,7 @@ export function dimensaoDigital(auditoria: AuditoriaDigital | undefined, agora: 
     return { ...vazio(origemDe('oportunidadeDigital'), 'nao_coletado', 'Auditoria web inconclusiva (páginas ou evidências insuficientes).'), dataReferencia: auditoria.dataReferencia };
   const nota = ORIGEM.oportunidadeDigital.nota[auditoria.nivel];
   if (nota === undefined)
-    return vazio(origemDe('oportunidadeDigital'), 'fora_do_intervalo', 'Nível de maturidade fora de L1–L5.', [`nível ${auditoria.nivel} fora de L1–L5`]);
+    return vazio(origemDe('oportunidadeDigital'), 'fora_do_intervalo', 'Nível de maturidade fora de L1–L4.', [`nível ${auditoria.nivel} fora de L1–L4`]);
   const idadeDias = auditoria.dataReferencia ? (agora.getTime() - Date.parse(auditoria.dataReferencia)) / 86_400_000 : null;
   const velha = idadeDias !== null && idadeDias > ORIGEM.oportunidadeDigital.validadeDias;
   return {

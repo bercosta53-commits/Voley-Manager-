@@ -18,18 +18,20 @@ const records=JSON.parse(fs.readFileSync('data/aquisicao.json','utf-8')).account
 assert.equal(records.length,200);
 const results=analisarBase(records);
 const levels=contagemNiveis(results);
-assert.deepEqual(Object.values(levels),[43,40,61,56,0,0],'v2 classification drift');
+// régua de 4 níveis observáveis (27/11): o L4 é o stack multicanal completo, antes "potencial L4"
+assert.deepEqual(Object.values(levels),[43,40,61,36,20],'v3 classification drift');
 const candidates=results.filter(x=>x.potencialL4);
-assert.equal(candidates.length,20,'potential L4 drift');
+assert.equal(candidates.length,20,'L4 drift');
 assert.equal(candidates.filter(x=>x.potencialL4ComEvento).length,1);
 assert.equal(results.filter(x=>x.maturidadeConfirmada).length,0);
-assert.equal(results.filter(x=>x.foco).length,117);
+assert.equal(results.filter(x=>x.foco).length,97);
 assert.ok(results.some(x=>x.nivel===3&&x.dimensoes.orquestracao===0),'L3 must not require visible CRM script');
 for(const a of results){
- assert.ok(a.nivel===0||a.nivel>=1&&a.nivel<=5);
+ assert.ok(a.nivel===0||a.nivel>=1&&a.nivel<=4);
  assert.ok(a.qualidadeEvidencia>=0&&a.qualidadeEvidencia<=100);
  assert.ok(a.atratividadeVelora>=0&&a.atratividadeVelora<=100);
- if(a.potencialL4)assert.equal(a.nivel,3);
+ assert.equal(a.potencialL4,a.nivel===4);
+ if(a.nivel===4)assert.equal(a.foco,false,'L4 fica fora do sweet spot L2 + L3');
 }
 const seed=structuredClone(records.find(x=>x.id==='VEL-0029'));
 assert.ok(seed,'seed account missing');
@@ -38,10 +40,12 @@ const operational={
  experimentation:false,incrementality:false,forecasting:false,
  verifiedAt:'2026-11-08',reviewer:'unit-calibration',sourceUrl:'https://example.org/audit'
 };
-assert.equal(analisarConta({...seed,evidenciaOperacional:operational}).nivel,4,'L4 should be attainable');
-assert.equal(analisarConta({...seed,evidenciaOperacional:{...operational,experimentation:true,incrementality:true,forecasting:true}}).nivel,5,'L5 should be attainable');
-assert.ok(analisarConta({...seed,evidenciaOperacional:{...operational,sourceUrl:''}}).nivel<4,'L4 must require a source');
+const comProva=analisarConta({...seed,evidenciaOperacional:operational});
+assert.equal(comProva.nivel,4,'internal evidence reaches L4');
+assert.equal(comProva.integracaoValidada,true,'integration seal');
+assert.equal(analisarConta({...seed,evidenciaOperacional:{...operational,experimentation:true,incrementality:true,forecasting:true}}).otimizacaoValidada,true,'optimization seal');
+assert.equal(analisarConta({...seed,evidenciaOperacional:{...operational,sourceUrl:''}}).integracaoValidada,false,'seal must require a source');
 const superficial={...seed,tags:Object.fromEntries(Object.keys(seed.tags).map(k=>[k,'not_observed'])),forms:0,whatsappLinks:0,
  historicalTech:['Google Tag Manager','HubSpot','Facebook Pixel'],evidenciaOperacional:undefined};
 assert.equal(analisarConta(superficial).nivel,0,'historical-only technologies must not raise maturity');
-console.log(JSON.stringify({result:'PASS',total:200,levels,potentialL4:candidates.length,potentialL4WithEvent:1,focus:117,l4Validation:'PASS',l5Validation:'PASS'},null,2));
+console.log(JSON.stringify({result:'PASS',total:200,levels,potentialL4:candidates.length,potentialL4WithEvent:1,focus:97,sealValidation:'PASS'},null,2));
