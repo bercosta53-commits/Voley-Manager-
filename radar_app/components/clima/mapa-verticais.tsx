@@ -2,21 +2,16 @@
 
 import Link from 'next/link';
 import type { Clima, EstadoClima, Vertical } from '@/lib/clima';
-import { COR_CLIMA, ESTADOS_CLIMA, FUNDO_CLIMA, ICONE_CLIMA, estadoNaSemana, fmtClima } from '@/lib/clima';
+import { COR_CLIMA, ESTADOS_CLIMA, FUNDO_CLIMA, ICONE_CLIMA, estadoNaSemana, fmtClima, referenciaComercial, quadranteComercial } from '@/lib/clima';
 import { hrefConta } from '@/lib/contas';
 import { cn, dataCurta, pontos } from '@/lib/utils';
 import { LogoConta } from '@/components/hoje/logo-conta';
 
-const xs = (s: number) => 400 + (Math.max(-0.7, Math.min(0.7, s)) / 0.7) * 320;
-/** Bolhas de clima e atividade setorial, com tamanho proporcional à presença na base. */
+const formato = (n: number | null) => n === null ? '—' : n.toLocaleString('pt-BR', { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+
+/** Clima externo × VSCS puro das contas A/B. Sem histórico ou coordenadas artificiais. */
 export function MapaVerticais({
-  clima,
-  sel,
-  filtro,
-  hover,
-  onSel,
-  onFiltro,
-  onHover,
+  clima, sel, filtro, hover, onSel, onFiltro, onHover,
 }: {
   clima: Clima;
   sel: string;
@@ -27,23 +22,25 @@ export function MapaVerticais({
   onHover: (id: string | null) => void;
 }) {
   const { bom, ruim } = clima.dados.limiares;
-  const temHistorico = clima.dados.historicoMedido !== false;
-  const ys = (v: Vertical) => {
-    const escala = temHistorico ? 0.45 : 1;
-    const valor = temHistorico ? v.delta30 : v.setorial;
-    return 210 - (Math.max(-escala, Math.min(escala, valor)) / escala) * 155;
-  };
-  const bolhas = [...clima.verticais].sort((a, b) => b.contas - a.contas);
-  // rótulos sem sobrepor: o da bolha maior escolhe primeiro (em cima, depois embaixo); quem não cabe aparece no hover
-  const raio = (v: Vertical) => (v.id === 'GEN' ? 34 : 8 + Math.sqrt(v.contas) * 3.2);
+  const referencia = referenciaComercial(clima.verticais);
+  const bolhas = clima.verticais.filter(v => v.intensidade.media !== null).sort((a, b) => b.intensidade.contasICP - a.intensidade.contasICP);
+  const semDados = clima.verticais.filter(v => v.intensidade.media === null);
+  const teto = Math.min(100, Math.max(20, Math.ceil(Math.max(0, ...bolhas.map(v => v.intensidade.media ?? 0)) / 10) * 10 + 10));
+  const limiteX = Math.max(0.5, Math.ceil(Math.max(Math.abs(bom), Math.abs(ruim), ...clima.verticais.map(v => Math.abs(v.S))) * 10) / 10);
+  const X0 = 64, X1 = 734, Y0 = 48, Y1 = 388;
+  const xs = (s: number) => X0 + (s + limiteX) / (2 * limiteX) * (X1 - X0);
+  const ys = (v: Vertical) => Y1 - (v.intensidade.media ?? 0) / teto * (Y1 - Y0);
+  const corteX = xs(bom);
+  const corteY = referencia === null ? Y0 : Y1 - referencia / teto * (Y1 - Y0);
+  const maxContas = Math.max(1, ...bolhas.map(v => v.intensidade.contasICP));
+  const raio = (v: Vertical) => 5 + 25 * Math.sqrt(v.intensidade.contasICP / maxContas);
   const ocupados: { x0: number; x1: number; y0: number; y1: number }[] = [];
   const rotulos = new Map<string, number>();
-  for (const v of [...bolhas].sort((a, b) => Number(b.id === sel) - Number(a.id === sel) || b.contas - a.contas)) {
-    const cx = xs(v.S);
-    const cy = ys(v);
-    const w = v.nome.length * 6.6;
+  for (const v of [...bolhas].sort((a, b) => Number(b.id === sel) - Number(a.id === sel) || b.intensidade.contasICP - a.intensidade.contasICP)) {
+    const cx = xs(v.S), cy = ys(v), w = v.nome.length * 6.4;
     for (const y of [cy - raio(v) - 6, cy + raio(v) + 14]) {
       const caixa = { x0: cx - w / 2, x1: cx + w / 2, y0: y - 11, y1: y + 2 };
+      if (caixa.y0 < 24 || caixa.y1 > 418 || caixa.x0 < 36 || caixa.x1 > 755) continue;
       if (!ocupados.some(o => caixa.x0 < o.x1 && caixa.x1 > o.x0 && caixa.y0 < o.y1 && caixa.y1 > o.y0)) {
         ocupados.push(caixa);
         rotulos.set(v.id, y);
@@ -51,124 +48,81 @@ export function MapaVerticais({
       }
     }
   }
-  const hv = clima.verticais.find(v => v.id === hover);
+  const hv = bolhas.find(v => v.id === hover);
+  const ticks = Array.from({ length: 5 }, (_, i) => i * teto / 4);
   return (
     <div className="flex min-w-0 flex-[999_1_640px] flex-col gap-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-display text-xl font-semibold">Mapa de clima por vertical</h2>
-          <p className="mt-0.5 text-sm text-text-3">
-            {temHistorico ? 'Nível do clima × direção nos últimos 30 dias.' : 'Nível do clima × condições setoriais nesta edição.'} O tamanho indica o número de contas na base.
-          </p>
+          <h2 className="font-display text-xl font-semibold">Mapa de oportunidades por vertical</h2>
+          <p className="mt-0.5 text-sm text-text-3">Clima externo × intensidade comercial (VSCS médio das contas Tier A e B). Bolha maior = mais contas no ICP.</p>
         </div>
         <div role="group" aria-label="Filtrar por estado" className="flex flex-wrap gap-1.5">
           {(['todos', ...ESTADOS_CLIMA] as const).map(f => {
             const on = filtro === f;
             const cor = f === 'todos' ? 'var(--vr-text)' : COR_CLIMA[f];
             return (
-              <button
-                key={f}
-                type="button"
-                aria-pressed={on}
-                onClick={() => onFiltro(f)}
+              <button key={f} type="button" aria-pressed={on} onClick={() => onFiltro(f)}
                 className="h-8 rounded-chip border px-2.5 text-xs font-semibold"
-                style={{ borderColor: on ? cor : 'var(--vr-border-strong)', color: on ? cor : 'var(--vr-text-2)', background: on ? 'var(--vr-surface-2)' : 'transparent' }}
-              >
+                style={{ borderColor: on ? cor : 'var(--vr-border-strong)', color: on ? cor : 'var(--vr-text-2)', background: on ? 'var(--vr-surface-2)' : 'transparent' }}>
                 {f === 'todos' ? 'Todos' : `${ICONE_CLIMA[f]} ${f}`}
               </button>
             );
           })}
         </div>
       </div>
-      <svg viewBox="0 0 760 460" className="w-full" role="group" aria-label="Gráfico de bolhas por vertical">
-        <rect x={60} y={20} width={340} height={190} fill="var(--vr-ok)" opacity={0.03} />
-        <rect x={400} y={20} width={340} height={190} fill="var(--vr-ok)" opacity={0.08} />
-        <rect x={60} y={210} width={340} height={200} fill="var(--vr-risk)" opacity={0.08} />
-        <rect x={400} y={210} width={340} height={200} fill="var(--vr-risk)" opacity={0.03} />
-        <line x1={400} y1={20} x2={400} y2={410} stroke="var(--vr-border-strong)" strokeDasharray="4 4" />
-        <line x1={60} y1={210} x2={740} y2={210} stroke="var(--vr-border-strong)" strokeDasharray="4 4" />
-        <line x1={xs(bom)} y1={20} x2={xs(bom)} y2={410} stroke="var(--vr-ok)" strokeOpacity={0.4} />
-        <line x1={xs(ruim)} y1={20} x2={xs(ruim)} y2={410} stroke="var(--vr-risk)" strokeOpacity={0.4} />
-        <text x={70} y={38} className="fill-text-3 text-xs">{temHistorico ? 'Ruim, mas melhorando' : 'Condições setoriais favoráveis'}</text>
-        <text x={70} y={400} className="fill-text-3 text-xs">{temHistorico ? 'Ruim e piorando' : 'Condições setoriais desfavoráveis'}</text>
-        <text x={xs(ruim)} y={428} textAnchor="middle" className="vr-data text-[11px]" fill="var(--vr-risk)">{fmtClima(ruim)}</text>
-        <text x={xs(bom)} y={428} textAnchor="middle" className="vr-data text-[11px]" fill="var(--vr-ok)">{fmtClima(bom)}</text>
-        <text x={400} y={448} textAnchor="middle" className="fill-text-3 text-xs">Nível do clima (S) →</text>
-        <text x={22} y={215} textAnchor="middle" transform="rotate(-90 22 215)" className="fill-text-3 text-xs">{temHistorico ? 'Tendência 30 dias →' : 'Avaliação setorial →'}</text>
-        {bolhas.map(v => {
-          const r = raio(v);
-          const yRotulo = rotulos.get(v.id);
-          const cx = xs(v.S);
-          const cy = ys(v);
-          const selecionada = sel === v.id;
-          const apagada = filtro !== 'todos' && filtro !== v.estado;
-          const cor = COR_CLIMA[v.estado];
-          return (
-            <g
-              key={v.id}
-              opacity={apagada ? 0.18 : 1}
-              className="cursor-pointer"
-              role="button"
-              tabIndex={0}
-              aria-label={`${v.nome}: ${v.estado}, nível ${fmtClima(v.S)}, ${v.contas} contas`}
-              onClick={() => onSel(v.id)}
-              onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onSel(v.id)}
-              onMouseEnter={() => onHover(v.id)}
-              onMouseLeave={() => onHover(null)}
-              onFocus={() => onHover(v.id)}
-              onBlur={() => onHover(null)}
-            >
-              <circle
-                cx={cx}
-                cy={cy}
-                r={r}
-                fill={cor}
-                fillOpacity={0.2}
-                stroke={selecionada ? 'var(--vr-text)' : cor}
-                strokeWidth={selecionada ? 3 : 1.5}
-                strokeDasharray={v.estado === 'Instável' && !selecionada ? '4 3' : undefined}
-              />
-              <circle cx={cx} cy={cy} r={3} fill={cor} />
-              {yRotulo !== undefined && (
-                <text x={cx} y={yRotulo} textAnchor="middle" className="fill-foreground text-xs font-semibold" style={{ paintOrder: 'stroke', stroke: 'var(--vr-surface)', strokeWidth: 3 }}>
-                  {v.nome}
-                </text>
-              )}
-            </g>
-          );
+      {referencia === null ? <p className="rounded-control border border-border p-5 text-sm text-text-3">Ainda não há VSCS válido nas contas A/B para construir o mapa.</p> : (
+      <svg viewBox="0 0 760 460" className="w-full" role="group" aria-label="Mapa de oportunidades: clima e intensidade comercial">
+        <rect x={X0} y={Y0} width={corteX-X0} height={Math.max(0,corteY-Y0)} fill="var(--vr-warm)" opacity={0.07} />
+        <rect x={corteX} y={Y0} width={X1-corteX} height={Math.max(0,corteY-Y0)} fill="var(--vr-ok)" opacity={0.10} />
+        <rect x={X0} y={corteY} width={corteX-X0} height={Y1-corteY} fill="var(--vr-risk)" opacity={0.05} />
+        <rect x={corteX} y={corteY} width={X1-corteX} height={Y1-corteY} fill="var(--vr-cool)" opacity={0.07} />
+        {ticks.map(t => {
+          const y = Y1 - t / teto * (Y1-Y0);
+          return <g key={t}><line x1={X0} x2={X1} y1={y} y2={y} stroke="var(--vr-border)" strokeDasharray="2 4" /><text x={X0-8} y={y+4} textAnchor="end" className="vr-data fill-text-3 text-[11px]">{t.toLocaleString('pt-BR')}</text></g>;
         })}
-        {hv &&
-          (() => {
-            const x = Math.min(500, Math.max(62, xs(hv.S) + 18));
-            const y = Math.min(330, Math.max(24, ys(hv) - 80));
-            return (
-              <g pointerEvents="none">
-                <rect x={x} y={y} width={236} height={66} rx={6} fill="var(--vr-surface-3)" stroke="var(--vr-border-strong)" />
-                <text x={x + 12} y={y + 20} className="fill-foreground text-[13px] font-bold">
-                  {hv.nome} · {hv.estado}
-                </text>
-                <text x={x + 12} y={y + 38} className="vr-data fill-text-2 text-xs">
-                  S {fmtClima(hv.S)} · {temHistorico ? `Δ30d ${fmtClima(hv.delta30)}` : `Setorial ${fmtClima(hv.setorial)}`} · {hv.contas} contas
-                </text>
-                <text x={x + 12} y={y + 56} className="fill-text-3 text-[11px]">
-                  {hv.porque.length > 38 ? `${hv.porque.slice(0, 37)}…` : hv.porque}
-                </text>
-              </g>
-            );
-          })()}
-      </svg>
+        <line x1={corteX} x2={corteX} y1={Y0} y2={Y1} stroke="var(--vr-ok)" strokeDasharray="4 4" strokeOpacity={0.65} />
+        <line x1={xs(ruim)} x2={xs(ruim)} y1={Y0} y2={Y1} stroke="var(--vr-risk)" strokeOpacity={0.35} />
+        <line x1={X0} x2={X1} y1={corteY} y2={corteY} stroke="var(--vr-text-3)" strokeDasharray="4 4" strokeOpacity={0.7} />
+        <text x={X0+8} y={Y0+14} className="fill-text-2 text-xs font-semibold">Contramão</text>
+        <text x={X1-8} y={Y0+14} textAnchor="end" className="fill-text-2 text-xs font-semibold">Sweet spot</text>
+        {Y1-corteY > 32 && <><text x={X0+8} y={Y1-8} className="fill-text-2 text-xs font-semibold">Baixa prioridade</text><text x={X1-8} y={Y1-8} textAnchor="end" className="fill-text-2 text-xs font-semibold">Mercado latente</text></>}
+        <text x={X1-4} y={Math.max(Y0+28,corteY-5)} textAnchor="end" className="vr-data fill-text-3 text-[10px]">Média A/B: {formato(referencia)}</text>
+        <text x={xs(ruim)} y={425} textAnchor="middle" className="vr-data text-[11px]" fill="var(--vr-risk)">{fmtClima(ruim)}</text>
+        <text x={xs(0)} y={425} textAnchor="middle" className="vr-data fill-text-3 text-[11px]">0</text>
+        <text x={corteX} y={425} textAnchor="middle" className="vr-data text-[11px]" fill="var(--vr-ok)">{fmtClima(bom)}</text>
+        <text x={(X0+X1)/2} y={448} textAnchor="middle" className="fill-text-3 text-xs">Clima econômico e setorial (S) →</text>
+        <text x={17} y={218} textAnchor="middle" transform="rotate(-90 17 218)" className="fill-text-3 text-xs">Intensidade comercial · VSCS médio (0–100) →</text>
+        {bolhas.map(v => {
+          const cx = xs(v.S), cy = ys(v), r = raio(v);
+          const selecionada = sel === v.id, apagada = filtro !== 'todos' && filtro !== v.estado;
+          const cor = COR_CLIMA[v.estado], yRotulo = rotulos.get(v.id);
+          return <g key={v.id} opacity={apagada ? 0.16 : 1} className="cursor-pointer" role="button" tabIndex={apagada ? -1 : 0}
+            aria-label={`${v.nome}: ${v.estado}, clima ${fmtClima(v.S)}, VSCS médio ${formato(v.intensidade.media)}, ${v.intensidade.comScore} de ${v.intensidade.contasICP} contas A/B avaliadas, ${quadranteComercial(v.S,v.intensidade.media,referencia,bom)}`}
+            onClick={() => onSel(v.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSel(v.id); } }}
+            onMouseEnter={() => onHover(v.id)} onMouseLeave={() => onHover(null)} onFocus={() => onHover(v.id)} onBlur={() => onHover(null)}>
+            <circle cx={cx} cy={cy} r={r} fill={cor} fillOpacity={0.20} stroke={selecionada ? 'var(--vr-text)' : cor} strokeWidth={selecionada ? 3 : 1.5}
+              strokeDasharray={v.estado === 'Instável' && !selecionada ? '4 3' : undefined} />
+            <circle cx={cx} cy={cy} r={3} fill={cor} />
+            {yRotulo !== undefined && <text x={cx} y={yRotulo} textAnchor="middle" className="fill-foreground text-xs font-semibold" style={{ paintOrder:'stroke', stroke:'var(--vr-surface)', strokeWidth:3 }}>{v.nome}</text>}
+          </g>;
+        })}
+        {hv && (() => {
+          const x = Math.min(470, Math.max(66, xs(hv.S)+18)), y = Math.min(300, Math.max(22, ys(hv)-80));
+          return <g pointerEvents="none">
+            <rect x={x} y={y} width={270} height={79} rx={6} fill="var(--vr-surface-3)" stroke="var(--vr-border-strong)" />
+            <text x={x+12} y={y+18} className="fill-foreground text-[13px] font-bold">{hv.nome} · {hv.estado}</text>
+            <text x={x+12} y={y+35} className="vr-data fill-text-2 text-xs">S {fmtClima(hv.S)} · VSCS {formato(hv.intensidade.media)}</text>
+            <text x={x+12} y={y+51} className="fill-text-2 text-xs">{hv.intensidade.comScore}/{hv.intensidade.contasICP} A/B avaliadas · {hv.intensidade.comSinal} com VSCS &gt; 0</text>
+            <text x={x+12} y={y+67} className="fill-text-3 text-[11px]">{quadranteComercial(hv.S,hv.intensidade.media,referencia,bom)}{hv.intensidade.comScore < 5 ? ' · amostra pequena' : ''}</text>
+          </g>;
+        })()}
+      </svg>)}
       <div className="flex flex-wrap gap-4 text-xs text-text-2">
-        {(['Bom', 'Neutro', 'Ruim'] as const).map(e => (
-          <span key={e} className="inline-flex items-center gap-1.5">
-            <span className="size-2.5 rounded-full" style={{ background: COR_CLIMA[e] }} />
-            {e}
-          </span>
-        ))}
-        <span className="inline-flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full border-2 border-dashed" style={{ borderColor: COR_CLIMA.Instável }} />
-          Instável (contorno tracejado)
-        </span>
+        {ESTADOS_CLIMA.map(e => <span key={e} className="inline-flex items-center gap-1.5"><span className={cn('size-2.5 rounded-full',e === 'Instável' && 'border-2 border-dashed')} style={e === 'Instável' ? { borderColor: COR_CLIMA[e] } : { background: COR_CLIMA[e] }} />{e}</span>)}
       </div>
+      <p className="text-xs text-text-3">Corte vertical: clima favorável a partir de {fmtClima(bom)}. Corte horizontal: média de VSCS das contas A/B avaliadas ({formato(referencia)}). Clima neutro permanece à esquerda; VSCS zero não comprova ausência de atividade. Amostras com menos de 5 contas avaliadas exigem cautela.</p>
+      {semDados.length > 0 && <div className="flex flex-wrap items-center gap-1.5 text-xs text-text-3"><span>Sem VSCS A/B:</span>{semDados.map(v => <button key={v.id} type="button" onClick={() => onSel(v.id)} className="rounded-chip border border-border px-2 py-1 hover:text-foreground">{v.nome}</button>)}</div>}
     </div>
   );
 }
@@ -200,8 +154,12 @@ export function PainelVertical({ clima, v }: { clima: Clima; v: Vertical }) {
       </div>
       <div className="grid grid-cols-3 gap-2">
         <Mini rotulo="Nível S" valor={fmtClima(v.S)} />
-        <Mini rotulo={temHistorico ? 'Δ 30 dias' : 'Setorial'} valor={fmtClima(temHistorico ? v.delta30 : v.setorial)} />
+        <Mini rotulo="VSCS médio A/B" valor={formato(v.intensidade.media)} />
         <Mini rotulo="Confiança" valor={v.confianca} texto />
+      </div>
+      <div className="rounded-control border border-border p-2.5 text-xs text-text-2">
+        <span className="font-semibold">{quadranteComercial(v.S,v.intensidade.media,referenciaComercial(clima.verticais),limiares.bom)}</span>
+        <span className="text-text-3"> · {v.intensidade.comScore}/{v.intensidade.contasICP} A/B avaliadas · {v.intensidade.comSinal} com VSCS &gt; 0{v.intensidade.comScore > 0 && v.intensidade.comScore < 5 ? ' · amostra pequena' : ''}</span>
       </div>
       <p className="text-sm text-text-2">
         {v.porque} {temHistorico && <span className="text-text-3">· desde {dataCurta(v.desde)}</span>}
