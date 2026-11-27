@@ -185,7 +185,8 @@ export function Gatilhos({
           </svg>
           )}
         </div>
-        {comDado.length >= 2 && (
+        {/* com dois gatilhos a matriz é 2×2 e repete o mesmo número; só ajuda a partir de três */}
+        {comDado.length >= 3 && (
         <div className="flex min-w-0 flex-[1_1_340px] flex-col gap-2.5">
           <div className="text-sm font-bold">Quais gatilhos andam juntos</div>
           <div className="grid gap-[3px] text-xs" style={{ gridTemplateColumns: `120px repeat(${comDado.length}, minmax(0, 1fr))` }}>
@@ -218,7 +219,8 @@ export function Gatilhos({
             ))}
           </div>
           <div className="mt-2 flex flex-wrap gap-3.5 text-xs text-text-2">
-            {dist.map(d => (
+            {/* faixa sem nenhuma conta não entra na legenda */}
+            {dist.filter(d => d.n > 0).map(d => (
               <span key={d.rotulo} className="inline-flex items-center gap-1.5">
                 <span className="size-2.5 rounded-[2px]" style={{ background: d.cor }} />
                 {d.rotulo} <span className="text-text-3">{d.prazo}</span> <span className="vr-data text-foreground">{d.n}</span>
