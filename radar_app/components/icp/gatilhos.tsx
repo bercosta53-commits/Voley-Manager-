@@ -179,7 +179,7 @@ export function Gatilhos({
                 </g>
               );
             })}
-            <text x={193} y={226} textAnchor="middle" className="fill-text-3 text-[11px]">
+            <text x={193} y={226} textAnchor="middle" className="fill-text-3 text-xs">
               nº de gatilhos (cor = tier do cenário)
             </text>
           </svg>

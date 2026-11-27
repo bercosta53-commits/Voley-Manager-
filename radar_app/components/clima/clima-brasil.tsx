@@ -30,8 +30,8 @@ export function ClimaBrasil({ clima }: { clima: Clima }) {
         <path d={arco(bom, 1, 110)} fill="none" stroke="var(--vr-ok)" strokeWidth={16} opacity={0.8} />
         <line x1={140} y1={140} x2={gx(ang(S), 96).toFixed(1)} y2={gy(ang(S), 96).toFixed(1)} stroke="var(--vr-text)" strokeWidth={3} strokeLinecap="round" />
         <circle cx={140} cy={140} r={7} fill="var(--vr-text)" />
-        <text x={24} y={156} className="vr-data fill-text-3 text-[11px]">−1</text>
-        <text x={246} y={156} className="vr-data fill-text-3 text-[11px]">+1</text>
+        <text x={24} y={156} className="vr-data fill-text-3 text-xs">−1</text>
+        <text x={246} y={156} className="vr-data fill-text-3 text-xs">+1</text>
       </svg>
       <div className="flex items-baseline gap-2.5">
         <span className="vr-data text-4xl font-semibold">{fmtClima(S)}</span>

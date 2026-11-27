@@ -79,7 +79,7 @@ export function MapaVerticais({
         <rect x={corteX} y={corteY} width={X1-corteX} height={Y1-corteY} fill="var(--vr-cool)" opacity={0.07} />
         {ticks.map(t => {
           const y = Y1 - t / teto * (Y1-Y0);
-          return <g key={t}><line x1={X0} x2={X1} y1={y} y2={y} stroke="var(--vr-border)" strokeDasharray="2 4" /><text x={X0-8} y={y+4} textAnchor="end" className="vr-data fill-text-3 text-[11px]">{t.toLocaleString('pt-BR')}</text></g>;
+          return <g key={t}><line x1={X0} x2={X1} y1={y} y2={y} stroke="var(--vr-border)" strokeDasharray="2 4" /><text x={X0-8} y={y+4} textAnchor="end" className="vr-data fill-text-3 text-xs">{t.toLocaleString('pt-BR')}</text></g>;
         })}
         <line x1={corteX} x2={corteX} y1={Y0} y2={Y1} stroke="var(--vr-ok)" strokeDasharray="4 4" strokeOpacity={0.65} />
         <line x1={xs(ruim)} x2={xs(ruim)} y1={Y0} y2={Y1} stroke="var(--vr-risk)" strokeOpacity={0.35} />
@@ -87,10 +87,10 @@ export function MapaVerticais({
         <text x={X0+8} y={Y0+14} className="fill-text-2 text-xs font-semibold">Contramão</text>
         <text x={X1-8} y={Y0+14} textAnchor="end" className="fill-text-2 text-xs font-semibold">Sweet spot</text>
         {Y1-corteY > 32 && <><text x={X0+8} y={Y1-8} className="fill-text-2 text-xs font-semibold">Baixa prioridade</text><text x={X1-8} y={Y1-8} textAnchor="end" className="fill-text-2 text-xs font-semibold">Mercado latente</text></>}
-        <text x={X1-4} y={Math.max(Y0+28,corteY-5)} textAnchor="end" className="vr-data fill-text-3 text-[10px]">Média A/B: {formato(referencia)}</text>
-        <text x={xs(ruim)} y={425} textAnchor="middle" className="vr-data text-[11px]" fill="var(--vr-risk)">{fmtClima(ruim)}</text>
-        <text x={xs(0)} y={425} textAnchor="middle" className="vr-data fill-text-3 text-[11px]">0</text>
-        <text x={corteX} y={425} textAnchor="middle" className="vr-data text-[11px]" fill="var(--vr-ok)">{fmtClima(bom)}</text>
+        <text x={X1-4} y={Math.max(Y0+28,corteY-5)} textAnchor="end" className="vr-data fill-text-3 text-xs">Média A/B: {formato(referencia)}</text>
+        <text x={xs(ruim)} y={425} textAnchor="middle" className="vr-data text-xs" fill="var(--vr-risk)">{fmtClima(ruim)}</text>
+        <text x={xs(0)} y={425} textAnchor="middle" className="vr-data fill-text-3 text-xs">0</text>
+        <text x={corteX} y={425} textAnchor="middle" className="vr-data text-xs" fill="var(--vr-ok)">{fmtClima(bom)}</text>
         <text x={(X0+X1)/2} y={448} textAnchor="middle" className="fill-text-3 text-xs">Clima econômico e setorial (S) →</text>
         <text x={17} y={218} textAnchor="middle" transform="rotate(-90 17 218)" className="fill-text-3 text-xs">Intensidade comercial · VSCS médio (0–100) →</text>
         {bolhas.map(v => {
@@ -114,7 +114,7 @@ export function MapaVerticais({
             <text x={x+12} y={y+18} className="fill-foreground text-[13px] font-bold">{hv.nome} · {hv.estado}</text>
             <text x={x+12} y={y+35} className="vr-data fill-text-2 text-xs">S {fmtClima(hv.S)} · VSCS {formato(hv.intensidade.media)}</text>
             <text x={x+12} y={y+51} className="fill-text-2 text-xs">{hv.intensidade.comScore}/{hv.intensidade.contasICP} A/B avaliadas · {hv.intensidade.comSinal} com VSCS &gt; 0</text>
-            <text x={x+12} y={y+67} className="fill-text-3 text-[11px]">{quadranteComercial(hv.S,hv.intensidade.media,referencia,bom)}{hv.intensidade.comScore < 5 ? ' · amostra pequena' : ''}</text>
+            <text x={x+12} y={y+67} className="fill-text-3 text-xs">{quadranteComercial(hv.S,hv.intensidade.media,referencia,bom)}{hv.intensidade.comScore < 5 ? ' · amostra pequena' : ''}</text>
           </g>;
         })()}
       </svg>)}
@@ -184,7 +184,7 @@ export function PainelVertical({ clima, v }: { clima: Clima; v: Vertical }) {
                   {rotulo}
                 </text>
                 <rect x={neg ? 250 - w : 250} y={y} width={w} height={18} rx={3} fill={neg ? 'var(--vr-risk)' : 'var(--vr-ok)'} opacity={0.85} />
-                <text x={neg ? 250 - w - 5 : 250 + w + 5} y={y + 13} textAnchor={neg ? 'end' : 'start'} className="vr-data fill-foreground text-[11px]">
+                <text x={neg ? 250 - w - 5 : 250 + w + 5} y={y + 13} textAnchor={neg ? 'end' : 'start'} className="vr-data fill-foreground text-xs">
                   {fmtClima(val)}
                 </text>
               </g>
@@ -199,10 +199,10 @@ export function PainelVertical({ clima, v }: { clima: Clima; v: Vertical }) {
           {v.serie(26).map((x, i) => (
             <rect key={i} x={i * 13} y={4} width={12} height={24} rx={2} fill={COR_CLIMA[estadoNaSemana(x, v, 25 - i, limiares)]} opacity={0.35 + 0.65 * (i / 25)} />
           ))}
-          <text x={0} y={39} className="vr-data fill-text-3 text-[10px]">
+          <text x={0} y={39} className="vr-data fill-text-3 text-xs">
             26 sem
           </text>
-          <text x={338} y={39} textAnchor="end" className="vr-data fill-text-3 text-[10px]">
+          <text x={338} y={39} textAnchor="end" className="vr-data fill-text-3 text-xs">
             hoje
           </text>
         </svg>

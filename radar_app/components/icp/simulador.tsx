@@ -241,11 +241,11 @@ export function Simulador({
             <rect x={sc(umAUm)} y={18} width={sc(umFew)} height={26} rx={3} fill="var(--vr-ok)" fillOpacity={0.45} />
             <rect x={sc(sim.nA)} y={18} width={Math.max(0, Math.min(620 - sc(sim.nA), sc(umMany)))} height={26} rx={3} fill="var(--vr-cool)" fillOpacity={0.55} />
             <line x1={Math.min(612, sc(meta))} y1={6} x2={Math.min(612, sc(meta))} y2={56} stroke="var(--vr-text)" strokeWidth={2} strokeDasharray="4 3" />
-            <text x={Math.min(612, sc(meta))} y={68} textAnchor="middle" className="vr-data fill-foreground text-[11px]">
+            <text x={Math.min(612, sc(meta))} y={68} textAnchor="middle" className="vr-data fill-foreground text-xs">
               meta {meta} contas tratadas
             </text>
-            <text x={0} y={12} className="fill-text-3 text-[11px]">0</text>
-            <text x={620} y={12} textAnchor="end" className="fill-text-3 text-[11px]">{max} contas</text>
+            <text x={0} y={12} className="fill-text-3 text-xs">0</text>
+            <text x={620} y={12} textAnchor="end" className="fill-text-3 text-xs">{max} contas</text>
           </svg>
           <div className="grid grid-cols-3 gap-2.5">
             <Faixa cor="var(--vr-ok)" rotulo={`1:1 · ${umAUm}`} texto="Tier A com VSCS ≥ 40: planejamento individual (sujeito a CQ-1)" />

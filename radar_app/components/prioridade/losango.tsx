@@ -69,7 +69,7 @@ export function Losango({ dims, tamanho = 220, compacto = false }: { dims: Recor
         {/* marcas da escala no eixo de cima */}
         {!compacto &&
           [1, 2, 3, 4, 5].map(n => (
-            <text key={n} x={pt('icp', n)[0] + 9} y={pt('icp', n)[1] + 3} className="vr-data fill-text-3 text-[9px]">
+            <text key={n} x={pt('icp', n)[0] + 9} y={pt('icp', n)[1] + 3} className="vr-data fill-text-3 text-xs">
               {n}
             </text>
           ))}
