@@ -137,3 +137,29 @@ export function Losango({ dims, tamanho = 220, compacto = false }: { dims: Recor
     </figure>
   );
 }
+
+/**
+ * Radar mínimo para a linha da lista (sem rótulos): área da conta, contorno tracejado do mínimo do sweet spot e
+ * um ponto por eixo, verde quando atinge o mínimo e laranja abaixo. Eixo sem avaliação: ponto vazado no centro.
+ */
+export function LosangoMini({ dims, tamanho = 56 }: { dims: Record<Dimensao, DimensaoIntegrada>; tamanho?: number }) {
+  const c = tamanho / 2;
+  const R = tamanho / 2 - 4;
+  const pt = (d: Dimensao, v: number) => [c + (DIRECAO[d][0] * R * v) / 5, c + (DIRECAO[d][1] * R * v) / 5] as const;
+  const poligono = (vals: number[]) => EIXOS.map((d, i) => pt(d, vals[i]!).join(',')).join(' ');
+  const notas = EIXOS.map(d => notaDesenho(dims[d]));
+  const conhecidas = notas.filter(n => n !== null).length;
+  return (
+    <svg viewBox={`0 0 ${tamanho} ${tamanho}`} width={tamanho} height={tamanho} role="img" aria-label={`Radar: ${textoLosango(dims)}`} className="shrink-0">
+      <polygon points={poligono([5, 5, 5, 5])} fill="var(--vr-surface-2)" stroke="var(--vr-border)" strokeWidth={1} />
+      <polygon points={poligono(EIXOS.map(d => MINIMO[d]))} fill="none" stroke="var(--vr-text-3)" strokeWidth={0.75} strokeDasharray="2 2" />
+      {conhecidas >= 2 && <polygon points={poligono(notas.map(n => n ?? 0))} fill="var(--vr-ok)" fillOpacity={0.28} stroke="var(--vr-ok)" strokeWidth={1.25} strokeLinejoin="round" />}
+      {EIXOS.map((d, i) => {
+        const n = notas[i];
+        if (n === null) return <circle key={d} cx={c} cy={c} r={1.8} fill="var(--vr-surface)" stroke="var(--vr-text-3)" strokeWidth={1} />;
+        const [x, y] = pt(d, n);
+        return <circle key={d} cx={x} cy={y} r={2.4} fill={n >= MINIMO[d] ? 'var(--vr-ok)' : 'var(--vr-warm)'} />;
+      })}
+    </svg>
+  );
+}

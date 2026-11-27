@@ -10,11 +10,11 @@ const linha = (id, [icp, sinais, clima, dig], tier = 'A') => ({
   visao: visaoIntegrada(id, { icp: dim(icp), sinais: dim(sinais), clima: dim(clima), oportunidadeDigital: dim(dig) }),
 });
 
-test('pontos que faltam: soma abaixo dos mínimos ou o que falta para a nota integrada 4,0', () => {
+test('pontos que faltam: soma abaixo dos mínimos ou o que falta para a média ponderada chegar a 4,0', () => {
   assert.equal(pontosQueFaltam({ icp: 5, sinais: 4, clima: 3, oportunidadeDigital: 4 }), 0);
-  // 5+1+2+4 = 12; a soma pede 16 → 4 pontos (maior que os 2 abaixo do mínimo em Sinais)
-  assert.equal(pontosQueFaltam({ icp: 5, sinais: 1, clima: 2, oportunidadeDigital: 4 }), 4);
-  // faltante assumida em 5 (o mínimo possível)
+  // 5 + 1 + 2·0,5 + 4 = 11; a soma pede 4 × 3,5 = 14 → 3 pontos (maior que os 2 abaixo do mínimo em Sinais)
+  assert.equal(pontosQueFaltam({ icp: 5, sinais: 1, clima: 2, oportunidadeDigital: 4 }), 3);
+  // com três avaliadas, conta só as três: 5 + 4 + 1,5 = 10,5 ≥ 4 × 2,5
   assert.equal(pontosQueFaltam({ icp: 5, sinais: 4, clima: 3 }), 0);
   assert.equal(faixaPorFalta(1.5), 'proximo');
   assert.equal(faixaPorFalta(1.6), 'aproximacao');
@@ -24,8 +24,8 @@ test('pontos que faltam: soma abaixo dos mínimos ou o que falta para a nota int
 test('faixas, lacuna principal e contas fora do mapa', () => {
   const a = ambiente([
     linha('sweet', [5, 4, 3, 4]),
-    linha('perto', [5, 3, 3, 4]), // soma 15 → falta 1
-    linha('timing', [5, 1, 2, 4]), // falta 4, lacuna Sinais
+    linha('perto', [5, 3, 3, 4]), // soma ponderada 13,5 → falta 0,5
+    linha('timing', [5, 1, 2, 4]), // falta 3, lacuna Sinais
     linha('encaixe', [2, 2, 2, 2]), // longe, lacuna ICP
     linha('semdados', [5, null, null, 4]),
     linha('investigar', [5, 4, 3, null]),
@@ -39,7 +39,7 @@ test('faixas, lacuna principal e contas fora do mapa', () => {
   assert.equal(por.encaixe.faixa, 'distante');
   assert.equal(por.encaixe.lacuna, 'icp');
   assert.equal(por.investigar.aInvestigar, true);
-  assert.equal(por.investigar.faixa, 'proximo');
+  assert.equal(por.investigar.faixa, 'centro'); // classificada com 3 de 4 (27/11): já está no sweet spot
   assert.equal(a.semDados, 1);
   assert.equal(por.semdados, undefined);
   // a direção aponta para a força: ICP 5 (passa 1 do mínimo) e Digital 4 (passa 1) → acima e à esquerda

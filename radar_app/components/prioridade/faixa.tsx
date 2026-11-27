@@ -7,20 +7,18 @@ import { Rotulo } from '@/components/ui/rotulo';
 /** Intensidade decrescente numa só cor (preenchimento e marcador); o texto mantém contraste em todos. */
 const ESTILO: Record<Segmento, { fundo: string; marca: React.CSSProperties }> = {
   a1: { fundo: 'bg-ok/30', marca: { background: 'var(--vr-ok)' } },
-  candidata: { fundo: 'bg-card border-2 border-ok/60', marca: { border: '2px solid var(--vr-ok)' } },
   A2: { fundo: 'bg-ok/20', marca: { background: 'var(--vr-ok)', opacity: 0.75 } },
   B1: { fundo: 'bg-ok/15', marca: { background: 'var(--vr-ok)', opacity: 0.55 } },
   B2: { fundo: 'bg-ok/10', marca: { background: 'var(--vr-ok)', opacity: 0.35 } },
   C: { fundo: 'bg-ok/5', marca: { background: 'var(--vr-ok)', opacity: 0.2 } },
-  fora_por_criterio: { fundo: 'bg-card border border-dashed border-border-strong', marca: { border: '1px dashed var(--vr-border-strong)' } },
   sem_metrica: { fundo: 'bg-transparent border border-dashed border-border-strong', marca: { border: '1px dashed var(--vr-border-strong)' } },
 };
 
 export function textoFaixa(total: number, completas: number, c: Record<Segmento, number>) {
   return (
-    `${plural(total, 'conta monitorada', 'contas monitoradas')}, ${completas} com as quatro dimensões: ` +
-    `${c.a1 + c.A2} no sweet spot (${c.a1} em A1 e ${c.A2} em A2), ${c.candidata} candidatas com 1 dimensão a investigar, ${c.B1} em B1, ${c.B2} em B2, ${c.C} em C, ` +
-    `${c.fora_por_criterio} com 1 faltando e o sweet spot fora de alcance, ${c.sem_metrica} sem métrica por terem 2 ou mais dimensões faltando.`
+    `${plural(total, 'conta monitorada', 'contas monitoradas')}, ${completas} com as quatro dimensões (as com três também são classificadas): ` +
+    `${c.a1 + c.A2} no sweet spot (${c.a1} em A1 e ${c.A2} em A2), ${c.B1} em B1, ${c.B2} em B2, ${c.C} em C, ` +
+    `${c.sem_metrica} sem métrica por terem 2 ou mais dimensões faltando.`
   );
 }
 

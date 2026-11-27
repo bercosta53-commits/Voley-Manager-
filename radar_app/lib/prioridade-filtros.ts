@@ -22,22 +22,19 @@ export interface LinhaPrioridade {
   visao: VisaoIntegradaConta;
 }
 
-export type Segmento = 'a1' | 'candidata' | 'A2' | 'B1' | 'B2' | 'C' | 'fora_por_criterio' | 'sem_metrica';
+/** Segmentos da faixa: a classe (com 4 ou 3 dimensões, 27/11) ou sem métrica (2 ou mais faltando). */
+export type Segmento = 'a1' | 'A2' | 'B1' | 'B2' | 'C' | 'sem_metrica';
 export const SEGMENTOS: { id: Segmento; rotulo: string; grupo: string }[] = [
   { id: 'a1', rotulo: 'A1', grupo: 'Sweet spot' },
-  { id: 'candidata', rotulo: '1 a investigar', grupo: 'Candidatas' },
   { id: 'A2', rotulo: 'A2', grupo: 'Sweet spot' },
   { id: 'B1', rotulo: 'B1', grupo: 'Aproximadas' },
   { id: 'B2', rotulo: 'B2', grupo: 'Enfraquece' },
   { id: 'C', rotulo: 'C', grupo: 'Enfraquece' },
-  { id: 'fora_por_criterio', rotulo: '1 faltando, fora de alcance', grupo: 'Incompletas' },
   { id: 'sem_metrica', rotulo: '2+ faltando', grupo: 'Sem métrica' },
 ];
 
 export function segmentoDe(v: VisaoIntegradaConta): Segmento {
   if (v.classeIntegrada) return v.classeIntegrada === 'A1' ? 'a1' : v.classeIntegrada;
-  if (v.situacaoSweetSpot === 'candidata') return 'candidata';
-  if (v.situacaoSweetSpot === 'fora_por_criterio') return 'fora_por_criterio';
   return 'sem_metrica';
 }
 
@@ -94,7 +91,8 @@ function bateAtalho(l: LinhaPrioridade, a: Atalho): boolean {
   const v = l.visao;
   const icp = nota(l, 'icp'), sinais = nota(l, 'sinais');
   if (a === 'sweet') return v.situacaoSweetSpot === 'sweet_spot';
-  if (a === 'investigar') return v.situacaoSweetSpot === 'candidata';
+  // investigar: classificada com 3 de 4 e no sweet spot ou podendo entrar se a faltante vier boa
+  if (a === 'investigar') return v.cobertura === 3 && (v.situacaoSweetSpot === 'sweet_spot' || v.investigacao?.notaMinimaParaSweet != null);
   if (a === 'perto') return v.situacaoSweetSpot === 'fora_por_classe' && (v.criteriosSweetAtendidos ?? 0) >= ATALHOS.pertoDoSweetSpot.criteriosEntrada;
   if (a === 'encaixe_timing_fraco') return icp !== null && sinais !== null && icp >= ATALHOS.bomEncaixeTimingFraco.icpMin && sinais < ATALHOS.bomEncaixeTimingFraco.sinaisAbaixoDe;
   return icp !== null && sinais !== null && sinais >= ATALHOS.timingForteEncaixeDuvidoso.sinaisMin && icp < ATALHOS.timingForteEncaixeDuvidoso.icpAbaixoDe;
@@ -170,11 +168,11 @@ export function faixa(linhas: LinhaPrioridade[]): Record<Segmento, number> {
   return r;
 }
 
-const GRUPO_ORDEM = (v: VisaoIntegradaConta) => (v.cobertura === 4 ? 0 : v.situacaoSweetSpot === 'candidata' ? 1 : v.situacaoSweetSpot === 'fora_por_criterio' ? 2 : 3);
+const GRUPO_ORDEM = (v: VisaoIntegradaConta) => (v.classeIntegrada ? 0 : 3);
 
 /**
- * Ordem inicial: completas pela nota integrada (empate: ICP, Sinais, nome); depois candidatas pela menor nota
- * exigida para o sweet spot; depois as com uma faltando fora de alcance; por fim as sem métrica. Nada some.
+ * Ordem inicial: classificadas (4 ou 3 dimensões) pela nota integrada (empate: ICP, Sinais, nome); por fim as sem
+ * métrica. Nada some.
  */
 export function ordemInicial(a: LinhaPrioridade, b: LinhaPrioridade): number {
   const ga = GRUPO_ORDEM(a.visao), gb = GRUPO_ORDEM(b.visao);
@@ -182,7 +180,6 @@ export function ordemInicial(a: LinhaPrioridade, b: LinhaPrioridade): number {
   const desc = (x: number | null, y: number | null) => (y ?? -1) - (x ?? -1);
   return (
     (ga === 0 ? desc(a.visao.notaIntegrada, b.visao.notaIntegrada) : 0) ||
-    (ga === 1 ? (a.visao.investigacao?.notaMinimaParaSweet ?? 9) - (b.visao.investigacao?.notaMinimaParaSweet ?? 9) : 0) ||
     desc(nota(a, 'icp'), nota(b, 'icp')) ||
     desc(nota(a, 'sinais'), nota(b, 'sinais')) ||
     a.nome.localeCompare(b.nome, 'pt-BR')

@@ -75,13 +75,13 @@ export function Metodologia({ abrirPedido }: { abrirPedido: number }) {
                 <Termo termo="Nota integrada" definicao="Média simples das quatro notas, sem arredondar antes de classificar." /> = média simples das quatro, só com as quatro avaliadas.
               </>,
               <>
-                <Termo termo="Travas" definicao="Mínimos que nenhuma média alta compensa." />: ICP abaixo de {n(REGRAS.C.icpAbaixoDe)} vira C. Para A: ICP ≥ {n(a1.icp)}, Sinais ≥ {n(a2.sinais)} (A2) ou ≥ {n(a1.sinais)} (A1), Clima e Oportunidade digital ≥ {n(a1.clima)}.
+                <Termo termo="Travas" definicao="Mínimos que nenhuma média alta compensa." />: ICP abaixo de {n(REGRAS.C.icpAbaixoDe)} vira C. Para A: ICP ≥ {n(a1.icp)}, Sinais ≥ {n(a2.sinais)} (A2) ou ≥ {n(a1.sinais)} (A1), Oportunidade digital ≥ {n(a1.oportunidadeDigital)}. Clima não tem mínimo: é contexto e pesa metade na média (27/11).
               </>,
               <>
                 Classe: A1 e A2 formam o <Termo termo="sweet spot" definicao="Contas A1 ou A2: os quatro eixos convergem e os mínimos de A são atendidos. A1 é o topo." /> (A1 é o topo) · B1 boa · B2 monitorar · C baixa prioridade.
               </>,
               <>
-                Sem evidência = &quot;Sem avaliação&quot;, nunca vira nota nem entra na média. Falta 1 dimensão: a conta segue candidata e vira investigação. Faltam 2 ou mais: sai do sweet spot até completar.
+                Sem evidência = &quot;Sem avaliação&quot;, nunca vira nota nem entra na média. Falta 1 dimensão: a conta é classificada pelas outras três (média e mínimos das três) e a faltante vira investigação. Faltam 2 ou mais: fica sem métrica até completar.
               </>,
             ].map((t, i) => (
               <li key={i} className="grid grid-cols-[22px_minmax(0,1fr)] gap-2">
@@ -117,8 +117,8 @@ export function Metodologia({ abrirPedido }: { abrirPedido: number }) {
               <tbody className="divide-y divide-border">
                 {[
                   ['C', `ICP < ${n(REGRAS.C.icpAbaixoDe)} OU nota integrada < ${n(REGRAS.C.notaAbaixoDe)}`],
-                  ['A1', `Nota ≥ ${n(REGRAS.A1.nota)} E ICP ≥ ${n(a1.icp)} E Sinais ≥ ${n(a1.sinais)} E Clima ≥ ${n(a1.clima)} E Oportunidade digital ≥ ${n(a1.oportunidadeDigital)}`],
-                  ['A2', `Nota ≥ ${n(REGRAS.A2.nota)} E ICP ≥ ${n(a2.icp)} E Sinais ≥ ${n(a2.sinais)} E Clima ≥ ${n(a2.clima)} E Oportunidade digital ≥ ${n(a2.oportunidadeDigital)}`],
+                  ['A1', `Nota ≥ ${n(REGRAS.A1.nota)} E ICP ≥ ${n(a1.icp)} E Sinais ≥ ${n(a1.sinais)} E Oportunidade digital ≥ ${n(a1.oportunidadeDigital)}`],
+                  ['A2', `Nota ≥ ${n(REGRAS.A2.nota)} E ICP ≥ ${n(a2.icp)} E Sinais ≥ ${n(a2.sinais)} E Oportunidade digital ≥ ${n(a2.oportunidadeDigital)}`],
                   ['B1', `Nota ≥ ${n(REGRAS.B1.nota)}`],
                   ['B2', 'Demais avaliações completas'],
                 ].map(([c, r], i) => (

@@ -13,24 +13,24 @@ const dim = (nota, extra = {}) => ({
 });
 const visao = (icp, sinais, clima, digital, opts) => visaoIntegrada('c1', { icp: dim(icp), sinais: dim(sinais), clima: dim(clima), oportunidadeDigital: dim(digital) }, opts);
 
-test('fronteiras da nota integrada (C 2,5 · B1 3,25 · A2 4,0 · A1 4,5)', () => {
-  // ICP 4 e Sinais 4 garantem os mínimos de A; a média vem das outras duas
-  const comMedia = m => { const resto = (4 * m - 8) / 2; return N(4, 4, resto, resto); };
-  assert.equal(classificar(N(3, 3, 2, 1.9996)), 'C'); // 2,4999
-  assert.equal(classificar(N(3, 3, 2, 2)), 'B2'); // 2,5
-  assert.equal(classificar(N(3, 3, 3.5, 3.4996)), 'B2'); // 3,2499
-  assert.equal(classificar(N(3, 3, 3.5, 3.5)), 'B1'); // 3,25
-  assert.equal(classificar(comMedia(3.9999)), 'B1');
-  assert.equal(classificar(comMedia(4.0)), 'A2');
-  assert.equal(classificar(comMedia(4.4999)), 'A2');
+test('fronteiras da nota integrada (C 2,5 · B1 3,25 · A2 4,0 · A1 4,5), com Clima pesando 0,5', () => {
+  // ICP fixo; Sinais, Clima e Digital iguais a x: média = (icp + 2,5x) / 3,5
+  const comMedia = (icp, m) => { const x = (3.5 * m - icp) / 2.5; return N(icp, x, x, x); };
+  assert.equal(classificar(comMedia(3, 2.4999)), 'C');
+  assert.equal(classificar(comMedia(3, 2.5)), 'B2');
+  assert.equal(classificar(comMedia(3, 3.2499)), 'B2');
+  assert.equal(classificar(comMedia(3, 3.25)), 'B1');
+  assert.equal(classificar(comMedia(4, 3.9999)), 'B1');
+  assert.equal(classificar(comMedia(4, 4.0)), 'A2');
+  assert.equal(classificar(comMedia(5, 4.4999)), 'A2');
   assert.equal(classificar(N(4.5, 4.5, 4.5, 4.5)), 'A1'); // 4,5
 });
 
-test('mínimos de A: ICP 3,99 cai para B1; Sinais 3,99 cai de A1 para A2; Clima 1,99 ou Digital 2,99 cai para B1', () => {
+test('mínimos de A: ICP 3,99 cai para B1; Sinais 3,99 cai de A1 para A2; Digital 2,99 cai para B1; Clima não tem mínimo', () => {
   assert.equal(classificar(N(3.99, 5, 5, 5)), 'B1');
   assert.equal(classificar(N(5, 3.99, 5, 5)), 'A2');
-  assert.equal(classificar(N(5, 5, 2.99, 5)), 'A2'); // Clima é contexto: mínimo 2 (26/11); a média 4,25 fica abaixo de A1
-  assert.equal(classificar(N(5, 5, 1.99, 5)), 'B1');
+  assert.equal(classificar(N(5, 5, 2.99, 5)), 'A1'); // Clima sem mínimo e com peso 0,5 (27/11): média 4,71
+  assert.equal(classificar(N(5, 5, 1, 5)), 'A2'); // Clima no piso só baixa a média (4,43)
   assert.equal(classificar(N(5, 5, 5, 2.99)), 'B1');
 });
 
@@ -39,34 +39,37 @@ test('trava: ICP abaixo de 3 com todo o resto em 5 é C', () => {
 });
 
 test('comparação segura de decimais: soma em float que fica 1e-16 abaixo do limite ainda atinge', () => {
-  const m = notaIntegrada(N(4.6, 4.8, 4.7, 3.9)); // 4,5 em aritmética exata
+  const m = notaIntegrada(N(4.1, 4.3, 4.7, 5)); // 4,5 em aritmética exata
   assert.notEqual(m, 4.5); // em float sai 4.499999999999999…
   assert.equal(atinge(m, 4.5), true);
-  assert.equal(classificar(N(4.6, 4.8, 4.7, 3.9)), "A1"); // sem a tolerância cairia para A2
+  assert.equal(classificar(N(4.1, 4.3, 4.7, 5)), 'A1'); // sem a tolerância cairia para A2
   assert.equal(atinge(4.4999, 4.5), false); // tolerância não é arredondamento
 });
 
-test('ausência de cada dimensão: nota e classe nulas, cobertura 3 de 4, candidata quando A1 é viável', () => {
+test('ausência de uma dimensão (27/11): classifica com as três, cobertura 3 de 4 e a faltante a investigar', () => {
   for (const [i, d] of ['icp', 'sinais', 'clima', 'oportunidadeDigital'].entries()) {
     const notas = [5, 5, 5, 5];
     notas[i] = null;
     const v = visao(...notas);
-    assert.equal(v.notaIntegrada, null);
-    assert.equal(v.classeIntegrada, null);
+    assert.equal(v.notaIntegrada, 5);
+    assert.equal(v.classeIntegrada, 'A1');
     assert.equal(v.cobertura, 3);
     assert.deepEqual(v.dimensoesFaltantes, [d]);
-    assert.equal(v.situacaoSweetSpot, 'candidata');
+    assert.equal(v.situacaoSweetSpot, 'sweet_spot');
+    assert.equal(v.investigacao.dimensao, d);
+    assert.match(v.motivosClassificacao.at(-1), /Classificada com 3 de 4/);
   }
 });
 
-test('regra de faltas: 0 classifica, 1 viável é candidata, 1 que já falha é fora por critério, 2 é fora por falta de dados', () => {
+test('regra de faltas: 0 ou 1 faltando classifica; 2 ou mais é fora por falta de dados', () => {
   assert.equal(visao(5, 5, 5, 5).situacaoSweetSpot, 'sweet_spot'); // A1 (topo)
-  assert.equal(visao(4, 3.5, 4.5, 4).situacaoSweetSpot, 'sweet_spot'); // A2 também está no sweet spot (D2)
-  assert.equal(visao(4, 3.5, 4, 4).situacaoSweetSpot, 'fora_por_classe');
-  assert.equal(visao(5, 5, null, 5).situacaoSweetSpot, 'candidata');
-  const criterio = visao(3.5, 5, null, 5);
-  assert.equal(criterio.situacaoSweetSpot, 'fora_por_criterio');
-  assert.deepEqual(criterio.motivosClassificacao, ['ICP 3,5 < 4']);
+  assert.equal(visao(4, 3.5, 4.5, 4.5).situacaoSweetSpot, 'sweet_spot'); // A2: (4 + 3,5 + 2,25 + 4,5) / 3,5 = 4,07
+  assert.equal(visao(4, 3.5, 4.5, 4).situacaoSweetSpot, 'fora_por_classe'); // média 3,93: B1
+  assert.equal(visao(5, 5, null, 5).classeIntegrada, 'A1');
+  const criterio = visao(3.5, 5, null, 5); // média das três 4,5, mas ICP 3,5 < 4
+  assert.equal(criterio.classeIntegrada, 'B1');
+  assert.equal(criterio.situacaoSweetSpot, 'fora_por_classe');
+  assert.match(criterio.motivosClassificacao[0], /^ICP 3,5, falta 0,5/);
   for (const [a, b] of [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3]]) {
     const notas = [5, 5, 5, 5];
     notas[a] = null;
@@ -77,37 +80,30 @@ test('regra de faltas: 0 classifica, 1 viável é candidata, 1 que já falha é 
   }
 });
 
-test('nota mínima para A1: soma 12,5 pede 5,5 (cai); soma 14 pede 4,0; ICP faltando pede ≥ 4; Clima faltando pede ≥ 3', () => {
-  assert.equal(notaMinimaParaA1(N(4, 4, null, 4.5), 'clima'), null); // 12,5 → 5,5
-  // com A2 no sweet spot (D2), a mesma conta é candidata: entrar pede média 4,0, ou seja Clima ≥ 3,5
-  const c = visao(4, 4, null, 4.5);
-  assert.equal(c.situacaoSweetSpot, 'candidata');
-  assert.equal(c.investigacao.notaMinimaParaSweet, 3.5);
-  assert.equal(c.investigacao.notaMinimaParaA1, null);
-  assert.equal(c.investigacao.podeChegarA1, false);
-  assert.equal(visao(3, 5, null, 5).situacaoSweetSpot, 'fora_por_criterio'); // ICP 3 < 4: nem A2
-  assert.equal(notaMinimaParaA1(N(5, 4.5, null, 4.5), 'clima'), 4); // 14 → 4,0
-  assert.equal(notaMinimaParaA1(N(null, 5, 5, 5), 'icp'), 4); // 18 − 15 = 3, mas o mínimo de ICP é 4
-  assert.equal(notaMinimaParaA1(N(5, 5, null, 5), 'clima'), 3);
-  const v = visao(5, 4.5, null, 4.5);
-  assert.equal(v.investigacao.notaMinimaParaA1, 4);
+test('nota mínima da faltante (Clima pesa 0,5): soma 12,5 pede 6,5 (cai); 14 pede 3,5; ICP faltando pede ≥ 4', () => {
+  assert.equal(notaMinimaParaA1(N(4, 4, null, 4.5), 'clima'), null); // (15,75 − 12,5) / 0,5 = 6,5
+  assert.equal(notaMinimaParaA1(N(5, 4.5, null, 4.5), 'clima'), 3.5); // (15,75 − 14) / 0,5
+  assert.equal(notaMinimaParaA1(N(null, 5, 5, 5), 'icp'), 4); // 3,25 pela média, mas o mínimo de ICP é 4
+  assert.equal(notaMinimaParaA1(N(5, 5, null, 5), 'clima'), 1.5);
+  const v = visao(5, 4.5, null, 4.5); // classifica com as três: média 4,67 → A1
+  assert.equal(v.classeIntegrada, 'A1');
+  assert.equal(v.investigacao.notaMinimaParaA1, 3.5);
   assert.equal(v.investigacao.podeChegarA1, true);
-  assert.equal(v.investigacao.notaMinimaParaSweet, 2); // entrar (A2) pede média 4,0 e Clima ≥ 2 (contexto, 26/11)
-  assert.match(v.motivosClassificacao[0], /Clima do setor: precisa de nota ≥ 2 para o sweet spot/);
+  assert.equal(v.investigacao.notaMinimaParaSweet, null); // já está no sweet spot
 });
 
-test('o 5,0 do teste de viabilidade nunca aparece no estado', () => {
+test('a faltante nunca recebe nota inventada no estado', () => {
   const v = visao(4.2, 4.6, null, 4.4);
   assert.equal(v.dimensoes.clima.nota, null);
-  assert.equal(v.notaIntegrada, null);
-  assert.equal(v.criteriosSweet, null);
+  assert.ok(Math.abs(v.notaIntegrada - 4.4) < 1e-9); // média das três avaliadas
   assert.doesNotMatch(JSON.stringify(v), /"nota":5[,}]/);
 });
 
-test('candidata que completa a dimensão é classificada normalmente, sem herdar estado', () => {
+test('conta com 3 de 4 que completa a dimensão é reclassificada com as quatro, sem herdar estado', () => {
   const antes = visao(5, 4.5, null, 4.5);
   const depois = visao(5, 4.5, 4, 4.5);
-  assert.equal(antes.situacaoSweetSpot, 'candidata');
+  assert.equal(antes.cobertura, 3);
+  assert.equal(antes.investigacao.dimensao, 'clima');
   assert.equal(depois.situacaoSweetSpot, 'sweet_spot');
   assert.equal(depois.investigacao, null);
   assert.equal(depois.cobertura, 4);
@@ -147,14 +143,22 @@ test('mapeamentos: VSCS vira 1 + 4v/100; sem achados não é lido como nota da r
   assert.equal(dimensaoClima().origem.mapeamento, 'documentado');
   assert.equal(dimensaoDigital(undefined, new Date()).motivoSemNota, 'nao_coletado');
   assert.equal(dimensaoDigital({ nivel: 0, confianca: 'insuficiente', dataReferencia: null, fonte: null, resumo: '' }, new Date()).nota, null);
+  // confiança insuficiente com nível do Atlas: entra com o nível provisório e a pendência de qualidade
+  const prov = dimensaoDigital({ nivel: 1, confianca: 'insuficiente', dataReferencia: null, fonte: null, resumo: 'L1 · Presença inicial' }, new Date());
+  assert.equal(prov.nota, 2);
+  assert.equal(prov.entraNoCalculo, true);
+  assert.deepEqual(prov.pendenciasQualidade, ['nível provisório: sem página válida auditada']);
+  assert.match(prov.resumo, /provisório/);
 });
 
 test('modo apresentação: dimensão oculta conta como faltante e não vaza pela classe', () => {
   const v = visao(5, 5, 5, 5, { ocultas: ['clima'] });
-  assert.equal(v.classeIntegrada, null);
   assert.equal(v.dimensoes.clima.nota, null);
   assert.equal(v.dimensoes.clima.motivoSemNota, 'oculto_modo_apresentacao');
-  assert.equal(v.situacaoSweetSpot, 'candidata');
+  // a classe sai só das três visíveis: qualquer Clima escondido dá a mesma classe e a mesma média
+  const w = visao(5, 5, 1, 5, { ocultas: ['clima'] });
+  assert.equal(v.classeIntegrada, w.classeIntegrada);
+  assert.equal(v.notaIntegrada, w.notaIntegrada);
 });
 
 test('Clima: nota = 3 + 2·S, de 1 a 5, com estado, fontes, confiança e validade da edição', () => {
@@ -192,8 +196,22 @@ test('Clima: a vertical vem do código de especialização; sem código, a Gener
   assert.equal(climaPorCodigo(null)('ESP01'), null);
 });
 
-test('Clima como contexto (decisão de 26/11): mínimo 2 em A1/A2; abaixo de 2 barra o sweet spot', () => {
-  assert.equal(visao(5, 5, 2.5, 5).classeIntegrada, 'A2'); // setor neutro-negativo não barra o sweet spot (A1 pede média 4,5)
-  assert.equal(visao(5, 4, 2.0, 5).situacaoSweetSpot, 'sweet_spot'); // generalista com macro ruim ainda entra, se o resto sustenta
-  assert.notEqual(visao(5, 5, 1.8, 5).situacaoSweetSpot, 'sweet_spot'); // setor muito ruim barra
+test('Clima como contexto (decisão de 27/11): sem mínimo e peso 0,5; setor ruim só baixa a média', () => {
+  assert.equal(visao(5, 5, 1, 5).situacaoSweetSpot, 'sweet_spot'); // média 4,43: A2
+  assert.equal(visao(5, 4, 1, 5).classeIntegrada, 'A2'); // média 4,14
+  assert.equal(visao(5, 5, 5, 5).classeIntegrada, 'A1');
+  assert.equal(visao(4, 3, 1, 3).classeIntegrada, 'B2'); // média 3,0: o que segura é o resto, não o Clima
+});
+
+test('Oportunidade digital vem do Atlas do snapshot, casado pelo id da conta', async () => {
+  const { auditoriasPorDominio, fonteAquisicao } = await import('../../lib/prioridade-linhas.ts');
+  const conta = (id, extra = {}) => ({ id, name: id, domain: '', tier: 'A', validPages: 0, forms: 0, whatsappLinks: 0, tags: {}, priority: 0, ...extra });
+  const atlas = { schema: 't', lastUpdated: '2026-11-27', source: 't', caveat: '', accounts: [conta('rec1'), conta('rec2', { validPages: 2, forms: 1, tags: { ga4: 'network', gtm: 'network', googleAds: 'network' } })] };
+  const arquivo = { schema: 't', lastUpdated: '2026-11-08', source: 't', caveat: '', accounts: [] };
+  assert.equal(fonteAquisicao({ aquisicaoAtlas: atlas }, arquivo), atlas);
+  assert.equal(fonteAquisicao({}, arquivo), arquivo);
+  const m = auditoriasPorDominio(atlas);
+  assert.equal(m.get('id:rec1').nivel, 1); // sem página válida: L1 provisório
+  assert.equal(m.get('id:rec1').confianca, 'insuficiente');
+  assert.ok(m.get('id:rec2').nivel >= 2);
 });

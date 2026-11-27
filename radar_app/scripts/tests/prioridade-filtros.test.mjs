@@ -12,10 +12,10 @@ const linha = (id, notas, extra = {}) => ({
 });
 const L = [
   linha('Áurea Crédito', [5, 5, 5, 5], { outrosNomes: ['Aurea Instituição de Pagamento S.A.'] }), // A1
-  linha('Bravo', [4, 3.5, 4, 4]), // B1 (3,875)
+  linha('Bravo', [4, 3.5, 4, 4]), // B1 (3,86 com Clima pesando 0,5)
   linha('Cobalto', [2, 5, 5, 5], { setor: 'Logtech' }), // C
-  linha('Delta', [5, 5, null, 5], { setor: null }), // candidata
-  linha('Eco', [3.5, 5, null, 5]), // fora por critério
+  linha('Delta', [5, 5, null, 5], { setor: null }), // A1 com 3 de 4 (falta Clima)
+  linha('Eco', [3.5, 5, null, 5]), // B1 com 3 de 4: ICP trava o sweet spot
   linha('Faro', [4, null, null, 4], { setor: 'Logtech' }), // sem métrica
 ];
 const f = extra => ({ ...SEM_FILTROS, ...extra });
@@ -35,7 +35,7 @@ test('termo que só existe fora dos filtros é contado à parte', () => {
 });
 
 test('OU dentro do grupo, E entre grupos', () => {
-  assert.deepEqual(ids(filtrar(L, f({ classes: ['A1', 'C'] })).linhas), ['Áurea Crédito', 'Cobalto']);
+  assert.deepEqual(ids(filtrar(L, f({ classes: ['A1', 'C'] })).linhas), ['Áurea Crédito', 'Cobalto', 'Delta']);
   assert.deepEqual(ids(filtrar(L, f({ classes: ['A1', 'C'], setores: ['Logtech'] })).linhas), ['Cobalto']);
   assert.equal(filtrosEmTexto(f({ classes: ['A1', 'A2'], setores: ['TI'] })), 'A1 ou A2, E setor TI');
 });
@@ -48,20 +48,21 @@ test('conta sem setor fica em "Sem setor"; sem nota não passa no filtro de nota
 });
 
 test('situação do sweet spot, cobertura e dimensão faltante', () => {
-  assert.deepEqual(ids(filtrar(L, f({ situacoes: ['candidata'] })).linhas), ['Delta']);
+  assert.deepEqual(ids(filtrar(L, f({ situacoes: ['sweet_spot'] })).linhas), ['Áurea Crédito', 'Delta']);
+  assert.deepEqual(ids(filtrar(L, f({ coberturas: ['3'] })).linhas), ['Delta', 'Eco']);
   assert.deepEqual(ids(filtrar(L, f({ coberturas: ['2-'] })).linhas), ['Faro']);
   assert.deepEqual(ids(filtrar(L, f({ faltando: ['sinais'] })).linhas), ['Faro']);
-  assert.deepEqual(ids(filtrar(L, f({ atalho: 'investigar' })).linhas), ['Delta']);
+  assert.deepEqual(ids(filtrar(L, f({ atalho: 'investigar' })).linhas), ['Delta']); // 3 de 4 no sweet spot; Eco fica fora (ICP trava)
 });
 
 test('faixa: cada conta em um segmento, e a soma é o total', () => {
   const r = faixa(L);
-  assert.deepEqual(r, { a1: 1, candidata: 1, A2: 0, B1: 1, B2: 0, C: 1, fora_por_criterio: 1, sem_metrica: 1 });
+  assert.deepEqual(r, { a1: 2, A2: 0, B1: 2, B2: 0, C: 1, sem_metrica: 1 });
   assert.equal(Object.values(r).reduce((a, b) => a + b, 0), L.length);
 });
 
-test('ordem inicial: completas pela nota, depois candidatas, incompletas fora de alcance e sem métrica; nada some', () => {
-  assert.deepEqual(ids(ordenar([...L].reverse(), 'inicial')), ['Áurea Crédito', 'Cobalto', 'Bravo', 'Delta', 'Eco', 'Faro']);
+test('ordem inicial: classificadas (4 ou 3 dimensões) pela nota, depois sem métrica; nada some', () => {
+  assert.deepEqual(ids(ordenar([...L].reverse(), 'inicial')), ['Áurea Crédito', 'Delta', 'Eco', 'Cobalto', 'Bravo', 'Faro']);
   const porClima = ordenar(L, 'clima');
   assert.equal(porClima.length, L.length);
   assert.deepEqual(ids(porClima.slice(-3)), ['Delta', 'Eco', 'Faro']); // sem nota vai para o fim
