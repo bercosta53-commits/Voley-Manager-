@@ -169,5 +169,16 @@
     "captacao_seed": 150,
     "aquisicao_feita": 180,
     "fusao": 180
+  },
+  "meia_vida_vagas_contextuais": {
+    "padrao": 30,
+    "vaga_sdr_bdr": 30,
+    "vaga_especialista_gtm": 45,
+    "vaga_bloco": 60,
+    "vaga_coordenacao": 60,
+    "vaga_gerencia": 75,
+    "vaga_head": 90,
+    "vaga_diretoria_receita": 90,
+    "vaga_clevel_receita": 120
   }
 }
