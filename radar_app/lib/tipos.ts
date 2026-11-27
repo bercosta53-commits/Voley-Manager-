@@ -90,6 +90,8 @@ export interface Conta {
   tendencia: number;
   /** 90 dias, um ponto a cada 3 dias */
   serie: number[];
+  /** Série retrospectiva diária (D−180 a D0), reconstruída ou estimada dos movimentos registrados e ancorada na data do score. */
+  serie180?: { ate: string; versao: string; metodo: 'reconstruido' | 'movimentos_registrados'; valores: number[] };
   composicao: Parcela[];
   comite: Pessoa[];
   historico: Evento[];

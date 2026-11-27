@@ -13,7 +13,7 @@ import { hrefConta, primeiraMaiuscula } from '@/lib/contas';
 import { IconeSinal } from './icone-sinal';
 import { LogoConta } from './logo-conta';
 import { ScoreTendencia } from './score';
-import { GraficoSinais, type EventoGrafico } from './grafico-sinais';
+import { GraficoSinais, temHistorico180, type EventoGrafico } from './grafico-sinais';
 import { COR_PAPEL, COR_TIER, NIVEL_GATILHO, papelNoComite, rotuloPapel } from '@/lib/papeis';
 import { ACOES_DE_ABORDAGEM, ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
 import { useApresentacao } from '@/components/ui/use-apresentacao';
@@ -118,7 +118,9 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
     eventos.push({ data: sinal.data, pontos: Math.round(sinal.pontos), rotulo: sinal.sinal ?? sinal.porQueAgora, nivel: sinal.nivel, atual: true });
 
   // com 1 ou 2 fatos o gráfico fica quase vazio; mantém quando há playbook, que marca o dia em que ativou
-  const comGrafico = eventos.length >= 3 || !!playbook;
+  const serie180 = conta.serie180?.valores ?? [];
+  const historico180 = temHistorico180(serie180) && Math.abs(serie180[180] - conta.score) <= 0.05 && conta.serie180?.versao === conta.v2?.versao;
+  const comGrafico = eventos.length > 0 || !!playbook || historico180;
 
   const quem = sinal.abordar.nome ? (
     <>
@@ -289,11 +291,11 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
           {/* o score da conta no tempo, com cada sinal marcado na data em que aconteceu */}
           <div className="min-w-0 rounded-control border border-border bg-background/40 p-3">
             <p className="mb-1 flex items-center justify-between text-xs text-text-3">
-              <span className="font-medium text-text-2">{comGrafico ? 'Score em 90 dias' : 'O que somou ao score'}</span>
-              {comGrafico && <span>cada ponto é um sinal</span>}
+              <span className="font-medium text-text-2">{comGrafico ? (historico180 ? 'Temperatura comercial · 180 dias' : 'Impacto atual dos sinais · 180 dias') : 'O que somou ao score'}</span>
+              {comGrafico && <span>{historico180 ? (conta.serie180?.metodo === 'movimentos_registrados' ? 'estimativa dos movimentos registrados' : 'reconstruído · cada ponto é um sinal') : 'sem série histórica de score'}</span>}
             </p>
             {comGrafico ? (
-              <GraficoSinais serie={conta.serie} eventos={eventos} hoje={hoje} marca={playbook && { data: playbook.ativadoEm, rotulo: playbook.playbook.nome }} />
+              <GraficoSinais serie={historico180 ? serie180 : []} eventos={eventos} hoje={historico180 ? conta.serie180!.ate : hoje} marca={playbook && { data: playbook.ativadoEm, rotulo: playbook.playbook.nome }} />
             ) : (
               // com 1 ou 2 fatos o gráfico fica quase vazio: o mesmo dado em uma linha por fato
               <ul className="mt-1 flex flex-col gap-1 text-sm">
