@@ -18,6 +18,7 @@ import { cn, plural } from '@/lib/utils';
 import { Faixa } from './faixa';
 import { Metodologia, SeloExperimental } from './metodologia';
 import { ClasseExperimental, Comparacao, PainelConta, textoNota } from './painel';
+import { AmbienteDecisao } from './ambiente';
 import { CruzarDimensoes, MatrizSetorPrioridade, ResumoDoSetor } from './visoes';
 import { dataCurta } from '@/lib/utils';
 
@@ -30,7 +31,7 @@ const SITUACOES: { id: SituacaoSweetSpot; rotulo: string }[] = [
 ];
 const PASSOS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
 
-type Visao = 'lista' | 'matriz' | 'cruzar';
+type Visao = 'ambiente' | 'lista' | 'matriz' | 'cruzar';
 type ColunaOpcional = 'proximidade' | 'evidencia' | 'cobertura' | 'data';
 const COLUNAS_OPCIONAIS: { id: ColunaOpcional; rotulo: string }[] = [
   { id: 'proximidade', rotulo: 'Sweet spot' },
@@ -53,7 +54,7 @@ interface EstadoUrl {
   y: Dimensao;
   mo: 'a1' | 'candidata' | 'nome';
 }
-const INICIAL: EstadoUrl = { f: SEM_FILTROS, o: [{ col: 'inicial', desc: true }], sel: null, cmp: [], v: 'lista', g: 'nenhum', cols: COLUNAS_PADRAO, x: 'icp', y: 'sinais', mo: 'a1' };
+const INICIAL: EstadoUrl = { f: SEM_FILTROS, o: [{ col: 'inicial', desc: true }], sel: null, cmp: [], v: 'ambiente', g: 'nenhum', cols: COLUNAS_PADRAO, x: 'icp', y: 'sinais', mo: 'a1' };
 
 function lerUrl(): EstadoUrl {
   const p = new URLSearchParams(location.search);
@@ -77,7 +78,7 @@ function lerUrl(): EstadoUrl {
     o: o.length ? o : INICIAL.o,
     sel: p.get('c'),
     cmp: (p.get('cmp') ?? '').split(',').filter(Boolean).slice(0, 3),
-    v: (['lista', 'matriz', 'cruzar'].includes(p.get('v') ?? '') ? p.get('v') : 'lista') as Visao,
+    v: (['ambiente', 'lista', 'matriz', 'cruzar'].includes(p.get('v') ?? '') ? p.get('v') : 'ambiente') as Visao,
     g: (AGRUPAMENTOS.some(a => a.id === p.get('g')) ? p.get('g') : 'nenhum') as Agrupamento,
     cols: p.has('cols') ? ((p.get('cols') ?? '').split(',').filter(c => COLUNAS_OPCIONAIS.some(x => x.id === c)) as ColunaOpcional[]) : COLUNAS_PADRAO,
     x: dims(p.get('x'), 'icp'),
@@ -94,7 +95,7 @@ function escreverUrl(e: EstadoUrl) {
   if (e.o.some(c => c.col !== 'inicial')) p.set('o', e.o.map(c => `${c.col}:${c.desc ? 'desc' : 'asc'}`).join(','));
   if (e.sel) p.set('c', e.sel);
   if (e.cmp.length) p.set('cmp', e.cmp.join(','));
-  if (e.v !== 'lista') p.set('v', e.v);
+  if (e.v !== 'ambiente') p.set('v', e.v);
   if (e.g !== 'nenhum') p.set('g', e.g);
   if (e.cols.join() !== COLUNAS_PADRAO.join()) p.set('cols', e.cols.join(','));
   if (e.v === 'cruzar') (p.set('x', e.x), p.set('y', e.y));
@@ -477,6 +478,7 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
           <div role="tablist" aria-label="Visão" className="flex rounded-control border border-border bg-card p-0.5">
             {(
               [
+                ['ambiente', 'Ambiente'],
                 ['lista', 'Lista'],
                 ['matriz', 'Setor × Prioridade'],
                 ['cruzar', 'Cruzar duas dimensões'],
@@ -529,7 +531,9 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
         </div>
         {o.length > 1 && estado.v === 'lista' && <p className="mb-2 text-xs text-text-3">Ordem: {ordemEmTexto(o)}</p>}
         {f.setores.length === 1 && <ResumoDoSetor linhas={visiveis} setor={f.setores[0]!} />}
-        {estado.v === 'matriz' ? (
+        {estado.v === 'ambiente' ? (
+          <AmbienteDecisao linhas={visiveis} onSelecionar={id => setEstado(e => ({ ...e, sel: id }))} />
+        ) : estado.v === 'matriz' ? (
           <MatrizSetorPrioridade
             linhas={visiveis}
             ordem={estado.mo}

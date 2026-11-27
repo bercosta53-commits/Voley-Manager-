@@ -312,7 +312,14 @@ try {
 
   // 3e. Prioridade de contas (briefing v2): faixa soma o total, busca acha conta sem acento, painel com losango,
   // comparação limitada a três e estado preservado na URL ao recarregar
+  // a visão padrão é o ambiente de decisão: o alvo põe no mapa todas as contas (ou conta as que ficam fora)
   await pagina.goto(app.url('/radar'), { waitUntil: 'networkidle' });
+  await pagina.getByRole('heading', { name: 'Ambiente das contas' }).waitFor();
+  const rotuloAlvo = await pagina.getByRole('img', { name: /^Ambiente das contas:/ }).getAttribute('aria-label');
+  const noAlvo = [...rotuloAlvo.matchAll(/ (\d+)/g)].reduce((n, m) => n + Number(m[1]), 0);
+  const foraAlvo = Number((await pagina.locator('main').innerText()).match(/(\d+) fora do mapa/)?.[1] ?? 0);
+  conferir(noAlvo + foraAlvo === base.contas.length && (await pagina.getByRole('heading', { name: 'Decisão de abordagem' }).count()) === 1, 'ambiente: alvo + fora do mapa = todas as contas, com a decisão de abordagem', `${noAlvo} + ${foraAlvo}`);
+  await pagina.goto(app.url('/radar?v=lista'), { waitUntil: 'networkidle' });
   await pagina.getByRole('heading', { name: 'Prioridade de contas' }).waitFor();
   const faixaTexto = await pagina.locator('section:has(#faixa-titulo) p.sr-only').innerText();
   const numerosFaixa = await pagina.$$eval('section:has(#faixa-titulo) ul button .vr-data', els => els.map(e => Number(e.textContent)));
@@ -348,7 +355,7 @@ try {
   const nasCelulas = await pagina.$$eval('section:has(#cruzar) tbody button', bs => bs.reduce((n, b) => n + Number(b.textContent), 0));
   const semAval = Number((await pagina.locator('section:has(#cruzar)').innerText()).match(/Sem avaliação em ICP ou Sinais: (\d+)/)[1]);
   conferir(nasCelulas + semAval === base.contas.length, 'cruzar duas dimensões: grade + sem avaliação = total', `${nasCelulas} + ${semAval}`);
-  await pagina.goto(app.url('/radar?g=setor'), { waitUntil: 'networkidle' });
+  await pagina.goto(app.url('/radar?v=lista&g=setor'), { waitUntil: 'networkidle' });
   const grupos = await pagina.locator('main table th[scope="rowgroup"]').count();
   conferir(grupos >= 1 && (await pagina.locator('main table tbody tr:not(:has(th[scope="rowgroup"]))').count()) === base.contas.length, 'agrupar por setor mantém todas as contas', `${grupos} grupos`);
   await pagina.goto(app.url('/radar'), { waitUntil: 'networkidle' });
