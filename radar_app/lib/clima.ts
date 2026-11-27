@@ -111,6 +111,8 @@ export interface Vertical {
   /** da base */
   contas: number;
   tierA: number;
+  /** Contas A/B, cobertura do VSCS puro e média entre as contas com score válido. */
+  intensidade: IntensidadeComercial;
   quentes: Pick<Conta, 'id' | 'nome' | 'tier' | 'score' | 'dominio'>[];
   /** contas com fato de crescimento (30 dias) numa vertical Ruim ou Instável */
   contraMare: number;
@@ -124,6 +126,34 @@ export interface Clima {
   contas: Conta[];
   brasilS: number;
   verticais: Vertical[];
+}
+
+export interface IntensidadeComercial {
+  contasICP: number;
+  comScore: number;
+  soma: number;
+  media: number | null;
+  comSinal: number;
+}
+
+/** VSCS puro, sem multiplicador do clima. Zero é dado válido; ausência de score não é zero. */
+export function intensidadeComercial(contas: Pick<Conta, 'tier' | 'icp' | 'v2'>[]): IntensidadeComercial {
+  const icp = contas.filter(c => ['A', 'B'].includes(c.icp?.tier ?? c.v2?.tier ?? c.tier));
+  const scores = icp.map(c => c.v2?.vscs).filter((s): s is number => typeof s === 'number' && Number.isFinite(s) && s >= 0 && s <= 100);
+  const soma = scores.reduce((a, b) => a + b, 0);
+  return { contasICP: icp.length, comScore: scores.length, soma, media: scores.length ? soma / scores.length : null, comSinal: scores.filter(s => s > 0).length };
+}
+
+/** Referência relativa: média de todas as contas A/B avaliadas da base, não média de médias. */
+export function referenciaComercial(verticais: Pick<Vertical, 'intensidade'>[]): number | null {
+  const n = verticais.reduce((s, v) => s + v.intensidade.comScore, 0);
+  return n ? verticais.reduce((s, v) => s + v.intensidade.soma, 0) / n : null;
+}
+
+export function quadranteComercial(S: number, media: number | null, referencia: number | null, bom: number): string {
+  if (media === null || referencia === null) return 'Sem avaliação comercial';
+  const alta = media > 0 && media >= referencia;
+  return S >= bom ? (alta ? 'Sweet spot' : 'Mercado latente') : (alta ? 'Contramão' : 'Baixa prioridade');
 }
 
 const CATEGORIAS_CRESCIMENTO = new Set(['expansao', 'contratacao', 'lideranca', 'estrategia']);
@@ -166,11 +196,11 @@ export function calcularClima(dados: DadosClima, base: Base): Clima {
       return s.categoria && CATEGORIAS_CRESCIMENTO.has(s.categoria) && dias >= 0 && dias <= 30;
     }).map(s => s.contaId),
   );
-  const contasDe = (codigos: string[]) => base.contas.filter(c => codigos.includes(c.especializacao?.codigo ?? 'GEN'));
+  const contasDe = (id: string) => base.contas.filter(c => verticalDaConta(dados.verticais, c.especializacao?.codigo)?.id === id);
 
   const verticais: Vertical[] = dados.verticais.map(r => {
     const { S, macro, contrib } = nivelVertical(dados, r);
-    const cs = contasDe(r.codigos);
+    const cs = contasDe(r.id);
     const ruimOuInstavel = r.estado === 'Ruim' || r.estado === 'Instável';
     const k = semente(r.id) * 6.28;
     const v: Vertical = {
@@ -192,7 +222,8 @@ export function calcularClima(dados: DadosClima, base: Base): Clima {
       porque: r.porque,
       fontes: r.fontes,
       contas: cs.length,
-      tierA: cs.filter(c => c.tier === 'A').length,
+      tierA: cs.filter(c => (c.icp?.tier ?? c.v2?.tier ?? c.tier) === 'A').length,
+      intensidade: intensidadeComercial(cs),
       quentes: [...cs]
         .sort((a, b) => b.score - a.score)
         .slice(0, 3)

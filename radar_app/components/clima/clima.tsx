@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Download, FileText } from 'lucide-react';
 import type { Base } from '@/lib/tipos';
-import { calcularClima, fmtClima, type DadosClima, type EstadoClima } from '@/lib/clima';
+import { calcularClima, fmtClima, referenciaComercial, quadranteComercial, type DadosClima, type EstadoClima } from '@/lib/clima';
 import { baixarCsv } from '@/lib/exportar-csv';
 import { Casca } from '@/components/casca/casca';
 import { Button } from '@/components/ui/button';
@@ -36,8 +36,8 @@ export function TelaClima({ base, dados }: { base: Base; dados: DadosClima }) {
   const exportar = () =>
     baixarCsv(
       `clima-por-vertical-${dados.atualizadoEm.slice(0, 10)}.csv`,
-      ['Vertical', 'Códigos', 'Clima', 'Nível S', 'Δ 30 dias', 'Confiança', temHistorico ? 'Desde' : 'Revisão', 'Por quê', 'Contas', 'Tier A', 'Contra a maré', 'Jogada', 'Ação recomendada', 'Fontes'],
-      clima.verticais.map(v => [v.nome, v.codigos.join('+'), v.estado, fmtClima(v.S), temHistorico ? fmtClima(v.delta30) : '', v.confianca, v.desde, v.porque, v.contas, v.tierA, v.contraMare, v.jogada, v.jogadaTexto, v.fontes?.map(f => f.url).join(' | ') ?? '']),
+      ['Vertical', 'Códigos', 'Clima', 'Nível S', 'Δ 30 dias', 'Confiança', temHistorico ? 'Desde' : 'Revisão', 'Por quê', 'Contas', 'Tier A', 'Contas A/B', 'A/B com VSCS', 'VSCS médio A/B', 'Quadrante comercial', 'Contra a maré', 'Jogada', 'Ação recomendada', 'Fontes'],
+      clima.verticais.map(v => [v.nome, v.codigos.join('+'), v.estado, fmtClima(v.S), temHistorico ? fmtClima(v.delta30) : '', v.confianca, v.desde, v.porque, v.contas, v.tierA, v.intensidade.contasICP, v.intensidade.comScore, v.intensidade.media === null ? '' : v.intensidade.media.toFixed(2).replace('.', ','), quadranteComercial(v.S, v.intensidade.media, referenciaComercial(clima.verticais), dados.limiares.bom), v.contraMare, v.jogada, v.jogadaTexto, v.fontes?.map(f => f.url).join(' | ') ?? '']),
     );
 
   return (
@@ -75,7 +75,7 @@ export function TelaClima({ base, dados }: { base: Base; dados: DadosClima }) {
 
         <PoliticaBolsa clima={clima} />
 
-        <section aria-label="Mapa de clima por vertical" className="vr-card flex flex-wrap gap-6 p-5">
+        <section aria-label="Mapa de oportunidades por vertical" className="vr-card flex flex-wrap gap-6 p-5">
           <MapaVerticais clima={clima} sel={sel} filtro={filtro} hover={hover} onSel={setSel} onFiltro={setFiltro} onHover={setHover} />
           <PainelVertical clima={clima} v={vertical} />
         </section>
