@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { CircleAlert, Download, FileText } from 'lucide-react';
+import { Download, FileText } from 'lucide-react';
 import type { Base } from '@/lib/tipos';
 import { calcularClima, fmtClima, type DadosClima, type EstadoClima } from '@/lib/clima';
 import { baixarCsv } from '@/lib/exportar-csv';
@@ -62,10 +62,10 @@ export function TelaClima({ base, dados }: { base: Base; dados: DadosClima }) {
         </div>
 
         {metodo && (
-          <div role="note" className="flex items-center gap-2.5 rounded-card border px-3.5 py-2.5 text-sm" style={{ background: 'var(--vr-warm-bg)', borderColor: 'color-mix(in srgb, var(--vr-warm) 35%, transparent)', color: 'var(--vr-text)' }}>
-            <CircleAlert className="size-4 shrink-0 text-warm" strokeWidth={2} />
-            <span>{metodo}</span>
-          </div>
+          // nota de método, não alerta: tom neutro e discreto
+          <p role="note" className="-mt-2 text-xs text-text-3">
+            {metodo}
+          </p>
         )}
 
         <section aria-label="Clima Brasil" className="grid gap-4 lg:grid-cols-3">

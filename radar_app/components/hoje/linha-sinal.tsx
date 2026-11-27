@@ -42,8 +42,12 @@ export const LinhaSinal = forwardRef<HTMLButtonElement, { sinal: Sinal; conta: C
             </span>
             <span className="mt-0.5 block truncate text-sm text-text-2">{sinal.sinal ?? sinal.porQueAgora}</span>
             <span className="mt-1 flex items-center gap-1.5 text-xs text-text-3">
-              <span aria-hidden className="size-1.5 shrink-0 rounded-full" style={{ background: cor }} />
-              {seDiferente(sinal.sinal ?? sinal.porQueAgora, sinal.rotulo) && <span className="truncate">{sinal.rotulo}</span>}
+              {seDiferente(sinal.sinal ?? sinal.porQueAgora, sinal.rotulo) && (
+                <>
+                  <span aria-hidden className="size-1.5 shrink-0 rounded-full" style={{ background: cor }} />
+                  <span className="truncate">{sinal.rotulo}</span>
+                </>
+              )}
               {util && <span className="shrink-0 text-ok">· útil</span>}
               {playbook && (
                 <span title={`Playbook: ${playbook.playbook.nome}`} className="inline-flex min-w-0 items-center gap-0.5 font-semibold text-warm">

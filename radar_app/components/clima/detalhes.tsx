@@ -67,7 +67,12 @@ export function MapaCalor({ clima, sel, modo, onModo, onSel }: { clima: Clima; s
       <Cabecalho id="calor-t" titulo="De onde vem o clima de cada vertical" texto="Contribuição de cada bloco macro, do driver setorial e das notícias. Vermelho puxa para baixo, verde para cima.">
         <Alternar rotulo="Modo do mapa de calor" opcoes={[['contrib', 'Contribuição'], ['sens', 'Sensibilidade']]} valor={modo} onMudar={onModo} />
       </Cabecalho>
-      <div className="overflow-x-auto">
+      <details className="group">
+        <summary className="cursor-pointer text-sm font-medium text-text-2 select-none hover:text-foreground">
+          <span className="group-open:hidden">Ver a contribuição de cada bloco por vertical</span>
+          <span className="hidden group-open:inline">Recolher a tabela</span>
+        </summary>
+      <div className="mt-3 overflow-x-auto">
         <div className="grid min-w-[900px] gap-[3px] text-xs" style={{ gridTemplateColumns: `170px repeat(${colunas.length}, minmax(0, 1fr)) 80px` }}>
           <div />
           {colunas.map(h => (
@@ -81,6 +86,7 @@ export function MapaCalor({ clima, sel, modo, onModo, onSel }: { clima: Clima; s
           ))}
         </div>
       </div>
+      </details>
     </section>
   );
 }

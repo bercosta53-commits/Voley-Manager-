@@ -42,17 +42,17 @@ function Progressao({analises,active,onPick}:{analises:AnaliseAquisicao[];active
  const potenciais=analises.filter(a=>a.potencialL4).length;
  return <section className={cn(secao,'overflow-hidden')}>
   <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4 md:px-6"><div><LabelCaps>Modelo de maturidade</LabelCaps><h2 className="mt-1 text-lg font-semibold tracking-tight">Cinco estágios. Duas zonas de oportunidade.</h2><p className="mt-1 text-xs text-text-3">Distribuição por capacidades técnicas observadas. Clique em um estágio para filtrar.</p></div><span className="hidden rounded-chip border border-border px-2 py-1 text-xs text-text-3 sm:inline-flex">Modelo v2 · maturidade × confiança</span></div>
-  <div className="grid grid-cols-2 divide-x divide-border md:grid-cols-5">
-  {NIVEIS.map(n=>{const count=counts[n.nivel];const focus=n.nivel===2||n.nivel===3;
+  <div className={cn('grid grid-cols-2 divide-x divide-border',NIVEIS.filter(n=>n.nivel<4||counts[n.nivel]>0).length===3?'md:grid-cols-3':'md:grid-cols-5')}>
+  {NIVEIS.filter(n=>n.nivel<4||counts[n.nivel]>0).map(n=>{const count=counts[n.nivel];const focus=n.nivel===2||n.nivel===3;
    return <button type="button" key={n.nivel} onClick={()=>onPick(active===n.nivel?-1:n.nivel)}
-    className={cn('group relative flex min-h-[172px] flex-col p-4 text-left transition-colors hover:bg-[var(--vr-surface-2)] md:p-5',focus?'bg-[var(--vr-surface-2)]/50':'',n.nivel===5?'col-span-2 md:col-span-1':'',active===n.nivel?'ring-2 ring-inset ring-foreground':'')}>
+    className={cn('group relative flex min-h-[172px] flex-col p-4 text-left transition-colors hover:bg-[var(--vr-surface-2)] md:p-5',focus?'bg-[var(--vr-surface-2)]/50':'',n.nivel===3||n.nivel===5?'col-span-2 md:col-span-1':'',active===n.nivel?'ring-2 ring-inset ring-foreground':'')}>
       <div className="flex w-full items-center justify-between gap-2"><span className="vr-data text-xs font-semibold text-text-3">0{n.nivel} / 05</span>{focus&&<span className="rounded-chip bg-foreground px-1.5 py-1 text-xs font-semibold uppercase tracking-wider text-background">Foco Velora</span>}</div>
       <div className="mt-5 flex items-end gap-2"><span className="vr-data text-[38px] leading-none tracking-[-.08em] font-semibold" style={{color:focus?'var(--vr-text)':'var(--vr-text-2)'}}>{fmt(count)}</span><span className="pb-1 text-xs text-text-3">{n.nivel>=4?'verificadas':'contas'}</span></div>
       <div className="mt-auto pt-4"><div className="mb-2 h-[3px] w-full bg-[var(--vr-surface-3)]"><div style={{width:String(percent(count,analises.length))+'%',backgroundColor:n.cor}} className="h-full transition-[width] duration-300"/></div><div className="text-[13px] font-semibold leading-5">{n.titulo}</div><p className="mt-0.5 text-xs text-text-3">{n.sub}</p></div>
      </button>})}
   </div>
   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-[var(--vr-surface-2)] px-5 py-3 text-xs text-text-3">
-   <span><strong className="text-foreground">{counts[0]}</strong> inconclusivas · <strong className="text-foreground">{potenciais}</strong> candidatas a L4 (mantidas em L3 até validação)</span>
+   <span><strong className="text-foreground">{counts[0]}</strong> inconclusivas · <strong className="text-foreground">{potenciais}</strong> candidatas a L4 (mantidas em L3 até validação){counts[4]+counts[5]===0&&' · níveis 4 e 5 (dados integrados e otimização contínua) ainda sem conta verificada'}</span>
    <button onClick={()=>onPick(0)} className="font-semibold text-text-2 underline decoration-border-strong underline-offset-4 hover:text-foreground">Ver inconclusivas</button>
   </div>
  </section>;
@@ -137,7 +137,7 @@ function ListaFoco({rows,onSelect}:{rows:AnaliseAquisicao[];onSelect:(a:AnaliseA
   <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-5 md:px-6"><div><LabelCaps>Shortlist Velora</LabelCaps><h2 className="mt-1 text-lg font-semibold tracking-tight">Empresas no sweet spot</h2><p className="mt-1 text-xs text-text-3">L2/L3 com evidência pública · ranqueamento por fit, sinais e cobertura.</p></div><span className="vr-data rounded-control border border-border px-2 py-1 text-xs">{matches.length} contas</span></div>
   <div className="overflow-x-auto"><table className="min-w-[760px] w-full text-left text-xs"><thead className="bg-[var(--vr-surface-2)] text-xs uppercase tracking-wider text-text-3"><tr><th className="px-5 py-3 font-semibold md:px-6">Empresa</th><th className="px-3 py-3 font-semibold">Estágio</th><th className="px-3 py-3 font-semibold">Capacidades</th><th className="px-3 py-3 font-semibold">Hipótese de oportunidade</th><th className="px-3 py-3 text-right font-semibold">Atratividade</th><th className="w-7"/></tr></thead>
   <tbody>{matches.slice(0,18).map(a=><tr key={a.conta.id} onClick={()=>onSelect(a)} onKeyDown={e=>{if(e.key==='Enter')onSelect(a)}} tabIndex={0} className="group cursor-pointer border-b border-border/80 transition-colors hover:bg-[var(--vr-surface-2)] focus:bg-[var(--vr-surface-2)]">
-    <td className="min-w-[170px] px-5 py-3 md:px-6"><div className="font-semibold text-foreground">{a.conta.name}</div><div className="vr-data mt-1 text-xs text-text-3">{a.conta.id} · Tier {a.conta.tier}</div>{a.crm.score>0&&<div className="mt-1 text-xs font-medium text-text-2">CRM: {a.crm.fornecedor}{a.crm.confirmado?' · verificado':' · indício web'}</div>}</td>
+    <td className="min-w-[170px] px-5 py-3 md:px-6"><div className="font-semibold text-foreground">{a.conta.name}</div><div className="mt-1 text-xs text-text-3">Tier {a.conta.tier}</div>{a.crm.score>0&&<div className="mt-1 text-xs font-medium text-text-2">CRM: {a.crm.fornecedor}{a.crm.confirmado?' · verificado':' · indício web'}</div>}</td>
     <td className="px-3 py-3"><SeloNivel nivel={a.nivel}/><div className="mt-2"><SeloConfianca estado={a.confianca}/></div>{a.potencialL4&&<span className="mt-1 block text-xs font-semibold text-cool">Potencial L4 · validar</span>}</td>
     <td className="px-3 py-3"><div className="flex gap-1">{(['medicao','midia','captacao','orquestracao'] as const).map(k=><span key={k} title={k+': '+a.dimensoes[k]} className="h-7 w-2.5 rounded-[2px]" style={{background:a.dimensoes[k]?'color-mix(in srgb, var(--vr-ok) '+Math.max(25,a.dimensoes[k]*.70)+'%, var(--vr-surface-3))':'var(--vr-surface-3)'}}/>)}</div></td>
     <td className="max-w-[280px] px-3 py-3 text-xs leading-5 text-text-2">{delta(a)}</td>
@@ -244,10 +244,12 @@ export function TelaMaturidade({base,dados}:{base:BaseCasca;dados:DadosAquisicao
       <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold text-text-2">RD Station web</span><span className="vr-data text-2xl font-semibold">{todas.filter(x=>x.conta.tags.rdStation==='network').length}</span></div>
       <p className="mb-0 mt-1 text-xs text-text-3">Automação/marketing, sem comprovar CRM de vendas</p>
      </button>
+     {(todas.some(x=>x.crm.confirmado)||crmFilter==='verificado')&&(
      <button type="button" aria-pressed={crmFilter==='verificado'} onClick={()=>setCrmFilter(crmFilter==='verificado'?'todos':'verificado')} className={cn("rounded-control border p-3 text-left transition-colors hover:border-border-strong",crmFilter==='verificado'?"border-cool bg-[var(--vr-surface-2)]":"border-border")}>
       <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold text-text-2">CRM comercial verificado</span><span className="vr-data text-2xl font-semibold">{todas.filter(x=>x.crm.confirmado).length}</span></div>
       <p className="mb-0 mt-1 text-xs text-text-3">Uso confirmado com fornecedor, pipeline e fonte</p>
      </button>
+     )}
     </div>
     <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-text-3">
      <span><strong className="text-foreground">HubSpot web ≈ 46</strong> pontos de potencial CRM</span>

@@ -26,7 +26,7 @@ export function PerfilContas({ base, tiersAtivos, onTier }: { base: Base; tiersA
       id="contas"
       titulo="Perfil da base de contas"
       leituras={p.leituras}
-      colunas={5}
+      colunas={2}
       numeros={
         <>
           <Numero rotulo="Contas" valor={num(p.contas)} nota={`${p.tierA} tier A`} />
@@ -46,6 +46,13 @@ export function PerfilContas({ base, tiersAtivos, onTier }: { base: Base; tiersA
               onClicar={b => onTier(b.id)}
             />
           </Bloco>
+          <Bloco titulo="Principais ramos de TI">
+            <Ranking barras={p.ramos.filter(r => r.id).slice(0, 5)} total={p.contas} unidade="contas" />
+          </Bloco>
+        </>
+      }
+      detalhe={
+        <>
           <Bloco titulo="Momento (status do score)">
             <Segmentos barras={p.status} total={p.contas} estilo={b => ({ className: COR_STATUS_BARRA[b.id] })} />
           </Bloco>
@@ -60,9 +67,6 @@ export function PerfilContas({ base, tiersAtivos, onTier }: { base: Base; tiersA
               />
             )}
           </Bloco>
-          <Bloco titulo="Principais ramos de TI">
-            <Ranking barras={p.ramos.filter(r => r.id).slice(0, 5)} total={p.contas} unidade="contas" />
-          </Bloco>
           <Bloco titulo="Região">
             <Segmentos
               barras={p.regioes}
@@ -76,10 +80,6 @@ export function PerfilContas({ base, tiersAtivos, onTier }: { base: Base; tiersA
                 .join(' · ')}
             </p>
           </Bloco>
-        </>
-      }
-      detalhe={
-        <>
           <Bloco titulo="Estados" dica="contas com UF">
             <Colunas barras={p.todasUfs.slice(0, 12)} total={p.contas} rotulo="Contas por estado" dica={b => `${num(b.valor)} contas em ${b.rotulo}`} />
           </Bloco>

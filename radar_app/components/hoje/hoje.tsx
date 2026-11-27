@@ -5,7 +5,7 @@ import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { Archive, CalendarClock, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
 import type { Base, Conta, EstadoSinal, Sinal, StatusVscs } from '@/lib/tipos';
-import { cn, dataCurta, dataLonga, plural, somarDias, pontos } from '@/lib/utils';
+import { cn, dataCurta, dataLonga, diasEntre, plural, somarDias, pontos } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/ui/kbd';
 import { PainelFlutuante } from '@/components/ui/painel-flutuante';
@@ -66,6 +66,8 @@ function useCelular() {
 }
 
 const ESTADOS: EstadoTela[] = ['carregando', 'vazio', 'erro', 'sem-permissao'];
+
+const POR_GRUPO = 20;
 
 export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Base; estadoTela?: EstadoTela }) {
   // ?estado=... mostra cada estado obrigatório da tela, para revisão.
@@ -154,12 +156,25 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
     history.replaceState(null, '', s ? `?${s}` : location.pathname);
   }, [ordem, filtros, urlLida]);
   const mudarFiltro = (parte: Partial<FiltrosCaixa>) => setFiltros(f => ({ ...f, ...parte }));
+  // celular: filtros recolhidos num botão; lista agrupada por período, 20 por grupo
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const [mostrarGrupo, setMostrarGrupo] = useState<Record<string, number>>({});
+  const filtrosAtivos = (['tipos', 'tiers', 'setores', 'ufs', 'playbooks', 'estagios'] as const).filter(k => (filtros[k] as unknown[] | undefined)?.length).length + (filtros.janela ? 1 : 0);
   // mudar filtro ou ordem volta o foco do j/k para o primeiro da nova lista
   useEffect(() => setFoco(0), [ordem, filtros]);
   const lista = useMemo(
     () => ordenarCaixa(filtrarCaixa(caixaValida, filtros, contasFiltro, dataCarga), ordem, contas),
     [caixaValida, filtros, contas, dataCarga, ordem],
   );
+  const gruposCelular = useMemo(() => {
+    const grupos = [
+      { id: 'semana', rotulo: 'Esta semana', ate: 7, itens: [] as { s: Sinal; i: number }[] },
+      { id: 'mes', rotulo: 'Este mês', ate: 30, itens: [] as { s: Sinal; i: number }[] },
+      { id: 'antes', rotulo: 'Antes', ate: Infinity, itens: [] as { s: Sinal; i: number }[] },
+    ];
+    lista.forEach((s, i) => grupos.find(g => diasEntre(s.data, dataCarga) <= g.ate)!.itens.push({ s, i }));
+    return grupos.filter(g => g.itens.length);
+  }, [lista, dataCarga]);
   const contagens = { caixa: caixaValida.length, adiados: listas.adiados.length, concluidos: listas.concluidos.length };
   // "novos" = fatos da data da última carga em diante; o rótulo só diz "de hoje" se a carga for de hoje
   const novosHoje = caixaValida.filter(s => s.data >= dataCarga).length;
@@ -371,7 +386,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
                   <h2 className="text-sm font-semibold">Por que {c.nome} está com {pontos(c.score)}</h2>
                   <SeloVscs status={c.vscsStatus} acao={c.acaoRecomendada} className="flex-row! items-center! gap-2!" />
                 </div>
-                <Decomposicao conta={c} />
+                <Decomposicao conta={c} semFrase />
                 <Link href={hrefConta(c.id)} className="mt-4 inline-flex min-h-6 items-center text-sm font-medium text-text-2 underline decoration-border-strong underline-offset-4 hover:text-foreground">
                   Abrir a conta: comitê, linha do tempo e dados cadastrais
                 </Link>
@@ -382,21 +397,40 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
       </div>
     );
   } else if (celular)
-    // celular: a mesma lista compacta; tocar abre o cartão completo no painel de baixo
+    // celular: a lista compacta, agrupada por quando o fato aconteceu, 20 por grupo; tocar abre o cartão completo
     conteudo = (
-      <div className="vr-card overflow-hidden">
-        <ul role="listbox" aria-label="Sinais na caixa" className="divide-y divide-border">
-          {lista.map((s, i) => (
-            <LinhaSinal
-              key={s.id}
-              sinal={s}
-              conta={contas.get(s.contaId)!}
-              ativo={false}
-              util={estados[s.id]?.avaliacao === 'util'}
-              onSelecionar={() => (setFoco(i), setDetalhe(s))}
-            />
-          ))}
-        </ul>
+      <div className="flex flex-col gap-4">
+        {gruposCelular.map(g => (
+          <section key={g.id} aria-label={g.rotulo}>
+            <h2 className="mb-1.5 flex items-baseline justify-between px-1 text-xs font-semibold tracking-wide text-text-3 uppercase">
+              {g.rotulo}
+              <span className="vr-data font-normal normal-case">{g.itens.length}</span>
+            </h2>
+            <div className="vr-card overflow-hidden">
+              <ul role="listbox" aria-label={`Sinais: ${g.rotulo}`} className="divide-y divide-border">
+                {g.itens.slice(0, mostrarGrupo[g.id] ?? POR_GRUPO).map(({ s, i }) => (
+                  <LinhaSinal
+                    key={s.id}
+                    sinal={s}
+                    conta={contas.get(s.contaId)!}
+                    ativo={false}
+                    util={estados[s.id]?.avaliacao === 'util'}
+                    onSelecionar={() => (setFoco(i), setDetalhe(s))}
+                  />
+                ))}
+              </ul>
+              {g.itens.length > (mostrarGrupo[g.id] ?? POR_GRUPO) && (
+                <button
+                  type="button"
+                  onClick={() => setMostrarGrupo(m => ({ ...m, [g.id]: (m[g.id] ?? POR_GRUPO) + POR_GRUPO }))}
+                  className="w-full border-t border-border px-4 py-3 text-sm font-medium text-text-2"
+                >
+                  Mostrar mais {Math.min(POR_GRUPO, g.itens.length - (mostrarGrupo[g.id] ?? POR_GRUPO))}
+                </button>
+              )}
+            </div>
+          </section>
+        ))}
       </div>
     );
   else
@@ -492,6 +526,18 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
                 ))}
               </select>
             </label>
+            {celular && (
+              <button
+                type="button"
+                aria-expanded={filtrosAbertos}
+                onClick={() => setFiltrosAbertos(v => !v)}
+                className="flex h-10 items-center gap-1 rounded-control border border-border bg-card px-3 text-sm text-text-2"
+              >
+                Filtrar{filtrosAtivos > 0 && <span className="vr-data font-semibold text-foreground">({filtrosAtivos})</span>}
+              </button>
+            )}
+            {(!celular || filtrosAbertos) && (
+              <>
             <MenuFiltro rotulo="Tipo de sinal" opcoes={opcoes.tipos.map(([id, qtd]) => ({ id, rotulo: id, qtd }))} valor={filtros.tipos} onMudar={v => mudarFiltro({ tipos: v })} />
             <MenuFiltro rotulo="Tier" opcoes={opcoes.tiers.map(([id, qtd]) => ({ id, rotulo: `Tier ${id}`, qtd }))} valor={filtros.tiers} onMudar={v => mudarFiltro({ tiers: v })} />
             <MenuFiltro rotulo="Setor" opcoes={opcoes.setores.map(([id, qtd]) => ({ id, rotulo: id, qtd }))} valor={filtros.setores} onMudar={v => mudarFiltro({ setores: v })} />
@@ -526,7 +572,9 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
                 Limpar filtros
               </button>
             )}
-            {vencidos > 0 && (
+              </>
+            )}
+            {vencidos > 0 && !celular && (
               <span className="ml-auto text-xs text-text-3" title="Cada tipo de sinal tem uma janela de ação; depois dela o sinal fica só na conta e no gráfico">
                 {plural(vencidos, 'sinal fora da janela de ação ficou', 'sinais fora da janela de ação ficaram')} só na conta
               </span>
