@@ -163,3 +163,53 @@ export function LosangoMini({ dims, tamanho = 56 }: { dims: Record<Dimensao, Dim
     </svg>
   );
 }
+
+/** Cores das contas comparadas (até três), distinguíveis entre si e do mínimo tracejado. */
+export const CORES_COMPARACAO = ['var(--vr-text)', 'var(--vr-cool)', '#8b6fb3'] as const; // sem verde e laranja: essas cores já dizem atinge e abaixo do mínimo
+
+/**
+ * Radar de comparação: as contas sobrepostas no mesmo desenho, uma cor por conta, com as faixas de fundo e o
+ * contorno do mínimo do sweet spot. Eixo sem avaliação entra no centro (a área mostra o buraco).
+ */
+export function LosangoComparado({ contas, tamanho = 280 }: { contas: { nome: string; dims: Record<Dimensao, DimensaoIntegrada> }[]; tamanho?: number }) {
+  const margem = 44;
+  const folga = 40;
+  const R = tamanho / 2 - margem;
+  const c = tamanho / 2;
+  const pt = (d: Dimensao, v: number) => [c + (DIRECAO[d][0] * R * v) / 5, c + (DIRECAO[d][1] * R * v) / 5] as const;
+  const poligono = (vals: number[]) => EIXOS.map((d, i) => pt(d, vals[i]!).join(',')).join(' ');
+  return (
+    <svg viewBox={`${-folga} 0 ${tamanho + 2 * folga} ${tamanho}`} width={tamanho + 2 * folga} height={tamanho} role="img" aria-label={`Comparação no radar: ${contas.map(x => `${x.nome}: ${textoLosango(x.dims)}`).join(' | ')}`} className="max-w-full">
+      <polygon points={poligono([5, 5, 5, 5])} fill="var(--vr-surface-2)" stroke="var(--vr-border)" strokeWidth={1.25} />
+      <polygon points={poligono([4, 4, 4, 4])} fill="var(--vr-surface)" stroke="var(--vr-border)" />
+      <polygon points={poligono([2, 2, 2, 2])} fill="var(--vr-surface-3)" fillOpacity={0.6} stroke="var(--vr-border)" />
+      {EIXOS.map(d => (
+        <line key={d} x1={c} y1={c} x2={pt(d, 5)[0]} y2={pt(d, 5)[1]} stroke="var(--vr-border)" />
+      ))}
+      <polygon points={poligono(EIXOS.map(d => MINIMO[d]))} fill="none" stroke="var(--vr-text-3)" strokeWidth={1.25} strokeDasharray="5 4" />
+      {contas.map((x, i) => {
+        const notas = EIXOS.map(d => notaDesenho(x.dims[d]) ?? 0);
+        const cor = CORES_COMPARACAO[i % CORES_COMPARACAO.length];
+        return (
+          <g key={x.nome}>
+            <polygon points={poligono(notas)} fill={cor} fillOpacity={0.12} stroke={cor} strokeWidth={2.25} strokeLinejoin="round" />
+            {EIXOS.map((d, j) => {
+              const [px, py] = pt(d, notas[j]!);
+              return <circle key={d} cx={px} cy={py} r={4} fill={cor} stroke="var(--vr-surface)" strokeWidth={1.5} />;
+            })}
+          </g>
+        );
+      })}
+      {EIXOS.map(d => {
+        const [dx, dy] = DIRECAO[d];
+        const x = c + dx * (R + 14);
+        const y = c + dy * (R + 14);
+        return (
+          <text key={d} x={x} y={dy < 0 ? y - 4 : dy > 0 ? y + 12 : y + 4} textAnchor={dx > 0 ? 'start' : dx < 0 ? 'end' : 'middle'} className="fill-text-2 text-xs font-medium">
+            {CURTO[d]}
+          </text>
+        );
+      })}
+    </svg>
+  );
+}

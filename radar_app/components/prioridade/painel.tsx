@@ -7,7 +7,7 @@ import { formatarIntegrada, formatarNota, type CriterioClasse, type DimensaoInte
 import type { LinhaPrioridade } from '@/lib/prioridade-filtros';
 import { hrefConta } from '@/lib/contas';
 import { cn, dataCurta } from '@/lib/utils';
-import { Losango, vscsDaDimensao } from './losango';
+import { CORES_COMPARACAO, Losango, LosangoComparado, vscsDaDimensao } from './losango';
 
 const nota1 = (v: number) => formatarNota(Math.round(v * 10) / 10);
 const MOTIVO: Record<string, string> = {
@@ -245,52 +245,63 @@ export function PainelConta({ linha, onFechar }: { linha: LinhaPrioridade; onFec
 export function Comparacao({ linhas, onTirar }: { linhas: LinhaPrioridade[]; onTirar: (id: string) => void }) {
   if (!linhas.length) return null;
   return (
-    <section aria-labelledby="comparacao" className="vr-card mb-4 p-4">
+    <section aria-labelledby="comparacao" className="vr-card mb-4 p-5">
       <h2 id="comparacao" className="text-sm font-semibold">
         Comparação ({linhas.length} de 3)
       </h2>
-      <div className="mt-3 grid gap-4 sm:grid-cols-3">
-        {linhas.map(l => (
-          <div key={l.contaId} className="flex flex-col items-center">
-            <div className="flex w-full items-center justify-between gap-2">
-              <p className="truncate text-sm font-semibold">{l.nome}</p>
-              <button type="button" onClick={() => onTirar(l.contaId)} aria-label={`Tirar ${l.nome} da comparação`} className="grid size-7 place-items-center rounded-control hover:bg-secondary">
-                <X className="size-3.5" strokeWidth={1.5} />
-              </button>
-            </div>
-            <Losango dims={l.visao.dimensoes} tamanho={190} compacto />
-          </div>
-        ))}
-      </div>
-      <table className="mt-3 w-full text-left text-sm">
-        <caption className="sr-only">Notas das contas comparadas</caption>
-        <thead className="text-xs text-text-3">
-          <tr>
-            <th className="py-1 pr-3 font-medium">Conta</th>
-            {DIMENSOES.map(d => (
-              <th key={d} className="py-1 pr-3 font-medium">
-                {ROTULO_DIMENSAO[d]}
-              </th>
-            ))}
-            <th className="py-1 font-medium">Prioridade integrada (experimental)</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {linhas.map(l => (
-            <tr key={l.contaId}>
-              <td className="py-1.5 pr-3 font-medium">{l.nome}</td>
-              {DIMENSOES.map(d => (
-                <td key={d} className={cn('py-1.5 pr-3', l.visao.dimensoes[d].nota === null ? 'text-xs text-text-3' : 'vr-data')}>
-                  {l.visao.dimensoes[d].nota === null ? 'Sem avaliação' : textoNota(l.visao.dimensoes[d])}
-                </td>
+      <div className="mt-3 grid items-center gap-6 lg:grid-cols-[auto_minmax(0,1fr)]">
+        {/* um só radar, as contas sobrepostas: a diferença aparece na forma, não em três desenhos pequenos */}
+        <div className="flex justify-center">
+          <LosangoComparado contas={linhas.map(l => ({ nome: l.nome, dims: l.visao.dimensoes }))} />
+        </div>
+        <div className="min-w-0">
+          <table className="w-full text-left text-sm">
+            <caption className="sr-only">Notas das contas comparadas</caption>
+            <thead className="text-xs text-text-3">
+              <tr>
+                <th className="py-1.5 pr-3 font-medium">Conta</th>
+                {DIMENSOES.map(d => (
+                  <th key={d} className="py-1.5 pr-3 font-medium">
+                    {ROTULO_DIMENSAO[d]}
+                  </th>
+                ))}
+                <th className="py-1.5 pr-3 font-medium">Prioridade</th>
+                <th className="w-8" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {linhas.map((l, i) => (
+                <tr key={l.contaId}>
+                  <td className="py-2 pr-3">
+                    <span className="flex items-center gap-2 font-semibold">
+                      <span aria-hidden className="h-1 w-4 shrink-0 rounded-full" style={{ background: CORES_COMPARACAO[i % CORES_COMPARACAO.length] }} />
+                      <span className="truncate">{l.nome}</span>
+                    </span>
+                  </td>
+                  {DIMENSOES.map(d => {
+                    const x = l.visao.dimensoes[d];
+                    const n = x.nota !== null && x.entraNoCalculo ? x.nota : null;
+                    return (
+                      <td key={d} className={cn('py-2 pr-3', n === null ? 'text-xs text-text-3' : 'vr-data font-semibold')} style={n !== null ? { color: n >= REGRAS.A2.minimos[d] ? 'var(--vr-ok)' : 'var(--vr-warm)' } : undefined}>
+                        {n === null ? 'sem avaliação' : textoNota(x)}
+                      </td>
+                    );
+                  })}
+                  <td className="py-2 pr-3">
+                    <ClasseExperimental v={l.visao} />
+                  </td>
+                  <td className="py-2">
+                    <button type="button" onClick={() => onTirar(l.contaId)} aria-label={`Tirar ${l.nome} da comparação`} className="grid size-7 place-items-center rounded-control hover:bg-secondary">
+                      <X className="size-3.5" strokeWidth={1.5} />
+                    </button>
+                  </td>
+                </tr>
               ))}
-              <td className="py-1.5">
-                <ClasseExperimental v={l.visao} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+            </tbody>
+          </table>
+          <p className="mt-2 text-xs text-text-3">Verde atinge o mínimo do sweet spot; laranja fica abaixo. No radar, o tracejado é o mínimo.</p>
+        </div>
+      </div>
     </section>
   );
 }
