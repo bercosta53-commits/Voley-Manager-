@@ -241,7 +241,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
     (s: Sinal, acao: AcaoCartao) => {
       const conta = contas.get(s.contaId)!;
       const e = estados[s.id];
-      if (acao === 'abordar') { if (!podeAbordar(s, conta)) return toast('Sinal para pesquisa ou monitoramento; não é uma recomendação de abordagem.'); return setAbordarAlvo(s); }
+      if (acao === 'abordar') { if (!podeAbordar(s, conta, hoje)) return toast('Sinal para pesquisa ou monitoramento; não é uma recomendação de abordagem.'); return setAbordarAlvo(s); }
       if (acao === 'adiar') {
         const ate = somarDias(hoje, ADIAR_DIAS);
         return mudar(s, { acao: 'adiado', ate }, `${conta.nome}: adiado até ${dataCurta(ate)}`, <CalendarClock className="size-4" strokeWidth={1.5} />);
