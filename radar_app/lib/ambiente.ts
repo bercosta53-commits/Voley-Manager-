@@ -126,7 +126,8 @@ export function ambiente(linhas: LinhaPrioridade[]): Ambiente {
     let forca: Dimensao | null = null;
     let melhor = 0;
     for (const d of DIMENSOES) {
-      const sobra = notas[d] === undefined ? 0 : Math.max(0, notas[d]! - REGRAS.A2.minimos[d]);
+      // a sobra pesa como a dimensão pesa na nota: o Clima (peso 0,5, sem mínimo) não puxa como uma força cheia
+      const sobra = notas[d] === undefined ? 0 : Math.max(0, notas[d]! - REGRAS.A2.minimos[d]) * PESOS[d];
       x += EIXO[d][0] * sobra;
       y += EIXO[d][1] * sobra;
       if (sobra > melhor + 1e-9) (melhor = sobra), (forca = d);
