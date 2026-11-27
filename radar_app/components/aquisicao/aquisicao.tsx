@@ -150,7 +150,7 @@ export function TelaAquisicao({base,dados}:{base:BaseCasca;dados:Dataset}){
   <div className="mb-7 flex flex-wrap items-start justify-between gap-3">
    <div><p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[.17em] text-text-3"><span className="inline-block size-1.5 rounded-full bg-ok"/> Intelligence / GTM Stack</p><h1 className="font-display text-3xl font-semibold tracking-tight">Aquisição</h1>
     <p className="mt-2 max-w-2xl text-sm leading-6 text-text-2">O que a empresa usa para atrair, medir e converter. Explore o stack por conta, compare evidências e priorize auditorias de Growth & Vendas.</p></div>
-   <div className="flex flex-wrap gap-2 pt-1"><Chip tom="sucesso"><CheckCircle2 className="size-3.5"/> Dados L11 · 08 nov 2026</Chip><Chip>120 contas analisadas</Chip></div>
+   <div className="flex flex-wrap gap-2 pt-1"><Chip tom="sucesso"><CheckCircle2 className="size-3.5"/> Evidências · {dados.lastUpdated?new Date(dados.lastUpdated.slice(0,10)+'T12:00:00Z').toLocaleDateString('pt-BR',{timeZone:'UTC'}):'data não informada'}</Chip><Chip>{dados.accounts.length} contas analisadas</Chip></div>
   </div>
   <section className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Indicadores de aquisição">
    <CartaoNumero titulo="Contas mapeadas" numero={String(todas.length)} detalhe="Inventário técnico de empresas" icone={Database}/>

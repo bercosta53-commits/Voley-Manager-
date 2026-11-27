@@ -81,14 +81,15 @@ export function avaliarCrm(c:ContaAquisicao):AvaliacaoCRM {
   };
  }
  // Web integrations / trackers are *not* a CRM implementation proof.
- const detected=Object.entries(WEB).filter(([k])=>c.tags[k]==='network').sort((a,b)=>b[1].web-a[1].web);
+ const peso=(k:string)=>c.tags[k]==='network'?1:c.tags[k]==='request'?.7:c.tags[k]==='html'?.45:0;
+ const detected=Object.entries(WEB).filter(([k])=>peso(k)>0).sort((a,b)=>b[1].web*peso(b[0])-a[1].web*peso(a[0]));
  if(detected.length){
   const [key,best]=detected[0];
-  const bonus=Math.min(5,Math.max(0,detected.length-1)*3);
-  return {fornecedor:best.fornecedor,score:Math.min(56,best.web+bonus),
+  const bonus=Math.min(5,Math.max(0,detected.length-1)*3)*peso(key);
+  return {fornecedor:best.fornecedor,score:Math.round(Math.min(56,best.web*peso(key)+bonus)),
    categoria:best.categoria,origem:'script_web',confirmado:false,
    potencialEnterprise:key==='hubspot'||key==='salesforce',
-   descricao:'Tecnologia identificada em requisições do site — CRM comercial não verificado',
+   descricao:'Tecnologia web identificada ('+(c.tags[key]==='network'?'rede confirmada':c.tags[key]==='request'?'requisição iniciada':'assinatura HTML')+') — CRM comercial não verificado',
    observacao:key==='rdStation'?'RD Marketing (script web) não comprova RD Vendas/CRM.':
     key==='hubspot'?'Script HubSpot não comprova Sales Hub, plano ou pipeline comercial.':
     'Script web não comprova integração ou uso comercial efetivo.',

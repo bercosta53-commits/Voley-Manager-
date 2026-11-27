@@ -19,15 +19,14 @@ assert.equal(records.length,200);
 const results=analisarBase(records);
 const levels=contagemNiveis(results);
 // régua de 4 níveis observáveis (27/11): o L4 é o stack multicanal completo, antes "potencial L4"
-assert.deepEqual(Object.values(levels),[43,40,61,36,20],'v3 classification drift');
+assert.equal(levels[0],0,'todas as contas devem ter estágio L1–L4');
+assert.equal(Object.values(levels).reduce((a,b)=>a+b,0),records.length);
 const candidates=results.filter(x=>x.potencialL4);
-assert.equal(candidates.length,20,'L4 drift');
-assert.equal(candidates.filter(x=>x.potencialL4ComEvento).length,1);
 assert.equal(results.filter(x=>x.maturidadeConfirmada).length,0);
-assert.equal(results.filter(x=>x.foco).length,97);
+assert.equal(results.filter(x=>x.foco).length,levels[2]+levels[3]);
 assert.ok(results.some(x=>x.nivel===3&&x.dimensoes.orquestracao===0),'L3 must not require visible CRM script');
 for(const a of results){
- assert.ok(a.nivel===0||a.nivel>=1&&a.nivel<=4);
+ assert.ok(a.nivel>=1&&a.nivel<=4);
  assert.ok(a.qualidadeEvidencia>=0&&a.qualidadeEvidencia<=100);
  assert.ok(a.atratividadeVelora>=0&&a.atratividadeVelora<=100);
  assert.equal(a.potencialL4,a.nivel===4);
@@ -47,5 +46,13 @@ assert.equal(analisarConta({...seed,evidenciaOperacional:{...operational,experim
 assert.equal(analisarConta({...seed,evidenciaOperacional:{...operational,sourceUrl:''}}).integracaoValidada,false,'seal must require a source');
 const superficial={...seed,tags:Object.fromEntries(Object.keys(seed.tags).map(k=>[k,'not_observed'])),forms:0,whatsappLinks:0,
  historicalTech:['Google Tag Manager','HubSpot','Facebook Pixel'],evidenciaOperacional:undefined};
-assert.equal(analisarConta(superficial).nivel,0,'historical-only technologies must not raise maturity');
-console.log(JSON.stringify({result:'PASS',total:200,levels,potentialL4:candidates.length,potentialL4WithEvent:1,focus:97,sealValidation:'PASS'},null,2));
+assert.equal(analisarConta({...superficial,validPages:1}).nivel,1,'histórico isolado não aumenta estágio');
+const semPagina=analisarConta({...superficial,validPages:0});
+assert.equal(semPagina.nivel,1); assert.equal(semPagina.confianca,'insuficiente'); assert.equal(semPagina.foco,false);
+const base={...superficial,validPages:2,ctaConclusion:'',crmOperacional:undefined};
+const tags={...base.tags,gtm:'html',ga4:'request',googleAds:'html',linkedin:'request',hubspot:'html'};
+const web=analisarConta({...base,tags,forms:1});
+assert.equal(web.nivel,4); assert.equal(web.confianca,'parcial'); assert.equal(web.crm.confirmado,false); assert.equal(web.integracaoValidada,false);
+const rede=analisarConta({...base,tags:{...tags,gtm:'network',ga4:'network',googleAds:'network',linkedin:'network',hubspot:'network'},forms:1});
+assert.equal(rede.nivel,4); assert.equal(rede.confianca,'adequada'); assert.ok(rede.crm.score>web.crm.score); assert.ok(rede.qualidadeEvidencia>web.qualidadeEvidencia);
+console.log(JSON.stringify({result:'PASS',total:200,levels,potentialL4:candidates.length,potentialL4WithEvent:candidates.filter(x=>x.potencialL4ComEvento).length,focus:results.filter(x=>x.foco).length,sealValidation:'PASS'},null,2));
