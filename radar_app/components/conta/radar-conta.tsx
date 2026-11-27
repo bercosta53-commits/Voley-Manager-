@@ -19,27 +19,31 @@ const MINIMO = REGRAS.A2.minimos;
  * digital, que vem da maturidade de aquisição) no mesmo desenho do Radar, com a nota e o resumo de cada uma.
  * Modelo experimental, separado do score oficial (VSCS).
  */
-export function RadarConta({ linha }: { linha: LinhaTransporte }) {
+export function RadarConta({ linha, semDesenho = false }: { linha: LinhaTransporte; semDesenho?: boolean }) {
   const v = useMemo(() => expandirLinhas([linha])[0]!.visao, [linha]);
   return (
     <Secao
-      titulo="Radar da conta"
+      titulo={semDesenho ? 'Por que estas notas' : 'Radar da conta'}
       extra={
         <Link href={`/radar?q=${encodeURIComponent(linha.nome)}`} className="text-xs font-medium text-text-2 underline decoration-border-strong underline-offset-2 hover:text-foreground">
           ver no Radar
         </Link>
       }
     >
-      <div className="mt-3 grid items-center gap-5 md:grid-cols-[388px_minmax(0,1fr)]">
-        <div className="flex justify-center">
-          <Losango dims={v.dimensoes} tamanho={300} />
-        </div>
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <ClasseExperimental v={v} grande />
-            {v.classeIntegrada && <span className="text-text-2">{LEITURA_CLASSE[v.classeIntegrada]}</span>}
+      <div className={cn('mt-3 grid items-center gap-5', !semDesenho && 'md:grid-cols-[388px_minmax(0,1fr)]')}>
+        {!semDesenho && (
+          <div className="flex justify-center">
+            <Losango dims={v.dimensoes} tamanho={300} />
           </div>
-          <ul className="flex flex-col gap-2.5">
+        )}
+        <div className="flex flex-col gap-3">
+          {!semDesenho && (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <ClasseExperimental v={v} grande />
+              {v.classeIntegrada && <span className="text-text-2">{LEITURA_CLASSE[v.classeIntegrada]}</span>}
+            </div>
+          )}
+          <ul className={cn('grid gap-2.5', semDesenho && 'sm:grid-cols-2')}>
             {DIMENSOES.map(d => {
               const x = v.dimensoes[d];
               const nota = x.nota !== null && x.entraNoCalculo ? x.nota : null;
