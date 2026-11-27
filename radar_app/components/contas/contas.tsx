@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ArrowDown, ArrowUp, BookmarkPlus, Download, ExternalLink, Search, SearchX, X } from 'lucide-react';
 import type { Base, Conta, Sinal } from '@/lib/tipos';
 import { DicaConta } from '@/components/ui/dica-conta';
+import { faltandoNoComite } from '@/lib/papeis';
 import { FAMILIAS, STATUS, familia, hrefConta, primeiraMaiuscula, rotuloStatus, rotuloSubsegmentoTI, status } from '@/lib/contas';
 import { SEM_FILTRO, aplicar, daUrl, mesmosFiltros, temFiltro, type Filtros } from '@/lib/filtros';
 import { SeloQualificada } from '@/components/ui/selo-qualificada';
@@ -60,6 +61,19 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
   const [pronto, setPronto] = useState(false);
   // lista longa tem fim: 50 por vez; mudar filtro ou ordem volta ao começo
   const [limite, setLimite] = useState(POR_PAGINA);
+  // tabela (densa, ordenável) ou cartões (escaneável): a escolha fica no navegador
+  const [vista, setVista] = useState<'tabela' | 'cartoes'>('tabela');
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('vr:contas:vista') === 'cartoes') setVista('cartoes');
+    } catch {}
+  }, []);
+  const mudarVista = (v: 'tabela' | 'cartoes') => {
+    setVista(v);
+    try {
+      localStorage.setItem('vr:contas:vista', v);
+    } catch {}
+  };
   useEffect(() => setLimite(POR_PAGINA), [filtros, ordem]);
   const { estados, status: andamentos, compartilhado } = useEstados();
   const base = baseOriginal; // score do motor, igual para todos (P1-8)
@@ -243,10 +257,28 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
               {filtros.subTrabalhadas && <Pilula onTirar={() => mudar({ subTrabalhadas: false })}>Quentes sem ação</Pilula>}
               {filtros.semContato && <Pilula onTirar={() => mudar({ semContato: false })}>Sem ninguém do comitê</Pilula>}
               {filtros.scoreMin > 0 && <Pilula onTirar={() => mudar({ scoreMin: 0 })}>Score {filtros.scoreMin}+</Pilula>}
+              <div role="tablist" aria-label="Como mostrar as contas" className="flex rounded-control border border-border bg-card p-0.5 md:ml-auto">
+                {(
+                  [
+                    ['tabela', 'Tabela'],
+                    ['cartoes', 'Cartões'],
+                  ] as const
+                ).map(([id, rotulo]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={vista === id}
+                    onClick={() => mudarVista(id)}
+                    className={cn('h-7 rounded-control px-2.5 text-sm max-md:h-9', vista === id ? 'bg-foreground font-semibold text-background' : 'text-text-2 hover:text-foreground')}
+                  >
+                    {rotulo}
+                  </button>
+                ))}
+              </div>
               <Button
                 size="sm"
                 variant="ghost"
-                className="md:ml-auto"
                 onClick={() =>
                   baixarCsv(
                     'contas.csv',
@@ -314,6 +346,18 @@ export function TelaContas({ base: baseOriginal }: { base: Base }) {
                   'Importe a planilha de contas (npm run dados) para começar.'
                 )}
               </Aviso>
+            ) : vista === 'cartoes' ? (
+              <CartoesContas
+                contas={linhas.slice(0, limite)}
+                total={linhas.length}
+                limite={limite}
+                onMais={() => setLimite(l => l + POR_PAGINA)}
+                ultimoSinal={c => {
+                  const s = sinaisPorConta.get(c.id)?.[0];
+                  const h = c.historico[0];
+                  return s ? { texto: s.rotulo, quando: quando(s.data, base.geradoEm), naCaixa: true } : h ? { texto: h.rotulo, quando: quando(h.data, base.geradoEm), naCaixa: false } : null;
+                }}
+              />
             ) : (
               <div className="vr-card overflow-hidden">
                 <table className="w-full table-fixed border-collapse text-sm">
@@ -477,6 +521,98 @@ function Cabecalho({
         <Seta className={cn('size-3.5', !ativa && 'opacity-0')} strokeWidth={1.5} />
       </button>
     </th>
+  );
+}
+
+/**
+ * Contas em cartões: quem é (logo, nome, Tier, ramo, cidade), o calor (score com a curva de 90 dias e a
+ * tendência), o estágio, o último fato e o comitê (lugares preenchidos de 3). Mesma lista e ordem da tabela.
+ */
+function CartoesContas({
+  contas,
+  total,
+  limite,
+  onMais,
+  ultimoSinal,
+}: {
+  contas: Conta[];
+  total: number;
+  limite: number;
+  onMais: () => void;
+  ultimoSinal: (c: Conta) => { texto: string; quando: string; naCaixa: boolean } | null;
+}) {
+  return (
+    <>
+      <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {contas.map(c => {
+          const s = sentido(c.tendencia);
+          const cor = s === 'sobe' ? 'text-warm' : s === 'desce' ? 'text-cool' : 'text-text-3';
+          const Seta = s === 'sobe' ? ArrowUpRight : s === 'desce' ? ArrowDownRight : Minus;
+          const fato = ultimoSinal(c);
+          const lugares = 3 - Math.min(3, faltandoNoComite(c).length);
+          return (
+            <li key={c.id}>
+              <Link href={hrefConta(c.id)} className="vr-card flex h-full flex-col p-4 transition-[box-shadow,border-color] hover:border-border-strong hover:shadow-2">
+                <div className="flex items-start gap-3">
+                  <LogoConta nome={c.nome} dominio={c.dominio} tamanho={36} />
+                  <div className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate font-semibold">{c.nome}</span>
+                      {c.tier && <span className="vr-data shrink-0 rounded-chip bg-secondary px-1.5 text-xs text-text-2">{c.tier}</span>}
+                    </span>
+                    <span className="block truncate text-xs text-text-3">
+                      {[c.ramoTI?.nome ?? primeiraMaiuscula(c.segmento), c.cidade ? (c.uf ? `${c.cidade}/${c.uf}` : c.cidade) : c.uf].filter(Boolean).join(' · ')}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-end justify-between gap-3">
+                  <div>
+                    <span className="font-display text-3xl leading-none font-semibold tabular-nums">{pontos(c.score)}</span>
+                    <span className={cn('mt-1 flex items-center gap-0.5 text-xs', cor)}>
+                      <Seta className="size-3.5" strokeWidth={1.5} />
+                      {s === 'estavel' ? 'estável em 30 dias' : `${c.tendencia > 0 ? '+' : '−'}${pontos(Math.abs(c.tendencia))} em 30 dias`}
+                    </span>
+                  </div>
+                  <Curva serie={c.serie} largura={120} altura={34} classe={cor} />
+                </div>
+                {c.vscsStatus && c.vscsStatus !== 'Monitoramento' && (
+                  <div className="mt-2">
+                    <SeloVscs status={c.vscsStatus} acao={c.acaoRecomendada} />
+                  </div>
+                )}
+                <p className="mt-3 border-t border-border pt-2.5 text-xs">
+                  {fato ? (
+                    <span className="flex items-center gap-1.5">
+                      {fato.naCaixa && <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-acid ring-1 ring-foreground/25" />}
+                      <span className={cn('min-w-0 flex-1 truncate', fato.naCaixa ? 'text-text-2' : 'text-text-3')}>{fato.texto}</span>
+                      <span className="vr-data shrink-0 text-text-3">{fato.quando}</span>
+                    </span>
+                  ) : (
+                    <span className="text-text-3">Sem fato registrado</span>
+                  )}
+                </p>
+                <div className="mt-auto flex items-center justify-between gap-2 pt-2.5 text-xs text-text-3">
+                  <span className="flex items-center gap-1.5" aria-label={`Comitê: ${lugares} de 3 lugares`}>
+                    <span aria-hidden className="flex gap-0.5">
+                      {[0, 1, 2].map(i => (
+                        <span key={i} className={cn('h-2 w-2.5 rounded-[2px]', i < lugares ? 'bg-ok' : 'bg-secondary')} />
+                      ))}
+                    </span>
+                    comitê {lugares === 3 ? 'completo' : `${lugares} de 3`}
+                  </span>
+                  <span>{plural(c.comite.length, 'pessoa', 'pessoas')}</span>
+                </div>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+      {total > limite && (
+        <button type="button" onClick={onMais} className="mt-3 w-full rounded-control border border-border bg-card px-4 py-3 text-sm font-medium text-text-2 hover:bg-muted hover:text-foreground">
+          Mostrar mais {Math.min(POR_PAGINA, total - limite)} · {limite} de {total}
+        </button>
+      )}
+    </>
   );
 }
 
