@@ -11,5 +11,8 @@ export const metadata = {
 
 export default async function Pagina(){
  const base=await lerBase();
- return <TelaMaturidade base={paraCasca(base)} dados={dados as unknown as DadosAquisicao} />;
+ const atlas=(base as typeof base & { aquisicaoAtlas?: DadosAquisicao }).aquisicaoAtlas;
+ const tiers=new Map(base.contas.map(c=>[c.id,c.tier]));
+ const atual=atlas ? {...atlas,accounts:atlas.accounts.filter(c=>tiers.has(c.id)).map(c=>({...c,tier:tiers.get(c.id)??c.tier}))} : dados as unknown as DadosAquisicao;
+ return <TelaMaturidade base={paraCasca(base)} dados={atual} />;
 }
