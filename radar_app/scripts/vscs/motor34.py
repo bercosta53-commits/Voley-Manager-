@@ -28,6 +28,7 @@ from .adaptador import adaptar, registro_por_sinal
 from .classificar import nivel_cargo, norm
 from .fontes import classificar_fonte, corroborar, testemunhos
 from .tempo import exponencial, janela_lideranca, lideranca_nomeada
+from .horizonte import do_acontecimento
 
 AQUI = Path(__file__).resolve().parent
 VERSAO = "vscs-3.4-dc"
@@ -126,6 +127,9 @@ def _tempo(ac: Acontecimento, hoje: date, p33: dict, conta: dict | None = None, 
         if not ok:
             return min(conv, lideranca_nomeada(dias, p33)), janela, f"suspensa: {motivo}"
         return lideranca_nomeada(dias, p33), janela, f"aplicada: {motivo}"
+    plano = do_acontecimento(ac, hoje, p33["horizonte_planos"])
+    if plano is not None:
+        return plano["fator"], None, "plano: " + plano["fase"]
     antes = 30 if ac.cl["chave"].startswith(("presenca_", "palestra_")) else 0
     mv = p33.get("meia_vida_por_chave", {}).get(ac.cl["chave"])
     if ac.cl.get("vaga"):
@@ -288,6 +292,11 @@ def requisitos_90(parcelas: list[tuple[Movimento, float]], possiveis: list, pen:
             if (principal.maturacao or "").startswith(("suspensa", "sem maturação")):
                 falta.append(f"{papel}: maturação {principal.maturacao}")
         else:
+            plano = do_acontecimento(principal, hoje, p33["horizonte_planos"])
+            if plano is not None:
+                if not plano["vigente"] or plano["a_revalidar"]:
+                    falta.append(f"{papel}: plano fora de vigência ou a revalidar")
+                continue
             janela = p33["janela_acao_dias"].get(principal.cl["tipo"], p33["janela_acao_dias"]["padrao"])
             if (hoje - principal.data).days > janela:
                 falta.append(f"{papel}: fora da janela de ação ({janela} dias)")
@@ -313,11 +322,17 @@ def calcular(eventos: list[dict], hoje: date, empresa: str = "", interacoes: lis
     cfg = p33["vagas_abertas"]
     melhor_vaga = max(vagas, key=lambda m: (m.s, m.id), default=None)
     bonus_vaga = 0.0
+    incremento_complementar = 0.0
+    piso_intencao = 0.0
     if melhor_vaga is not None:
         isolado = min(cfg["teto_sem_fato_material"], cfg["fator_isolado"] * melhor_vaga.s)
         complementar = min(cfg["teto_complementar"], cfg["fator_complementar"] * melhor_vaga.s * (1 - base_fatos / 100))
+        # Piso de intenção isolada e complemento são alternativas, nunca somados.
         # Uma vaga não pode levar uma conta para a faixa 90+.
-        bonus_vaga = max(0.0, min(max(0.0, 89.9 - base_fatos), max(isolado - base_fatos, complementar)))
+        limite = max(0.0, 89.9 - base_fatos)
+        piso_intencao = min(limite, max(0.0, isolado - base_fatos))
+        incremento_complementar = min(limite, complementar)
+        bonus_vaga = max(piso_intencao, incremento_complementar)
     pen = max((m.s for m in movs if m.categoria == NEGATIVO), default=0.0)
     v = max(0.0, min(100.0, (base_fatos + bonus_vaga)) - pen)
     falta = []
@@ -337,6 +352,9 @@ def calcular(eventos: list[dict], hoje: date, empresa: str = "", interacoes: lis
         "vscs": round(v, 2),
         "vscs_base": round(base_fatos + bonus_vaga, 2),
         "contribuicao_vagas": round(bonus_vaga, 2),
+        "piso_intencao_vagas_incremento": round(piso_intencao, 2),
+        "incremento_complementar_vagas": round(incremento_complementar, 2),
+        "modo_contribuicao_vagas": "piso_intencao" if piso_intencao > incremento_complementar else "complemento",
         "vscs_sem_vagas": round(max(0.0, base_fatos - pen), 2),
         "bonus_convergencia": 0,
         "penalidade": round(pen, 2),
@@ -350,6 +368,7 @@ def calcular(eventos: list[dict], hoje: date, empresa: str = "", interacoes: lis
                 "id": a.id, "chave": a.cl["chave"], "categoria": a.cl["categoria"], "base": a.cl["base"], "data": a.data.isoformat(),
                 "fonte": a.fonte_nivel, "fator_fonte": a.fonte_fator, "tempo": round(a.tempo, 4), "janela_lideranca": a.janela,
                 "maturacao": a.maturacao, "cargo": a.cl.get("cargo"),
+                "horizontePlano": do_acontecimento(a, hoje, p33["horizonte_planos"]),
                 "vaga_aberta": a.cl.get("vaga", False),
                 "revalidar_vaga": bool(a.cl.get("vaga") and (hoje - a.data).days >= p33.get("meia_vida_vagas_abertas", {}).get(a.cl["chave"], p33.get("meia_vida_vagas_abertas", {}).get("padrao", 30))), "revisado": bool(a.cl.get("revisado")),
                 # só nota, fator e data: quem registrou fica na tabela privada
