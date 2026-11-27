@@ -124,6 +124,7 @@ export interface Conta {
   /** VSCS 3.0 (scripts/score_v2.py): índice 0–100, status, ação da matriz ICP × VSCS, anel 1-4 (null = fora do radar) */
   v2?: {
     versao?: string;
+    calculadoEm?: string;
     vscs?: number;
     vscs_base?: number;
     bonus_convergencia?: number;
@@ -164,6 +165,7 @@ export type StatusVscs = 'Monitoramento' | 'Atenção' | 'Oportunidade emergente
 
 export interface ContribuicaoVscs {
   id: string;
+  chave?: string;
   tipo: string;
   categoria: string;
   nivel: 'A' | 'B' | 'C';
@@ -172,6 +174,8 @@ export interface ContribuicaoVscs {
   tempo: number;
   correlacao: number;
   s: number;
+  janela_lideranca?: string | null;
+  maturacao?: string | null;
   /** s / 100 */
   valor: number;
   pontos: number;

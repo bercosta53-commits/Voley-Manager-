@@ -6,7 +6,7 @@ import { cn, dataCurta, seDiferente } from '@/lib/utils';
 import { COR_TIER, NIVEL_GATILHO } from '@/lib/papeis';
 import { LogoConta } from './logo-conta';
 import { BarraForca } from './forca';
-import { forcaDe, pontosInteiros } from '@/lib/caixa';
+import { forcaDe, pontosInteiros, tituloSinal } from '@/lib/caixa';
 import type { Ativacao } from '@/lib/playbooks';
 import { Zap } from 'lucide-react';
 
@@ -40,7 +40,7 @@ export const LinhaSinal = forwardRef<HTMLButtonElement, { sinal: Sinal; conta: C
               {conta.tier && <span className={cn('shrink-0 rounded-chip px-1 text-xs font-semibold', COR_TIER[conta.tier] ?? COR_TIER.C)}>{conta.tier}</span>}
               <span className="vr-data ml-auto shrink-0 text-xs text-text-3">{dataCurta(sinal.data)}</span>
             </span>
-            <span className="mt-0.5 block truncate text-sm text-text-2">{sinal.sinal ?? sinal.porQueAgora}</span>
+            <span className="mt-0.5 block truncate text-sm text-text-2">{tituloSinal(sinal, conta)}</span>
             <span className="mt-1 flex items-center gap-1.5 text-xs text-text-3">
               {seDiferente(sinal.sinal ?? sinal.porQueAgora, sinal.rotulo) && (
                 <>

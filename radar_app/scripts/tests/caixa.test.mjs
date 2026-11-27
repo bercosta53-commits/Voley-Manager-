@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  SEM_FILTROS_CAIXA, contarOpcoes, dentroDaJanela, janelaDe, filtrarCaixa, forcaDe, ordenarCaixa, porEstagio, pontosInteiros, textoVariacao, variacao,
+  SEM_FILTROS_CAIXA, elegivelCaixa, podeAbordar, tituloSinal, ORDEM_PADRAO, contarOpcoes, dentroDaJanela, janelaDe, filtrarCaixa, forcaDe, ordenarCaixa, porEstagio, pontosInteiros, textoVariacao, variacao,
 } from '../../lib/caixa.ts';
 
 const conta = (id, extra = {}) => ({ id, score: 50, tier: 'B', uf: 'SC', segmento: 'Fintech', vscsStatus: 'Monitoramento', serie: [], tendencia: 0, ...extra });
@@ -105,4 +105,38 @@ test('sinal sem pontuação ainda: "a pontuar" e fim da ordem por força, nunca 
   const s = (id, pontos) => ({ id, contaId: 'c', data: '2026-11-20', pontos });
   const ordem = ordenarCaixa([s('x', undefined), s('a', 10), s('b', 30)], 'forca', new Map()).map(x => x.id);
   assert.deepEqual(ordem, ['b', 'a', 'x']);
+});
+
+
+test('fila comercial exclui zero, contexto, negativo e pendente sem destruir o registro', () => {
+  const l = [sinal('zero','a',CARGA,{pontos:0}), sinal('pendente','a',CARGA,{pontos:undefined}), sinal('negativo','a',CARGA,{pontos:-9,categoria:'negativo'}), sinal('contexto','a',CARGA,{pontos:5,categoria:'contexto'}), sinal('valido','a',CARGA,{pontos:7})];
+  assert.deepEqual(l.filter(elegivelCaixa).map(s=>s.id),['valido']);
+  assert.equal(l.length,5);
+  assert.equal(pontosInteiros(0),'contexto');
+  assert.equal(pontosInteiros(.2),'+0,2');
+  assert.equal(podeAbordar(l[0],conta('a',{score:80})),false);
+  assert.equal(podeAbordar(l[4],conta('a',{score:80})),true);
+  assert.equal(podeAbordar(l[4],conta('a',{score:60,tier:'B'})),false);
+});
+
+test('prioridade comercial destaca um sinal principal por conta antes dos secundários', () => {
+  const contas = new Map([['a',conta('a',{tier:'B',score:74})],['b',conta('b',{tier:'A',score:60})],['c',conta('c',{tier:'C',score:99})]]);
+  const l=[sinal('a-menor','a',CARGA,{pontos:7}),sinal('a-maior','a','2026-11-01',{pontos:30}),sinal('b','b',CARGA,{pontos:12}),sinal('c','c',CARGA,{pontos:70})];
+  assert.equal(ORDEM_PADRAO,'prioridade');
+  assert.deepEqual(ordenarCaixa(l,ORDEM_PADRAO,contas).map(s=>s.id),['a-maior','b','a-menor','c']);
+});
+
+test('aceleração não trata 2 amostras como série de 90 dias e utiliza série diária ancorada', () => {
+  assert.equal(variacao(conta('a',{score:74,serie:[34,74]})),null);
+  const valores=Array(181).fill(30); valores[180]=74;
+  const c=conta('a',{score:74,v2:{versao:'3.3',calculadoEm:CARGA},serie180:{versao:'3.3',ate:CARGA,valores}});
+  assert.equal(variacao(c),44);
+});
+
+test('nomeação efetiva confirmada em implementação continua válida, vaga antiga não', () => {
+  const s=sinal('cro','a','2026-02-10',{tipo:'executivo_chegou',pontos:64});
+  const c=conta('a',{v2:{contribuicoes:[{id:'cro',categoria:'lideranca',pontos:64,janela_lideranca:'implementacao',maturacao:'aplicada: confirmado'}]}});
+  assert.equal(dentroDaJanela(s,CARGA,c),true);
+  assert.equal(dentroDaJanela(s,CARGA),false);
+  assert.equal(tituloSinal(s,conta('a',{v2:{contribuicoes:[{id:'cro',chave:'vaga_bloco',texto:'Bloco de 2 vagas operacionais'}]}})),'Bloco de 2 vagas operacionais');
 });

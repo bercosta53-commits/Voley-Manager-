@@ -87,7 +87,7 @@ export const OFERTAS: Record<Oferta, string> = {
 /** Sinal isolado: o que o fato abre para a Velora. Uma frase, sem prometer a dor. */
 export const OPORTUNIDADE: Record<Familia, { texto: string; ofertas: Oferta[] }> = {
   lancamento: { texto: 'Levar o lançamento do anúncio ao pipeline: posicionamento, canais e metas de adoção.', ofertas: ['gtm', 'aquisicao'] },
-  contratacao: { texto: 'Time de receita crescendo: processo, cadência e rampa para as pessoas novas renderem desde o primeiro mês.', ofertas: ['outbound', 'mentorias', 'revops'] },
+  contratacao: { texto: 'Intenção de reforçar receita: validar se as vagas viraram contratações e onde processo, cadência e rampa podem ajudar.', ofertas: ['outbound', 'mentorias', 'revops'] },
   parceria: { texto: 'Parceria nova pede demanda conjunta e contas-alvo combinadas com o parceiro.', ofertas: ['abm', 'gtm'] },
   unidade: { texto: 'Praça nova: mapear o mercado local e montar a aquisição por região.', ofertas: ['icp', 'aquisicao'] },
   lideranca: { texto: 'Gestão nova revisando o plano: chegar aos primeiros 90 dias com diagnóstico e prioridades de aquisição.', ofertas: ['diagnostico', 'gtm'] },
@@ -164,7 +164,7 @@ export const PLAYBOOKS: Playbook[] = [
     nome: 'Liderança nova montando time',
     gatilho: { a: ['lideranca'], b: ['contratacao'], janela: 90 },
     gatilhoTexto: 'Liderança nova + contratação em aquisição ou receita, até 90 dias de distância',
-    leitura: 'A gestão nova já está desenhando o próprio time: o plano está sendo decidido agora.',
+    leitura: 'Nomeação e vagas sugerem desenho do time; validar se as contratações foram efetivadas e quais prioridades estão em execução.',
     dor: 'Dar resultado antes de o time amadurecer; definir processo e metas para quem está chegando.',
     procurar: [MKT, COMERCIAL, CLEVEL],
     janelaAcao: 60,
