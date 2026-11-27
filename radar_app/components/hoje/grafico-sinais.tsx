@@ -185,7 +185,7 @@ export function GraficoSinais({
           90
         </text>
         <text x={M.esq + w} y={A - 3} textAnchor="end" className="fill-text-3 text-xs">
-          hoje
+          {historico ? hoje.slice(8, 10) + '/' + hoje.slice(5, 7) : 'hoje'}
         </text>
       </svg>
     </div>
