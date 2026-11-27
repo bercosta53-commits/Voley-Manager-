@@ -102,7 +102,7 @@ export function TelaMetricas({ base }: { base: Base }) {
   else if (!sinais.length)
     conteudo = (
       <Aviso icone={<BarChart3 className="size-5" strokeWidth={1.5} />} titulo="Ainda sem sinais para medir">
-        As métricas aparecem quando os primeiros sinais chegarem em Hoje.
+        As métricas aparecem quando os primeiros sinais chegarem em Sinais.
       </Aviso>
     );
   else
@@ -140,7 +140,7 @@ export function TelaMetricas({ base }: { base: Base }) {
           legenda={
             m.avaliados
               ? `dos sinais avaliados foram úteis (${m.util} úteis, ${m.ruido} ruído)`
-              : 'Nenhum sinal avaliado ainda. Marque Útil ou Ruído em Hoje.'
+              : 'Nenhum sinal avaliado ainda. Marque Útil ou Ruído em Sinais.'
           }
           aviso={m.avaliados > 0 && m.avaliados < MIN_AVALIACOES ? `Com ${plural(m.avaliados, 'avaliação', 'avaliações')}, é cedo para confiar. O número fica firme a partir de ${MIN_AVALIACOES}.` : undefined}
         >
@@ -160,7 +160,7 @@ export function TelaMetricas({ base }: { base: Base }) {
           legenda={
             m.tratados
               ? `dos sinais recebidos viraram abordagem (${m.abordados} de ${sinais.length})`
-              : 'Nenhum sinal tratado ainda. Abordar, adiar ou arquivar em Hoje alimenta este funil.'
+              : 'Nenhum sinal tratado ainda. Abordar, adiar ou arquivar em Sinais alimenta este funil.'
           }
         >
           <Funil
@@ -181,7 +181,7 @@ export function TelaMetricas({ base }: { base: Base }) {
           <h1 className="font-display text-2xl font-semibold tracking-tight">Métricas</h1>
           <p className="mt-1 max-w-xl text-sm text-text-3">
             O que o time fez com o que o Radar trouxe, como o score é feito, e quatro perguntas sobre o radar.
-            {compartilhado ? ' As respostas usam o que o time marcou em Hoje.' : ' As respostas usam o que foi marcado em Hoje neste navegador.'}
+            {compartilhado ? ' As respostas usam o que o time marcou em Sinais.' : ' As respostas usam o que foi marcado em Sinais neste navegador.'}
           </p>
         </div>
         {pronto && <VisaoLideranca base={base} estados={estados} status={status} compartilhado={compartilhado} />}

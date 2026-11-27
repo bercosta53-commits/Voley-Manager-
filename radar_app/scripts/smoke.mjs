@@ -25,7 +25,7 @@ function encerrar(codigo) {
 
 // [rota, status esperado, texto que precisa aparecer no HTML]
 const casos = [
-  ['/', 200, 'Hoje'],
+  ['/', 200, 'Sinais do mercado'],
   ['/radar', 200, 'Prioridade de contas'],
   ['/radar/proximidade', 200, 'Panorama da base'],
   ['/contas', 200, 'Contas'],

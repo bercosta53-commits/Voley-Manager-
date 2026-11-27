@@ -22,7 +22,7 @@ import { definirApresentacao, SECOES_FORA_DA_APRESENTACAO, useApresentacao } fro
 export const GRUPOS = ['Operação', 'Mercado', 'Sistema'] as const;
 
 export const SECOES = [
-  { href: '/', rotulo: 'Hoje', icone: Inbox, grupo: 'Operação' },
+  { href: '/', rotulo: 'Sinais', icone: Inbox, grupo: 'Operação' },
   { href: '/contas', rotulo: 'Contas', icone: Building2, grupo: 'Operação' },
   { href: '/decisores', rotulo: 'Decisores', icone: UsersRound, grupo: 'Operação' },
   { href: '/radar', rotulo: 'Radar', icone: Radar, grupo: 'Mercado' },
