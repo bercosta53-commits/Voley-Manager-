@@ -201,5 +201,13 @@
     "vaga_head": 90,
     "vaga_diretoria_receita": 90,
     "vaga_clevel_receita": 120
+  },
+  "horizonte_planos": {
+    "meia_vida_pre_execucao_dias": 365,
+    "fator_fim_execucao": 0.75,
+    "meia_vida_residual_dias": 60,
+    "expiracao_residual_dias": 180,
+    "revisao_dias": 90,
+    "limite_sem_revalidacao_dias": 180
   }
 }
