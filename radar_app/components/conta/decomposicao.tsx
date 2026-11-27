@@ -1,14 +1,14 @@
 import type { Conta } from '@/lib/tipos';
-import { dataCurta, pontos } from '@/lib/utils';
+import { dataCurta, pontos, seDiferente } from '@/lib/utils';
 
 /** Decomposição do score: cada parcela com a barra do quanto somou (em pontos, de 0 a 100).
  * "Perfil" e "Momento" só existem na base de exemplo (vêm da planilha, que a base real ainda não tem
  * padronizada) — na base real o score é só a soma dos sinais, por isso o rodapé muda conforme ficticia. */
-export function Decomposicao({ conta, ficticia }: { conta: Conta; ficticia?: boolean }) {
+export function Decomposicao({ conta, ficticia, semFrase }: { conta: Conta; ficticia?: boolean; /** onde o fato já está escrito acima (Hoje), a frase-resumo repetiria */ semFrase?: boolean }) {
   const parcelas = conta.composicao.filter(p => p.pontos !== 0);
   return (
     <div>
-      {conta.v2?.frase && <p className="mb-4 text-sm text-text-2">{conta.v2.frase}</p>}
+      {!semFrase && conta.v2?.frase && <p className="mb-4 text-sm text-text-2">{conta.v2.frase}</p>}
       <ul className="flex flex-col gap-3">
         {parcelas.map((p, i) => (
           <li key={i} className="grid grid-cols-[minmax(0,1fr)_48px] items-start gap-x-4">
@@ -17,7 +17,7 @@ export function Decomposicao({ conta, ficticia }: { conta: Conta; ficticia?: boo
                 {p.rotulo}
                 {p.data && <span className="vr-data ml-1.5 text-xs font-normal text-text-3">{dataCurta(p.data)}</span>}
               </p>
-              <p className="truncate text-xs text-text-3">{p.detalhe}</p>
+              {seDiferente(p.rotulo, p.detalhe) && <p className="truncate text-xs text-text-3">{p.detalhe}</p>}
               <div className="mt-1.5 h-1.5 rounded-full bg-secondary" aria-hidden>
                 <div
                   className={p.pontos < 0 ? 'h-full rounded-full bg-border-strong' : p.data ? 'h-full rounded-full bg-warm' : 'h-full rounded-full bg-text-3'}
@@ -33,12 +33,15 @@ export function Decomposicao({ conta, ficticia }: { conta: Conta; ficticia?: boo
         <span className="text-sm font-semibold">Score de hoje</span>
         <span className="font-display text-xl font-semibold tabular-nums">{pontos(conta.score)}</span>
       </div>
-      <p className="mt-2 text-xs text-text-3">
-        {ficticia && 'Perfil e momento vêm da planilha. '}
-        Cada linha é o que o fato somou ao score: o mais forte primeiro, e cada fato a mais soma menos. O valor cai pela metade a cada
-        meia-vida da categoria; fatos de categorias diferentes em até 45 dias ganham bônus de convergência; ter sido adquirida tira
-        pontos. A conta completa está em Métricas.
-      </p>
+      <details className="mt-2 text-xs text-text-3">
+        <summary className="cursor-pointer select-none hover:text-foreground">Como o score é somado</summary>
+        <p className="mt-1">
+          {ficticia && 'Perfil e momento vêm da planilha. '}
+          Cada linha é o que o fato somou ao score: o mais forte primeiro, e cada fato a mais soma menos. O valor cai pela metade a cada
+          meia-vida da categoria; fatos de categorias diferentes em até 45 dias ganham bônus de convergência; ter sido adquirida tira
+          pontos. A conta completa está em Métricas.
+        </p>
+      </details>
     </div>
   );
 }

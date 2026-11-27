@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { ExternalLink } from 'lucide-react';
 import type { PapelAbm } from '@/lib/tipos';
 import { rotuloValidacao, type Tese } from '@/lib/tese';
@@ -75,7 +76,7 @@ export function TeseConta({ tese, nomeConta, semAcaoDoTime = false }: { tese: Te
           {agora && (
             <>
               <p className="text-md font-semibold">{agora.sinal.sinal || agora.sinal.rotulo}</p>
-              <p className="mt-0.5 text-text-2">{agora.sinal.porQueAgora}</p>
+              <TextoCurto texto={agora.sinal.porQueAgora} />
               <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
                 <Chip className="vr-data">
                   {dataCurta(agora.sinal.data)} · {agora.dias === 0 ? 'hoje' : `há ${plural(agora.dias, 'dia', 'dias')}`}
@@ -163,5 +164,21 @@ export function TeseConta({ tese, nomeConta, semAcaoDoTime = false }: { tese: Te
         </Linha>
       </dl>
     </section>
+  );
+}
+
+/** Texto longo em duas linhas, com "ver mais" só quando há o que esconder. */
+function TextoCurto({ texto }: { texto: string }) {
+  const [aberto, setAberto] = useState(false);
+  const longo = texto.length > 180;
+  return (
+    <div className="mt-0.5">
+      <p className={cn('text-text-2', longo && !aberto && 'line-clamp-2')}>{texto}</p>
+      {longo && (
+        <button type="button" onClick={() => setAberto(a => !a)} className="mt-0.5 text-xs font-medium text-text-3 underline decoration-border-strong underline-offset-2 hover:text-foreground">
+          {aberto ? 'ver menos' : 'ver mais'}
+        </button>
+      )}
+    </div>
   );
 }

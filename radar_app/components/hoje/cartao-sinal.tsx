@@ -117,6 +117,9 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
   if (!eventos.some(e => e.atual) && sinal.nivel)
     eventos.push({ data: sinal.data, pontos: Math.round(sinal.pontos), rotulo: sinal.sinal ?? sinal.porQueAgora, nivel: sinal.nivel, atual: true });
 
+  // com 1 ou 2 fatos o gráfico fica quase vazio; mantém quando há playbook, que marca o dia em que ativou
+  const comGrafico = eventos.length >= 3 || !!playbook;
+
   const quem = sinal.abordar.nome ? (
     <>
       <span className="font-medium text-foreground">{sinal.abordar.nome}</span>
@@ -285,18 +288,31 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
           {/* o score da conta no tempo, com cada sinal marcado na data em que aconteceu */}
           <div className="min-w-0 rounded-control border border-border bg-background/40 p-3">
             <p className="mb-1 flex items-center justify-between text-xs text-text-3">
-              <span className="font-medium text-text-2">Score em 90 dias</span>
-              <span>cada ponto é um sinal</span>
+              <span className="font-medium text-text-2">{comGrafico ? 'Score em 90 dias' : 'O que somou ao score'}</span>
+              {comGrafico && <span>cada ponto é um sinal</span>}
             </p>
-            <GraficoSinais serie={conta.serie} eventos={eventos} hoje={hoje} marca={playbook && { data: playbook.ativadoEm, rotulo: playbook.playbook.nome }} />
-            <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-text-3">
+            {comGrafico ? (
+              <GraficoSinais serie={conta.serie} eventos={eventos} hoje={hoje} marca={playbook && { data: playbook.ativadoEm, rotulo: playbook.playbook.nome }} />
+            ) : (
+              // com 1 ou 2 fatos o gráfico fica quase vazio: o mesmo dado em uma linha por fato
+              <ul className="mt-1 flex flex-col gap-1 text-sm">
+                {[...eventos].sort((a, b) => b.data.localeCompare(a.data)).map(e => (
+                  <li key={`${e.data}-${e.rotulo}`} className="flex items-baseline gap-2">
+                    <span className={cn('vr-data shrink-0 font-semibold', e.pontos < 0 ? 'text-risk' : 'text-warm')}>{e.pontos > 0 ? `+${e.pontos}` : e.pontos}</span>
+                    <span className="vr-data shrink-0 text-xs text-text-3">{dataCurta(e.data)}</span>
+                    <span className={cn('min-w-0 truncate', e.atual ? 'text-foreground' : 'text-text-2')}>{e.rotulo}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {comGrafico && <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-text-3">
               {(['A', 'B', 'C'] as const).map(n => (
                 <span key={n} className="inline-flex items-center gap-1">
                   <span className="size-2 rounded-full" style={{ background: NIVEL_GATILHO[n].ponto }} />
                   {NIVEL_GATILHO[n].rotulo}
                 </span>
               ))}
-            </p>
+            </p>}
           </div>
         </div>
 

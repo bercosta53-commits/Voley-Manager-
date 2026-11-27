@@ -54,6 +54,52 @@ export function ClimaBrasil({ clima }: { clima: Clima }) {
           </div>
         </div>
       </div>}
+      <RankingVerticais clima={clima} />
+    </div>
+  );
+}
+
+/**
+ * Onde o clima está melhor e pior nesta edição: barras divergentes por vertical (−1 a +1), com as contas da base em
+ * cada uma. Ocupa a coluna do medidor, que acompanha a altura da grade de indicadores ao lado.
+ */
+function RankingVerticais({ clima }: { clima: Clima }) {
+  const verticais = clima.verticais.filter(v => v.id !== 'GEN' && v.contas > 0).sort((a, b) => b.S - a.S);
+  if (!verticais.length) return null;
+  const max = Math.max(0.2, ...verticais.map(v => Math.abs(v.S)));
+  const mostrar = verticais.length > 20 ? [...verticais.slice(0, 10), ...verticais.slice(-10)] : verticais;
+  return (
+    <div className="mt-3 flex flex-1 flex-col border-t border-border pt-3">
+      <div className="mb-2 flex items-baseline justify-between">
+        <h3 className="text-xs font-semibold tracking-[0.06em] text-text-2 uppercase">Verticais nesta edição</h3>
+        <span className="text-xs text-text-3">contas na base</span>
+      </div>
+      <ul className="flex flex-col gap-1.5">
+        {mostrar.map((v, i) => (
+          <li key={v.id}>
+            {verticais.length > 20 && i === 10 && <div aria-hidden className="my-1 border-t border-dashed border-border" />}
+            <div className="grid grid-cols-[minmax(0,1fr)_96px_40px_28px] items-center gap-2 text-xs" title={`${v.nome}: ${fmtClima(v.S)} · ${v.estado}`}>
+              <span className="truncate text-text-2">{v.nome}</span>
+              <span className="relative h-2 rounded-full bg-[var(--vr-surface-3)]" aria-hidden>
+                <span className="absolute inset-y-0 left-1/2 w-px bg-border-strong" />
+                <span
+                  className="absolute inset-y-0 rounded-full"
+                  style={{
+                    background: COR_CLIMA[v.estado],
+                    left: v.S >= 0 ? '50%' : `${50 - (Math.abs(v.S) / max) * 50}%`,
+                    width: `${(Math.abs(v.S) / max) * 50}%`,
+                  }}
+                />
+              </span>
+              <span className="vr-data text-right" style={{ color: COR_CLIMA[v.estado] }}>
+                {fmtClima(v.S)}
+              </span>
+              <span className="vr-data text-right text-text-3">{v.contas}</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {verticais.length > 20 && <p className="mt-2 text-xs text-text-3">As 10 melhores e as 10 piores de {verticais.length} verticais.</p>}
     </div>
   );
 }

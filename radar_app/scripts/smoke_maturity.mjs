@@ -6,6 +6,9 @@ await mkdir('tmp/maturity',{recursive:true});
 const desktop=await browser.newPage({viewport:{width:1440,height:900},deviceScaleFactor:1});
 await desktop.goto('http://127.0.0.1:3000/aquisicao',{waitUntil:'networkidle',timeout:60000});
 await desktop.getByRole('heading',{name:/Maturidade de aquisição/}).waitFor();
+if(!(await desktop.getByText(/contas no sweet spot da Velora/).count()))throw Error('Maturity ruler missing');
+// CRM, mapa de capacidades e perfil por estágio ficam em "Ver o método e o detalhe"
+await desktop.getByText('Ver o método e o detalhe').click();
 if(!(await desktop.getByText('Onde estão as oportunidades').count()))throw Error('Scatter panel missing');
 if(!(await desktop.getByText('Empresas no sweet spot').count()))throw Error('Shortlist missing');
 if(!(await desktop.getByRole('button',{name:'Potencial L4 (20)'}).count()))throw Error('L4 candidate filter missing');
