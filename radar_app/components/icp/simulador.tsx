@@ -51,7 +51,8 @@ function Cartao({ borda, tracejado, rotulo, corRotulo, n, titulo, nota, children
         <span className="text-xs font-bold tracking-[0.08em] uppercase" style={{ color: corRotulo ?? 'var(--vr-text-2)' }}>
           {rotulo}
         </span>
-        <span className={cn('vr-data text-2xl font-semibold', tracejado && 'text-text-3')}>{n}</span>
+        {/* zero não ganha número: o braço existe no ICP, mas sem contas na base (o rótulo e a nota já dizem) */}
+        {n > 0 ? <span className={cn('vr-data text-2xl font-semibold', tracejado && 'text-text-3')}>{n}</span> : null}
       </div>
       {titulo && <div className="text-md font-bold">{titulo}</div>}
       <div className="flex flex-wrap gap-1.5">{children}</div>

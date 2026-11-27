@@ -71,12 +71,19 @@ export function TelaMetricas({ base }: { base: Base }) {
           },
         ]
       : todas;
+    // nas barras, só as fontes nomeadas: "outras" vira uma linha de texto (somada, ela engolia a escala)
+    const topo = todas.slice(0, TOP_FONTES);
+    const outras = resto.length
+      ? { n: resto.length, total: resto.reduce((n, f) => n + f.total, 0), latencia: mediana(sinais.filter(s => resto.some(r => chave(r.fonte) === chave(s.fonte))).map(s => Math.max(0, diasEntre(s.data, s.alertaEm)))) }
+      : null;
     const util = porFonte.reduce((n, f) => n + f.util, 0);
     const ruido = porFonte.reduce((n, f) => n + f.ruido, 0);
     const abordados = sinais.filter(s => estados[s.id]?.acao === 'abordado').length;
     const tratados = sinais.filter(s => estados[s.id]?.acao || estados[s.id]?.avaliacao).length;
     return {
       porFonte,
+      topo,
+      outras,
       util,
       ruido,
       avaliados: util + ruido,
@@ -115,10 +122,15 @@ export function TelaMetricas({ base }: { base: Base }) {
           legenda={`sinais na base agora · ${m.exemplos} de exemplo, ${sinais.length - m.exemplos} reais`}
         >
           <Barras
-            linhas={m.porFonte.map(f => ({ rotulo: f.fonte, valor: f.total, parte: f.reais, texto: `${f.total}` }))}
-            maximo={Math.max(...m.porFonte.map(f => f.total))}
-            legendaParte="parte escura: reais"
+            linhas={m.topo.map(f => ({ rotulo: f.fonte, valor: f.total, parte: f.reais, texto: `${f.total}` }))}
+            maximo={Math.max(...m.topo.map(f => f.total))}
+            legendaParte={m.exemplos ? 'parte escura: reais' : undefined}
           />
+          {m.outras && (
+            <p className="mt-2 text-xs text-text-3">
+              e mais {m.outras.n} fontes com {m.outras.total} sinais ({pct(m.outras.total, sinais.length)}% do total), cada uma com poucos
+            </p>
+          )}
         </Bloco>
 
         {/* 2. latência */}
@@ -128,9 +140,10 @@ export function TelaMetricas({ base }: { base: Base }) {
           legenda={`mediana entre o fato acontecer e o radar avisar · ${pct(m.noMesmoDia, sinais.length)}% no mesmo dia`}
         >
           <Barras
-            linhas={m.porFonte.map(f => ({ rotulo: f.fonte, valor: f.latencia, texto: `${f.latencia.toLocaleString('pt-BR')} d` }))}
-            maximo={Math.max(3, ...m.porFonte.map(f => f.latencia))}
+            linhas={m.topo.map(f => ({ rotulo: f.fonte, valor: f.latencia, texto: `${f.latencia.toLocaleString('pt-BR')} d` }))}
+            maximo={Math.max(3, ...m.topo.map(f => f.latencia))}
           />
+          {m.outras && <p className="mt-2 text-xs text-text-3">nas outras {m.outras.n} fontes, mediana de {m.outras.latencia.toLocaleString('pt-BR')} dias</p>}
         </Bloco>
 
         {/* 3. precisão */}
@@ -163,13 +176,16 @@ export function TelaMetricas({ base }: { base: Base }) {
               : 'Nenhum sinal tratado ainda. Abordar, adiar ou arquivar em Sinais alimenta este funil.'
           }
         >
-          <Funil
-            etapas={[
-              { rotulo: 'Recebidos', valor: sinais.length },
-              { rotulo: 'Tratados', valor: m.tratados },
-              { rotulo: 'Abordados', valor: m.abordados },
-            ]}
-          />
+          {/* sem nada tratado, o funil seria duas barras zeradas: fica só o aviso acima */}
+          {m.tratados > 0 && (
+            <Funil
+              etapas={[
+                { rotulo: 'Recebidos', valor: sinais.length },
+                { rotulo: 'Tratados', valor: m.tratados },
+                { rotulo: 'Abordados', valor: m.abordados },
+              ]}
+            />
+          )}
         </Bloco>
       </div>
     );
