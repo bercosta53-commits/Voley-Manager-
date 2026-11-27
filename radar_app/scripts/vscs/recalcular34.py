@@ -8,7 +8,6 @@ from __future__ import annotations
 import argparse, copy, json, hashlib
 from datetime import date
 from pathlib import Path
-from collections import Counter
 from . import motor33, motor34
 from .adaptador import nivel_por_fator
 from .reconciliar import carregar, eventos_da_conta, modelo_e_revisoes
@@ -24,16 +23,15 @@ def recalcular(base, hoje):
             p33[k].update(model[k])
             p34[k].update(model[k])
     staged={str(x["id"]):x for x in (base.get("revisaoPendentesVSCS34") or {}).get("registros",[])}
-    audit={str(x["id"]):x for x in (base.get("rankingVSCS34Auditoria") or {}).get("sinais",[])}
-    by_account=Counter((x.get("contaId"),x.get("movimento")) for x in audit.values()
-                       if x.get("status")=="calculado" and x.get("movimento"))
+    # Ranking SQL é hipótese, não evidência causal. Preservar vínculos documentados.
+    planos=(base.get("revisaoHorizontesVSCS34") or {}).get("registros",{})
     revs=copy.deepcopy(original_revs)
     blocked=[]
     for sid,x in staged.items():
         status=x.get("status","")
         r=x.get("revisao") or {}
         if status.startswith("confirmado") and r.get("chave") and (r.get("base") or 0)>0:
-            patch={k:r[k] for k in ("chave","base","categoria","fonte_fator","data","vinculoAtual") if r.get(k) is not None}
+            patch={k:r[k] for k in ("chave","base","categoria","fonte_fator","data","vinculoAtual","horizontePlano","statusVaga","vinculoCausal") if r.get(k) is not None}
             if "fonte_fator" in patch: patch["fonte_nivel"]=nivel_por_fator(float(patch["fonte_fator"]))
             if status=="confirmado_parcial" and any(t in (r.get("nota") or "").lower() for t in ("não aplicar maturação","não comprova mandato","não ativar maturação")):
                 patch["vinculoAtual"]=False
@@ -55,16 +53,10 @@ def recalcular(base, hoje):
         for event in evs:
             e=copy.deepcopy(event)
             sid=str(e.get("id",""))
-            # O ranking de auditoria propõe vínculos; só materializar grupo quando
-            # o próprio registro estiver revisado como vinculado ou houver regra de auditoria explícita.
-            group=audit.get(sid,{}).get("movimento")
-            if group and by_account[(conta["id"],group)]>1:
-                e["movimentoId"]=group
-                e["vinculoCausal"]={"confirmado":True,"evidencia":"grupo da auditoria privada 3.4; validar antes da publicação"}
-                local_revs.setdefault(sid,{})["movimentoId"]=group
-            else:
-                e.pop("movimentoId",None)
-                local_revs.get(sid,{}).pop("movimentoId",None)
+            # Só revisões de horizonte confirmadas explicitamente podem alimentar o motor.
+            plano=planos.get(sid,{})
+            if plano.get("status")=="confirmado" and isinstance(plano.get("horizontePlano"),dict):
+                local_revs.setdefault(sid,{})["horizontePlano"]=plano["horizontePlano"]
             r=staged.get(sid,{}).get("revisao") or {}
             if r.get("vinculoConfirmadoEm"):
                 e["vinculoConfirmadoEm"]=r["vinculoConfirmadoEm"]
