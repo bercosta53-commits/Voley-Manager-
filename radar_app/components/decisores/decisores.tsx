@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { MenuFiltro } from '@/components/contas/menu-filtro';
 import { COR_BARRA, COR_PAPEL, PAPEIS, papelNoComite } from '@/lib/papeis';
 import { PerfilBase } from './perfil-base';
+import { ComitesPorConta } from './comites';
 import { mascararEmail, useApresentacao } from '@/components/ui/use-apresentacao';
 
 const AREAS: { id: Area; rotulo: string }[] = [
@@ -81,6 +82,8 @@ const POR_PAGINA = 50;
 export function TelaDecisores({ base }: { base: Base }) {
   const apresentacao = useApresentacao();
   const [texto, setTexto] = useState('');
+  // por conta (comitê com os três lugares) é a leitura padrão; pessoas é a lista completa com filtros e CSV
+  const [visao, setVisao] = useState<'conta' | 'pessoas'>('conta');
   const [areas, setAreas] = useState<Area[]>([]);
   const [papeis, setPapeis] = useState<PapelAbm[]>([]);
   const [niveis, setNiveis] = useState<('alta' | 'media' | 'baixa')[]>([]);
@@ -125,10 +128,45 @@ export function TelaDecisores({ base }: { base: Base }) {
               {semFiltro ? `${plural(pessoas.length, 'pessoa', 'pessoas')} em ${plural(base.contas.length, 'conta', 'contas')}` : `${linhas.length} de ${pessoas.length} pessoas`}
             </p>
           </div>
+          <div role="tablist" aria-label="Visão dos decisores" className="flex rounded-control border border-border bg-card p-0.5">
+            {(
+              [
+                ['conta', 'Por conta'],
+                ['pessoas', 'Pessoas'],
+              ] as const
+            ).map(([id, rotulo]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={visao === id}
+                onClick={() => setVisao(id)}
+                className={cn('h-8 rounded-control px-3 text-sm max-md:h-10', visao === id ? 'bg-foreground font-semibold text-background' : 'text-text-2 hover:text-foreground')}
+              >
+                {rotulo}
+              </button>
+            ))}
+          </div>
         </div>
 
         <PerfilBase base={base} papeisAtivos={papeis} onPapel={x => setPapeis(atual => (atual.length === 1 && atual[0] === x ? [] : [x]))} />
 
+        {visao === 'conta' ? (
+          <>
+            <label className="relative mb-3 flex min-w-0 items-center md:max-w-72">
+              <Search className="pointer-events-none absolute left-2.5 size-4 text-text-3" strokeWidth={1.5} />
+              <span className="sr-only">Buscar conta ou pessoa</span>
+              <input
+                value={texto}
+                onChange={e => setTexto(e.target.value)}
+                placeholder="Conta, nome ou cargo"
+                className="h-8 w-full rounded-control border border-input bg-card pr-3 pl-8 text-sm outline-none placeholder:text-text-3 max-md:h-10"
+              />
+            </label>
+            <ComitesPorConta contas={base.contas} busca={texto} />
+          </>
+        ) : (
+          <>
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <label className="relative flex min-w-0 flex-1 basis-full items-center md:max-w-72 md:basis-auto">
             <Search className="pointer-events-none absolute left-2.5 size-4 text-text-3" strokeWidth={1.5} />
@@ -268,6 +306,8 @@ export function TelaDecisores({ base }: { base: Base }) {
               </button>
             )}
           </div>
+        )}
+          </>
         )}
       </main>
     </Casca>
