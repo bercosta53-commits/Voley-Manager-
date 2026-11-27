@@ -127,10 +127,15 @@ export function textoVariacao(c: Pick<Conta, 'score' | 'tendencia'>): { curto: s
 }
 
 export type Forca = 'forte' | 'medio' | 'contexto';
-export const FORCA_ROTULO: Record<Forca, string> = { forte: 'forte', medio: 'médio', contexto: 'contexto' };
+export const FORCA_ROTULO: Record<Forca, string> = { forte: 'forte', medio: 'médio', contexto: 'complementar' };
 /** Força em 3 níveis, pelo nível do gatilho que o motor grava (A forte, B médio, C contexto). */
 export const forcaDe = (s: Pick<Sinal, 'nivel'>): Forca => (s.nivel === 'A' ? 'forte' : s.nivel === 'B' ? 'medio' : 'contexto');
 /** Contribuição sem a falsa precisão: inteiro com sinal. */
+/** O bloco é o fato comercial; a descrição da vaga original continua na evidência. */
+export const tituloSinal = (s: Sinal, conta: Pick<Conta, 'v2'>) => {
+  const c = conta.v2?.contribuicoes?.find(c => c.id === s.id);
+  return c?.chave === 'vaga_bloco' ? c.texto : s.sinal ?? s.porQueAgora;
+};
 export const pontosInteiros = (p: number) => {
   // sinal recém-coletado, ainda sem pontuação do VSCS: diz isso em vez de "+NaN"
   if (!Number.isFinite(p)) return 'a pontuar';
