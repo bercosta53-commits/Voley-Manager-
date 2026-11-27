@@ -3,7 +3,7 @@
 Pipeline por conta:
   1. classificação 3.2 (tabela de cargos, blocos de vagas) — motor32.classificar
   2. fonte pela taxonomia 3.3 (fontes.py) e tempo 3.3 (tempo.py): liderança NOMEADA na dupla janela;
-     vaga aberta, inclusive de liderança, no decaimento convencional
+     vaga aberta em curva contextual própria, sem contribuição ao VSCS
   3. documentos → acontecimentos (corroboração documental sobe a fonte) → movimentos (agrupar.py)
   4. intensidade do movimento: s_M = min(s₁ + teto, 100·[1 − (1 − s₁/100)·Π(1 − γ·s_k/100)])
   5. DC entre movimentos:
@@ -112,7 +112,7 @@ def vinculo_atual(ac: Acontecimento, conta: dict | None, hoje: date, rel: dict |
 
 
 def _tempo(ac: Acontecimento, hoje: date, p33: dict, conta: dict | None = None, rel: dict | None = None) -> tuple[float, str | None, str | None]:
-    """(fator, janela, maturação). Vaga e fatos em geral: decaimento convencional. Liderança nomeada: dupla janela
+    """(fator, janela, maturação). Vagas: decaimento contextual por cargo ou bloco; demais fatos: decaimento convencional. Liderança nomeada: dupla janela
     só com mandato de receita e, depois dos 90 dias, vínculo atual confirmado; senão, decaimento convencional."""
     dias = (hoje - ac.data).days
     if ac.cl.get("nomeacao"):
@@ -129,7 +129,9 @@ def _tempo(ac: Acontecimento, hoje: date, p33: dict, conta: dict | None = None, 
     antes = 30 if ac.cl["chave"].startswith(("presenca_", "palestra_")) else 0
     mv = p33.get("meia_vida_por_chave", {}).get(ac.cl["chave"])
     if ac.cl.get("vaga"):
-        mv = 15
+        cfg = p33.get("meia_vida_vagas_contextuais", {})
+        mv = cfg.get(ac.cl["chave"], cfg.get("padrao", 30))
+        # A força contextual descreve a intenção registrada; não confirma que a vaga permanece aberta.
     if mv is not None:
         fator = 0.0 if dias < 0 or dias > 3 * mv else 0.5 ** (dias / mv)
         return fator, None, None
@@ -312,7 +314,9 @@ def calcular(eventos: list[dict], hoje: date, empresa: str = "", interacoes: lis
             "acontecimentos": [{
                 "id": a.id, "chave": a.cl["chave"], "categoria": a.cl["categoria"], "base": a.cl["base"], "data": a.data.isoformat(),
                 "fonte": a.fonte_nivel, "fator_fonte": a.fonte_fator, "tempo": round(a.tempo, 4), "janela_lideranca": a.janela,
-                "maturacao": a.maturacao, "cargo": a.cl.get("cargo"), "revisado": bool(a.cl.get("revisado")),
+                "maturacao": a.maturacao, "cargo": a.cl.get("cargo"),
+                "vaga_contextual": a.cl.get("vaga", False),
+                "revalidar_vaga": bool(a.cl.get("vaga") and (hoje - a.data).days >= p33.get("meia_vida_vagas_contextuais", {}).get(a.cl["chave"], p33.get("meia_vida_vagas_contextuais", {}).get("padrao", 30))), "revisado": bool(a.cl.get("revisado")),
                 # só nota, fator e data: quem registrou fica na tabela privada
                 "relacionamento": ({k: a.relacionamento[k] for k in ("nota", "fator", "em", "rotulo")} if a.relacionamento else None),
                 "s": round(a.s, 2), "documentos": [d.id for d in a.docs], "superado_por": a.superado_por,
