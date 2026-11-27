@@ -130,9 +130,9 @@ function Mapa({rows,onSelect}:{rows:AnaliseAquisicao[];onSelect:(a:AnaliseAquisi
     </defs>
     <rect x={x0} y={y1} width={x1-x0} height={y0-y1} fill="url(#atlas-grid)" rx="3"/>
     <rect x={x0+(.34)*(x1-x0)} y={y1+(.10)*(y0-y1)} width={(x1-x0)*.42} height={(y0-y1)*.78} fill="var(--vr-ok-bg)" opacity=".24" stroke="var(--vr-ok)" strokeDasharray="5 5" strokeOpacity=".25"/>
-    {[0,25,50,75,100].map(v=><g key={v}><text x={x0+v/100*(x1-x0)} y={y0+22} fontSize="11" textAnchor="middle" fill="var(--vr-text-3)">{v}</text><text x={x0-14} y={y0-v/100*(y0-y1)+4} fontSize="11" textAnchor="end" fill="var(--vr-text-3)">{v}</text></g>)}
-    <text x={x0+15} y={y1+24} fontSize="11" fontWeight="600" fill="var(--vr-text-3)" opacity=".75">MENOS EVIDÊNCIA WEB OBSERVADA</text>
-    <text x={x1-15} y={y1+24} textAnchor="end" fontSize="11" fontWeight="600" fill="var(--vr-text-3)" opacity=".75">STACK MAIS OBSERVÁVEL</text>
+    {[0,25,50,75,100].map(v=><g key={v}><text x={x0+v/100*(x1-x0)} y={y0+22} fontSize="12" textAnchor="middle" fill="var(--vr-text-3)">{v}</text><text x={x0-14} y={y0-v/100*(y0-y1)+4} fontSize="12" textAnchor="end" fill="var(--vr-text-3)">{v}</text></g>)}
+    <text x={x0+15} y={y1+24} fontSize="12" fontWeight="600" fill="var(--vr-text-3)" opacity=".75">MENOS EVIDÊNCIA WEB OBSERVADA</text>
+    <text x={x1-15} y={y1+24} textAnchor="end" fontSize="12" fontWeight="600" fill="var(--vr-text-3)" opacity=".75">STACK MAIS OBSERVÁVEL</text>
     <text x={(x0+x1)/2} y="390" fontSize="12" textAnchor="middle" fill="var(--vr-text-2)">Instrumentação & eventos observáveis →</text>
     <text x="16" y={(y0+y1)/2} transform={'rotate(-90 16 '+(y0+y1)/2+')'} fontSize="12" textAnchor="middle" fill="var(--vr-text-2)">Ativação de mídia, captura & CRM web →</text>
     {sorted.map(a=>{const p=pos(a);const c=corNivel(a.nivel);const selected=hover===a.conta.id;return <g key={a.conta.id} onMouseEnter={()=>setHover(a.conta.id)} onMouseLeave={()=>setHover(null)} onFocus={()=>setHover(a.conta.id)} onBlur={()=>setHover(null)} onClick={()=>onSelect(a)} onKeyDown={e=>{if(e.key==='Enter')onSelect(a)}} role="button" tabIndex={0} aria-label={a.conta.name+', maturidade '+a.nivel} className="cursor-pointer">
@@ -142,7 +142,7 @@ function Mapa({rows,onSelect}:{rows:AnaliseAquisicao[];onSelect:(a:AnaliseAquisi
     {point&&active&&<g style={{pointerEvents:'none'}} transform={'translate('+(Math.min(point.x,630))+','+(Math.max(point.y-62,8))+')'}>
       <rect x="10" y="0" width="212" height="58" rx="6" fill="var(--vr-text)"/>
       <text x="20" y="20" fontSize="12" fontWeight="700" fill="var(--vr-bg)">{active.conta.name.slice(0,31)}</text>
-      <text x="20" y="40" fontSize="11" fill="var(--vr-bg)" opacity=".85">{active.nivel?'L'+active.nivel+' · '+NIVEL_LABEL[active.nivel]:'Sem classificação'}</text>
+      <text x="20" y="40" fontSize="12" fill="var(--vr-bg)" opacity=".85">{active.nivel?'L'+active.nivel+' · '+NIVEL_LABEL[active.nivel]:'Sem classificação'}</text>
      </g>}
    </svg>
   </div>

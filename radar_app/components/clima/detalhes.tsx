@@ -136,7 +136,7 @@ export function LinhaTempoClima({ clima, periodo, onPeriodo }: { clima: Clima; p
             .map(m => (
               <g key={m.rotulo}>
                 <line x1={xSemana(m.semanasAtras)} y1={18} x2={xSemana(m.semanasAtras)} y2={26 + linhas.length * 22} stroke="var(--vr-cool)" strokeOpacity={0.7} strokeDasharray="3 3" />
-                <text x={xSemana(m.semanasAtras)} y={12} textAnchor="middle" className="vr-data text-[11px]" fill="var(--vr-cool)">
+                <text x={xSemana(m.semanasAtras)} y={12} textAnchor="middle" className="vr-data text-xs" fill="var(--vr-cool)">
                   {m.rotulo}
                 </text>
               </g>

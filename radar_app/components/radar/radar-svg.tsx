@@ -248,7 +248,7 @@ export function RadarSvg({
                 <line x1={0} y1={0} x2={leaderFimX} y2={leaderFimY} stroke="var(--vr-border-strong)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
                 {/* só o texto é contraescalado, ancorado na ponta da linha, pra não virar gigante no zoom */}
                 <g transform={`translate(${leaderFimX} ${leaderFimY}) scale(${contraescala})`}>
-                  <text x={dirX * 4} y={dirY * 4} textAnchor={labelAnchor} dominantBaseline="middle" className="fill-text-2 text-[9px] font-medium">
+                  <text x={dirX * 4} y={dirY * 4} textAnchor={labelAnchor} dominantBaseline="middle" className="fill-text-2 text-xs font-medium">
                     {p.nome.length > 20 ? p.nome.slice(0, 19) + '…' : p.nome}
                   </text>
                 </g>
@@ -342,7 +342,7 @@ export function RadarSvg({
             const anchor = 'middle';
             return (
               <g key={b.id} transform={`translate(${baseX} ${baseY}) scale(${contraescala})`}>
-                <text textAnchor={anchor} dominantBaseline="middle" className="fill-text-3 text-[11px] font-semibold uppercase" style={{ letterSpacing: '0.06em' }}>
+                <text textAnchor={anchor} dominantBaseline="middle" className="fill-text-3 text-xs font-semibold uppercase" style={{ letterSpacing: '0.06em' }}>
                   {b.rotuloCurto}
                 </text>
               </g>
@@ -351,7 +351,7 @@ export function RadarSvg({
 
           {/* contador discreto no topo do anel central — o texto cheio já está no cartão acima do radar */}
           <g transform={`translate(${CENTRO} ${CENTRO - BANDA_ANEL[1][1] + 16}) scale(${contraescala})`}>
-            <text textAnchor="middle" className="fill-ok text-[10px] font-semibold uppercase" style={{ letterSpacing: '0.05em' }}>
+            <text textAnchor="middle" className="fill-ok text-xs font-semibold uppercase" style={{ letterSpacing: '0.05em' }}>
               Zona de ativação
             </text>
           </g>

@@ -81,7 +81,7 @@ export function TelaIcp({ base, regras }: { base: Base; regras: RegrasIcp }) {
                     <text x={w + 8} y={y + 16} className="vr-data fill-foreground text-[13px] font-semibold">
                       {f.n}
                     </text>
-                    <text x={556} y={y + 16} textAnchor="end" className="vr-data text-[11px]" fill={forte ? 'var(--vr-risk)' : 'var(--vr-text-3)'}>
+                    <text x={556} y={y + 16} textAnchor="end" className="vr-data text-xs" fill={forte ? 'var(--vr-risk)' : 'var(--vr-text-3)'}>
                       {queda}
                     </text>
                   </g>
