@@ -15,3 +15,14 @@ jobs:
         run: |
           python3 -m compileall -q vscs
           python3 -m unittest -v test_vscs34_candidate
+      - name: Package validated public motor source
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscs34-source
+          path: |
+            radar_app/scripts/vscs/*.py
+            radar_app/scripts/vscs/*.json
+            radar_app/scripts/score_v2.py
+            radar_app/scripts/test_vscs34_candidate.py
+          retention-days: 2
+          if-no-files-found: error
