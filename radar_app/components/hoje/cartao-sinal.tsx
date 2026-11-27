@@ -2,7 +2,7 @@
 
 import { forwardRef } from 'react';
 import { motion, useMotionValue, useReducedMotion, useTransform, type PanInfo } from 'motion/react';
-import { Archive, CalendarClock, Send, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { Archive, CalendarClock, CalendarDays, Send, Target, ThumbsDown, ThumbsUp, UserRound } from 'lucide-react';
 import type { Conta, EstadoSinal, Sinal } from '@/lib/tipos';
 import { cn, dataCurta, diasEntre, quando, pontos, seDiferente } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -256,42 +256,56 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
               {vaga?.vaga_aberta && <Chip tom="neutro">{vaga.revalidar_vaga ? 'Vaga · revalidar seleção' : 'Vaga · seleção anunciada'}</Chip>}
 
             </div>
-            <div className="flex items-baseline gap-2">
-              <p className="text-xl font-semibold leading-snug tracking-tight text-foreground">{titulo}</p>
-              <span
-                  className={cn(
-                    'vr-data shrink-0 rounded-chip px-1.5 py-0.5 text-xs font-semibold',
-                    !Number.isFinite(sinal.pontos) ? 'bg-secondary font-medium text-text-3' : sinal.pontos < 0 ? 'bg-risk-bg text-risk' : 'bg-warm-bg text-warm',
-                  )}
-                  title={Number.isFinite(sinal.pontos) ? "Contribuição individual ao VSCS da conta" : 'Sinal recém-coletado: o motor do VSCS ainda não calculou quanto ele soma'}
-                >
-                  {pontosInteiros(sinal.pontos)}
-                </span>
-            </div>
-            {sinal.sinal && <p className="-mt-1.5 line-clamp-2 text-sm text-text-2">{sinal.porQueAgora}</p>}
-
-            <dl className="grid gap-1.5 text-sm">
-              <div className="flex flex-wrap items-center gap-x-1.5">
-                <dt className="sr-only">Evidência</dt>
-                <dd className="flex flex-wrap items-center gap-x-1.5 text-text-3">
-                  <time dateTime={sinal.data} className="vr-data text-xs text-text-2">
+            {/* título do sinal à esquerda; a força dele (pontos no VSCS) em destaque à direita */}
+            <div className="flex items-start gap-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-xl leading-snug font-semibold tracking-tight text-foreground">{titulo}</p>
+                {sinal.sinal && <p className="mt-1.5 line-clamp-3 text-sm text-text-2">{sinal.porQueAgora}</p>}
+                <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-text-3">
+                  <CalendarDays aria-hidden className="size-3.5" strokeWidth={1.5} />
+                  <time dateTime={sinal.data} className="vr-data text-text-2">
                     {quando(sinal.data, hoje)}
                   </time>
                   ·
                   <Evidencia className="contents" fonte={sinal.fonte} url={sinal.url} fontes={sinal.fontes} coletadoEm={sinal.coletadoEm} confianca={sinal.confianca} pararPropagacao />
-                </dd>
+                </p>
               </div>
-              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                <dt className="text-text-3">Falar com</dt>
-                <dd className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
+              <div
+                className={cn(
+                  'flex shrink-0 flex-col items-center rounded-control px-3 py-2 text-center',
+                  !Number.isFinite(sinal.pontos) ? 'bg-secondary text-text-3' : sinal.pontos < 0 ? 'bg-risk-bg text-risk' : 'bg-warm-bg text-warm',
+                )}
+                title={Number.isFinite(sinal.pontos) ? 'Contribuição individual ao VSCS da conta' : 'Sinal recém-coletado: o motor do VSCS ainda não calculou quanto ele soma'}
+              >
+                <span className={cn('vr-data leading-none font-semibold', Number.isFinite(sinal.pontos) ? 'text-2xl' : 'text-sm')}>{pontosInteiros(sinal.pontos)}</span>
+                <span className="mt-1 text-xs">{Number.isFinite(sinal.pontos) ? 'no VSCS' : 'ainda sem pontos'}</span>
+              </div>
+            </div>
+
+            {/* o que fazer com o sinal: dois blocos com título e ícone, para ler sem decifrar texto corrido */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <section className="rounded-control border border-border bg-[var(--vr-surface-2)]/60 p-3">
+                <h3 className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-text-3 uppercase">
+                  <UserRound aria-hidden className="size-3.5" strokeWidth={1.75} /> Com quem falar
+                </h3>
+                <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
                   <span className="min-w-0">{quem}</span>
-                  {papelContato && (
-                    <span className={cn('rounded-chip px-1.5 py-0.5 text-xs font-medium', COR_PAPEL[papelContato])}>{rotuloPapel(papelContato)}</span>
+                  {papelContato && <span className={cn('rounded-chip px-1.5 py-0.5 text-xs font-medium', COR_PAPEL[papelContato])}>{rotuloPapel(papelContato)}</span>}
+                </div>
+              </section>
+              <section className="rounded-control border border-border bg-[var(--vr-surface-2)]/60 p-3">
+                <h3 className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-text-3 uppercase">
+                  <Target aria-hidden className="size-3.5" strokeWidth={1.75} /> Oportunidade Velora
+                </h3>
+                <div className="mt-1.5">
+                  {conta.v2?.contribuicoes?.some(c => c.id === sinal.id && c.janela_lideranca === 'implementacao') ? (
+                    <p className="text-sm text-foreground">Janela de implementação: validar prioridades, orçamento e gargalos atuais de execução do plano de receita.</p>
+                  ) : (
+                    <OportunidadeVelora sinal={sinal} ativacao={playbook} conteudoApenas />
                   )}
-                </dd>
-              </div>
-              {conta.v2?.contribuicoes?.some(c => c.id === sinal.id && c.janela_lideranca === 'implementacao') ? <div><dt className="text-text-3">Oportunidade Velora</dt><dd>Janela de implementação: validar prioridades, orçamento e gargalos atuais de execução do plano de receita.</dd></div> : <OportunidadeVelora sinal={sinal} ativacao={playbook} />}
-            </dl>
+                </div>
+              </section>
+            </div>
             {/* no modo apresentação a nota sai da tela: ela recalcula o score só neste navegador */}
             {onAvaliar && !apresentacao && <SeletorRelevancia valor={estado?.relevancia} onMudar={onAvaliar} />}
           </div>
@@ -299,7 +313,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
           {/* o score da conta no tempo, com cada sinal marcado na data em que aconteceu */}
           <div className="min-w-0 rounded-control border border-border bg-background/40 p-3">
             <p className="mb-1 flex items-center justify-between text-xs text-text-3">
-              <span className="font-medium text-text-2">{comGrafico ? (historico180 ? 'Temperatura comercial · 180 dias' : 'Impacto atual dos sinais · 180 dias') : 'O que somou ao score'}</span>
+              <span className="text-xs font-semibold tracking-wider text-text-3 uppercase">{comGrafico ? (historico180 ? 'Temperatura comercial · 180 dias' : 'Impacto atual dos sinais · 180 dias') : 'O que somou ao score'}</span>
               {comGrafico && <span>{historico180 ? (conta.serie180?.metodo === 'movimentos_registrados' ? 'estimativa dos movimentos registrados' : 'reconstruído · cada ponto é um sinal') : 'sem série histórica de score'}</span>}
             </p>
             {comGrafico ? (
