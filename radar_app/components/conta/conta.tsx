@@ -30,6 +30,8 @@ import { BlocoPlaybook } from '@/components/hoje/playbook';
 import { Comite } from './comite';
 import { LinhaDoTempo } from './linha-do-tempo';
 import { NarrativaConta } from './narrativa';
+import { RadarConta } from './radar-conta';
+import type { LinhaTransporte } from '@/lib/prioridade-transporte';
 import { Decomposicao } from './decomposicao';
 import { useHoje } from '@/components/ui/use-agora';
 import { Rotulo } from '@/components/ui/rotulo';
@@ -40,7 +42,7 @@ type EstadoTela = 'normal' | 'carregando' | 'vazio' | 'erro' | 'sem-permissao';
 const ESTADOS: EstadoTela[] = ['carregando', 'vazio', 'erro', 'sem-permissao'];
 
 /** S-1: a tela da conta recebe a conta e os sinais dela, mais o índice leve da casca; nunca o snapshot inteiro. */
-export type BaseConta = BaseCasca & { conta?: Conta; sinaisDaConta: Sinal[]; varreduraDaConta?: Record<string, Varredura> };
+export type BaseConta = BaseCasca & { conta?: Conta; sinaisDaConta: Sinal[]; varreduraDaConta?: Record<string, Varredura>; linhaRadar?: LinhaTransporte };
 
 export function TelaConta({ base, contaId }: { base: BaseConta; contaId: string }) {
   const [estadoTela, setEstadoTela] = useState<EstadoTela>('normal');
@@ -96,6 +98,7 @@ export function TelaConta({ base, contaId }: { base: BaseConta; contaId: string 
         onAndamento={st => salvarStatus(conta.id, st)}
         varredura={base.varreduraDaConta}
         dataBase={base.geradoEm.slice(0, 10)}
+        linhaRadar={base.linhaRadar}
         playbook={detectarPlaybook(sinais.filter(s => s.tipo !== 'noticia_setorial'), (base.atualizadoEm ?? base.geradoEm).slice(0, 10)) ?? undefined}
       />
     );
@@ -125,6 +128,7 @@ function Detalhe({
   playbook,
   varredura,
   dataBase,
+  linhaRadar,
 }: {
   conta: Conta;
   sinais: Sinal[];
@@ -140,6 +144,8 @@ function Detalhe({
   varredura?: Record<string, Varredura>;
   /** data da carga (AAAA-MM-DD): referência da cobertura */
   dataBase?: string;
+  /** as quatro dimensões da prioridade integrada, calculadas no servidor como no Radar */
+  linhaRadar?: LinhaTransporte;
 }) {
   const [decompor, setDecompor] = useState(false);
   const tese = useMemo(
@@ -191,6 +197,7 @@ function Detalhe({
             <ProximaAcao conta={conta} sinais={sinais} estados={estados} hoje={hoje} onMudar={onMudar} andamento={andamento} />
           </div>
           {playbook && <BlocoPlaybook ativacao={playbook} conta={conta} className="mt-0" />}
+          {linhaRadar && <RadarConta linha={linhaRadar} />}
           <NarrativaConta contaId={conta.id} sinais={sinais} historico={conta.historico} hoje={hoje} />
           <LinhaDoTempo conta={conta} sinais={sinais} estados={estados} hoje={hoje} andamento={andamento} />
         </div>

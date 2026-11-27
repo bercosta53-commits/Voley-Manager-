@@ -325,7 +325,7 @@ try {
   await pagina.locator('main table tbody tr').first().getByRole('button').first().click();
   const painel = pagina.locator('aside[aria-labelledby="painel-conta-titulo"]');
   await painel.waitFor();
-  conferir((await painel.getByRole('img', { name: /Losango das quatro dimensões/ }).count()) === 1 && (await painel.innerText()).includes('Clima do setor'), 'painel da conta abre com o losango e as quatro dimensões');
+  conferir((await painel.getByRole('img', { name: /Radar das quatro dimensões/ }).count()) === 1 && (await painel.innerText()).includes('Clima do setor'), 'painel da conta abre com o losango e as quatro dimensões');
   await painel.getByRole('button', { name: 'Fechar o painel' }).click();
   await pagina.getByRole('combobox', { name: 'Buscar empresa ou setor' }).fill('');
   await pagina.waitForTimeout(300);
