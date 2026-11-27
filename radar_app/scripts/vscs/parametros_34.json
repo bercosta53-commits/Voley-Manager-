@@ -170,7 +170,28 @@
     "aquisicao_feita": 180,
     "fusao": 180
   },
-  "meia_vida_vagas_contextuais": {
+  "vagas_abertas": {
+    "base_maxima_por_chave": {
+      "padrao": 10,
+      "vaga_sdr_bdr": 10,
+      "vaga_especialista_gtm": 18,
+      "vaga_coordenacao": 22,
+      "vaga_gerencia": 28,
+      "vaga_head": 32,
+      "vaga_diretoria_receita": 36,
+      "vaga_clevel_receita": 40
+    },
+    "blocos": {
+      "duas": 22,
+      "tres_a_quatro": 30,
+      "cinco_ou_mais": 40
+    },
+    "fator_isolado": 0.85,
+    "fator_complementar": 0.35,
+    "teto_complementar": 12,
+    "teto_sem_fato_material": 34
+  },
+  "meia_vida_vagas_abertas": {
     "padrao": 30,
     "vaga_sdr_bdr": 30,
     "vaga_especialista_gtm": 45,
