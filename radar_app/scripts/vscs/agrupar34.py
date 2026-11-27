@@ -115,6 +115,9 @@ def acontecimentos(docs: list[Documento], janela_dias: int, janela_longa: int = 
         alvo = None
         for g in grupos:
             r = g[0]
+            # Uma vaga não é o mesmo acontecimento que uma posse, mesmo com URL/grupo comum.
+            if bool(d.cl.get("vaga")) != bool(r.cl.get("vaga")):
+                continue
             if d.ev.get("acontecimentoId") and d.ev.get("acontecimentoId") == r.ev.get("acontecimentoId"):
                 alvo = g
                 break
@@ -180,7 +183,7 @@ def movimentos(acs: list[Acontecimento], empresa: str, janela_dias: int) -> tupl
             # sinal negativo nunca entra num movimento positivo: a penalidade não pode sumir dentro de um grupo
             if (a.cl["categoria"] == "negativo") != (b.cl["categoria"] == "negativo"):
                 continue
-            if "vaga_contextual" in (a.cl["categoria"], b.cl["categoria"]):
+            if "vaga_aberta" in (a.cl["categoria"], b.cl["categoria"]):
                 continue
             if ea.get("movimentoId") and ea.get("movimentoId") == eb.get("movimentoId"):
                 # ID comum sozinho não prova causalidade. Exigir evidência explícita revisada para ambos.
