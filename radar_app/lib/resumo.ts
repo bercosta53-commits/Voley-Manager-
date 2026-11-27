@@ -1,3 +1,4 @@
+import { pontosDe } from './utils';
 import type { Base, EstadoSinal, Sinal } from './tipos';
 import type { StatusConta } from './acoes';
 import { frescor, rotuloCarga, rotuloIdade } from './frescor';
@@ -73,7 +74,7 @@ export function resumoDiario(
     .filter(([id]) => contas.has(id))
     .map(([id, ss]): ItemResumo => {
       const c = contas.get(id)!;
-      const forte = [...ss].sort((a, b) => b.pontos - a.pontos)[0]!;
+      const forte = [...ss].sort((a, b) => pontosDe(b.pontos) - pontosDe(a.pontos))[0]!;
       return {
         contaId: id,
         nome: c.nome,

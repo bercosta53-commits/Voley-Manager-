@@ -96,3 +96,13 @@ test('filtro de playbook: nome exato ou "Qualquer playbook"; conta sem playbook 
   const { playbooks: _, ...antigo } = SEM_FILTROS_CAIXA;
   assert.equal(filtrarCaixa(l, antigo, contas, CARGA).length, 3);
 });
+
+test('sinal sem pontuação ainda: "a pontuar" e fim da ordem por força, nunca NaN', async () => {
+  const { pontosInteiros, ordenarCaixa } = await import('../../lib/caixa.ts');
+  assert.equal(pontosInteiros(undefined), 'a pontuar');
+  assert.equal(pontosInteiros(NaN), 'a pontuar');
+  assert.equal(pontosInteiros(12.4), '+12');
+  const s = (id, pontos) => ({ id, contaId: 'c', data: '2026-11-20', pontos });
+  const ordem = ordenarCaixa([s('x', undefined), s('a', 10), s('b', 30)], 'forca', new Map()).map(x => x.id);
+  assert.deepEqual(ordem, ['b', 'a', 'x']);
+});

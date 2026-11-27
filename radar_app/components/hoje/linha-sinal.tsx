@@ -56,7 +56,7 @@ export const LinhaSinal = forwardRef<HTMLButtonElement, { sinal: Sinal; conta: C
                 </span>
               )}
               {!negativo && <BarraForca forca={forcaDe(sinal)} className="ml-auto shrink-0" />}
-              <span className={cn('vr-data shrink-0 font-semibold', negativo && 'ml-auto', negativo || sinal.pontos < 0 ? 'text-risk' : sinal.pontos > 0 ? 'text-warm' : 'text-text-3')}>
+              <span className={cn('vr-data shrink-0 font-semibold', negativo && 'ml-auto', negativo || sinal.pontos < 0 ? 'text-risk' : sinal.pontos > 0 ? 'text-warm' : 'text-xs font-medium text-text-3')}>
                 {pontosInteiros(sinal.pontos)}
               </span>
             </span>

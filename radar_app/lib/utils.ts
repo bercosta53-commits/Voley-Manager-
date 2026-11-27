@@ -48,6 +48,10 @@ export const iniciais = (nome: string) =>
 
 /** Score na tela: inteiro. O valor gravado pelo motor pode ter casas decimais e é usado exato em filtros e faixas. */
 export const pontos = (n: number) => (Number.isFinite(n) ? Math.round(n) : n);
+/** Pontos do sinal para conta e ordenação: sinal ainda não pontuado pelo VSCS (sem número) vale 0, nunca NaN. */
+export const pontosDe = (p: unknown) => (typeof p === 'number' && Number.isFinite(p) ? p : 0);
+/** O sinal já foi pontuado pelo motor? */
+export const pontuado = (p: unknown) => typeof p === 'number' && Number.isFinite(p);
 
 export const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 

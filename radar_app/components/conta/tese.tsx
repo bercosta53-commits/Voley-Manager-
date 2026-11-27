@@ -81,9 +81,13 @@ export function TeseConta({ tese, nomeConta, semAcaoDoTime = false }: { tese: Te
                 <Chip className="vr-data">
                   {dataCurta(agora.sinal.data)} · {agora.dias === 0 ? 'hoje' : `há ${plural(agora.dias, 'dia', 'dias')}`}
                 </Chip>
-                <Chip tom="quente" peso="forte" className="vr-data">
-                  +{pontos(agora.sinal.pontos)} no VSCS
-                </Chip>
+                {Number.isFinite(agora.sinal.pontos) ? (
+                  <Chip tom="quente" peso="forte" className="vr-data">
+                    +{pontos(agora.sinal.pontos)} no VSCS
+                  </Chip>
+                ) : (
+                  <Chip>a pontuar no VSCS</Chip>
+                )}
                 {agora.estagio && (
                   <Chip tom="livre" peso="medio" className={COR_STATUS_VSCS[agora.estagio]}>
                     {agora.estagio}
