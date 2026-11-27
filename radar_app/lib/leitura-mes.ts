@@ -3,6 +3,7 @@
  * anteriores. Soma só fatos registrados (sem exemplo, sem notícia setorial, sem contexto) e devolve os fatos
  * que sustentam cada número. Função pura; testes em scripts/tests/leitura-mes.test.mjs.
  */
+import { pontosDe } from './utils';
 import { temaDoFato, TEMAS, type Tema } from './narrativa';
 import { TEMAS_MERCADO, SEM_GRUPO, type ContaMercado } from './mercado';
 
@@ -108,10 +109,10 @@ export function leituraDoMes<F extends FatoMes>(contas: ContaMes[], fatos: F[], 
   for (const x of atual) porConta.set(x.conta.id, [...(porConta.get(x.conta.id) ?? []), x]);
   const candidatos = [...porConta.values()]
     .map(l => {
-      const [p] = [...l].sort((a, b) => (b.fato.pontos ?? 0) - (a.fato.pontos ?? 0) || dia(b.fato.data).localeCompare(dia(a.fato.data)));
+      const [p] = [...l].sort((a, b) => pontosDe(b.fato.pontos) - pontosDe(a.fato.pontos) || dia(b.fato.data).localeCompare(dia(a.fato.data)));
       return { ...p!, outros: l.length - 1 };
     })
-    .sort((a, b) => Number(tierAB(b.conta)) - Number(tierAB(a.conta)) || (b.fato.pontos ?? 0) - (a.fato.pontos ?? 0) || b.outros - a.outros || dia(b.fato.data).localeCompare(dia(a.fato.data)));
+    .sort((a, b) => Number(tierAB(b.conta)) - Number(tierAB(a.conta)) || pontosDe(b.fato.pontos) - pontosDe(a.fato.pontos) || b.outros - a.outros || dia(b.fato.data).localeCompare(dia(a.fato.data)));
   // variedade: primeiro o melhor de cada tema, depois completa pela ordem de peso
   const limite = opcoes.principais ?? 5;
   const principais: MovimentoPrincipal<F>[] = [];

@@ -103,6 +103,8 @@ export const FORCA_ROTULO: Record<Forca, string> = { forte: 'forte', medio: 'mé
 export const forcaDe = (s: Pick<Sinal, 'nivel'>): Forca => (s.nivel === 'A' ? 'forte' : s.nivel === 'B' ? 'medio' : 'contexto');
 /** Contribuição sem a falsa precisão: inteiro com sinal. */
 export const pontosInteiros = (p: number) => {
+  // sinal recém-coletado, ainda sem pontuação do VSCS: diz isso em vez de "+NaN"
+  if (!Number.isFinite(p)) return 'a pontuar';
   const n = Math.round(p);
   return n < 0 ? `−${Math.abs(n)}` : `+${n}`;
 };
@@ -126,12 +128,14 @@ export function ordenarCaixa(lista: Sinal[], ordem: Ordem, contas: Map<string, P
   const valor = (s: Sinal): number => {
     const c = contas.get(s.contaId);
     if (ordem === 'aceleracao') return c ? (variacao(c) ?? 0) : 0;
-    if (ordem === 'forca') return s.pontos;
+    // sem pontuação ainda: vai para o fim da ordem por força
+    if (ordem === 'forca') return Number.isFinite(s.pontos) ? s.pontos : -1e6;
     if (ordem === 'recente') return dia(s.data);
     if (ordem === 'score') return c?.score ?? 0;
     return -((TIER[c?.tier ?? ''] ?? 3) * 1000) + (c?.score ?? 0); // tier A antes, depois score
   };
-  return [...lista].sort((a, b) => valor(b) - valor(a) || b.data.localeCompare(a.data) || a.id.localeCompare(b.id));
+  const v = (s: Sinal) => (Number.isFinite(valor(s)) ? valor(s) : -1e6);
+  return [...lista].sort((a, b) => v(b) - v(a) || b.data.localeCompare(a.data) || a.id.localeCompare(b.id));
 }
 
 // ---------------------------------------------------------------- filtros e contadores

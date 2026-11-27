@@ -4,6 +4,7 @@
  * que se repetem nas contas. Só conta fatos registrados e sempre devolve os fatos que sustentam cada número.
  * Função pura; testes em scripts/tests/mercado.test.mjs.
  */
+import { pontosDe } from './utils';
 import { temaDoFato, TEMAS, type Tema } from './narrativa';
 
 export type Eixo = 'familia' | 'ramo' | 'vertical';
@@ -119,7 +120,7 @@ export function leituraMercado<F extends FatoMercado>(contas: ContaMercado[], fa
   const total = naJanela.length;
   for (const g of grupos.values()) {
     g.contasComMovimento = new Set(g.fatos.map(x => x.conta.id)).size;
-    g.fatos.sort((a, b) => dia(b.fato.data).localeCompare(dia(a.fato.data)) || (b.fato.pontos ?? 0) - (a.fato.pontos ?? 0));
+    g.fatos.sort((a, b) => dia(b.fato.data).localeCompare(dia(a.fato.data)) || pontosDe(b.fato.pontos) - pontosDe(a.fato.pontos));
     let melhor: GrupoMercado['destaque'];
     for (const t of TEMAS_MERCADO) {
       const n = g.porTema[t];

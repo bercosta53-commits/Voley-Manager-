@@ -1,3 +1,4 @@
+import { pontosDe } from './utils';
 import type { Conta, Pessoa, Sinal } from './tipos';
 import { rotuloPapel, papelNoComite, faltandoNoComite } from './papeis';
 import { contatoBloqueado, rotuloValidacao } from './tese';
@@ -90,7 +91,7 @@ export function montarBriefing(conta: Conta, sinais: Sinal[], opcoes: { dataCarg
   const hoje = dia(opcoes.dataCarga);
   const fatos: Linha[] = sinais
     .filter(s => s.tipo !== 'noticia_setorial' && s.fonte && hoje - dia(s.data) >= 0 && hoje - dia(s.data) <= DIAS_FATOS)
-    .sort((a, b) => b.data.localeCompare(a.data) || b.pontos - a.pontos)
+    .sort((a, b) => b.data.localeCompare(a.data) || pontosDe(b.pontos) - pontosDe(a.pontos))
     .slice(0, MAX_FATOS)
     .map(s => {
       const todas = s.fontes?.length ? s.fontes : [{ fonte: s.fonte, url: s.url, data: s.data }];
@@ -135,7 +136,7 @@ export function montarBriefing(conta: Conta, sinais: Sinal[], opcoes: { dataCarg
 
   // 5. roteiro: recomendação do Radar
   const pb = opcoes.playbook ?? null;
-  const principal = [...sinais].filter(s => s.categoria !== 'negativo' && s.tipo !== 'noticia_setorial').sort((a, b) => b.pontos - a.pontos)[0];
+  const principal = [...sinais].filter(s => s.categoria !== 'negativo' && s.tipo !== 'noticia_setorial').sort((a, b) => pontosDe(b.pontos) - pontosDe(a.pontos))[0];
   const isolada = !pb && principal ? oportunidadeDe(principal) : null;
   const roteiro: Briefing['roteiro'] = pb
     ? {

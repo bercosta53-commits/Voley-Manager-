@@ -107,14 +107,14 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
   const contato = conta.comite.find(p => p.nome === sinal.abordar.nome);
   const papelContato = contato && papelNoComite(contato);
   // eventos do gráfico: cada acontecimento que conta no VSCS, com o que somou ao score + o sinal deste cartão
-  const eventos: EventoGrafico[] = (conta.v2?.contribuicoes ?? []).map(c => ({
+  const eventos: EventoGrafico[] = (conta.v2?.contribuicoes ?? []).filter(c => Number.isFinite(c.pontos)).map(c => ({
     data: c.data,
     pontos: Math.round(c.pontos),
     rotulo: c.texto,
     nivel: c.nivel,
     atual: c.id === sinal.id || (c.data === sinal.data && c.texto === (sinal.sinal ?? sinal.porQueAgora)),
   }));
-  if (!eventos.some(e => e.atual) && sinal.nivel)
+  if (!eventos.some(e => e.atual) && sinal.nivel && Number.isFinite(sinal.pontos))
     eventos.push({ data: sinal.data, pontos: Math.round(sinal.pontos), rotulo: sinal.sinal ?? sinal.porQueAgora, nivel: sinal.nivel, atual: true });
 
   // com 1 ou 2 fatos o gráfico fica quase vazio; mantém quando há playbook, que marca o dia em que ativou
@@ -251,8 +251,9 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
               <span
                   className={cn(
                     'vr-data shrink-0 rounded-chip px-1.5 py-0.5 text-xs font-semibold',
-                    sinal.pontos < 0 ? 'bg-risk-bg text-risk' : 'bg-warm-bg text-warm',
+                    !Number.isFinite(sinal.pontos) ? 'bg-secondary font-medium text-text-3' : sinal.pontos < 0 ? 'bg-risk-bg text-risk' : 'bg-warm-bg text-warm',
                   )}
+                  title={Number.isFinite(sinal.pontos) ? undefined : 'Sinal recém-coletado: o motor do VSCS ainda não calculou quanto ele soma'}
                 >
                   {pontosInteiros(sinal.pontos)}
                 </span>

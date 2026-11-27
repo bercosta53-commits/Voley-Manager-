@@ -1,3 +1,4 @@
+import { pontosDe } from './utils';
 import type { Conta, PapelAbm, Pessoa, Sinal, StatusVscs } from './tipos';
 import type { StatusConta } from './acoes';
 
@@ -108,7 +109,7 @@ const normal = (t: string) => t.normalize('NFD').replace(/\p{Diacritic}/gu, '').
 export function teseDaConta(conta: Conta, sinais: Sinal[], dep: DependenciasTese): Tese {
   const hoje = dia(dep.hoje);
   const acionaveis = sinais.filter(s => s.tipo !== 'noticia_setorial');
-  const abertos = acionaveis.filter(dep.aberto).sort((a, b) => b.pontos - a.pontos || b.data.localeCompare(a.data));
+  const abertos = acionaveis.filter(dep.aberto).sort((a, b) => pontosDe(b.pontos) - pontosDe(a.pontos) || b.data.localeCompare(a.data));
   const principal = abertos[0];
 
   const motivos = conta.icp?.motivos ?? [];
