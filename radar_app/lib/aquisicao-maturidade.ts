@@ -5,7 +5,8 @@ import {avaliarCrm, type ProvaCRM, type AvaliacaoCRM} from './crm-profundidade';
  * Ausência em um crawl nunca demonstra ausência operacional.
  */
 export type EstadoTecnico = 'network'|'html'|'request'|'not_observed'|'not_tested';
-export type NivelMaturidade = 0|1|2|3|4|5;
+/** 0 = inconclusiva; L1–L4 observáveis no site. A integração com receita é um selo à parte (integracaoValidada). */
+export type NivelMaturidade = 0|1|2|3|4;
 export type Confianca = 'adequada'|'parcial'|'insuficiente';
 
 export interface ContaAquisicao {
@@ -34,8 +35,10 @@ export interface AnaliseAquisicao {
  dimensoes:Dimensoes;familias:number;indicios:string[];
  hipotese:string;proximoTeste:string;indiceObservavel:number;
  x:number;y:number;foco:boolean;
+ /** L4 observável: stack multicanal completo no site (o nome do campo é mantido por compatibilidade) */
  potencialL4:boolean;potencialL4ComEvento:boolean;
- maturidadeConfirmada:boolean;qualidadeEvidencia:number;
+ /** selo à parte: CRM, pipeline, atribuição e governança verificados por fonte interna */
+ maturidadeConfirmada:boolean;integracaoValidada:boolean;otimizacaoValidada:boolean;qualidadeEvidencia:number;
  atratividadeVelora:number;requisitosPendentes:string[];
  caracterizacaoNivel:string;
  crm:AvaliacaoCRM;
@@ -44,8 +47,7 @@ export const NIVEIS = [
  {nivel:1,curto:'L1',titulo:'Presença inicial',sub:'Sinais pontuais',descricao:'Site e pontos de contato, com pouca instrumentação observável. Requer descoberta, não diagnóstico de ausência.',cor:'#88929c'},
  {nivel:2,curto:'L2',titulo:'Aquisição emergente',sub:'Canais em funcionamento',descricao:'Mensuração e captação ou mídia com sinais concretos, mas sem comprovação pública de operação integrada.',cor:'#be8758'},
  {nivel:3,curto:'L3',titulo:'Operação estruturada',sub:'Aquisição multicanal',descricao:'Várias capacidades de instrumentação, ativação ou automação observáveis. Não comprova integração entre Marketing e Vendas.',cor:'#596b58'},
- {nivel:4,curto:'L4',titulo:'Integrada por dados',sub:'Integração verificada',descricao:'Somente após validação autorizada de CRM, pipeline, atribuição e governança. Sem essa validação, exibe-se potencial L4.',cor:'#697997'},
- {nivel:5,curto:'L5',titulo:'Otimização contínua',sub:'Crescimento experimental',descricao:'Requer evidências de experimentação, incrementabilidade e otimização orientada a resultados.',cor:'#635d81'}
+ {nivel:4,curto:'L4',titulo:'Multicanal completa',sub:'Stack completo observável',descricao:'Mensuração completa (GA4 + GTM), duas ou mais mídias, CRM/automação e canal de conversão observáveis no site. Não comprova integração com receita: essa só com validação interna, mostrada como selo à parte.',cor:'#697997'}
 ] as const;
 
 export const NOMES_TECNOLOGIAS:Record<string,string>={
@@ -104,12 +106,13 @@ export function analisarConta(c:ContaAquisicao):AnaliseAquisicao {
  if(c.validPages>0&&familias>0){
   nivel=estruturada?3:familias>=2?2:1;
  }
- // L4 e L5 são acessíveis: apenas mediante fontes operacionais verificadas.
- if(provaOperacional(c))nivel=4;
- if(provaOtimizacao(c))nivel=5;
-
- // Identificar a hipótese L4 separadamente evita confundir stack complexo com integração de receita.
- const potencialL4=tracking===2&&media>=2&&(crm>=1||crmForte)&&formas>=1&&nivel===3;
+ // L4 observável: o topo do que o site mostra. Stack completo não prova integração com receita,
+ // por isso a integração validada é um selo à parte, nunca deduzida do stack.
+ const stackCompleto=tracking===2&&media>=2&&(crm>=1||crmForte)&&formas>=1&&nivel===3;
+ const integracaoValidada=provaOperacional(c);
+ const otimizacaoValidada=provaOtimizacao(c);
+ if(stackCompleto||integracaoValidada)nivel=4;
+ const potencialL4=nivel===4;
  const potencialL4ComEvento=potencialL4&&eventos!==null&&eventos>=65;
  const sinais=tracking+media+crm+Number(crmForte&&crm===0);
  const confianca:Confianca=c.validPages===0||familias===0?'insuficiente':
@@ -126,16 +129,16 @@ export function analisarConta(c:ContaAquisicao):AnaliseAquisicao {
  if(formas)indicios.push(formas===2?'Formulário + WhatsApp':'Canal de conversão no site');
  if(eventos!==null)indicios.push(eventos>=65?'Evento comercial específico observado':'CTA testado; envio não certificado');
 
- const hipotese=potencialL4?'Verificar se o stack multicanal já conecta aquisição, CRM, pipeline e receita':
-  nivel>=4?'Avaliar lacunas de eficiência, incrementabilidade e otimização baseada em receita':
+ const hipotese=integracaoValidada?'Avaliar lacunas de eficiência, incrementabilidade e otimização baseada em receita':
+  nivel===4?'Verificar se o stack multicanal já conecta aquisição, CRM, pipeline e receita':
   nivel===3?'Investigar atribuição e gestão de leads entre canais de aquisição e comercial':
   nivel===2?(crm>0?'Validar uso da automação e sua integração com vendas':
    media>0?'Verificar qualidade dos eventos e evolução dos leads até a venda':'Avaliar ativação de canais e instrumentação'):
   nivel===1?'Descobrir a operação de aquisição antes de inferir maturidade':
   'Dados públicos insuficientes para estimar o estágio';
- const proximoTeste=potencialL4?
-  'Solicitar evidências de CRM, pipeline, UTM e atribuição à receita; sem acesso, manter L3':
-  nivel>=4?'Revisar indicadores de incrementabilidade e governança com responsável autorizado':
+ const proximoTeste=integracaoValidada?
+  'Revisar indicadores de incrementabilidade e governança com responsável autorizado':
+  nivel===4?'Solicitar evidências de CRM, pipeline, UTM e atribuição à receita; sem acesso, integração segue não validada':
   eventos!==null&&eventos>=65?'Validar recebimento do evento em Ads/analytics e vínculo com oportunidades no CRM':
   nivel===3?'Validar UTMs, eventos de conversão, origem no CRM e qualificação de leads':
   nivel===2?'Auditar formulário/WhatsApp e passagem dos leads ao comercial':
@@ -162,18 +165,18 @@ export function analisarConta(c:ContaAquisicao):AnaliseAquisicao {
    dimensoes.orquestracao*.24+(eventos===null?0:eventos)*.05)/(eventos===null?0.95:1));
  const x=entre(dimensoes.medicao*.78+(eventos===null?0:eventos)*.22);
  const y=entre(dimensoes.midia*.43+dimensoes.orquestracao*.37+dimensoes.captacao*.20);
- const caracterizacaoNivel=nivel>=4?'Nível com evidências operacionais verificadas':
+ const caracterizacaoNivel=integracaoValidada?'Integração com receita verificada por fonte interna':
   nivel===0?'Não classificável pelas páginas auditadas':'Estimativa de maturidade observável; não certificação operacional';
  return {
   conta:c,nivel,confianca,dimensoes,familias,indicios,hipotese,proximoTeste,indiceObservavel,x,y,
   foco:(nivel===2||nivel===3)&&confianca!=='insuficiente',
-  potencialL4,potencialL4ComEvento,maturidadeConfirmada:nivel>=4,
+  potencialL4,potencialL4ComEvento,maturidadeConfirmada:integracaoValidada,integracaoValidada,otimizacaoValidada,
   qualidadeEvidencia,atratividadeVelora,requisitosPendentes,caracterizacaoNivel,crm:avaliacaoCRM
  };
 }
 export function analisarBase(contas:ContaAquisicao[]):AnaliseAquisicao[]{return contas.map(analisarConta)}
 export function contagemNiveis(analises:AnaliseAquisicao[]):Record<NivelMaturidade,number>{
- const result:Record<NivelMaturidade,number>={0:0,1:0,2:0,3:0,4:0,5:0};
+ const result:Record<NivelMaturidade,number>={0:0,1:0,2:0,3:0,4:0};
  for(const a of analises)result[a.nivel]++;
  return result;
 }

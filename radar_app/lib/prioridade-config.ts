@@ -95,10 +95,10 @@ export const ORIGEM = {
   },
   oportunidadeDigital: {
     campoOrigem: 'data/aquisicao.json (auditoria web), ligado à conta pelo domínio',
-    escalaOriginal: 'Nível de maturidade L1–L5 (lib/aquisicao-maturidade.ts)',
-    transformacao: 'L1 → 2 · L2 → 4 · L3 → 4 · L4 → 2 · L5 → 1 (mais espaço viável = nota maior)',
+    escalaOriginal: 'Nível de maturidade observável L1–L4 (lib/aquisicao-maturidade.ts)',
+    transformacao: 'L1 → 2 · L2 → 4 · L3 → 4 · L4 → 3 (sweet spot L2 + L3 = nota maior; L4 atinge o mínimo, com menos espaço)',
     mapeamento: 'proposto' as const,
-    nota: { 1: 2, 2: 4, 3: 4, 4: 2, 5: 1 } as Record<number, number>,
+    nota: { 1: 2, 2: 4, 3: 4, 4: 3 } as Record<number, number>, // decisão 27/11: régua de 4 níveis observáveis
     /** validade proposta para a auditoria web; mais antiga que isso, mostra a nota mas não entra no cálculo */
     validadeDias: 135, // decisão D7 (26/11): um trimestre e meio
   },
