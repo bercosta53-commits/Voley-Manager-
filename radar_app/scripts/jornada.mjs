@@ -214,7 +214,7 @@ try {
   await pc.goto(app.url('/'), { waitUntil: 'networkidle' });
   const totalLista = async () => Number((await pc.locator('main span', { hasText: /^\d+ sina(l|is) · / }).first().innerText()).match(/^\d+/)[0]);
   const ordemSel = pc.getByRole('combobox', { name: 'Ordenar a caixa' });
-  conferir((await ordemSel.inputValue()) === 'aceleracao', 'a caixa abre ordenada por maior aceleração');
+  conferir((await ordemSel.inputValue()) === 'prioridade', 'a caixa abre ordenada por prioridade comercial');
   const contadores = pc.locator('main ul[aria-label^="Sinais na caixa por estágio"] button');
   const somaContadores = (await contadores.allInnerTexts()).reduce((n, x) => n + Number(x.match(/\d+/)[0]), 0);
   const total = await totalLista();
@@ -222,7 +222,7 @@ try {
   const textoMain = await pc.locator('main').innerText();
   conferir(!textoMain.includes('(a identificar)'), 'nenhum "(a identificar)" na caixa');
   const listaTexto = await pc.locator('main [role="option"]').allInnerTexts();
-  conferir(listaTexto.length > 0 && listaTexto.every(x => !/[+−]\d+[.,]\d/.test(x)), 'pontos dos sinais em inteiros');
+  conferir(listaTexto.length > 0 && listaTexto.every(x => !/\+0(?:\s|$)|a pontuar/.test(x)), 'fila não mostra zero pontos ou sinais a pontuar');
   const primeiro = contadores.filter({ hasNotText: 'Sem estágio' }).first();
   const nPrimeiro = Number((await primeiro.innerText()).match(/\d+/)[0]);
   await primeiro.click();
