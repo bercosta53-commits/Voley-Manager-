@@ -1,4 +1,5 @@
 import type { Conta, Sinal, StatusVscs } from './tipos';
+import { ACOES_DE_ABORDAGEM, MATRIZ_ICP, faixaVscs } from './avaliacao';
 
 /**
  * Caixa de sinais de Hoje (melhorias da tela de Sinais, fase 1 "confiança"): janela de validade por tipo,
@@ -73,14 +74,42 @@ export function janelaDe(s: Pick<Sinal, 'tipo'>): number {
 const dia = (iso: string) => Date.parse(iso.slice(0, 10) + 'T12:00:00Z') / 86_400_000;
 export const idadeDias = (s: Pick<Sinal, 'data'>, dataCarga: string) => Math.round(dia(dataCarga) - dia(s.data));
 /** Dentro da janela do tipo (evento futuro, como feira marcada, também fica). */
-export const dentroDaJanela = (s: Pick<Sinal, 'tipo' | 'data'>, dataCarga: string) => idadeDias(s, dataCarga) <= janelaDe(s);
+export const dentroDaJanela = (s: Pick<Sinal, 'tipo' | 'data'> & Partial<Pick<Sinal, 'id'>>, dataCarga: string, conta?: Pick<Conta, 'v2'>) => {
+  const idade = idadeDias(s, dataCarga);
+  const c = conta?.v2?.contribuicoes?.find(c => c.id === s.id);
+  // Nomeação efetiva com vínculo confirmado e janela ativa no motor; nunca uma vaga.
+  const maturada = c?.janela_lideranca === 'implementacao' && c.categoria === 'lideranca' && c.pontos > 0 && c.maturacao?.startsWith('aplicada:');
+  return Number.isFinite(idade) && idade <= (maturada ? 450 : janelaDe(s));
+};
+
+/** Caixa comercial não é a linha do tempo. Contexto, duplicatas absorvidas, negativos e pendentes ficam na conta. */
+export function elegivelCaixa(s: Pick<Sinal, 'pontos' | 'categoria' | 'tipo'>): boolean {
+  return Number.isFinite(s.pontos) && s.pontos > 0 && s.categoria !== 'negativo' && s.categoria !== 'contexto' && s.tipo !== 'noticia_setorial';
+}
+export const tierEfetivo = (c?: Partial<Pick<Conta, 'tier' | 'icp' | 'v2'>>) => c?.icp?.tier ?? c?.v2?.tier ?? c?.tier ?? '';
+export function acaoDaConta(c?: Partial<Pick<Conta, 'tier' | 'icp' | 'v2' | 'score' | 'acaoRecomendada'>>): string {
+  const t = tierEfetivo(c);
+  const score = c?.v2?.vscs ?? c?.score;
+  if ((t === 'A' || t === 'B' || t === 'C') && typeof score === 'number' && Number.isFinite(score) && score >= 0 && score <= 100)
+    return MATRIZ_ICP[t][faixaVscs(score)] ?? 'Monitorar';
+  return 'Monitorar';
+}
+export function podeAbordar(s: Pick<Sinal, 'pontos' | 'categoria' | 'tipo'>, c?: Partial<Pick<Conta, 'tier' | 'icp' | 'v2' | 'score' | 'acaoRecomendada'>>): boolean {
+  return elegivelCaixa(s) && ACOES_DE_ABORDAGEM.has(acaoDaConta(c));
+}
 
 // ---------------------------------------------------------------- variação do score e força do sinal
 
 /** Variação do score nos últimos `dias`, pela série da conta (90 dias, pontos igualmente espaçados). */
-export function variacao(c: Pick<Conta, 'serie' | 'score'>, dias = 7): number | null {
+export function variacao(c: Pick<Conta, 'serie' | 'score'> & Partial<Pick<Conta, 'serie180' | 'v2'>>, dias = 7): number | null {
+  const h = c.serie180;
+  if (h && h.valores.length === 181 && h.versao === c.v2?.versao && (!c.v2?.calculadoEm || h.ate === c.v2.calculadoEm.slice(0,10)) && Math.abs(h.valores[180] - c.score) <= .05) {
+    const antes = h.valores[180 - dias];
+    return Number.isFinite(antes) ? Math.round(c.score - antes) : null;
+  }
   const s = c.serie ?? [];
-  if (s.length < 2) return null;
+  // Apenas o formato legado completo: dois valores pós-migração não representam 90 dias.
+  if (s.length !== 31 || Math.abs(s[30] - c.score) > .51) return null;
   const passo = 90 / (s.length - 1);
   const k = Math.max(1, Math.round(dias / passo));
   const antes = s[Math.max(0, s.length - 1 - k)]!;
@@ -105,37 +134,54 @@ export const forcaDe = (s: Pick<Sinal, 'nivel'>): Forca => (s.nivel === 'A' ? 'f
 export const pontosInteiros = (p: number) => {
   // sinal recém-coletado, ainda sem pontuação do VSCS: diz isso em vez de "+NaN"
   if (!Number.isFinite(p)) return 'a pontuar';
+  if (p === 0) return 'contexto';
+  if (Math.abs(p) < 0.5) return `${p < 0 ? '−' : '+'}${Math.abs(p).toLocaleString('pt-BR', { maximumFractionDigits: 3 })}`;
   const n = Math.round(p);
   return n < 0 ? `−${Math.abs(n)}` : `+${n}`;
 };
 
 // ---------------------------------------------------------------- ordenação
 
-export type Ordem = 'aceleracao' | 'forca' | 'recente' | 'score' | 'tier';
+export type Ordem = 'prioridade' | 'aceleracao' | 'forca' | 'recente' | 'score' | 'tier';
 export const ORDENS: { id: Ordem; rotulo: string; dica: string }[] = [
-  { id: 'aceleracao', rotulo: 'Maior aceleração', dica: 'variação do score da conta em 7 dias' },
+  { id: 'prioridade', rotulo: 'Prioridade comercial', dica: 'ICP e ação da conta, contribuição individual; primeiro o melhor sinal de cada conta' },
+  { id: 'aceleracao', rotulo: 'Aceleração da conta (7d)', dica: 'variação em 7 dias quando há série válida; desempate pela contribuição do sinal' },
   { id: 'forca', rotulo: 'Força do sinal', dica: 'quanto o sinal soma ao score hoje' },
   { id: 'recente', rotulo: 'Mais recente', dica: 'data do sinal' },
   { id: 'score', rotulo: 'Score da conta', dica: 'score total da conta' },
   { id: 'tier', rotulo: 'Tier / Fit', dica: 'tier da conta, depois score' },
 ];
-export const ORDEM_PADRAO: Ordem = 'aceleracao';
+export const ORDEM_PADRAO: Ordem = 'prioridade';
 
 const TIER: Record<string, number> = { A: 0, B: 1, C: 2 };
 
-/** Ordena pela escolha; empate sempre pela data mais recente. Nunca muda a lista recebida. */
-export function ordenarCaixa(lista: Sinal[], ordem: Ordem, contas: Map<string, Pick<Conta, 'score' | 'serie' | 'tier'>>): Sinal[] {
+type ContaOrdenacao = Pick<Conta, 'score' | 'serie' | 'tier'> & Partial<Pick<Conta, 'icp' | 'v2' | 'serie180' | 'acaoRecomendada'>>;
+const impacto = (s: Sinal) => Number.isFinite(s.pontos) ? s.pontos : -Infinity;
+const prioridade = (c?: ContaOrdenacao) => {
+  const t = tierEfetivo(c);
+  return ACOES_DE_ABORDAGEM.has(acaoDaConta(c)) ? 0 : t === 'A' || t === 'B' ? 1 : t === 'C' ? 2 : 3;
+};
+export function ordenarCaixa(lista: Sinal[], ordem: Ordem, contas: Map<string, ContaOrdenacao>): Sinal[] {
+  const comparadorSinal = (a: Sinal, b: Sinal) => impacto(b) - impacto(a) || b.data.localeCompare(a.data) || a.id.localeCompare(b.id);
   const valor = (s: Sinal): number => {
     const c = contas.get(s.contaId);
-    if (ordem === 'aceleracao') return c ? (variacao(c) ?? 0) : 0;
-    // sem pontuação ainda: vai para o fim da ordem por força
-    if (ordem === 'forca') return Number.isFinite(s.pontos) ? s.pontos : -1e6;
+    if (ordem === 'aceleracao') return c ? variacao(c) ?? -Infinity : -Infinity;
+    if (ordem === 'forca') return impacto(s);
     if (ordem === 'recente') return dia(s.data);
     if (ordem === 'score') return c?.score ?? 0;
-    return -((TIER[c?.tier ?? ''] ?? 3) * 1000) + (c?.score ?? 0); // tier A antes, depois score
+    return -((TIER[tierEfetivo(c)] ?? 3) * 1000) + (c?.score ?? 0);
   };
-  const v = (s: Sinal) => (Number.isFinite(valor(s)) ? valor(s) : -1e6);
-  return [...lista].sort((a, b) => v(b) - v(a) || b.data.localeCompare(a.data) || a.id.localeCompare(b.id));
+  if (ordem !== 'prioridade') return [...lista].sort((a,b) => valor(b) - valor(a) || comparadorSinal(a,b));
+  const porConta = new Map<string, Sinal[]>();
+  for (const s of lista) porConta.set(s.contaId, [...(porConta.get(s.contaId) ?? []), s]);
+  const camada = new Map<string, number>();
+  for (const ss of porConta.values()) ss.sort(comparadorSinal).forEach((s,i) => camada.set(s.id,i));
+  return [...lista].sort((a,b) => {
+    const ca = contas.get(a.contaId), cb = contas.get(b.contaId);
+    return prioridade(ca) - prioridade(cb) || (camada.get(a.id) ?? 0) - (camada.get(b.id) ?? 0)
+      || impacto(b) - impacto(a) || (cb?.score ?? 0) - (ca?.score ?? 0)
+      || (TIER[tierEfetivo(ca)] ?? 3) - (TIER[tierEfetivo(cb)] ?? 3) || comparadorSinal(a,b);
+  });
 }
 
 // ---------------------------------------------------------------- filtros e contadores
@@ -156,7 +202,7 @@ export const QUALQUER_PLAYBOOK = 'Qualquer playbook';
 export const SEM_SETOR = 'Sem setor';
 export const SEM_UF = 'Sem UF';
 
-type ContaFiltro = Pick<Conta, 'vscsStatus' | 'tier' | 'uf' | 'segmento' | 'ramoTI'> & { playbook?: string };
+type ContaFiltro = Pick<Conta, 'vscsStatus' | 'tier' | 'uf' | 'segmento' | 'ramoTI'> & Partial<Pick<Conta, 'icp' | 'v2'>> & { playbook?: string };
 export const setorDe = (c?: ContaFiltro) => c?.ramoTI?.nome ?? (c?.segmento || SEM_SETOR);
 export const temFiltroCaixa = (f: FiltrosCaixa) => JSON.stringify({ ...SEM_FILTROS_CAIXA, ...f }) !== JSON.stringify(SEM_FILTROS_CAIXA);
 
@@ -166,7 +212,7 @@ export function filtrarCaixa(lista: Sinal[], f: FiltrosCaixa, contas: Map<string
     const c = contas.get(s.contaId);
     if (ignorar !== 'estagios' && f.estagios.length && !(c?.vscsStatus && f.estagios.includes(c.vscsStatus))) return false;
     if (ignorar !== 'tipos' && f.tipos.length && !f.tipos.includes(s.rotulo)) return false;
-    if (ignorar !== 'tiers' && f.tiers.length && !f.tiers.includes(c?.tier ?? '')) return false;
+    if (ignorar !== 'tiers' && f.tiers.length && !f.tiers.includes(tierEfetivo(c))) return false;
     if (ignorar !== 'setores' && f.setores.length && !f.setores.includes(setorDe(c))) return false;
     if (ignorar !== 'ufs' && f.ufs.length && !f.ufs.includes(c?.uf || SEM_UF)) return false;
     if (ignorar !== 'janela' && f.janela && idadeDias(s, dataCarga) > f.janela) return false;
@@ -184,7 +230,7 @@ export function contarOpcoes(lista: Sinal[], f: FiltrosCaixa, contas: Map<string
     const k =
       grupo === 'estagios' ? c?.vscsStatus ?? ''
       : grupo === 'tipos' ? s.rotulo
-      : grupo === 'tiers' ? c?.tier ?? ''
+      : grupo === 'tiers' ? tierEfetivo(c)
       : grupo === 'setores' ? setorDe(c)
       : grupo === 'playbooks' ? c?.playbook ?? ''
       : c?.uf || SEM_UF;
