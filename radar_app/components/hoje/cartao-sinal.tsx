@@ -20,7 +20,7 @@ import { useApresentacao } from '@/components/ui/use-apresentacao';
 import { Evidencia } from '@/components/ui/evidencia';
 import { SeloQualificada } from '@/components/ui/selo-qualificada';
 import { BarraForca } from './forca';
-import { forcaDe, pontosInteiros } from '@/lib/caixa';
+import { forcaDe, pontosInteiros, podeAbordar, tituloSinal, acaoDaConta } from '@/lib/caixa';
 import type { Ativacao } from '@/lib/playbooks';
 import { OportunidadeVelora, SeloPlaybook } from './playbook';
 import { SeloViaQuente } from '@/components/conta/relacionamento';
@@ -103,7 +103,10 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
   }
 
   const negativo = sinal.categoria === 'negativo';
-  const nivel = negativo ? { ...NIVEL_GATILHO.C, rotulo: 'Sinal negativo', cor: 'bg-risk-bg text-risk' } : NIVEL_GATILHO[sinal.nivel ?? 'C'];
+  const abordavel = podeAbordar(sinal, conta);
+  const acao = acaoDaConta(conta);
+  const titulo = tituloSinal(sinal, conta);
+  const nivel = negativo ? { ...NIVEL_GATILHO.C, rotulo: 'Sinal negativo', cor: 'bg-risk-bg text-risk' } : sinal.nivel === 'A' || sinal.nivel === 'B' ? NIVEL_GATILHO[sinal.nivel] : { ...NIVEL_GATILHO.C, rotulo: sinal.pontos > 0 ? 'Sinal complementar' : 'Contexto' };
   const contato = conta.comite.find(p => p.nome === sinal.abordar.nome);
   const papelContato = contato && papelNoComite(contato);
   // eventos do gráfico: cada acontecimento que conta no VSCS, com o que somou ao score + o sinal deste cartão
@@ -220,12 +223,13 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                 </span>
               )}
               <SeloQualificada conta={conta} />
-              {conta.v2?.via_rapida ? (
+              {conta.v2?.via_rapida && abordavel ? (
                 <Chip tom="risco-solido" peso="forte" className="shrink-0">Via rápida · 48h</Chip>
               ) : (
-                conta.acaoRecomendada &&
-                ACOES_DE_ABORDAGEM.has(conta.acaoRecomendada) && (
-                  <Chip tom="ok-solido" peso="forte" className="shrink-0">{conta.acaoRecomendada}</Chip>
+                abordavel ? (
+                  <Chip tom="ok-solido" peso="forte" className="shrink-0">{acao}</Chip>
+                ) : (
+                  <Chip tom="neutro" className="shrink-0">{acao}</Chip>
                 )
               )}
             </div>
@@ -249,13 +253,13 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
 
             </div>
             <div className="flex items-baseline gap-2">
-              <p className="text-xl font-semibold leading-snug tracking-tight text-foreground">{sinal.sinal ?? sinal.porQueAgora}</p>
+              <p className="text-xl font-semibold leading-snug tracking-tight text-foreground">{titulo}</p>
               <span
                   className={cn(
                     'vr-data shrink-0 rounded-chip px-1.5 py-0.5 text-xs font-semibold',
                     !Number.isFinite(sinal.pontos) ? 'bg-secondary font-medium text-text-3' : sinal.pontos < 0 ? 'bg-risk-bg text-risk' : 'bg-warm-bg text-warm',
                   )}
-                  title={Number.isFinite(sinal.pontos) ? undefined : 'Sinal recém-coletado: o motor do VSCS ainda não calculou quanto ele soma'}
+                  title={Number.isFinite(sinal.pontos) ? "Contribuição individual ao VSCS da conta" : 'Sinal recém-coletado: o motor do VSCS ainda não calculou quanto ele soma'}
                 >
                   {pontosInteiros(sinal.pontos)}
                 </span>
@@ -282,7 +286,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
                   )}
                 </dd>
               </div>
-              <OportunidadeVelora sinal={sinal} ativacao={playbook} />
+              {conta.v2?.contribuicoes?.some(c => c.id === sinal.id && c.janela_lideranca === 'implementacao') ? <div><dt className="text-text-3">Oportunidade Velora</dt><dd>Janela de implementação: validar prioridades, orçamento e gargalos atuais de execução do plano de receita.</dd></div> : <OportunidadeVelora sinal={sinal} ativacao={playbook} />}
             </dl>
             {/* no modo apresentação a nota sai da tela: ela recalcula o score só neste navegador */}
             {onAvaliar && !apresentacao && <SeletorRelevancia valor={estado?.relevancia} onMudar={onAvaliar} />}
@@ -325,7 +329,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
             className={cn('flex flex-wrap items-center gap-1.5 border-t border-border pt-3', deslizavel && 'hidden')}
             onClick={e => e.stopPropagation()}
           >
-            <Tooltip conteudo={<>Abordar <Kbd>a</Kbd></>}>
+            {abordavel && <Tooltip conteudo={<>Abordar <Kbd>a</Kbd></>}>
               <Button
                 size="sm"
                 variant="secondary"
@@ -334,7 +338,7 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
               >
                 <Send /> Abordar
               </Button>
-            </Tooltip>
+            </Tooltip>}
             <Tooltip conteudo={<>Adiar 3 dias <Kbd>s</Kbd></>}>
               <Button size="sm" variant="ghost" onClick={() => onAcao('adiar')}>
                 <CalendarClock /> Adiar
