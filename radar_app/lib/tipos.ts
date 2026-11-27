@@ -165,6 +165,7 @@ export type StatusVscs = 'Monitoramento' | 'Atenção' | 'Oportunidade emergente
 
 export interface ContribuicaoVscs {
   id: string;
+  chave?: string;
   tipo: string;
   categoria: string;
   nivel: 'A' | 'B' | 'C';
