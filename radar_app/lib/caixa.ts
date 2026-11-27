@@ -77,14 +77,25 @@ export const idadeDias = (s: Pick<Sinal, 'data'>, dataCarga: string) => Math.rou
 export const dentroDaJanela = (s: Pick<Sinal, 'tipo' | 'data'> & Partial<Pick<Sinal, 'id'>>, dataCarga: string, conta?: Pick<Conta, 'v2'>) => {
   const idade = idadeDias(s, dataCarga);
   const c = conta?.v2?.contribuicoes?.find(c => c.id === s.id);
+  const plano = c?.horizontePlano;
+  if (plano && c && c.pontos > 0) {
+    const fim = dia(plano.fim);
+    const agora = dia(dataCarga);
+    return Number.isFinite(fim) && Number.isFinite(agora) && idade >= 0 && agora <= fim
+      && !['cancelado','substituido','concluido','expirado'].includes(plano.fase ?? plano.status);
+  }
+  if (c?.vaga_aberta && c.pontos > 0) {
+    const meias: Record<string, number> = { vaga_sdr_bdr:30, vaga_especialista_gtm:45, vaga_bloco:60, vaga_coordenacao:60, vaga_gerencia:75, vaga_head:90, vaga_diretoria_receita:90, vaga_clevel_receita:120 };
+    return idade >= 0 && idade <= 3 * (meias[c.chave ?? ''] ?? 30);
+  }
   // Nomeação efetiva com vínculo confirmado e janela ativa no motor; nunca uma vaga.
   const maturada = c?.janela_lideranca === 'implementacao' && c.categoria === 'lideranca' && c.pontos > 0 && c.maturacao?.startsWith('aplicada:');
   return Number.isFinite(idade) && idade <= (maturada ? 450 : janelaDe(s));
 };
 
 /** Caixa comercial não é a linha do tempo. Contexto, duplicatas absorvidas, negativos e pendentes ficam na conta. */
-export function elegivelCaixa(s: Pick<Sinal, 'pontos' | 'categoria' | 'tipo'>): boolean {
-  return Number.isFinite(s.pontos) && s.pontos > 0 && s.categoria !== 'negativo' && s.categoria !== 'contexto' && s.tipo !== 'noticia_setorial';
+export function elegivelCaixa(s: Pick<Sinal, 'pontos' | 'categoria' | 'tipo'> & Partial<Pick<Sinal, 'horizontePlano'>>): boolean {
+  return Number.isFinite(s.pontos) && s.pontos > 0 && s.categoria !== 'negativo' && s.categoria !== 'contexto' && (s.tipo !== 'noticia_setorial' || !!s.horizontePlano?.vigente);
 }
 export const tierEfetivo = (c?: Partial<Pick<Conta, 'tier' | 'icp' | 'v2'>>) => c?.icp?.tier ?? c?.v2?.tier ?? c?.tier ?? '';
 export function acaoDaConta(c?: Partial<Pick<Conta, 'tier' | 'icp' | 'v2' | 'score' | 'acaoRecomendada'>>): string {
@@ -94,7 +105,11 @@ export function acaoDaConta(c?: Partial<Pick<Conta, 'tier' | 'icp' | 'v2' | 'sco
     return MATRIZ_ICP[t][faixaVscs(score)] ?? 'Monitorar';
   return 'Monitorar';
 }
-export function podeAbordar(s: Pick<Sinal, 'pontos' | 'categoria' | 'tipo'>, c?: Partial<Pick<Conta, 'tier' | 'icp' | 'v2' | 'score' | 'acaoRecomendada'>>): boolean {
+export function podeAbordar(s: Pick<Sinal, 'pontos' | 'categoria' | 'tipo'> & Partial<Pick<Sinal,'id'|'horizontePlano'>>, c?: Partial<Pick<Conta, 'tier' | 'icp' | 'v2' | 'score' | 'acaoRecomendada'>>, hoje?: string): boolean {
+  const contrib = c?.v2?.contribuicoes?.find(x=>x.id===s.id);
+  const plano = contrib?.horizontePlano ?? s.horizontePlano;
+  if (plano && (!plano.vigente || plano.a_revalidar || (hoje && (dia(hoje)>dia(plano.fim) || dia(hoje)-dia(plano.ultimaConfirmacaoConsiderada ?? plano.dataAnuncio)>=180)))) return false;
+  if (contrib?.vaga_aberta && contrib.revalidar_vaga) return false;
   return elegivelCaixa(s) && ACOES_DE_ABORDAGEM.has(acaoDaConta(c));
 }
 
