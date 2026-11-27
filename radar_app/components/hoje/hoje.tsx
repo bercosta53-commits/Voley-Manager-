@@ -11,6 +11,7 @@ import { Kbd } from '@/components/ui/kbd';
 import { PainelFlutuante } from '@/components/ui/painel-flutuante';
 import { Abordar } from './abordar';
 import { Agenda } from './agenda';
+import { LeituraDoMes } from './leitura-mes';
 import { FAIXAS_VSCS, ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
 import { COR_STATUS_VSCS } from '@/components/ui/selo-vscs';
 import { CartaoSinal, type AcaoCartao } from './cartao-sinal';
@@ -511,6 +512,9 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
             </ul>
           )}
         </div>
+
+        {/* leitura analítica do mês antes do feed: o que aconteceu, o que cresceu e onde */}
+        {!semDados && !carregando && <LeituraDoMes contas={base.contas} sinais={sinais} ate={dataCarga} />}
 
         {!semDados && !carregando && visao === 'caixa' && <Agenda eventos={base.agenda ?? []} />}
 
