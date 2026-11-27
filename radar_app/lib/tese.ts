@@ -166,7 +166,7 @@ export function teseDaConta(conta: Conta, sinais: Sinal[], dep: DependenciasTese
   } else if (!principal && (dep.abordadoEm || dep.andamento?.status === 'abordado')) {
     acao = { titulo: 'Acompanhar a abordagem', texto: 'Sem resposta em 5 dias, fazer um segundo contato curto retomando o mesmo fato.', abordar: false };
   } else if (!principal) {
-    acao = { titulo: 'Esperar um motivo', texto: 'Nenhum fato aberto nesta conta. Abordar sem motivo gasta a primeira impressão; o Radar avisa em Hoje quando algo mudar.', abordar: false };
+    acao = { titulo: 'Esperar um motivo', texto: 'Nenhum fato aberto nesta conta. Abordar sem motivo gasta a primeira impressão; o Radar avisa em Sinais quando algo mudar.', abordar: false };
   } else if (conta.acaoRecomendada || dep.acaoDaMatriz?.(conta)) {
     const titulo = (conta.acaoRecomendada || dep.acaoDaMatriz?.(conta))!;
     acao = {

@@ -472,7 +472,7 @@ export function Hoje({ base: baseOriginal, estadoTela: estadoFixo }: { base: Bas
       <main className="w-full max-w-[1440px] px-4 pt-2 pb-28 md:px-8 md:pt-8 md:pb-16">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4 md:mb-8">
           <div>
-            <h1 className="font-display text-2xl font-semibold tracking-tight">Hoje</h1>
+            <h1 className="font-display text-2xl font-semibold tracking-tight">Sinais do mercado</h1>
             {/* a data do cabeçalho é a de hoje no navegador; "novos" vêm da data da última carga, e o rótulo
                 diz qual é quando a carga não é de hoje (lib/frescor.ts e o aviso no topo cobrem o atraso) */}
             <p className="mt-1 min-h-5 text-sm text-text-3">
