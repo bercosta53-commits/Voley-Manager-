@@ -140,3 +140,25 @@ test('nomeação efetiva confirmada em implementação continua válida, vaga an
   assert.equal(dentroDaJanela(s,CARGA),false);
   assert.equal(tituloSinal(s,conta('a',{v2:{contribuicoes:[{id:'cro',chave:'vaga_bloco',texto:'Bloco de 2 vagas operacionais'}]}})),'Bloco de 2 vagas operacionais');
 });
+
+
+test('meta anual permanece na caixa durante o exercício e pede revisão antes de abordar', () => {
+  const s=sinal('meta','a','2026-11-27',{tipo:'expansao_mercado',pontos:40});
+  const h={tipo:'meta_anual',inicio:'2027-01-01',fim:'2027-12-31',dataAnuncio:'2026-11-27',status:'anunciado',fase:'periodo_alvo',vigente:true,a_revalidar:false,ultimaConfirmacaoConsiderada:'2027-06-01'};
+  const c=conta('a',{score:80,v2:{contribuicoes:[{id:'meta',pontos:40,horizontePlano:h}]}});
+  assert.equal(dentroDaJanela(s,'2027-07-01',c),true);
+  assert.equal(dentroDaJanela(s,'2028-01-01',c),false);
+  assert.equal(podeAbordar(s,c,'2027-07-01'),true);
+  assert.equal(podeAbordar(s,c,'2027-12-01'),false);
+  assert.equal(elegivelCaixa({...s,tipo:'noticia_setorial',horizontePlano:h}),true);
+  assert.equal(elegivelCaixa({...s,tipo:'noticia_setorial'}),false);
+  assert.equal(elegivelCaixa({...s,pontos:0,horizontePlano:h}),false);
+});
+
+test('vaga de liderança com contribuição válida tem duração longa e revalidação bloqueia abordagem',()=>{
+  const s=sinal('vaga','a','2026-06-01',{tipo:'vaga_lideranca_alvo',pontos:15});
+  const c=conta('a',{score:80,v2:{contribuicoes:[{id:'vaga',chave:'vaga_head',pontos:15,vaga_aberta:true,revalidar_vaga:true}]}});
+  assert.equal(dentroDaJanela(s,'2026-12-01',c),true);
+  assert.equal(podeAbordar(s,c,'2026-12-01'),false);
+  assert.equal(dentroDaJanela(s,'2027-04-01',c),false);
+});

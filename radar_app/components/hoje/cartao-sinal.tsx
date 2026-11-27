@@ -103,7 +103,9 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
   }
 
   const negativo = sinal.categoria === 'negativo';
-  const abordavel = podeAbordar(sinal, conta);
+  const abordavel = podeAbordar(sinal, conta, hoje);
+  const plano = conta.v2?.contribuicoes?.find(c => c.id === sinal.id)?.horizontePlano ?? sinal.horizontePlano;
+  const vaga = conta.v2?.contribuicoes?.find(c => c.id === sinal.id);
   const acao = acaoDaConta(conta);
   const titulo = tituloSinal(sinal, conta);
   const nivel = negativo ? { ...NIVEL_GATILHO.C, rotulo: 'Sinal negativo', cor: 'bg-risk-bg text-risk' } : sinal.nivel === 'A' || sinal.nivel === 'B' ? NIVEL_GATILHO[sinal.nivel] : { ...NIVEL_GATILHO.C, rotulo: sinal.pontos > 0 ? 'Sinal complementar' : 'Contexto' };
@@ -250,6 +252,8 @@ export const CartaoSinal = forwardRef<HTMLElement, Props>(function CartaoSinal(
               {seDiferente(sinal.sinal ?? sinal.porQueAgora, sinal.rotulo) && <Chip tom="neutro">{sinal.rotulo}</Chip>}
               {playbook && <SeloPlaybook ativacao={playbook} />}
               {viaQuente && <SeloViaQuente />}
+              {plano && <Chip tom="neutro">Plano até {plano.fim.slice(0,4)} · {plano.a_revalidar ? 'a revalidar' : plano.fase === 'pre_execucao' ? 'pré-execução' : plano.fase === 'periodo_alvo' ? 'período-alvo' : 'residual'}</Chip>}
+              {vaga?.vaga_aberta && <Chip tom="neutro">{vaga.revalidar_vaga ? 'Vaga · revalidar seleção' : 'Vaga · seleção anunciada'}</Chip>}
 
             </div>
             <div className="flex items-baseline gap-2">
