@@ -89,28 +89,30 @@ test('resultadosOgi lê o caminho do pipeline e devolve vazio sem bloco OGI', ()
 
 const N = (icp, sinais, clima, oportunidadeDigital) => ({ icp, sinais, clima, oportunidadeDigital });
 
-test('5ª dimensão com peso 1: entra na média e o neutro (3) dilui quem está acima de 4', () => {
+test('modo média (só comparação): o neutro (3) dilui quem está acima de 4', () => {
+  const M = { modo: 'media' };
   assert.equal(notaComOgi(N(5, 5, 5, 5), null), 5);
-  assert.equal(notaComOgi(N(4, 4, 4, 4), 3), (4 * 3.5 + 3) / 4.5);
+  assert.equal(notaComOgi(N(4, 4, 4, 4), 3, 1, 'media'), (4 * 3.5 + 3) / 4.5);
   // achado da simulação: OGI neutro puxa a média para baixo; A2 com média 4,14 cai para 3,89 (B1)
   assert.equal(classeAtual(N(5, 4, 3, 4)), 'A2');
-  assert.equal(classificarComOgi(N(5, 4, 3, 4), 3), 'B1');
-  assert.equal(classificarComOgi(N(5, 4, 3, 4), 4), 'A2');
+  assert.equal(classificarComOgi(N(5, 4, 3, 4), 3, M), 'B1');
+  assert.equal(classificarComOgi(N(5, 4, 3, 4), 4, M), 'A2');
   // A1 (média 4,71) com OGI neutro cai para A2 (4,33); abaixo do mínimo 3, sai do sweet spot
   assert.equal(classeAtual(N(5, 5, 3, 5)), 'A1');
-  assert.equal(classificarComOgi(N(5, 5, 3, 5), 3), 'A2');
-  assert.equal(classificarComOgi(N(5, 5, 3, 5), 2.9), 'B1');
+  assert.equal(classificarComOgi(N(5, 5, 3, 5), 3, M), 'A2');
+  assert.equal(classificarComOgi(N(5, 5, 3, 5), 2.9, M), 'B1');
 });
 
 test('modo ancorado: OGI neutro não muda nota nem classe; só o afastamento do neutro mexe', () => {
   const A = { modo: 'ancorado' };
   assert.equal(notaComOgi(N(5, 4, 3, 4), 3, 1, 'ancorado'), notaComOgi(N(5, 4, 3, 4), null));
+  assert.equal(classificarComOgi(N(5, 4, 3, 4), 3), 'A2'); // ancorado é o padrão (decisão de 27/11)
   assert.equal(classificarComOgi(N(5, 4, 3, 4), 3, A), 'A2'); // no modo média, o neutro derrubava para B1
   // conta fraca (média 2,4) não sobe de C para B2 com OGI neutro ou em retração leve
   const fraca = N(3, 2, 2.4, 2.2); // média 2,4
   assert.equal(classificarComOgi(fraca, 3, A), 'C');
   assert.equal(classificarComOgi(fraca, 2.9, A), 'C');
-  assert.equal(classificarComOgi(fraca, 3, {}), 'B2'); // o efeito de diluição que o modo ancorado evita
+  assert.equal(classificarComOgi(fraca, 3, { modo: 'media' }), 'B2'); // o efeito de diluição que o modo ancorado evita
   // crescimento forte ainda soma: +2 de OGI × 1/4,5 ≈ +0,44 na nota
   assert.ok(notaComOgi(fraca, 5, 1, 'ancorado') - notaComOgi(fraca, null) > 0.44);
 });

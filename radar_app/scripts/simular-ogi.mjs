@@ -54,13 +54,12 @@ for (const s of base.sinais ?? []) if (!s.exemplo) sinaisPorConta.set(s.contaId,
 
 // variantes testadas: confiabilidade (com/sem), desconto por causa comum (0 / 0,5 / 1), escala (45 / 90)
 const VARIANTES = [
-  { id: 'padrao', rotulo: 'Confiabilidade aplicada · desconto 0,5 · escala 45', o: {} },
-  { id: 'sem_dedup', rotulo: 'Sem deduplicação', o: { descontoCausaComum: 0 } },
-  { id: 'dedup_total', rotulo: 'Causa comum zera o afastamento', o: { descontoCausaComum: 1 } },
-  { id: 'sem_conf', rotulo: 'Sem confiabilidade (força cheia)', o: { usarConfiabilidade: false } },
-  { id: 'escala_90', rotulo: 'Escala 90 (metade da inclinação)', o: { escala: 90 } },
-  { id: 'ancorado', rotulo: 'Ancorado no neutro (OGI 3 não muda a nota)', o: {}, modo: 'ancorado' },
-  { id: 'ancorado_sem_conf', rotulo: 'Ancorado no neutro, sem confiabilidade', o: { usarConfiabilidade: false }, modo: 'ancorado' },
+  { id: 'padrao', rotulo: 'Ancorado no neutro (padrão) · confiabilidade aplicada · desconto 0,5 · escala 45', o: {}, modo: 'ancorado' },
+  { id: 'media', rotulo: 'Média ponderada (comparação)', o: {}, modo: 'media' },
+  { id: 'sem_dedup', rotulo: 'Sem deduplicação', o: { descontoCausaComum: 0 }, modo: 'ancorado' },
+  { id: 'dedup_total', rotulo: 'Causa comum zera o afastamento', o: { descontoCausaComum: 1 }, modo: 'ancorado' },
+  { id: 'sem_conf', rotulo: 'Sem confiabilidade (força cheia)', o: { usarConfiabilidade: false }, modo: 'ancorado' },
+  { id: 'escala_90', rotulo: 'Escala 90 (metade da inclinação)', o: { escala: 90 }, modo: 'ancorado' },
 ];
 
 const notasAtuais = c => {
@@ -86,7 +85,7 @@ for (const v of VARIANTES) {
     const depois = classificarComOgi(n, o.nota, { modo: v.modo });
     const notaAntes = Object.keys(n).length ? notaIntegrada(n) : null;
     linhas.push({ contaId: c.id, antes, depois, notaAntes, notaDepois: notaComOgi(n, o.nota, 1, v.modo), movimento: movimento(antes, depois) });
-    if (v.id === 'padrao' || v.id === 'ancorado')
+    if (v.id === 'padrao' || v.id === 'media')
       detalhe.push({
         variante: v.id,
         id: c.id, nome: c.nome, tier: c.icp?.tier ?? c.tier ?? '', vscs: c.score ?? null, estado: o.estado, ogiNota: o.nota, ogiForca: o.forca,
@@ -117,7 +116,7 @@ const p = porVariante.padrao;
 const cl = ['A1', 'A2', 'B1', 'B2', 'C', 'sem'];
 md.push('', '## Matriz de classes (variante padrão; linhas = hoje, colunas = simulado)', '', `| | ${cl.join(' | ')} |`, `|---|${cl.map(() => '---').join('|')}|`);
 for (const a of cl) md.push(`| **${a}** | ${cl.map(b => p.matriz[a][b] || '·').join(' | ')} |`);
-for (const vid of ['padrao', 'ancorado']) {
+for (const vid of ['padrao', 'media']) {
   const mov = detalhe.filter(d => d.variante === vid && d.movimento !== 'igual').sort((a, b) => Math.abs((b.notaDepois ?? 0) - (b.notaAntes ?? 0)) - Math.abs((a.notaDepois ?? 0) - (a.notaAntes ?? 0)));
   md.push('', `## Contas que mudam de classe (${porVariante[vid].rotulo})`, '', '| Conta | Tier | VSCS | OGI | Estado | Classe | Nota | Causa comum |', '|---|---|---|---|---|---|---|---|');
   for (const d of mov) md.push(`| ${d.nome} | ${d.tier} | ${fmt(d.vscs)} | ${fmt(d.ogiNota)}${d.provisoria ? '*' : ''} | ${ROTULO_ESTADO_OGI[d.estado]} | ${d.classeAntes ?? '—'} → ${d.classeDepois ?? '—'} | ${fmt(d.notaAntes)} → ${fmt(d.notaDepois)} | ${d.deduplicacao ? d.deduplicacao.causa : ''} |`);

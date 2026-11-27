@@ -14,6 +14,8 @@ import { classificar, type Notas } from './prioridade';
 
 export const PESO_OGI = 1;
 export const MINIMO_OGI_SWEET = 3;
+/** decisão de Bernardo (27/11): ancorado no neutro; a média fica só como comparação */
+export const MODO_PADRAO: 'media' | 'ancorado' = 'ancorado';
 
 export interface OpcoesSimulacao {
   pesoOgi?: number;
@@ -30,7 +32,7 @@ export interface OpcoesSimulacao {
 
 const atinge = (v: number, limite: number) => v >= limite - TOLERANCIA;
 
-export function notaComOgi(n: Partial<Notas>, ogi: number | null, pesoOgi = PESO_OGI, modo: 'media' | 'ancorado' = 'media'): number | null {
+export function notaComOgi(n: Partial<Notas>, ogi: number | null, pesoOgi = PESO_OGI, modo: 'media' | 'ancorado' = MODO_PADRAO): number | null {
   const ds = DIMENSOES.filter(d => n[d] !== undefined);
   const peso4 = ds.reduce((s, d) => s + PESOS[d], 0);
   const peso = peso4 + (ogi === null ? 0 : pesoOgi);
@@ -47,7 +49,7 @@ export function notaComOgi(n: Partial<Notas>, ogi: number | null, pesoOgi = PESO
 export function classificarComOgi(n: Partial<Notas>, ogi: number | null, o: OpcoesSimulacao = {}): Classe | null {
   const faltantes = DIMENSOES.filter(d => n[d] === undefined).length + (ogi === null ? 1 : 0);
   if (faltantes > (o.maxFaltantes ?? 1)) return null;
-  const media = notaComOgi(n, ogi, o.pesoOgi ?? PESO_OGI, o.modo ?? 'media');
+  const media = notaComOgi(n, ogi, o.pesoOgi ?? PESO_OGI, o.modo ?? MODO_PADRAO);
   if (media === null) return null;
   if ((n.icp !== undefined && !atinge(n.icp, REGRAS.C.icpAbaixoDe)) || !atinge(media, REGRAS.C.notaAbaixoDe)) return 'C';
   const minimoOgi = o.minimoOgi ?? MINIMO_OGI_SWEET;

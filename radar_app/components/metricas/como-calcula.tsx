@@ -5,6 +5,7 @@ import { hrefConta } from '@/lib/contas';
 import { cn, pontos, seDiferente } from '@/lib/utils';
 import { FAIXAS_VSCS, MATRIZ_ICP } from '@/lib/avaliacao';
 import { Rotulo } from '@/components/ui/rotulo';
+import { resumoModelo } from '@/lib/modelo-score';
 
 const CATEGORIAS = [
   { nome: 'Mudança de liderança', faixa: '70–95', meiaVida: 60, ex: 'CMO/CRO novo ~95 · diretor comercial ~85' },
@@ -28,12 +29,18 @@ const HISTORICO = [
 const FAIXA_COR = ['bg-secondary text-text-2', 'bg-cool-bg text-cool', 'bg-warm-bg text-warm', 'bg-ok-bg text-ok', 'bg-ok text-white'];
 
 /**
- * Como o número é feito (VSCS 3.0), em linguagem de quem vai usar: o que vale cada fato, como o tempo apaga,
- * como os fatos se somam, o que o status significa e o que fazer com ele. O exemplo é uma conta real da base.
+ * Como o número é feito, em linguagem de quem vai usar: o que vale cada fato, como o tempo apaga, como os fatos
+ * se somam, o que o status significa e o que fazer com ele. A base é a do VSCS 3.0; o que a versão do motor gravada
+ * no snapshot acrescenta (3.3-DC: cargos, vagas, corroboração, teto, fases da liderança, janelas) vem do próprio
+ * snapshot (lib/modelo-score.ts), sem número copiado para o app. O exemplo é uma conta real da base.
  */
 export function ComoCalcula({ base }: { base: Base }) {
   const exemplo = exemploMetodologia(base.contas);
   const faixas = [...FAIXAS_VSCS].reverse();
+  const modelo = resumoModelo(base as unknown as Parameters<typeof resumoModelo>[0]);
+  const historico = modelo?.aprovadoEm && !HISTORICO.some(h => h.oque.includes(modelo.versao))
+    ? [{ quando: modelo.aprovadoEm.split('-').reverse().join('/'), oque: `Motor ${modelo.versao} aprovado: contexto de cargos, agrupamento de vagas, corroboração, teto sem requisitos, fases da liderança e janelas de ação por tipo de fato.` }, ...HISTORICO]
+    : HISTORICO;
 
   return (
     <section aria-labelledby="como-calcula" className="vr-card mb-6 min-w-0 overflow-hidden p-5 md:p-6">
@@ -46,6 +53,7 @@ export function ComoCalcula({ base }: { base: Base }) {
         </span>
       </div>
       <p className="mt-1 max-w-2xl text-sm text-text-2">
+        {modelo && modelo.itens.length > 0 && <>A base abaixo é a do VSCS 3.0; o motor {modelo.versao} acrescenta as regras listadas em seguida. </>}
         O score (VSCS, 0 a 100) é um índice de prioridade pelos fatos observados na conta — não é probabilidade de compra. Ele responde: esta conta está num
         momento de mexer em aquisição e receita agora?
       </p>
@@ -164,10 +172,23 @@ export function ComoCalcula({ base }: { base: Base }) {
           </ul>
         </div>
       )}
+      {modelo && modelo.itens.length > 0 && (
+        <div className="mt-6">
+          <Rotulo como="h3">O que o motor {modelo.versao} acrescenta</Rotulo>
+          <dl className="mt-2 grid gap-x-6 gap-y-3 text-sm md:grid-cols-2">
+            {modelo.itens.map(i => (
+              <div key={i.rotulo} className="min-w-0">
+                <dt className="font-medium text-foreground">{i.rotulo}</dt>
+                <dd className="mt-0.5 text-text-2">{i.texto}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
       <details className="mt-6 text-sm">
         <summary className="cursor-pointer text-xs font-semibold text-text-3">Histórico do modelo</summary>
         <ol className="mt-2 grid gap-1.5 text-text-2">
-          {HISTORICO.map(h => (
+          {historico.map(h => (
             <li key={h.quando + h.oque} className="grid grid-cols-[88px_minmax(0,1fr)] gap-3">
               <span className="vr-data text-xs text-text-3">{h.quando}</span>
               <span>{h.oque}</span>

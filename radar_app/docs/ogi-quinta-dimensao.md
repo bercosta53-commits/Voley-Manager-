@@ -46,7 +46,9 @@ Ausência nunca vira zero nem penalidade.
   - **Reorganização:** fusão e aquisição, reestruturação. Explica tanto alta quanto queda.
 - Vagas genéricas não são causa: abrir uma vaga não é expandir a empresa.
 
-## Dois modos de entrada na nota (em teste)
+## Dois modos de entrada na nota
+
+**Decisão de 27/11: o padrão é o modo ancorado no neutro.** O OGI pode levar uma conta ao sweet spot, se ela cumprir também os mínimos das quatro dimensões originais. A média fica só como comparação na simulação.
 
 - **Média:** o OGI é mais uma dimensão na média ponderada. Com isso, o neutro (3) puxa toda conta para 3, o que dilui as fortes e levanta as fracas:
   - uma conta A2 com média 4,14 cai para B1;

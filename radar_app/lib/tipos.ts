@@ -272,7 +272,7 @@ export interface EventoAgenda {
 
 export interface Base {
   geradoEm: string;
-  /** versão do motor de score que gerou esta base (ex.: vscs-3.0) */
+  /** versão do motor de score que gerou esta base (ex.: vscs-3.3-dc) */
   scoreVersao?: string;
   /** data e hora da última atualização da base (score_v2.py --exibir) */
   atualizadoEm?: string;
