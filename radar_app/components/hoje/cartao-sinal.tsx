@@ -15,7 +15,7 @@ import { LogoConta } from './logo-conta';
 import { ScoreTendencia } from './score';
 import { GraficoSinais, temHistorico180, type EventoGrafico } from './grafico-sinais';
 import { COR_PAPEL, COR_TIER, NIVEL_GATILHO, papelNoComite, rotuloPapel } from '@/lib/papeis';
-import { ACOES_DE_ABORDAGEM, ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
+import { ROTULO_RELEVANCIA, type Relevancia } from '@/lib/avaliacao';
 import { useApresentacao } from '@/components/ui/use-apresentacao';
 import { Evidencia } from '@/components/ui/evidencia';
 import { SeloQualificada } from '@/components/ui/selo-qualificada';
