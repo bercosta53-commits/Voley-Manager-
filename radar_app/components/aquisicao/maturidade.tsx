@@ -31,32 +31,84 @@ function SeloConfianca({estado}:{estado:Confianca}) {
  const m={adequada:'Cobertura web adequada',parcial:'Cobertura parcial',insuficiente:'Evidência insuficiente'};
  return <span className="inline-flex items-center gap-1 text-xs text-text-3"><span className={cn('size-1.5 rounded-full',estado==='adequada'?'bg-ok':estado==='parcial'?'bg-warm':'bg-border-strong')}/>{m[estado]}</span>;
 }
-function Metric({label,numero,desc,icon:Icon}:{label:string;numero:string;desc:string;icon:typeof Target}){
- return <div className={cn(secao,'flex flex-col justify-between gap-3 p-4 sm:p-5')}>
-  <div className="flex items-center justify-between gap-3"><LabelCaps>{label}</LabelCaps><Icon className="size-4 text-text-3" strokeWidth={1.6}/></div>
-  <div><div className="vr-data text-[32px] font-semibold tracking-[-.07em] leading-none md:text-[38px]">{numero}</div><p className="mb-0 mt-2 text-xs leading-5 text-text-3">{desc}</p></div>
- </div>;
-}
-function Progressao({analises,active,onPick}:{analises:AnaliseAquisicao[];active:number;onPick:(v:number)=>void}){
- const counts=contagemNiveis(analises);
- const potenciais=analises.filter(a=>a.potencialL4).length;
- return <section className={cn(secao,'overflow-hidden')}>
-  <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4 md:px-6"><div><LabelCaps>Modelo de maturidade</LabelCaps><h2 className="mt-1 text-lg font-semibold tracking-tight">Cinco estágios. Duas zonas de oportunidade.</h2><p className="mt-1 text-xs text-text-3">Distribuição por capacidades técnicas observadas. Clique em um estágio para filtrar.</p></div><span className="hidden rounded-chip border border-border px-2 py-1 text-xs text-text-3 sm:inline-flex">Modelo v2 · maturidade × confiança</span></div>
-  <div className={cn('grid grid-cols-2 divide-x divide-border',NIVEIS.filter(n=>n.nivel<4||counts[n.nivel]>0).length===3?'md:grid-cols-3':'md:grid-cols-5')}>
-  {NIVEIS.filter(n=>n.nivel<4||counts[n.nivel]>0).map(n=>{const count=counts[n.nivel];const focus=n.nivel===2||n.nivel===3;
-   return <button type="button" key={n.nivel} onClick={()=>onPick(active===n.nivel?-1:n.nivel)}
-    className={cn('group relative flex min-h-[172px] flex-col p-4 text-left transition-colors hover:bg-[var(--vr-surface-2)] md:p-5',focus?'bg-[var(--vr-surface-2)]/50':'',n.nivel===3||n.nivel===5?'col-span-2 md:col-span-1':'',active===n.nivel?'ring-2 ring-inset ring-foreground':'')}>
-      <div className="flex w-full items-center justify-between gap-2"><span className="vr-data text-xs font-semibold text-text-3">0{n.nivel} / 05</span>{focus&&<span className="rounded-chip bg-foreground px-1.5 py-1 text-xs font-semibold uppercase tracking-wider text-background">Foco Velora</span>}</div>
-      <div className="mt-5 flex items-end gap-2"><span className="vr-data text-[38px] leading-none tracking-[-.08em] font-semibold" style={{color:focus?'var(--vr-text)':'var(--vr-text-2)'}}>{fmt(count)}</span><span className="pb-1 text-xs text-text-3">{n.nivel>=4?'verificadas':'contas'}</span></div>
-      <div className="mt-auto pt-4"><div className="mb-2 h-[3px] w-full bg-[var(--vr-surface-3)]"><div style={{width:String(percent(count,analises.length))+'%',backgroundColor:n.cor}} className="h-full transition-[width] duration-300"/></div><div className="text-[13px] font-semibold leading-5">{n.titulo}</div><p className="mt-0.5 text-xs text-text-3">{n.sub}</p></div>
-     </button>})}
+function ReguaMaturidade({analises,ativo,onPick}:{analises:AnaliseAquisicao[];ativo:number;onPick:(n:number)=>void}){
+ const c=contagemNiveis(analises);const total=analises.length||1;const foco=c[2]+c[3];
+ const faixas=[{nivel:0,curto:'?',titulo:'Inconclusiva',cor:'var(--vr-border)'},...NIVEIS.map(n=>({nivel:n.nivel,curto:n.curto,titulo:n.titulo,cor:n.cor}))];
+ return <section className={cn(secao,'mb-4 p-5 md:p-6')} aria-labelledby="regua-t">
+  <div className="flex flex-wrap items-end justify-between gap-4">
+   <div><LabelCaps>Quão avançada é a aquisição da base</LabelCaps>
+    <h2 id="regua-t" className="mt-1 text-lg font-semibold tracking-tight">
+     <span className="vr-data text-3xl font-semibold">{fmt(foco)}</span> de {fmt(analises.length)} contas no sweet spot da Velora <span className="text-text-3">({percent(foco,analises.length)}%)</span>
+    </h2>
+    <p className="mt-1 max-w-2xl text-xs text-text-3">L2 e L3 já têm canais e instrumentação, mas sem operação integrada com receita: é onde a Velora transforma aquisição em crescimento previsível.</p></div>
   </div>
-  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-[var(--vr-surface-2)] px-5 py-3 text-xs text-text-3">
-   <span><strong className="text-foreground">{counts[0]}</strong> inconclusivas · <strong className="text-foreground">{potenciais}</strong> candidatas a L4 (mantidas em L3 até validação){counts[4]+counts[5]===0&&' · níveis 4 e 5 (dados integrados e otimização contínua) ainda sem conta verificada'}</span>
-   <button onClick={()=>onPick(0)} className="font-semibold text-text-2 underline decoration-border-strong underline-offset-4 hover:text-foreground">Ver inconclusivas</button>
+  {/* barra única: largura = contas no nível; colchete sobre L2 + L3 */}
+  <div className="relative mt-7">
+   <div className="flex h-12 w-full overflow-hidden rounded-control">
+    {faixas.filter(f=>c[f.nivel as NivelMaturidade]>0).map(f=>{const n=c[f.nivel as NivelMaturidade];const sweet=f.nivel===2||f.nivel===3;return <button key={f.nivel} type="button" onClick={()=>onPick(ativo===f.nivel?-1:f.nivel)} aria-pressed={ativo===f.nivel} title={`${f.curto} · ${f.titulo}: ${n} contas`}
+     className={cn('relative flex min-w-[44px] flex-col justify-center px-2 text-left transition-[filter] hover:brightness-95',ativo===f.nivel&&'ring-2 ring-inset ring-foreground')}
+     style={{width:`${100*n/total}%`,background:f.cor,opacity:sweet?1:.55}}>
+     <span className={cn('vr-data text-sm font-semibold',f.nivel<=1?'text-foreground':'text-white')}>{n}</span>
+    </button>;})}
+   </div>
+   {foco>0&&(()=>{const antes=c[0]+c[1];return <div aria-hidden className="pointer-events-none absolute -top-5 flex flex-col items-center" style={{left:`${100*antes/total}%`,width:`${100*foco/total}%`}}>
+    <span className="rounded-chip bg-foreground px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-background">Sweet spot Velora · L2 + L3</span>
+   </div>;})()}
   </div>
+  <ol className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 lg:grid-cols-6">
+   {faixas.map(f=>{const n=c[f.nivel as NivelMaturidade];const sweet=f.nivel===2||f.nivel===3;return <li key={f.nivel} className={cn('flex items-start gap-2 rounded-control px-2 py-1.5',sweet&&'bg-[var(--vr-surface-2)]')}>
+    <span aria-hidden className="mt-1 size-2.5 shrink-0 rounded-[2px]" style={{background:f.cor,opacity:sweet?1:.55}}/>
+    <span className="min-w-0"><span className="block text-xs font-semibold">{f.curto==='?'?'Inconclusiva':`${f.curto} · ${f.titulo}`}</span><span className="vr-data text-xs text-text-3">{n} contas</span>{f.nivel>=4&&n===0&&<span className="block text-xs text-text-3">exige validação interna</span>}</span>
+   </li>;})}
+  </ol>
  </section>;
 }
+
+/** Medidor de 5 casas: preenchido até o nível da empresa; as casas L2 e L3 têm a faixa do sweet spot. */
+function Medidor({nivel}:{nivel:number}){
+ return <span className="inline-flex items-center gap-1.5" aria-label={nivel?`Maturidade L${nivel} de 5`:'Maturidade não aferida'}>
+  <span className="relative flex gap-0.5 rounded-[3px] p-0.5">
+   <span aria-hidden className="absolute inset-y-0 rounded-[3px] bg-ok-bg" style={{left:'calc(20% - 1px)',width:'calc(40% + 2px)'}}/>
+   {[1,2,3,4,5].map(i=><span key={i} className="relative h-3 w-4 rounded-[2px]" style={{background:i<=nivel?corNivel(nivel):'var(--vr-surface-3)'}}/>)}
+  </span>
+  <span className="vr-data text-xs font-semibold">{nivel?`L${nivel}`:'—'}</span>
+ </span>;
+}
+
+/** Capacidade observada (0–100) em barra curta com rótulo. */
+function Capacidade({nome,v}:{nome:string;v:number|null}){
+ return <span className="flex min-w-0 flex-col gap-1" title={`${nome}: ${v===null?'não aferível':Math.round(v)+'% de evidência observada'}`}>
+  <span className="truncate text-xs text-text-3">{nome}</span>
+  <span className="h-1.5 w-full rounded-full bg-[var(--vr-surface-3)]"><span className="block h-full rounded-full bg-ok" style={{width:`${v??0}%`,opacity:v===null?0:.35+.65*(v/100)}}/></span>
+ </span>;
+}
+
+/** Onde cada empresa está: medidor de maturidade, capacidades observadas, hipótese e atratividade. */
+function ListaMaturidade({rows,onSelect,soFoco,onSoFoco}:{rows:AnaliseAquisicao[];onSelect:(a:AnaliseAquisicao)=>void;soFoco:boolean;onSoFoco:(v:boolean)=>void}){
+ const [limite,setLimite]=useState(25);
+ const lista=(soFoco?rows.filter(a=>a.foco):rows).slice().sort((a,b)=>Number(b.foco)-Number(a.foco)||pontuacaoFoco(b)-pontuacaoFoco(a));
+ return <section className={cn(secao,'min-w-0 overflow-hidden')}>
+  <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-4 md:px-6">
+   <div><LabelCaps>Onde cada empresa está</LabelCaps><h2 className="mt-1 text-lg font-semibold tracking-tight">{soFoco?'Empresas no sweet spot':'Todas as empresas'}</h2><p className="mt-1 text-xs text-text-3">Medidor de L1 a L5 (faixa verde = sweet spot) e capacidades observadas no site. Ordenadas por atratividade.</p></div>
+   <div role="radiogroup" aria-label="Quais empresas" className="flex rounded-control border border-border bg-card p-0.5 text-xs">
+    {[[true,'Sweet spot'],[false,'Todas']].map(([v,r])=><button key={String(v)} role="radio" aria-checked={soFoco===v} onClick={()=>{onSoFoco(v as boolean);setLimite(25)}} className={cn('rounded-[calc(var(--radius-control)-2px)] px-3 py-1.5',soFoco===v?'bg-foreground text-background':'text-text-2 hover:bg-muted')}>{r as string}</button>)}
+   </div>
+  </div>
+  <ul className="divide-y divide-border">
+   {lista.slice(0,limite).map(a=><li key={a.conta.id}>
+    <button type="button" onClick={()=>onSelect(a)} className="grid w-full grid-cols-1 items-center gap-x-5 gap-y-2 px-5 py-3 text-left hover:bg-[var(--vr-surface-2)] md:grid-cols-[minmax(160px,1.2fr)_140px_minmax(240px,1.6fr)_56px] md:px-6">
+     <span className="min-w-0"><span className="block truncate text-sm font-semibold">{a.conta.name}</span><span className="block truncate text-xs text-text-3">Tier {a.conta.tier} · {delta(a)}</span></span>
+     <Medidor nivel={a.nivel}/>
+     <span className="grid grid-cols-4 gap-3">{DIMENSOES.slice(0,4).map(d=><Capacidade key={d.key} nome={d.nome==='Profundidade CRM'?'CRM':d.nome} v={a.dimensoes[d.key]}/>)}</span>
+     <span className="vr-data text-right text-sm font-semibold" title="Atratividade para a Velora">{pontuacaoFoco(a)}</span>
+    </button>
+   </li>)}
+  </ul>
+  {lista.length>limite&&<button type="button" onClick={()=>setLimite(l=>l+25)} className="w-full border-t border-border px-4 py-3 text-sm font-medium text-text-2 hover:bg-muted">Mostrar mais {Math.min(25,lista.length-limite)} · {limite} de {lista.length}</button>}
+  {!lista.length&&<div className="p-8 text-center text-sm text-text-3">Nenhuma empresa corresponde aos filtros atuais.</div>}
+ </section>;
+}
+
 function hashId(value:string){let h=0;for(let i=0;i<value.length;i++)h=((h*31)+value.charCodeAt(i))|0;return h>>>0;}
 function Mapa({rows,onSelect}:{rows:AnaliseAquisicao[];onSelect:(a:AnaliseAquisicao)=>void}){
  const [hover,setHover]=useState<string|null>(null);
@@ -131,21 +183,6 @@ function Exportar({rows}:{rows:AnaliseAquisicao[]}){
  };
  return <button onClick={exportar} type="button" className="inline-flex h-9 items-center gap-2 rounded-control border border-border bg-card px-3 text-xs font-semibold text-text-2 hover:border-border-strong hover:text-foreground"><Download className="size-3.5"/>Exportar</button>;
 }
-function ListaFoco({rows,onSelect}:{rows:AnaliseAquisicao[];onSelect:(a:AnaliseAquisicao)=>void}){
- const matches=rows.filter(a=>a.foco).sort((a,b)=>pontuacaoFoco(b)-pontuacaoFoco(a));
- return <section className={cn(secao,'min-w-0 overflow-hidden')}>
-  <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-5 md:px-6"><div><LabelCaps>Shortlist Velora</LabelCaps><h2 className="mt-1 text-lg font-semibold tracking-tight">Empresas no sweet spot</h2><p className="mt-1 text-xs text-text-3">L2/L3 com evidência pública · ranqueamento por fit, sinais e cobertura.</p></div><span className="vr-data rounded-control border border-border px-2 py-1 text-xs">{matches.length} contas</span></div>
-  <div className="overflow-x-auto"><table className="min-w-[760px] w-full text-left text-xs"><thead className="bg-[var(--vr-surface-2)] text-xs uppercase tracking-wider text-text-3"><tr><th className="px-5 py-3 font-semibold md:px-6">Empresa</th><th className="px-3 py-3 font-semibold">Estágio</th><th className="px-3 py-3 font-semibold">Capacidades</th><th className="px-3 py-3 font-semibold">Hipótese de oportunidade</th><th className="px-3 py-3 text-right font-semibold">Atratividade</th><th className="w-7"/></tr></thead>
-  <tbody>{matches.slice(0,18).map(a=><tr key={a.conta.id} onClick={()=>onSelect(a)} onKeyDown={e=>{if(e.key==='Enter')onSelect(a)}} tabIndex={0} className="group cursor-pointer border-b border-border/80 transition-colors hover:bg-[var(--vr-surface-2)] focus:bg-[var(--vr-surface-2)]">
-    <td className="min-w-[170px] px-5 py-3 md:px-6"><div className="font-semibold text-foreground">{a.conta.name}</div><div className="mt-1 text-xs text-text-3">Tier {a.conta.tier}</div>{a.crm.score>0&&<div className="mt-1 text-xs font-medium text-text-2">CRM: {a.crm.fornecedor}{a.crm.confirmado?' · verificado':' · indício web'}</div>}</td>
-    <td className="px-3 py-3"><SeloNivel nivel={a.nivel}/><div className="mt-2"><SeloConfianca estado={a.confianca}/></div>{a.potencialL4&&<span className="mt-1 block text-xs font-semibold text-cool">Potencial L4 · validar</span>}</td>
-    <td className="px-3 py-3"><div className="flex gap-1">{(['medicao','midia','captacao','orquestracao'] as const).map(k=><span key={k} title={k+': '+a.dimensoes[k]} className="h-7 w-2.5 rounded-[2px]" style={{background:a.dimensoes[k]?'color-mix(in srgb, var(--vr-ok) '+Math.max(25,a.dimensoes[k]*.70)+'%, var(--vr-surface-3))':'var(--vr-surface-3)'}}/>)}</div></td>
-    <td className="max-w-[280px] px-3 py-3 text-xs leading-5 text-text-2">{delta(a)}</td>
-    <td className="vr-data px-3 py-3 text-right font-semibold">{pontuacaoFoco(a)}</td><td className="px-2"><ChevronRight className="size-4 text-text-3"/></td>
-   </tr>)}</tbody></table>{!matches.length&&<div className="p-8 text-center text-sm text-text-3">Nenhuma conta L2/L3 corresponde aos filtros atuais.</div>}</div>
-  <div className="border-t border-border bg-[var(--vr-surface-2)] px-5 py-3 text-xs leading-5 text-text-3">Atratividade combina ICP, sinais positivos e potencial do stack comercial. Salesforce/HubSpot operacionais têm peso superior; um script web não comprova CRM nem pipeline.</div>
- </section>;
-}
 function Detalhe({a,onClose}:{a:AnaliseAquisicao;onClose:()=>void}){
  const c=a.conta;const nivel=NIVEIS.find(n=>n.nivel===a.nivel);
  return <div className="fixed inset-0 z-50 bg-black/35" onMouseDown={onClose}><aside role="dialog" aria-modal="true" aria-label={'Maturidade de '+c.name} onMouseDown={e=>e.stopPropagation()} className="ml-auto h-full w-full max-w-[590px] overflow-y-auto border-l border-border bg-background shadow-3">
@@ -192,16 +229,14 @@ export function TelaMaturidade({base,dados}:{base:BaseCasca;dados:DadosAquisicao
  const todas=useMemo(()=>analisarBase(dados.accounts),[dados]);
  const [busca,setBusca]=useState('');const [tier,setTier]=useState('todos');
  const [nivel,setNivel]=useState(-1);const [confidence,setConfidence]=useState('todos');
- const [selected,setSelected]=useState<AnaliseAquisicao|null>(null);const [focusOnly,setFocusOnly]=useState(false);const [onlyNew,setOnlyNew]=useState(false);const [potentialOnly,setPotentialOnly]=useState(false);const [crmFilter,setCrmFilter]=useState<'todos'|'enterprise'|'rd'|'verificado'>('todos');
+ const [selected,setSelected]=useState<AnaliseAquisicao|null>(null);const [focusOnly,setFocusOnly]=useState(false);const [onlyNew,setOnlyNew]=useState(false);const [potentialOnly,setPotentialOnly]=useState(false);const [crmFilter,setCrmFilter]=useState<'todos'|'enterprise'|'rd'|'verificado'>('todos');const [soFocoLista,setSoFocoLista]=useState(true);
  const rows=useMemo(()=>todas.filter(a=>{
    const match=!busca||[a.conta.name,a.conta.domain,a.conta.id].join(' ').toLocaleLowerCase('pt-BR').includes(busca.toLocaleLowerCase('pt-BR'));
    return match&&(tier==='todos'||a.conta.tier===tier)&&(nivel===-1||a.nivel===nivel)&&
     (confidence==='todos'||a.confianca===confidence)&&(!focusOnly||a.foco)&&(!onlyNew||!!a.conta.sourceCohort)&&(!potentialOnly||a.potencialL4)&& (crmFilter==='todos'||crmFilter==='enterprise'&&a.crm.potencialEnterprise||crmFilter==='rd'&&a.conta.tags.rdStation==='network'||crmFilter==='verificado'&&a.crm.confirmado);
   }),[todas,busca,tier,nivel,confidence,focusOnly,onlyNew,potentialOnly,crmFilter]);
- const total=contagemNiveis(todas),foco=total[2]+total[3],conclusivos=todas.filter(x=>x.nivel>0).length;
- const targetRows=rows.filter(a=>a.foco);
- const novos=todas.filter(x=>!!x.conta.sourceCohort);const novasFoco=novos.filter(x=>x.foco).length;
- const potenciaisL4=todas.filter(a=>a.potencialL4),comEvento=potenciaisL4.filter(a=>a.potencialL4ComEvento);
+ const novos=todas.filter(x=>!!x.conta.sourceCohort);
+ const potenciaisL4=todas.filter(a=>a.potencialL4);
  const activeFilters=busca||tier!=='todos'||nivel!==-1||confidence!=='todos'||focusOnly||onlyNew||potentialOnly||crmFilter!=='todos';
  return <Casca base={base}>
   <main className="mx-auto w-full max-w-[1560px] px-4 pb-28 pt-4 md:px-8 md:pb-16 md:pt-8">
@@ -211,26 +246,23 @@ export function TelaMaturidade({base,dados}:{base:BaseCasca;dados:DadosAquisicao
      <p className="mt-1 max-w-2xl text-sm text-text-3">Onde existe capacidade instalada, mas ainda há espaço para transformar aquisição em crescimento previsível.</p></div>
     <div className="flex flex-wrap items-center gap-2"><span className="vr-data rounded-control border border-border bg-card px-2.5 py-2 text-xs text-text-3">Evidências · 08 NOV 2026</span><span className="vr-data rounded-control border border-ok/35 bg-ok-bg px-2.5 py-2 text-xs font-semibold text-ok">+{novos.length} contas L12</span><Link href="/aquisicao/stack" className="inline-flex h-9 items-center gap-2 rounded-control border border-border bg-card px-3 text-xs font-semibold hover:bg-[var(--vr-surface-2)]"><Layers3 className="size-3.5"/> Stack detalhado <ArrowUpRight className="size-3"/></Link></div>
    </header>
-   <section className="relative mb-4 overflow-hidden rounded-card bg-[#1e2928] px-5 py-6 text-white md:px-7 md:py-7">
-    <div aria-hidden className="pointer-events-none absolute -right-20 -top-52 size-[440px] rounded-full border border-white/10"/><div aria-hidden className="pointer-events-none absolute -right-4 -top-32 size-[320px] rounded-full border border-white/10"/>
-    <div className="relative z-10 flex flex-wrap items-end justify-between gap-5">
-     <div className="max-w-[640px]"><p className="mb-2 text-xs font-semibold uppercase tracking-[.18em] text-white/55">O sweet spot da Velora · L2 + L3</p>
-      <div className="flex items-end gap-4"><strong className="vr-data text-[64px] font-semibold leading-none tracking-[-.08em] md:text-[76px]">{fmt(foco)}</strong><div className="pb-2"><span className="block text-sm font-semibold">contas com potencial de transformação</span><span className="mt-1 block text-xs text-white/60">{percent(foco,conclusivos)}% das contas classificáveis</span></div></div>
-      <p className="mb-0 mt-4 max-w-[580px] text-xs leading-6 text-white/70">Empresas com alguma capacidade de mensuração, mídia e/ou automação no site — sem certificação de integração com receita. Aqui a Velora pode investigar oportunidades de escalar.</p>
-     </div>
-     <div className="grid min-w-[210px] grid-cols-2 gap-3 sm:min-w-[300px]">
-      <button onClick={()=>{setNivel(nivel===2?-1:2);setFocusOnly(false)}} className="rounded-control border border-white/15 bg-white/[.06] p-3 text-left transition-colors hover:bg-white/10"><span className="block text-xs uppercase tracking-wide text-white/55">L2 · Emergente</span><span className="vr-data mt-1 block text-3xl font-semibold">{total[2]}</span><span className="mt-2 block h-[3px] w-10 rounded-full bg-[#d6ac85]"/></button>
-      <button onClick={()=>{setNivel(nivel===3?-1:3);setFocusOnly(false)}} className="rounded-control border border-white/15 bg-white/[.06] p-3 text-left transition-colors hover:bg-white/10"><span className="block text-xs uppercase tracking-wide text-white/55">L3 · Estruturada</span><span className="vr-data mt-1 block text-3xl font-semibold">{total[3]}</span><span className="mt-2 block h-[3px] w-10 rounded-full bg-[#9ebaa1]"/></button>
-     </div>
-    </div>
-   </section>
-   <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-    <Metric label="Base monitorada" numero={fmt(todas.length)} desc="contas com inventário tecnológico" icon={Compass}/>
-    <Metric label="Auditoria web" numero={fmt(todas.filter(a=>a.conta.validPages>0).length)} desc="sites efetivamente inspecionados" icon={Fingerprint}/>
-    <Metric label="Faixa L2 + L3" numero={fmt(foco)} desc="alvo estratégico para diagnóstico" icon={Target}/>
-    <Metric label="Potencial L4" numero={fmt(potenciaisL4.length)} desc={`${comEvento.length} com indício de evento específico; não certificadas`} icon={ShieldAlert}/>
+   <ReguaMaturidade analises={todas} ativo={nivel} onPick={x=>{setNivel(x);setFocusOnly(false);setPotentialOnly(false)}}/>
+   <div className="mt-4 flex flex-wrap items-center gap-2 rounded-card border border-border bg-card px-3 py-3">
+    <SlidersHorizontal className="ml-1 size-4 text-text-3"/><div className="relative min-w-[180px] flex-1 md:max-w-[320px]"><Search className="absolute left-3 top-2.5 size-3.5 text-text-3"/><input value={busca} onChange={e=>setBusca(e.target.value)} className="h-9 w-full rounded-control border border-border-strong bg-background py-1.5 pl-9 pr-3 text-xs outline-none" placeholder="Buscar empresa ou domínio" aria-label="Buscar empresa ou domínio"/></div>
+    <select value={tier} onChange={e=>setTier(e.target.value)} aria-label="Filtrar Tier" className="h-9 rounded-control border border-border-strong bg-background px-3 text-xs"><option value="todos">Todos os tiers</option><option value="A">Tier A</option><option value="B">Tier B</option><option value="C">Tier C</option></select>
+    <select value={nivel} onChange={e=>{setNivel(Number(e.target.value));setFocusOnly(false)}} aria-label="Filtrar estágio" className="h-9 rounded-control border border-border-strong bg-background px-3 text-xs"><option value={-1}>Todos os estágios</option><option value={0}>Inconclusivas</option>{NIVEIS.map(n=><option key={n.nivel} value={n.nivel}>L{n.nivel} · {n.titulo}</option>)}</select>
+    <select value={confidence} onChange={e=>setConfidence(e.target.value)} aria-label="Filtrar cobertura" className="h-9 rounded-control border border-border-strong bg-background px-3 text-xs"><option value="todos">Toda cobertura</option><option value="adequada">Adequada</option><option value="parcial">Parcial</option><option value="insuficiente">Insuficiente</option></select>
+    <button type="button" onClick={()=>{setFocusOnly(!focusOnly);setNivel(-1)}} className={cn('inline-flex h-9 items-center gap-2 rounded-control border px-3 text-xs font-semibold',focusOnly?'border-foreground bg-foreground text-background':'border-border bg-card text-text-2')}><Target className="size-3.5"/>Só foco L2/L3</button>
+    <button type="button" onClick={()=>setOnlyNew(!onlyNew)} className={cn("inline-flex h-9 items-center gap-2 rounded-control border px-3 text-xs font-semibold",onlyNew?"border-foreground bg-foreground text-background":"border-border bg-card text-text-2")}>Novas L12 ({novos.length})</button>
+    <button type="button" onClick={()=>{setPotentialOnly(!potentialOnly);setNivel(-1);setFocusOnly(false)}} className={cn("inline-flex h-9 items-center gap-2 rounded-control border px-3 text-xs font-semibold",potentialOnly?"border-foreground bg-foreground text-background":"border-border bg-card text-text-2")}>Potencial L4 ({potenciaisL4.length})</button>
+    {activeFilters&&<button onClick={()=>{setBusca('');setTier('todos');setNivel(-1);setConfidence('todos');setFocusOnly(false);setOnlyNew(false);setPotentialOnly(false);setCrmFilter('todos')}} className="px-2 text-xs font-medium text-text-3 hover:text-foreground">Limpar</button>}
+    <span className="ml-auto flex items-center gap-3"><span className="vr-data text-xs text-text-3">{rows.length} contas</span><Exportar rows={rows}/></span>
    </div>
-   <div className="mb-3 rounded-card border border-ok/25 bg-ok-bg px-4 py-3 text-xs text-text-2"><strong className="text-ok">Expansão L12:</strong> {novos.length} novas contas de TI, {novos.filter(x=>x.conta.validPages>0).length} sites auditados e <strong>{novasFoco} novas contas L2/L3</strong>. Todas seguem em pesquisa; faturamento, ICP e decisores precisam de validação antes da abordagem. <button className="ml-2 font-semibold text-ok underline underline-offset-2" onClick={()=>{setOnlyNew(true);setNivel(-1);setFocusOnly(false)}}>Ver novas contas</button></div>
+   <div className="mt-4"><ListaMaturidade rows={rows} onSelect={setSelected} soFoco={soFocoLista} onSoFoco={setSoFocoLista}/></div>
+   {/* o detalhe do método fica recolhido: totais, CRM, mapa de capacidades e perfil por estágio */}
+   <details className="group mt-4 rounded-card border border-border bg-card">
+    <summary className="cursor-pointer select-none px-5 py-4 text-sm font-semibold md:px-6">Ver o método e o detalhe <span className="font-normal text-text-3">· {fmt(todas.length)} contas monitoradas, {fmt(todas.filter(a=>a.conta.validPages>0).length)} sites auditados, {fmt(potenciaisL4.length)} com potencial L4, {fmt(novos.length)} novas (L12), CRM e mapa de capacidades</span></summary>
+    <div className="flex flex-col gap-4 border-t border-border p-4 md:p-5">
    <section className="mb-4 rounded-card border border-border bg-card p-4 md:px-6 md:py-5">
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><LabelCaps>Inteligência comercial · CRM</LabelCaps><h2 className="mt-1 text-lg font-semibold">A profundidade do CRM muda o patamar</h2>
      <p className="mt-1 max-w-3xl text-xs leading-5 text-text-3">Salesforce e HubSpot têm maior potencial de operação comercial. Scripts de tracking são sinais para pesquisar — não provas de Sales Cloud, Sales Hub ou integração com receita.</p></div>
@@ -257,21 +289,9 @@ export function TelaMaturidade({base,dados}:{base:BaseCasca;dados:DadosAquisicao
      <span><strong className="text-foreground">Salesforce/Sales Hub confirmado ≈ 84–98</strong> pontos, conforme edição</span>
     </div>
    </section>
-   <Progressao analises={todas} active={nivel} onPick={x=>{setNivel(x);setFocusOnly(false);setPotentialOnly(false)}}/>
-   <div className="mt-4 flex flex-wrap items-center gap-2 rounded-card border border-border bg-card px-3 py-3">
-    <SlidersHorizontal className="ml-1 size-4 text-text-3"/><div className="relative min-w-[180px] flex-1 md:max-w-[320px]"><Search className="absolute left-3 top-2.5 size-3.5 text-text-3"/><input value={busca} onChange={e=>setBusca(e.target.value)} className="h-9 w-full rounded-control border border-border-strong bg-background py-1.5 pl-9 pr-3 text-xs outline-none" placeholder="Buscar empresa ou domínio" aria-label="Buscar empresa ou domínio"/></div>
-    <select value={tier} onChange={e=>setTier(e.target.value)} aria-label="Filtrar Tier" className="h-9 rounded-control border border-border-strong bg-background px-3 text-xs"><option value="todos">Todos os tiers</option><option value="A">Tier A</option><option value="B">Tier B</option><option value="C">Tier C</option></select>
-    <select value={nivel} onChange={e=>{setNivel(Number(e.target.value));setFocusOnly(false)}} aria-label="Filtrar estágio" className="h-9 rounded-control border border-border-strong bg-background px-3 text-xs"><option value={-1}>Todos os estágios</option><option value={0}>Inconclusivas</option>{NIVEIS.map(n=><option key={n.nivel} value={n.nivel}>L{n.nivel} · {n.titulo}</option>)}</select>
-    <select value={confidence} onChange={e=>setConfidence(e.target.value)} aria-label="Filtrar cobertura" className="h-9 rounded-control border border-border-strong bg-background px-3 text-xs"><option value="todos">Toda cobertura</option><option value="adequada">Adequada</option><option value="parcial">Parcial</option><option value="insuficiente">Insuficiente</option></select>
-    <button type="button" onClick={()=>{setFocusOnly(!focusOnly);setNivel(-1)}} className={cn('inline-flex h-9 items-center gap-2 rounded-control border px-3 text-xs font-semibold',focusOnly?'border-foreground bg-foreground text-background':'border-border bg-card text-text-2')}><Target className="size-3.5"/>Só foco L2/L3</button>
-    <button type="button" onClick={()=>setOnlyNew(!onlyNew)} className={cn("inline-flex h-9 items-center gap-2 rounded-control border px-3 text-xs font-semibold",onlyNew?"border-foreground bg-foreground text-background":"border-border bg-card text-text-2")}>Novas L12 ({novos.length})</button>
-    <button type="button" onClick={()=>{setPotentialOnly(!potentialOnly);setNivel(-1);setFocusOnly(false)}} className={cn("inline-flex h-9 items-center gap-2 rounded-control border px-3 text-xs font-semibold",potentialOnly?"border-foreground bg-foreground text-background":"border-border bg-card text-text-2")}>Potencial L4 ({potenciaisL4.length})</button>
-    <Exportar rows={rows}/>
-    {activeFilters&&<button onClick={()=>{setBusca('');setTier('todos');setNivel(-1);setConfidence('todos');setFocusOnly(false);setOnlyNew(false);setPotentialOnly(false);setCrmFilter('todos')}} className="px-2 text-xs font-medium text-text-3 hover:text-foreground">Limpar</button>}
-    <span className="vr-data ml-auto text-xs text-text-3">{rows.length} contas</span>
-   </div>
-   <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_.8fr]"><Mapa rows={rows} onSelect={setSelected}/><MapaCalor rows={rows}/></div>
-   <div className="mt-4"><ListaFoco rows={rows} onSelect={setSelected}/></div>
+     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_.8fr]"><Mapa rows={rows} onSelect={setSelected}/><MapaCalor rows={rows}/></div>
+    </div>
+   </details>
    <div className="mt-4 flex items-start gap-3 rounded-card border border-border bg-[var(--vr-surface-2)] px-4 py-4 text-xs leading-5 text-text-3"><ShieldAlert className="mt-0.5 size-4 shrink-0"/><div><strong className="text-text-2">Limite da pesquisa:</strong> este modelo separa maturidade estimada, qualidade da evidência e atratividade comercial. L4/L5 são atingíveis mediante dados operacionais verificados; potenciais L4 não são promovidas automaticamente. “Não observado” não significa ausência. Pixels não comprovam campanhas ativas, e scripts web não comprovam CRM integrado. <Link className="ml-1 underline underline-offset-2" href="/aquisicao/stack">Ver os dados brutos</Link>.</div></div>
   </main>
   {selected&&<Detalhe a={selected} onClose={()=>setSelected(null)}/>}
