@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Link2, Search, SlidersHorizontal } from 'lucide-react';
 import type { BaseCasca } from '@/lib/casca-dados';
-import { CLASSES, DIMENSOES, ROTULO_CURTO, ROTULO_DIMENSAO, type Dimensao } from '@/lib/prioridade-config';
+import { CLASSES, DIMENSOES, REGRAS, ROTULO_CURTO, ROTULO_DIMENSAO, type Dimensao } from '@/lib/prioridade-config';
 import type { SituacaoSweetSpot } from '@/lib/prioridade';
 import { expandirLinhas, type LinhaTransporte } from '@/lib/prioridade-transporte';
 import {
@@ -107,11 +107,18 @@ function escreverUrl(e: EstadoUrl) {
 function Indicador({ l, d }: { l: LinhaPrioridade; d: Dimensao }) {
   const x = l.visao.dimensoes[d];
   const valida = x.nota !== null && x.entraNoCalculo;
+  // cor com significado fixo: verde atinge o mínimo do sweet spot, laranja fica abaixo, cinza sem avaliação
+  const minimo = REGRAS.A2.minimos[d];
+  const atinge = valida && x.nota! >= minimo;
+  const titulo = valida ? `${ROTULO_DIMENSAO[d]}: ${textoNota(x)} · ${atinge ? 'atinge' : `abaixo do`} mínimo do sweet spot (${minimo})` : `${ROTULO_DIMENSAO[d]}: sem avaliação`;
   return (
-    <span className="flex flex-col items-center gap-0.5" aria-label={`${ROTULO_DIMENSAO[d]}: ${textoNota(x)}`}>
-      <span className={cn('vr-data text-sm', valida ? 'font-semibold' : 'text-text-3')}>{valida ? textoNota({ ...x, semAchados: false }) : '—'}</span>
-      <span aria-hidden className="h-1 w-8 overflow-hidden rounded-full bg-secondary">
-        {valida && <span className="block h-full bg-ok" style={{ width: `${(x.nota! / 5) * 100}%`, opacity: 0.35 + (0.65 * x.nota!) / 5 }} />}
+    <span className="flex flex-col items-center gap-0.5" aria-label={titulo} title={titulo}>
+      <span className={cn('vr-data text-sm', valida ? 'font-semibold' : 'text-text-3')} style={valida ? { color: atinge ? 'var(--vr-ok)' : 'var(--vr-warm)' } : undefined}>
+        {valida ? textoNota({ ...x, semAchados: false }) : '—'}
+      </span>
+      <span aria-hidden className="relative h-1 w-8 rounded-full bg-secondary">
+        {valida && <span className="block h-full rounded-full" style={{ width: `${(x.nota! / 5) * 100}%`, background: atinge ? 'var(--vr-ok)' : 'var(--vr-warm)' }} />}
+        <span className="absolute -top-0.5 -bottom-0.5 w-px bg-text-3" style={{ left: `${(minimo / 5) * 100}%` }} />
       </span>
     </span>
   );
@@ -560,6 +567,14 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
             )}
           </div>
         ) : (
+          <>
+          <p className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-3" aria-hidden>
+            <span className="font-medium text-text-2">Notas de 1 a 5:</span>
+            <span className="inline-flex items-center gap-1.5"><span className="h-1.5 w-4 rounded-full bg-ok" /> atinge o mínimo do sweet spot</span>
+            <span className="inline-flex items-center gap-1.5"><span className="h-1.5 w-4 rounded-full bg-warm" /> abaixo do mínimo</span>
+            <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-px bg-text-3" /> marca do mínimo</span>
+            <span>— sem avaliação</span>
+          </p>
           <div className="vr-card overflow-x-auto">
             <table className="w-full min-w-[920px] text-left text-sm">
               <caption className="sr-only">Contas por prioridade integrada (experimental)</caption>
@@ -652,6 +667,7 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
             )}
             {estado.g === 'faltante' && <p className="px-3 py-2 text-xs text-text-3">Uma conta com duas dimensões faltando aparece nos dois grupos.</p>}
           </div>
+          </>
         )}
         {estado.cmp.length >= 3 && <p className="mt-2 text-xs text-text-3">Já há três contas na comparação. Tire uma para incluir outra.</p>}
       </main>

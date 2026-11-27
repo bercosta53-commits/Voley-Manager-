@@ -50,25 +50,29 @@ export function RadarConta({ linha }: { linha: LinhaTransporte }) {
                   <div className="flex items-center gap-2">
                     <Icone aria-hidden className="size-4 shrink-0 text-text-3" strokeWidth={1.5} />
                     <span className="text-sm font-semibold">{ROTULO_DIMENSAO[d]}</span>
-                    <span
-                      className={cn('vr-data ml-auto text-md font-semibold', nota === null && 'text-xs font-normal text-text-3')}
-                      style={nota !== null ? { color: atinge ? 'var(--vr-ok)' : 'var(--vr-warm)' } : undefined}
-                    >
-                      {nota !== null ? formatarNota(Math.round(nota * 10) / 10) : 'sem avaliação'}
+                    {/* situação em palavras, não só em cor */}
+                    <span className={cn('rounded-chip px-1.5 py-0.5 text-xs font-medium', nota === null ? 'bg-secondary text-text-3' : atinge ? 'bg-ok-bg text-ok' : 'bg-warm-bg text-warm')}>
+                      {nota === null ? 'sem avaliação' : atinge ? '✓ atinge o mínimo' : `falta ${formatarNota(Math.round((MINIMO[d] - nota) * 10) / 10)}`}
+                    </span>
+                    <span className="vr-data ml-auto text-md font-semibold" style={nota !== null ? { color: atinge ? 'var(--vr-ok)' : 'var(--vr-warm)' } : undefined}>
+                      {nota !== null ? formatarNota(Math.round(nota * 10) / 10) : '—'}
                       {nota !== null && d === 'sinais' && vscsDaDimensao(x) !== null && <span className="ml-1 text-xs font-normal text-text-3">(VSCS {vscsDaDimensao(x)})</span>}
                     </span>
                   </div>
-                  {/* barra 0–5 com a marca do mínimo do sweet spot */}
-                  <div className="relative mt-2 h-2 rounded-full bg-[var(--vr-surface-3)]" aria-hidden>
+                  {/* barra 1–5: verde atinge o mínimo do sweet spot, laranja abaixo; a marca mostra o mínimo */}
+                  <div className="relative mt-6 h-2 rounded-full bg-[var(--vr-surface-3)]" aria-hidden>
                     {nota !== null && <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${(nota / 5) * 100}%`, background: atinge ? 'var(--vr-ok)' : 'var(--vr-warm)' }} />}
-                    <span className="absolute -top-0.5 -bottom-0.5 w-0.5 rounded bg-text-3" style={{ left: `${(MINIMO[d] / 5) * 100}%` }} title={`Mínimo do sweet spot: ${MINIMO[d]}`} />
+                    <span className="absolute -top-1 -bottom-1 w-0.5 rounded bg-foreground/70" style={{ left: `${(MINIMO[d] / 5) * 100}%` }} />
+                    <span className="vr-data absolute -top-5 -translate-x-1/2 text-xs whitespace-nowrap text-text-3" style={{ left: `${(MINIMO[d] / 5) * 100}%` }}>
+                      mín. {MINIMO[d]}
+                    </span>
                   </div>
                   <p className="mt-1.5 line-clamp-2 text-xs text-text-2" title={x.resumo ?? undefined}>{(d === 'sinais' ? x.resumo?.replace(/^VSCS \d+ · /, '') : x.resumo) ?? PERGUNTA_DIMENSAO[d]}</p>
                 </li>
               );
             })}
           </ul>
-          <p className="text-xs text-text-3">Modelo experimental de prioridade, separado do score oficial. A marca na barra é o mínimo para o sweet spot.</p>
+          <p className="text-xs text-text-3">Notas de 1 a 5. Verde: atinge o mínimo para o sweet spot; laranja: abaixo dele. Modelo experimental, separado do score oficial.</p>
         </div>
       </div>
     </Secao>
