@@ -7,7 +7,7 @@ import { formatarIntegrada, formatarNota, type CriterioClasse, type DimensaoInte
 import type { LinhaPrioridade } from '@/lib/prioridade-filtros';
 import { hrefConta } from '@/lib/contas';
 import { cn, dataCurta } from '@/lib/utils';
-import { Losango } from './losango';
+import { Losango, vscsDaDimensao } from './losango';
 
 const nota1 = (v: number) => formatarNota(Math.round(v * 10) / 10);
 const MOTIVO: Record<string, string> = {
@@ -144,7 +144,10 @@ function Notas({ dims }: { dims: Record<Dimensao, DimensaoIntegrada> }) {
           <div key={d}>
             <dt className="flex items-baseline justify-between gap-2 text-sm font-medium">
               {ROTULO_DIMENSAO[d]}
-              <span className={cn(x.nota === null ? 'text-right text-xs text-text-3' : 'vr-data font-semibold')}>{textoNota(x)}</span>
+              <span className={cn(x.nota === null ? 'text-right text-xs text-text-3' : 'vr-data font-semibold')}>
+                {textoNota(x)}
+                {d === 'sinais' && x.nota !== null && vscsDaDimensao(x) !== null && <span className="ml-1 text-xs font-normal text-text-3">(VSCS {vscsDaDimensao(x)})</span>}
+              </span>
             </dt>
             <dd className="text-xs text-text-3">
               {x.resumo ?? (x.motivoSemNota === 'metodo_nao_mapeado' && d === 'clima' ? ORIGEM.clima.motivo : PERGUNTA_DIMENSAO[d])}

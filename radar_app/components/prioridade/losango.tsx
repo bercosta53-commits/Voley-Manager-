@@ -9,6 +9,13 @@ const CURTO: Record<Dimensao, string> = { icp: 'ICP', sinais: 'Sinais', clima: '
 /** mínimo de cada eixo para entrar no sweet spot (regras de A2) */
 const MINIMO = REGRAS.A2.minimos;
 
+/** O score real por trás da nota de Sinais (escala 1–5 traduzida do VSCS 0–100), para mostrar ao lado: "3,1 (VSCS 53)". */
+export function vscsDaDimensao(x: DimensaoIntegrada): number | null {
+  const m = x.resumo?.match(/VSCS (\d+)/);
+  if (m) return Number(m[1]);
+  return x.nota !== null && (x.semAchados || /^Nenhum sinal/.test(x.resumo ?? '')) ? 0 : null;
+}
+
 /** Nota que entra no desenho: só as válidas (desatualizada aparece no texto, não no polígono). */
 const notaDesenho = (d: DimensaoIntegrada) => (d.nota !== null && d.entraNoCalculo ? d.nota : null);
 
@@ -107,6 +114,9 @@ export function Losango({ dims, tamanho = 220, compacto = false }: { dims: Recor
                 style={nota !== null ? { fill: atinge(i) ? 'var(--vr-ok)' : 'var(--vr-warm)' } : undefined}
               >
                 {nota !== null ? formatarNota(Math.round(nota * 10) / 10) : 'sem avaliação'}
+                {nota !== null && d === 'sinais' && vscsDaDimensao(dims.sinais) !== null && (
+                  <tspan className="fill-text-3 text-xs font-normal">{` (VSCS ${vscsDaDimensao(dims.sinais)})`}</tspan>
+                )}
               </text>
             </g>
           );

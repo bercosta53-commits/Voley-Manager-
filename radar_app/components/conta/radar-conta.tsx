@@ -7,7 +7,7 @@ import { DIMENSOES, PERGUNTA_DIMENSAO, REGRAS, ROTULO_DIMENSAO, LEITURA_CLASSE, 
 import { formatarNota } from '@/lib/prioridade';
 import { expandirLinhas, type LinhaTransporte } from '@/lib/prioridade-transporte';
 import { cn } from '@/lib/utils';
-import { Losango } from '@/components/prioridade/losango';
+import { Losango, vscsDaDimensao } from '@/components/prioridade/losango';
 import { ClasseExperimental } from '@/components/prioridade/painel';
 import { Secao } from '@/components/ui/secao';
 
@@ -55,6 +55,7 @@ export function RadarConta({ linha }: { linha: LinhaTransporte }) {
                       style={nota !== null ? { color: atinge ? 'var(--vr-ok)' : 'var(--vr-warm)' } : undefined}
                     >
                       {nota !== null ? formatarNota(Math.round(nota * 10) / 10) : 'sem avaliação'}
+                      {nota !== null && d === 'sinais' && vscsDaDimensao(x) !== null && <span className="ml-1 text-xs font-normal text-text-3">(VSCS {vscsDaDimensao(x)})</span>}
                     </span>
                   </div>
                   {/* barra 0–5 com a marca do mínimo do sweet spot */}
@@ -62,7 +63,7 @@ export function RadarConta({ linha }: { linha: LinhaTransporte }) {
                     {nota !== null && <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${(nota / 5) * 100}%`, background: atinge ? 'var(--vr-ok)' : 'var(--vr-warm)' }} />}
                     <span className="absolute -top-0.5 -bottom-0.5 w-0.5 rounded bg-text-3" style={{ left: `${(MINIMO[d] / 5) * 100}%` }} title={`Mínimo do sweet spot: ${MINIMO[d]}`} />
                   </div>
-                  <p className="mt-1.5 line-clamp-2 text-xs text-text-2" title={x.resumo ?? undefined}>{x.resumo ?? PERGUNTA_DIMENSAO[d]}</p>
+                  <p className="mt-1.5 line-clamp-2 text-xs text-text-2" title={x.resumo ?? undefined}>{(d === 'sinais' ? x.resumo?.replace(/^VSCS \d+ · /, '') : x.resumo) ?? PERGUNTA_DIMENSAO[d]}</p>
                 </li>
               );
             })}
