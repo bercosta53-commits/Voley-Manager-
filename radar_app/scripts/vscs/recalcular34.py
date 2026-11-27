@@ -38,6 +38,10 @@ def recalcular(base, hoje):
             if status=="confirmado_parcial" and any(t in (r.get("nota") or "").lower() for t in ("não aplicar maturação","não comprova mandato","não ativar maturação")):
                 patch["vinculoAtual"]=False
             revs[sid]={**revs.get(sid,{}),**patch,"pontua":True}
+        elif status == "contexto_sem_pontuacao_34" and str(x.get("tipo","")).startswith("vaga_"):
+            # A exclusão geral de vagas foi revogada. Preserva revisões individuais, inclusive pontua=False,
+            # e deixa o classificador avaliar as vagas sem veto individual existente.
+            continue
         elif status.startswith("contexto") or status=="identidade_conflitante" or status=="confirmado_parcial":
             revs[sid]={**revs.get(sid,{}),"pontua":False}
             if status=="identidade_conflitante" or status=="confirmado_parcial": blocked.append(sid)
