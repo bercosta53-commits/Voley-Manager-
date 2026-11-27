@@ -251,7 +251,7 @@ try {
   const semPb = pc.locator('main [role="option"]').filter({ hasNotText: contaPb.nome }).first();
   await semPb.click();
   await pc.waitForTimeout(150);
-  conferir((await pc.locator('main').innerText()).includes('Oportunidade Velora') && !(await blocoPb.count()), 'sinal isolado mostra a Oportunidade Velora, sem bloco de playbook');
+  conferir(/oportunidade velora/i.test(await pc.locator('main').innerText()) && !(await blocoPb.count()), 'sinal isolado mostra a Oportunidade Velora, sem bloco de playbook');
   await pc.locator('main [role="option"]', { hasText: contaPb.nome }).first().click();
   await pc.setViewportSize({ width: 1440, height: 900 });
   await blocoPb.screenshot({ path: path.join(SAIDA, '3h-playbook.png') });

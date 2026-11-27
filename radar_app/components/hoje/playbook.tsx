@@ -40,7 +40,24 @@ function ChipsOferta({ ofertas }: { ofertas: Oferta[] }) {
  * Linha "Oportunidade Velora" do cartão: com playbook combinado ativo, aponta para ele (o combinado substitui a
  * leitura isolada); senão, o entregável que o fato abre.
  */
-export function OportunidadeVelora({ sinal, ativacao }: { sinal: Sinal; ativacao?: Ativacao }) {
+export function OportunidadeVelora({ sinal, ativacao, conteudoApenas = false }: { sinal: Sinal; ativacao?: Ativacao; conteudoApenas?: boolean }) {
+  // dentro de um bloco com título próprio (detalhe do sinal): só o conteúdo, sem o rótulo
+  if (conteudoApenas) {
+    if (ativacao)
+      return (
+        <p className="text-sm text-text-2">
+          Está no playbook combinado <span className="font-medium text-foreground">{ativacao.playbook.nome}</span>, com a oferta e o roteiro.
+        </p>
+      );
+    const o = oportunidadeDe(sinal);
+    if (!o) return null;
+    return (
+      <div className="grid gap-2">
+        <p className="text-sm text-foreground">{o.texto}</p>
+        <ChipsOferta ofertas={o.ofertas} />
+      </div>
+    );
+  }
   if (ativacao)
     return (
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
