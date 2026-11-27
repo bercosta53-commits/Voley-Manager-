@@ -6,6 +6,8 @@ import { ambiente, FAIXAS_AMBIENTE, LIMITE_APROXIMACAO, LIMITE_PROXIMO, type Fai
 import { DIMENSOES, REGRAS, ROTULO_DIMENSAO, type Dimensao } from '@/lib/prioridade-config';
 import type { LinhaPrioridade } from '@/lib/prioridade-filtros';
 import { cn } from '@/lib/utils';
+import { DicaConta } from '@/components/ui/dica-conta';
+import { resumoDaLinha } from './resumo-linha';
 
 const fmt = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
 const CURTO: Record<Dimensao, string> = { icp: 'ICP', sinais: 'Sinais', clima: 'Clima', oportunidadeDigital: 'Digital' };
@@ -164,6 +166,7 @@ function Lista({
         <ul className="mt-1.5 divide-y divide-border">
           {mostrar.map(p => (
             <li key={p.linha.contaId}>
+              <DicaConta resumo={resumoDaLinha(p.linha)} lado="left">
               <button
                 type="button"
                 onMouseEnter={() => onDestaque(p.linha.contaId)}
@@ -182,6 +185,7 @@ function Lista({
                 </span>
                 <ArrowRight aria-hidden className="size-3.5 text-text-3" />
               </button>
+              </DicaConta>
             </li>
           ))}
         </ul>
