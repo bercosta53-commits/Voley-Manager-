@@ -1,0 +1,17 @@
+name: VSCS 3.4 synthetic tests
+on:
+  push:
+    branches: [proposta/vscs-3-4-dc-auditoria]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile candidate and run synthetic regression suite
+        working-directory: radar_app/scripts
+        run: |
+          python3 -m compileall -q vscs
+          python3 -m unittest -v test_vscs34_candidate
