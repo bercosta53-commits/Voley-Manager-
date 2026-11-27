@@ -2,7 +2,7 @@
  * Ambiente do Radar: cada conta num alvo cujo centro é o sweet spot.
  * - Distância ao centro = pontos de nota que faltam para cumprir os critérios do sweet spot (regras de A2):
  *   o maior entre a soma do que falta em cada dimensão até o mínimo e o que falta na soma ponderada para a
- *   nota integrada chegar ao piso (com pesos iguais, é exatamente o menor aumento total de notas que basta).
+ *   nota integrada chegar ao piso (convertido pela dimensão de maior peso).
  * - Direção = a força da conta: a soma dos eixos ponderada por quanto cada dimensão passa do mínimo do sweet spot
  *   (ICP no topo, Sinais à direita, Clima embaixo, Oportunidade digital à esquerda, como no losango). A conta fica
  *   do lado do que ela já tem; o que falta é a distância ao centro (e a lacuna, no painel de decisão).
@@ -67,14 +67,19 @@ function hash(s: string) {
   return ((h >>> 0) % 10_000) / 10_000;
 }
 
-/** pontos de nota que faltam, dadas as notas (faltante assumida no máximo, 5, para dar o mínimo possível) */
+/**
+ * Pontos de nota que faltam para o sweet spot, só com as dimensões avaliadas (com três, a média é das três):
+ * o maior entre a soma do que falta em cada uma até o mínimo e o que falta na soma ponderada para a média chegar
+ * ao piso de A2, convertido em pontos pela dimensão de maior peso.
+ */
 export function pontosQueFaltam(notas: Partial<Record<Dimensao, number>>): number {
   const r = REGRAS.A2;
-  const n = Object.fromEntries(DIMENSOES.map(d => [d, notas[d] ?? 5])) as Record<Dimensao, number>;
-  const porDimensao = DIMENSOES.reduce((s, d) => s + Math.max(0, r.minimos[d] - n[d]), 0);
-  const pesoTotal = DIMENSOES.reduce((s, d) => s + PESOS[d], 0);
-  const pesoMax = Math.max(...DIMENSOES.map(d => PESOS[d]));
-  const faltaSoma = r.nota * pesoTotal - DIMENSOES.reduce((s, d) => s + n[d] * PESOS[d], 0);
+  const ds = DIMENSOES.filter(d => notas[d] !== undefined);
+  if (!ds.length) return 0;
+  const porDimensao = ds.reduce((s, d) => s + Math.max(0, r.minimos[d] - notas[d]!), 0);
+  const pesoTotal = ds.reduce((s, d) => s + PESOS[d], 0);
+  const pesoMax = Math.max(...ds.map(d => PESOS[d]));
+  const faltaSoma = r.nota * pesoTotal - ds.reduce((s, d) => s + notas[d]! * PESOS[d], 0);
   return Math.round(Math.max(porDimensao, Math.max(0, faltaSoma) / pesoMax) * 100) / 100;
 }
 

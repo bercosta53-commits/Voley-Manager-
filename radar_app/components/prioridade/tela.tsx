@@ -19,6 +19,7 @@ import { Faixa } from './faixa';
 import { Metodologia, SeloExperimental } from './metodologia';
 import { ClasseExperimental, Comparacao, PainelConta, textoNota } from './painel';
 import { AmbienteDecisao } from './ambiente';
+import { LosangoMini } from './losango';
 import { CruzarDimensoes, MatrizSetorPrioridade, ResumoDoSetor } from './visoes';
 import { dataCurta } from '@/lib/utils';
 
@@ -232,7 +233,7 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
       </th>
     );
   };
-  const nColunas = 3 + DIMENSOES.length + estado.cols.length;
+  const nColunas = 4 + DIMENSOES.length + estado.cols.length;
   const linhaConta = (l: LinhaPrioridade) => {
     const v = l.visao;
     const naComparacao = estado.cmp.includes(l.contaId);
@@ -255,6 +256,11 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
             {l.nome}
           </button>
           <span className="block text-xs text-text-3">{l.setor ?? 'Sem setor'}</span>
+        </td>
+        <td className="px-1 py-1">
+          <button type="button" onClick={() => setEstado(e => ({ ...e, sel: l.contaId }))} title="Abrir o radar completo da conta" className="block rounded-control hover:bg-secondary">
+            <LosangoMini dims={v.dimensoes} />
+          </button>
         </td>
         <td className="px-3 py-2.5">
           <ClasseExperimental v={v} />
@@ -588,6 +594,7 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
                     <span className="sr-only">Comparar</span>
                   </th>
                   <Cabecalho col="nome">Conta</Cabecalho>
+                  <th scope="col" className="px-1 py-2 font-medium">Radar</th>
                   <Cabecalho col="integrada">Prioridade integrada (experimental)</Cabecalho>
                   {DIMENSOES.map(d => (
                     <Cabecalho key={d} col={d} className="text-center">
@@ -636,7 +643,7 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
                                     style={{
                                       flexGrow: g.distribuicao[s.id],
                                       background: 'var(--vr-ok)',
-                                      opacity: { a1: 1, candidata: 0.85, A2: 0.75, B1: 0.55, B2: 0.35, C: 0.2, fora_por_criterio: 0.12, sem_metrica: 0.06 }[s.id],
+                                      opacity: { a1: 1, A2: 0.75, B1: 0.55, B2: 0.35, C: 0.2, sem_metrica: 0.06 }[s.id],
                                     }}
                                   />
                                 ) : null,

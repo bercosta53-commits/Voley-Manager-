@@ -17,9 +17,11 @@ export type Notas = Record<Dimensao, number>;
 /** v ≥ limite, com a tolerância fixa da configuração */
 export const atinge = (v: number, limite: number) => v >= limite - TOLERANCIA;
 
-export function notaIntegrada(n: Notas): number {
-  const peso = DIMENSOES.reduce((s, d) => s + PESOS[d], 0);
-  return DIMENSOES.reduce((s, d) => s + n[d] * PESOS[d], 0) / peso;
+/** Média ponderada das dimensões presentes (com três avaliadas, a média é das três). */
+export function notaIntegrada(n: Partial<Notas>): number {
+  const ds = DIMENSOES.filter(d => n[d] !== undefined);
+  const peso = ds.reduce((s, d) => s + PESOS[d], 0);
+  return ds.reduce((s, d) => s + n[d]! * PESOS[d], 0) / peso;
 }
 
 export interface CriterioClasse {
@@ -30,22 +32,22 @@ export interface CriterioClasse {
   minimo: number;
 }
 
-function criterios(n: Notas, media: number, regra: { nota: number; minimos: Record<Dimensao, number> }): CriterioClasse[] {
+function criterios(n: Partial<Notas>, media: number, regra: { nota: number; minimos: Record<Dimensao, number> }): CriterioClasse[] {
   return [
     { rotulo: 'Nota integrada', dimensao: 'nota' as const, atendido: atinge(media, regra.nota), valor: media, minimo: regra.nota },
-    ...DIMENSOES.map(d => ({ rotulo: ROTULO_DIMENSAO[d], dimensao: d, atendido: atinge(n[d], regra.minimos[d]), valor: n[d], minimo: regra.minimos[d] })),
+    ...DIMENSOES.filter(d => n[d] !== undefined).map(d => ({ rotulo: ROTULO_DIMENSAO[d], dimensao: d, atendido: atinge(n[d]!, regra.minimos[d]), valor: n[d]!, minimo: regra.minimos[d] })),
   ];
 }
-export const criteriosA1 = (n: Notas, media = notaIntegrada(n)) => criterios(n, media, REGRAS.A1);
-export const criteriosA2 = (n: Notas, media = notaIntegrada(n)) => criterios(n, media, REGRAS.A2);
+export const criteriosA1 = (n: Partial<Notas>, media = notaIntegrada(n)) => criterios(n, media, REGRAS.A1);
+export const criteriosA2 = (n: Partial<Notas>, media = notaIntegrada(n)) => criterios(n, media, REGRAS.A2);
 /** Critérios de entrada no sweet spot (as regras da classe mais baixa dele, A2). */
-export const criteriosSweet = (n: Notas, media = notaIntegrada(n)) => criterios(n, media, REGRAS[ENTRADA_SWEET_SPOT]);
+export const criteriosSweet = (n: Partial<Notas>, media = notaIntegrada(n)) => criterios(n, media, REGRAS[ENTRADA_SWEET_SPOT]);
 export const noSweetSpot = (c: Classe) => SWEET_SPOT.includes(c);
 
 /** Classe na ordem da configuração: C (trava), A1, A2, B1, B2. */
-export function classificar(n: Notas): Classe {
+export function classificar(n: Partial<Notas>): Classe {
   const media = notaIntegrada(n);
-  if (!atinge(n.icp, REGRAS.C.icpAbaixoDe) || !atinge(media, REGRAS.C.notaAbaixoDe)) return 'C';
+  if ((n.icp !== undefined && !atinge(n.icp, REGRAS.C.icpAbaixoDe)) || !atinge(media, REGRAS.C.notaAbaixoDe)) return 'C';
   if (criteriosA1(n, media).every(c => c.atendido)) return 'A1';
   if (criteriosA2(n, media).every(c => c.atendido)) return 'A2';
   if (atinge(media, REGRAS.B1.nota)) return 'B1';
@@ -199,7 +201,9 @@ export function dimensaoClima(clima?: ClimaDaConta | null, agora: Date = new Dat
 
 export function dimensaoDigital(auditoria: AuditoriaDigital | undefined, agora: Date): DimensaoIntegrada {
   if (!auditoria) return vazio(origemDe('oportunidadeDigital'), 'nao_coletado', 'Domínio ainda sem auditoria web.');
-  if (auditoria.nivel === 0 || auditoria.confianca === 'insuficiente')
+  // nível 0: sem classificação. Confiança insuficiente (sem página válida auditada) entra com o nível provisório
+  // do Atlas e fica marcada como pendência de qualidade (decisão de 27/11: toda a base reclassificada conta)
+  if (auditoria.nivel === 0)
     return { ...vazio(origemDe('oportunidadeDigital'), 'nao_coletado', 'Auditoria web inconclusiva (páginas ou evidências insuficientes).'), dataReferencia: auditoria.dataReferencia };
   const nota = ORIGEM.oportunidadeDigital.nota[auditoria.nivel];
   if (nota === undefined)
@@ -207,10 +211,10 @@ export function dimensaoDigital(auditoria: AuditoriaDigital | undefined, agora: 
   const idadeDias = auditoria.dataReferencia ? (agora.getTime() - Date.parse(auditoria.dataReferencia)) / 86_400_000 : null;
   const velha = idadeDias !== null && idadeDias > ORIGEM.oportunidadeDigital.validadeDias;
   return {
-    nota, resumo: auditoria.resumo, status: velha ? 'desatualizada' : 'avaliada', motivoSemNota: null, semAchados: false,
+    nota, resumo: auditoria.confianca === 'insuficiente' ? `${auditoria.resumo} (provisório)` : auditoria.resumo, status: velha ? 'desatualizada' : 'avaliada', motivoSemNota: null, semAchados: false,
     entraNoCalculo: !velha, motivoExclusao: velha ? `Auditoria com mais de ${ORIGEM.oportunidadeDigital.validadeDias} dias` : null,
     dataReferencia: auditoria.dataReferencia, fontes: linkSeguro(auditoria.fonte) ? [{ url: auditoria.fonte!, titulo: 'Evidência da auditoria' }] : [],
-    origem: origemDe('oportunidadeDigital'), pendenciasQualidade: auditoria.confianca === 'parcial' ? ['auditoria com cobertura parcial'] : [],
+    origem: origemDe('oportunidadeDigital'), pendenciasQualidade: auditoria.confianca === 'parcial' ? ['auditoria com cobertura parcial'] : auditoria.confianca === 'insuficiente' ? ['nível provisório: sem página válida auditada'] : [],
   };
 }
 
@@ -232,18 +236,30 @@ export function visaoIntegrada(
   const faltantes = DIMENSOES.filter(d => !validas.includes(d));
   const base = { contaId, dimensoes: dims, cobertura: validas.length, versaoModelo: VERSAO_MODELO, dimensoesFaltantes: faltantes };
 
-  if (!faltantes.length) {
-    const n = Object.fromEntries(DIMENSOES.map(d => [d, dims[d].nota!])) as Notas;
+  // quatro avaliadas, ou três (decisão de 27/11: faltar uma não desclassifica; média e mínimos das três)
+  if (faltantes.length <= 1) {
+    const n = Object.fromEntries(validas.map(d => [d, dims[d].nota!])) as Partial<Notas>;
     const media = notaIntegrada(n);
     const classe = classificar(n);
     const crit = criteriosSweet(n, media);
     const motivos =
       classe === 'C'
-        ? [!atinge(n.icp, REGRAS.C.icpAbaixoDe) ? `ICP ${fmt1(n.icp)} abaixo de ${fmt1(REGRAS.C.icpAbaixoDe)} (trava)` : `Nota integrada ${formatarIntegrada(media)} abaixo de ${fmt1(REGRAS.C.notaAbaixoDe)}`]
+        ? [n.icp !== undefined && !atinge(n.icp, REGRAS.C.icpAbaixoDe) ? `ICP ${fmt1(n.icp)} abaixo de ${fmt1(REGRAS.C.icpAbaixoDe)} (trava)` : `Nota integrada ${formatarIntegrada(media)} abaixo de ${fmt1(REGRAS.C.notaAbaixoDe)}`]
         : crit.filter(c => !c.atendido).map(c => `${c.rotulo} ${c.dimensao === 'nota' ? formatarIntegrada(c.valor) : fmt1(c.valor)}, falta ${fmt1(Math.round((c.minimo - c.valor) * 100) / 100)}`);
+    const falta = faltantes[0];
+    const aviso = falta ? [`Classificada com 3 de 4: falta avaliar ${ROTULO_DIMENSAO[falta]}`] : [];
     return {
-      ...base, notaIntegrada: media, classeIntegrada: classe, motivosClassificacao: noSweetSpot(classe) ? [] : motivos, criteriosSweet: crit,
-      criteriosSweetAtendidos: crit.filter(c => c.atendido).length, situacaoSweetSpot: noSweetSpot(classe) ? 'sweet_spot' : 'fora_por_classe', investigacao: null,
+      ...base, notaIntegrada: media, classeIntegrada: classe, motivosClassificacao: noSweetSpot(classe) ? aviso : [...motivos, ...aviso], criteriosSweet: crit,
+      criteriosSweetAtendidos: crit.filter(c => c.atendido).length, situacaoSweetSpot: noSweetSpot(classe) ? 'sweet_spot' : 'fora_por_classe',
+      investigacao: falta
+        ? {
+            dimensao: falta, motivo: dims[falta].resumo, evidenciaNecessaria: EVIDENCIA_NECESSARIA[falta],
+            // só há nota que resolve se as outras dimensões já cumprem os mínimos (senão, a trava é outra)
+            notaMinimaParaSweet: noSweetSpot(classe) || !crit.every(c => c.dimensao === 'nota' || c.atendido) ? null : notaMinimaParaSweet(n, falta),
+            notaMinimaParaA1: criteriosA1(n, media).every(c => c.dimensao === 'nota' || c.atendido) ? notaMinimaParaA1(n, falta) : null,
+            podeChegarA1: criteriosA1(n, media).every(c => c.dimensao === 'nota' || c.atendido) && notaMinimaParaA1(n, falta) !== null,
+          }
+        : null,
     };
   }
 

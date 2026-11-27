@@ -8,7 +8,7 @@
  */
 
 export const VERSAO_MODELO = 'integrado-experimental-1' as const;
-export const SELO_MODELO = 'Modelo experimental 1 · pesos iguais · limites ainda não calibrados';
+export const SELO_MODELO = 'Modelo experimental 1.1 · Clima com peso 0,5 · classifica com 3 de 4 · limites ainda não calibrados';
 
 export type Dimensao = 'icp' | 'sinais' | 'clima' | 'oportunidadeDigital';
 export const DIMENSOES: Dimensao[] = ['icp', 'sinais', 'clima', 'oportunidadeDigital'];
@@ -29,18 +29,19 @@ export const PERGUNTA_DIMENSAO: Record<Dimensao, string> = {
 /** Comparação de limites com tolerância fixa (proteção de ponto flutuante, não arredondamento). */
 export const TOLERANCIA = 1e-9;
 
-/** Pesos iguais: hipótese inicial transparente. */
-export const PESOS: Record<Dimensao, number> = { icp: 1, sinais: 1, clima: 1, oportunidadeDigital: 1 };
+/** Pesos: iguais, com o Clima pela metade (decisão de Bernardo, 27/11: menos rigor com o Clima). */
+export const PESOS: Record<Dimensao, number> = { icp: 1, sinais: 1, clima: 0.5, oportunidadeDigital: 1 };
 
 export type Classe = 'A1' | 'A2' | 'B1' | 'B2' | 'C';
 export const CLASSES: Classe[] = ['A1', 'A2', 'B1', 'B2', 'C'];
 
-/** Regras na ordem em que são aplicadas, só em avaliações completas (briefing 8.2). */
+/** Regras na ordem em que são aplicadas; valem com as quatro dimensões ou com três (decisão de 27/11). */
 export const REGRAS = {
   C: { icpAbaixoDe: 3, notaAbaixoDe: 2.5 },
-  // Clima entra como contexto: mínimo 2 em A1/A2 (decisão de Bernardo, 26/11). Pesa na média e só barra setor muito ruim.
-  A1: { nota: 4.5, minimos: { icp: 4, sinais: 4, clima: 2, oportunidadeDigital: 3 } as Record<Dimensao, number> },
-  A2: { nota: 4.0, minimos: { icp: 4, sinais: 3, clima: 2, oportunidadeDigital: 3 } as Record<Dimensao, number> },
+  // Clima é contexto: sem mínimo próprio (1 = piso da escala) e peso 0,5 na média (decisão de Bernardo, 27/11;
+  // antes, mínimo 2 e peso 1, decisão de 26/11).
+  A1: { nota: 4.5, minimos: { icp: 4, sinais: 4, clima: 1, oportunidadeDigital: 3 } as Record<Dimensao, number> },
+  A2: { nota: 4.0, minimos: { icp: 4, sinais: 3, clima: 1, oportunidadeDigital: 3 } as Record<Dimensao, number> },
   B1: { nota: 3.25 },
 } as const;
 

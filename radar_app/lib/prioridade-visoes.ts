@@ -31,7 +31,7 @@ function grupoDe(l: LinhaPrioridade, a: Agrupamento): { chave: string; rotulo: s
   if (a === 'prioridade') {
     const s = segmentoDe(v);
     const i = SEGMENTOS.findIndex(x => x.id === s);
-    return [{ chave: s, rotulo: v.classeIntegrada ?? (s === 'candidata' ? 'Candidatas' : s === 'fora_por_criterio' ? 'Incompletas, sem A1' : 'Sem métrica'), ordem: i }];
+    return [{ chave: s, rotulo: v.classeIntegrada ?? 'Sem métrica', ordem: i }];
   }
   if (a === 'sweet') return [{ chave: v.situacaoSweetSpot, rotulo: ROTULO_SITUACAO[v.situacaoSweetSpot], ordem: Object.keys(ROTULO_SITUACAO).indexOf(v.situacaoSweetSpot) }];
   if (a === 'cobertura') {
@@ -115,12 +115,10 @@ export function mudarOrdem(cs: CriterioOrdem[], col: ColunaOrdem, somar: boolean
 
 export const COLUNAS_MATRIZ: { id: Segmento; rotulo: string }[] = [
   { id: 'a1', rotulo: 'A1' },
-  { id: 'candidata', rotulo: 'Candidatas' },
   { id: 'A2', rotulo: 'A2' },
   { id: 'B1', rotulo: 'B1' },
   { id: 'B2', rotulo: 'B2' },
   { id: 'C', rotulo: 'C' },
-  { id: 'fora_por_criterio', rotulo: 'Incompletas, fora de alcance' },
   { id: 'sem_metrica', rotulo: 'Sem métrica' },
 ];
 
@@ -142,12 +140,15 @@ export function setorPorPrioridade(linhas: LinhaPrioridade[], ordem: 'a1' | 'can
     totaisColuna[seg]++;
     m.set(s, c);
   }
+  // "mais a investigar": contas classificadas com 3 de 4 no setor
+  const investigar = new Map<string, number>();
+  for (const l of linhas) if (l.visao.cobertura === 3) investigar.set(l.setor ?? SEM_SETOR, (investigar.get(l.setor ?? SEM_SETOR) ?? 0) + 1);
   const rows = [...m.entries()].map(([setor, celulas]) => ({ setor, celulas, total: Object.values(celulas).reduce((a, b) => a + b, 0) }));
   rows.sort((a, b) =>
     ordem === 'nome'
       ? a.setor.localeCompare(b.setor, 'pt-BR')
       : // "mais no sweet spot" soma A1 e A2 (decisão D2)
-        (ordem === 'a1' ? b.celulas.a1 + b.celulas.A2 - a.celulas.a1 - a.celulas.A2 : b.celulas[ordem] - a.celulas[ordem]) || b.total - a.total || a.setor.localeCompare(b.setor, 'pt-BR'),
+        (ordem === 'a1' ? b.celulas.a1 + b.celulas.A2 - a.celulas.a1 - a.celulas.A2 : (investigar.get(b.setor) ?? 0) - (investigar.get(a.setor) ?? 0)) || b.total - a.total || a.setor.localeCompare(b.setor, 'pt-BR'),
   );
   return { linhas: rows, totaisColuna, total: linhas.length };
 }

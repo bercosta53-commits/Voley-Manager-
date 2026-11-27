@@ -13,7 +13,7 @@ const L = [
   linha('a', 'Fintech', [5, 5, 5, 5]), // A1
   linha('b', 'Fintech', [4, 3.5, 4, 4]), // B1
   linha('c', 'Logtech', [2, 5, 5, 5]), // C
-  linha('d', null, [5, 5, null, 5]), // candidata
+  linha('d', null, [5, 5, null, 5]), // A1 com 3 de 4
   linha('e', 'Fintech', [4, null, null, 4]), // sem métrica
 ];
 const ids = ls => ls.map(l => l.contaId);
@@ -36,7 +36,7 @@ test('Setor × Prioridade: soma das células = total do recorte, por linha e por
   assert.equal(somaCelulas, L.length);
   assert.equal(Object.values(m.totaisColuna).reduce((a, b) => a + b, 0), L.length);
   assert.equal(m.linhas[0].setor, 'Fintech'); // mais A1 primeiro
-  assert.deepEqual(setorPorPrioridade(L, 'candidata').linhas[0].setor, 'Sem setor');
+  assert.deepEqual(setorPorPrioridade(L, 'candidata').linhas[0].setor, 'Sem setor'); // mais contas com 3 de 4 a investigar
 });
 
 test('cruzar duas dimensões: faixas de 1 ponto, sem avaliação fora da grade, soma = total', () => {
