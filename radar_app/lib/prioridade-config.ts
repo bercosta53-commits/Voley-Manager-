@@ -81,7 +81,7 @@ export const ORIGEM = {
     nota: { A: 5, B: 3, C: 2 } as Record<string, number>,
   },
   sinais: {
-    campoOrigem: 'conta.score (= v2.vscs, VSCS 3.0)',
+    campoOrigem: 'conta.score (= v2.vscs, na versão do motor gravada no snapshot: scoreVersao)',
     escalaOriginal: '0–100 (só fatos observados; o ICP não muda o número)',
     transformacao: '1 + 4 × VSCS / 100',
     mapeamento: 'documentado' as const,
