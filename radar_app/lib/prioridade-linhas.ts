@@ -1,9 +1,11 @@
 import { pontosDe } from './utils';
 import type { Base } from './tipos';
 import { analisarConta, NIVEIS, type DadosAquisicao } from './aquisicao-maturidade';
-import { dimensaoClima, dimensaoDigital, dimensaoIcp, dimensaoSinais, type AuditoriaDigital, type ClimaDaConta } from './prioridade';
+import { dimensaoClima, dimensaoDigital, dimensaoIcp, dimensaoSinais, type AuditoriaDigital, type ClimaDaConta, type PulsoDaConta } from './prioridade';
 import { nivelVertical, verticalDaConta, type DadosClima } from './clima';
-import { DIMENSOES } from './prioridade-config';
+import { leituraPulso } from './clima-pulso';
+import { modoClimaDoAmbiente } from './prioridade-config';
+import { DIMENSOES, type ModoClima } from './prioridade-config';
 import { compactarDimensao, type LinhaTransporte } from './prioridade-transporte';
 
 /**
@@ -56,6 +58,8 @@ export function linhasPrioridade(
   auditorias: Map<string, AuditoriaDigital>,
   agora: Date,
   climaDe: (codigo?: string | null) => ClimaDaConta | null = () => null,
+  /** Clima na nota: com o pulso das contas (lib/clima-pulso.ts) e o modo; sem pulso, o cálculo anterior */
+  { pulsoDe, modoClima = 'media' }: { pulsoDe?: (contaId: string) => PulsoDaConta | null; modoClima?: ModoClima } = {},
 ): LinhaTransporte[] {
   const fatos = new Map<string, Base['sinais']>();
   for (const s of base.sinais) if (s.tipo !== 'noticia_setorial' && !s.exemplo) fatos.set(s.contaId, [...(fatos.get(s.contaId) ?? []), s]);
@@ -65,7 +69,7 @@ export function linhasPrioridade(
     const dims = {
       icp: dimensaoIcp(c),
       sinais: dimensaoSinais(c, daConta.map(s => ({ data: s.data, url: s.url, fonte: s.fonte }))),
-      clima: dimensaoClima(climaDe(c.especializacao?.codigo), agora),
+      clima: dimensaoClima(climaDe(c.especializacao?.codigo), agora, pulsoDe?.(c.id)),
       oportunidadeDigital: dimensaoDigital(auditorias.get(`id:${c.id}`) ?? auditorias.get(dominio(c.dominio)), agora),
     };
     return {
@@ -79,6 +83,23 @@ export function linhasPrioridade(
       acaoOficial: c.acaoRecomendada ?? null,
       acaoDaMatriz: !!c.acaoDaMatriz,
       dims: Object.fromEntries(DIMENSOES.map(d => [d, compactarDimensao(d, dims[d])])) as LinhaTransporte['dims'],
+      ...(modoClima !== 'media' && { modoClima }),
     };
   });
+}
+
+/**
+ * Como o Clima entra na prioridade, decidido no servidor: modo pela variável RADAR_CLIMA_NA_NOTA (padrão:
+ * ancorado) e o pulso de cada conta. Sem crescimento de equipe na base para medir o pulso, volta ao cálculo
+ * anterior ('media'), para não ajustar a nota com um Clima que não foi medido.
+ */
+export function climaNaPrioridade(base: Base, dados: DadosClima | null | undefined, variavel = process.env.RADAR_CLIMA_NA_NOTA) {
+  const modo = modoClimaDoAmbiente(variavel);
+  if (modo === 'media' || !dados?.verticais?.length) return { modoClima: 'media' as const };
+  const leitura = leituraPulso(
+    base as unknown as Parameters<typeof leituraPulso>[0],
+    dados.verticais.map(v => ({ id: v.id, nome: v.nome, codigos: v.codigos, S: nivelVertical(dados, v).S })),
+  );
+  if (!leitura.disponivel) return { modoClima: 'media' as const };
+  return { modoClima: modo, pulsoDe: (id: string) => leitura.porConta[id] ?? null };
 }

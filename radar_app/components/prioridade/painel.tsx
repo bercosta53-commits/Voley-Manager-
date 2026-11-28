@@ -44,6 +44,12 @@ export function ClasseExperimental({ v, grande = false }: { v: VisaoIntegradaCon
         {v.classeIntegrada}
       </span>
       <span className={cn('vr-data', grande ? 'text-base font-semibold' : 'text-xs text-text-2')}>{formatarIntegrada(v.notaIntegrada!)}</span>
+      {/* comparação com o cálculo anterior (Clima com peso 0,5), enquanto a mudança é avaliada */}
+      {v.classeAnterior && v.classeAnterior !== v.classeIntegrada && (
+        <span className="vr-data text-xs text-text-3" title="Classe no cálculo anterior, com o Clima pesando metade na média">
+          era {v.classeAnterior}
+        </span>
+      )}
     </span>
   );
 }

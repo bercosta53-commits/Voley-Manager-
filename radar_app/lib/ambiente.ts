@@ -10,7 +10,7 @@
  *   que se sabe e a conta fica marcada "a investigar"; duas ou mais faltando ficam fora do mapa (contadas).
  * Método de leitura visual: não muda nota, classe nem critério. Função pura; testes em scripts/tests/ambiente.test.mjs.
  */
-import { DIMENSOES, PESOS, REGRAS, type Dimensao } from './prioridade-config';
+import { DIMENSOES, PESOS, REGRAS, ajusteClima, type Dimensao, type ModoClima } from './prioridade-config';
 import type { LinhaPrioridade } from './prioridade-filtros';
 
 export type FaixaAmbiente = 'centro' | 'proximo' | 'aproximacao' | 'distante';
@@ -72,11 +72,18 @@ function hash(s: string) {
  * o maior entre a soma do que falta em cada uma até o mínimo e o que falta na soma ponderada para a média chegar
  * ao piso de A2, convertido em pontos pela dimensão de maior peso.
  */
-export function pontosQueFaltam(notas: Partial<Record<Dimensao, number>>): number {
+export function pontosQueFaltam(notas: Partial<Record<Dimensao, number>>, modo: ModoClima = 'media'): number {
   const r = REGRAS.A2;
   const ds = DIMENSOES.filter(d => notas[d] !== undefined);
   if (!ds.length) return 0;
   const porDimensao = ds.reduce((s, d) => s + Math.max(0, r.minimos[d] - notas[d]!), 0);
+  if (modo === 'ancorado') {
+    // média de ICP, Sinais e Digital + ajuste do Clima: cada ponto numa das três sobe a média em 1/k
+    const tres = ds.filter(d => d !== 'clima');
+    if (!tres.length) return 0;
+    const media = tres.reduce((s, d) => s + notas[d]!, 0) / tres.length + (notas.clima === undefined ? 0 : ajusteClima(notas.clima));
+    return Math.round(Math.max(porDimensao, Math.max(0, r.nota - media) * tres.length) * 100) / 100;
+  }
   const pesoTotal = ds.reduce((s, d) => s + PESOS[d], 0);
   const pesoMax = Math.max(...ds.map(d => PESOS[d]));
   const faltaSoma = r.nota * pesoTotal - ds.reduce((s, d) => s + notas[d]! * PESOS[d], 0);
@@ -110,7 +117,7 @@ export function ambiente(linhas: LinhaPrioridade[]): Ambiente {
       continue;
     }
     const aInvestigar = faltantes.length === 1;
-    let falta = v.situacaoSweetSpot === 'sweet_spot' ? 0 : pontosQueFaltam(notas);
+    let falta = v.situacaoSweetSpot === 'sweet_spot' ? 0 : pontosQueFaltam(notas, v.modoClima);
     let faixa = faixaPorFalta(falta);
     // candidata: a faltante, se vier alta o bastante, leva ao sweet spot; fica em "próximo"
     if (v.situacaoSweetSpot === 'candidata') faixa = 'proximo';
@@ -127,7 +134,9 @@ export function ambiente(linhas: LinhaPrioridade[]): Ambiente {
     let melhor = 0;
     for (const d of DIMENSOES) {
       // a sobra pesa como a dimensão pesa na nota: o Clima (peso 0,5, sem mínimo) não puxa como uma força cheia
-      const sobra = notas[d] === undefined ? 0 : Math.max(0, notas[d]! - REGRAS.A2.minimos[d]) * PESOS[d];
+      // no modo ancorado o Clima só ajusta (±0,25): puxa pelo tamanho do ajuste, não como uma dimensão
+      const peso = v.modoClima === 'ancorado' ? (d === 'clima' ? 0.25 : 1) : PESOS[d];
+      const sobra = notas[d] === undefined ? 0 : Math.max(0, notas[d]! - REGRAS.A2.minimos[d]) * peso;
       x += EIXO[d][0] * sobra;
       y += EIXO[d][1] * sobra;
       if (sobra > melhor + 1e-9) (melhor = sobra), (forca = d);

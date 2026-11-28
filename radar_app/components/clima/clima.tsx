@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { ClimaBrasil, Indicadores, PoliticaBolsa } from './clima-brasil';
 import { MapaVerticais, PainelVertical } from './mapa-verticais';
 import { LinhaTempoClima, MapaCalor, TabelaVerticais, type Chave } from './detalhes';
+import { ContextoPulso } from './pulso';
+import type { LeituraPulso } from '@/lib/clima-pulso';
 
 function quando(iso: string) {
   const d = new Date(iso);
@@ -21,7 +23,7 @@ function quando(iso: string) {
  * indicadores macro no topo; mapa de verticais com o painel da selecionada; de onde vem o clima; linha do
  * tempo; relatório por vertical. Contas, tier e VSCS vêm da base; o resto de data/clima.json.
  */
-export function TelaClima({ base, dados }: { base: Base; dados: DadosClima }) {
+export function TelaClima({ base, dados, pulso }: { base: Base; dados: DadosClima; pulso?: LeituraPulso }) {
   const clima = useMemo(() => calcularClima(dados, base), [dados, base]);
   const [sel, setSel] = useState('ESP01');
   const [filtro, setFiltro] = useState<EstadoClima | 'todos'>('todos');
@@ -72,6 +74,8 @@ export function TelaClima({ base, dados }: { base: Base; dados: DadosClima }) {
           <ClimaBrasil clima={clima} />
           <Indicadores clima={clima} />
         </section>
+
+        {pulso && <ContextoPulso leitura={pulso} />}
 
         <PoliticaBolsa clima={clima} />
 
