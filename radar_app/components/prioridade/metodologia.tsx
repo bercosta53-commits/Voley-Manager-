@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { CLASSES, DIMENSOES, LEITURA_CLASSE, ORIGEM, REGRAS, ROTULO_DIMENSAO, SELO_MODELO } from '@/lib/prioridade-config';
+import { CLASSES, DIMENSOES, LEITURA_CLASSE, ORIGEM, REGRAS, ROTULO_DIMENSAO, TETO_AJUSTE_CLIMA, seloModelo, type ModoClima } from '@/lib/prioridade-config';
 import { formatarNota } from '@/lib/prioridade';
 import { cn } from '@/lib/utils';
 
 const CHAVE = 'vr:prioridade:metodologia-recolhida';
 const n = (v: number) => formatarNota(v);
 
-export function SeloExperimental({ className }: { className?: string }) {
-  return <span className={cn('rounded-chip border border-border-strong px-1.5 py-0.5 text-xs text-text-2', className)}>{SELO_MODELO}</span>;
+export function SeloExperimental({ className, modo = 'media' }: { className?: string; modo?: ModoClima }) {
+  return <span className={cn('rounded-chip border border-border-strong px-1.5 py-0.5 text-xs text-text-2', className)}>{seloModelo(modo)}</span>;
 }
 
 /** Definição curta ao toque ou ao foco (sem depender de hover). */
@@ -28,7 +28,7 @@ const ROTULO_MAPEAMENTO = { documentado: 'Documentado', proposto: 'Proposta expe
  * "Como ler a prioridade": os cinco passos, escritos a partir da mesma configuração que o cálculo usa
  * (lib/prioridade-config.ts). Recolhido por padrão; lembra se a pessoa abriu.
  */
-export function Metodologia({ abrirPedido }: { abrirPedido: number }) {
+export function Metodologia({ abrirPedido, modo = 'media' }: { abrirPedido: number; modo?: ModoClima }) {
   const [aberto, setAberto] = useState(false);
   const [regra, setRegra] = useState(false);
   const [origem, setOrigem] = useState(false);
@@ -72,10 +72,18 @@ export function Metodologia({ abrirPedido }: { abrirPedido: number }) {
                 Quatro perguntas, notas de 1 a 5 (maior = mais oportunidade): {DIMENSOES.map(d => ROTULO_DIMENSAO[d]).join(' · ')}.
               </>,
               <>
-                <Termo termo="Nota integrada" definicao="Média simples das quatro notas, sem arredondar antes de classificar." /> = média simples das quatro, só com as quatro avaliadas.
+                {modo === 'ancorado' ? (
+                  <>
+                    <Termo termo="Nota integrada" definicao="Média de ICP, Sinais e Oportunidade digital, ajustada pelo Clima; sem arredondar antes de classificar." /> = média de ICP, Sinais e Oportunidade digital, e o Clima ajusta em até ±{String(TETO_AJUSTE_CLIMA).replace('.', ',')}: cada ponto de Clima acima ou abaixo de 3 vale 0,25. O Clima é o clima composto (contexto 35% + pulso das empresas 65%) comparado com a média da base, e uma conta que cresce contra a maré não perde nota pelo setor (28/11).
+                  </>
+                ) : (
+                  <>
+                    <Termo termo="Nota integrada" definicao="Média ponderada das notas, sem arredondar antes de classificar." /> = média das notas avaliadas, com o Clima pesando metade.
+                  </>
+                )}
               </>,
               <>
-                <Termo termo="Travas" definicao="Mínimos que nenhuma média alta compensa." />: ICP abaixo de {n(REGRAS.C.icpAbaixoDe)} vira C. Para A: ICP ≥ {n(a1.icp)}, Sinais ≥ {n(a2.sinais)} (A2) ou ≥ {n(a1.sinais)} (A1), Oportunidade digital ≥ {n(a1.oportunidadeDigital)}. Clima não tem mínimo: é contexto e pesa metade na média (27/11).
+                <Termo termo="Travas" definicao="Mínimos que nenhuma média alta compensa." />: ICP abaixo de {n(REGRAS.C.icpAbaixoDe)} vira C. Para A: ICP ≥ {n(a1.icp)}, Sinais ≥ {n(a2.sinais)} (A2) ou ≥ {n(a1.sinais)} (A1), Oportunidade digital ≥ {n(a1.oportunidadeDigital)}. Clima não tem mínimo: é contexto.
               </>,
               <>
                 Classe: A1 e A2 formam o <Termo termo="sweet spot" definicao="Contas A1 ou A2: os quatro eixos convergem e os mínimos de A são atendidos. A1 é o topo." /> (A1 é o topo) · B1 boa · B2 monitorar · C baixa prioridade.

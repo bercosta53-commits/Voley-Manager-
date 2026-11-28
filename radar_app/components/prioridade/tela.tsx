@@ -128,6 +128,49 @@ function Indicador({ l, d }: { l: LinhaPrioridade; d: Dimensao }) {
   );
 }
 
+const ORDEM_CLASSE = ['A1', 'A2', 'B1', 'B2', 'C'];
+/**
+ * Aviso da mudança do Clima na nota (28/11), com a comparação contra o cálculo anterior: quantas contas subiram,
+ * desceram, o sweet spot antes e depois, e o filtro para ver só as que mudaram.
+ */
+function MudancaClima({ linhas, ativo, onAlternar }: { linhas: LinhaPrioridade[]; ativo: boolean; onAlternar: () => void }) {
+  const com = linhas.filter(l => l.visao.classeAnterior && l.visao.classeIntegrada);
+  const sobe = com.filter(l => ORDEM_CLASSE.indexOf(l.visao.classeIntegrada!) < ORDEM_CLASSE.indexOf(l.visao.classeAnterior!)).length;
+  const desce = com.filter(l => ORDEM_CLASSE.indexOf(l.visao.classeIntegrada!) > ORDEM_CLASSE.indexOf(l.visao.classeAnterior!)).length;
+  const sweet = (c?: string | null) => c === 'A1' || c === 'A2';
+  const antes = com.filter(l => sweet(l.visao.classeAnterior)).length;
+  const depois = linhas.filter(l => sweet(l.visao.classeIntegrada)).length;
+  return (
+    <section aria-label="Mudança no Clima" className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-card border border-border bg-card px-4 py-3 text-sm">
+      <p className="min-w-0 flex-1 text-text-2">
+        <b className="font-medium text-foreground">Clima agora ajusta a nota em até ±0,25</b>, pelo contexto do setor e pelo que as empresas da base estão fazendo; quem cresce contra a
+        maré não perde nota pelo setor.{' '}
+        <Link href="/clima#contexto-pulso" className="underline decoration-border-strong underline-offset-4">
+          Ver no Clima
+        </Link>
+      </p>
+      <p className="vr-data flex flex-wrap items-center gap-x-3 text-xs text-text-2">
+        <span>
+          sweet spot <b className="font-semibold text-foreground">{antes}</b> → <b className="font-semibold text-ok">{depois}</b>
+        </span>
+        <span>
+          <b className="font-semibold text-foreground">{sobe}</b> sobem · <b className="font-semibold text-foreground">{desce}</b> descem
+        </span>
+      </p>
+      {sobe + desce > 0 && (
+        <button
+          type="button"
+          aria-pressed={ativo}
+          onClick={onAlternar}
+          className={cn('inline-flex h-8 items-center rounded-chip border px-2.5 text-sm max-md:h-10', ativo ? 'border-foreground bg-foreground text-background' : 'border-border bg-card text-text-2 hover:text-foreground')}
+        >
+          {ativo ? 'Mostrar todas' : `Só as que mudaram (${sobe + desce})`}
+        </button>
+      )}
+    </section>
+  );
+}
+
 function Proximidade({ l }: { l: LinhaPrioridade }) {
   const v = l.visao;
   if (v.situacaoSweetSpot === 'sweet_spot') return <span className="text-sm font-medium text-ok">No sweet spot{v.classeIntegrada === 'A1' ? ' (topo)' : ''}</span>;
@@ -188,7 +231,12 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
   // filtros fora dos quatro visíveis que estão ligados: mantêm o painel aberto e aparecem na contagem
   const avancados = f.situacoes.length + f.coberturas.length + f.faltando.length + f.ufs.length + Object.values(f.notaMin).filter(Boolean).length;
   const mudar = (parte: Partial<FiltrosPrioridade>) => setEstado(e => ({ ...e, f: { ...e.f, ...parte } }));
-  const { visiveis, semNotaNoFiltro, naBuscaFora } = useMemo(() => aplicarTudo(linhas, f), [linhas, f]);
+  const modoClima = linhas[0]?.visao.modoClima ?? 'media';
+  // comparação com o cálculo anterior do Clima: quem mudou de classe, e o filtro "só as que mudaram"
+  const [soMudaram, setSoMudaram] = useState(false);
+  const mudou = (l: LinhaPrioridade) => !!l.visao.classeAnterior && l.visao.classeAnterior !== l.visao.classeIntegrada;
+  const { visiveis: todasVisiveis, semNotaNoFiltro, naBuscaFora } = useMemo(() => aplicarTudo(linhas, f), [linhas, f]);
+  const visiveis = useMemo(() => (soMudaram ? todasVisiveis.filter(mudou) : todasVisiveis), [todasVisiveis, soMudaram]);
   const ordenadas = useMemo(() => ordenarMulti(visiveis, o), [visiveis, o]);
   useEffect(() => setLimite(LOTE), [f, o]);
   const grupos = useMemo(() => (estado.g === 'nenhum' ? null : agrupar(ordenadas, estado.g)), [ordenadas, estado.g]);
@@ -305,7 +353,7 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
               <span>
                 {ordenadas.length} de {plural(linhas.length, 'conta', 'contas')}
               </span>
-              <SeloExperimental />
+              <SeloExperimental modo={modoClima} />
               <a
                 href="#como-funciona"
                 onClick={() => setAbrirMetodo(n => n + 1)}
@@ -324,7 +372,8 @@ export function TelaPrioridade({ base, linhas: linhasServidor }: { base: BaseCas
           </label>
         </div>
 
-        <Metodologia abrirPedido={abrirMetodo} />
+        <Metodologia abrirPedido={abrirMetodo} modo={modoClima} />
+        {modoClima === 'ancorado' && <MudancaClima linhas={linhas} ativo={soMudaram} onAlternar={() => setSoMudaram(x => !x)} />}
         <Faixa total={linhas.length} completas={completas} contagem={contagem} ativos={f.segmentos} onAlternar={alternarSegmento} />
 
         {/* busca: um campo, dois alvos (contas e setores) */}

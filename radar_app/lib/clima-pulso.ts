@@ -127,6 +127,8 @@ export interface LeituraPulso {
   /** contas contra a maré, Tier A primeiro, as que crescem e contratam antes */
   contraMare: { id: string; nome: string; tier: string; vertical: string; cresce: boolean; crescimentoPct: number | null; movimento: boolean }[];
   totalContraMare: number;
+  /** por conta: clima composto da vertical, relativo à base e contra a maré (para a nota do Clima na prioridade) */
+  porConta: Record<string, { composto: number; relativo: number; contraMare: boolean }>;
 }
 
 interface ContaMin {
@@ -200,5 +202,8 @@ export function leituraPulso(
       .sort((a, b) => b.pulso.n - a.pulso.n),
     contraMare: contra.slice(0, limiteContraMare).map(({ c, vertical }) => ({ id: c.id, nome: c.nome, tier: c.tier, vertical, cresce: cresceDeVerdade(c), crescimentoPct: c.crescimentoPct ?? null, movimento: c.movimento })),
     totalContraMare: contra.length,
+    porConta: Object.fromEntries(
+      porVertical.flatMap(x => x.cs.map(c => [c.id, { composto: x.composto, relativo: r2(x.composto - compostoBase), contraMare: contraAMare(c, x.v.S) }])),
+    ),
   };
 }

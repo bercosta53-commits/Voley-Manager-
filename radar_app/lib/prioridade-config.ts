@@ -8,7 +8,10 @@
  */
 
 export const VERSAO_MODELO = 'integrado-experimental-1' as const;
-export const SELO_MODELO = 'Modelo experimental 1.1 · Clima com peso 0,5 · classifica com 3 de 4 · limites ainda não calibrados';
+// 1.2 (28/11): Clima ancorado no neutro (ver ModoClima); 1.1: Clima com peso 0,5
+export const SELO_MODELO = 'Modelo experimental 1.2 · Clima ajusta até ±0,25 · classifica com 3 de 4 · limites ainda não calibrados';
+export const seloModelo = (modo: ModoClima) =>
+  modo === 'ancorado' ? SELO_MODELO : 'Modelo experimental 1.1 · Clima com peso 0,5 · classifica com 3 de 4 · limites ainda não calibrados';
 
 export type Dimensao = 'icp' | 'sinais' | 'clima' | 'oportunidadeDigital';
 export const DIMENSOES: Dimensao[] = ['icp', 'sinais', 'clima', 'oportunidadeDigital'];
@@ -31,6 +34,21 @@ export const TOLERANCIA = 1e-9;
 
 /** Pesos: iguais, com o Clima pela metade (decisão de Bernardo, 27/11: menos rigor com o Clima). */
 export const PESOS: Record<Dimensao, number> = { icp: 1, sinais: 1, clima: 0.5, oportunidadeDigital: 1 };
+
+/**
+ * Como o Clima entra na nota integrada (decisão de Bernardo, 28/11):
+ * - 'ancorado' (padrão): a nota é a média de ICP, Sinais e Digital, e o Clima AJUSTA essa média em até ±0,25
+ *   (cada ponto de Clima acima ou abaixo de 3 vale 0,25; neutro não muda nada). A nota do Clima é o clima composto
+ *   (contexto 35% + pulso das empresas 65%) relativo à média da base; conta contra a maré não fica abaixo de 3.
+ * - 'media': o cálculo anterior, Clima do contexto (3 + 2·S) com peso 0,5 na média.
+ * O interruptor é a variável RADAR_CLIMA_NA_NOTA=media no servidor: volta ao cálculo anterior sem mudar dados.
+ */
+export type ModoClima = 'ancorado' | 'media';
+export const MODO_CLIMA_PADRAO: ModoClima = 'ancorado';
+export const modoClimaDoAmbiente = (v?: string | null): ModoClima => (v === 'media' ? 'media' : MODO_CLIMA_PADRAO);
+export const TETO_AJUSTE_CLIMA = 0.25;
+/** ajuste da nota integrada pelo Clima no modo ancorado: (nota − 3) / 4, limitado a ±0,25 */
+export const ajusteClima = (notaClima: number) => Math.min(TETO_AJUSTE_CLIMA, Math.max(-TETO_AJUSTE_CLIMA, (notaClima - 3) / 4));
 
 export type Classe = 'A1' | 'A2' | 'B1' | 'B2' | 'C';
 export const CLASSES: Classe[] = ['A1', 'A2', 'B1', 'B2', 'C'];
