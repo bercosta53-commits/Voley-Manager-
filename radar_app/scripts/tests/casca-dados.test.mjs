@@ -67,3 +67,25 @@ test('aliviar mantém a decomposição das contas pedidas (exemplo da metodologi
   assert.equal(exemploMetodologia(a.contas)?.id, ex.id); // a tela escolhe o mesmo exemplo depois do alívio
   assert.equal(a.contas.filter(c => c.v2.contribuicoes.length).length, 1);
 });
+
+test('aliviar não manda ao navegador os blocos de trabalho do pipeline nem os campos de conta que nenhuma tela lê', async () => {
+  const { aliviarBase } = await import('../../lib/casca-dados.ts');
+  const b = structuredClone(base);
+  Object.assign(b, { ogi: { grande: 'x'.repeat(1000) }, aquisicaoAtlas: { accounts: [] }, auditoriaVSCS: {}, scoreModelo: { versao: 'v' } });
+  b.contas[0].aquisicaoDigital = { nivel: 2 };
+  b.contas[0].pesquisaSinais = { resultado: 'x' };
+  b.contas[0].icpEvidencia = {
+    requalificacao2G: { ramoAvaliado: 'R1', sede: { uf: 'SP', url: 'u', cidade: 'X' }, justificativa: 'longa', gatilhos: { g1: { status: 'confirmado', contaParaTierA: true, justificativa: 'longa' } } },
+    qualificacaoComercial: { nota: 'longa' },
+  };
+  const a = aliviarBase(b, {});
+  assert.equal(a.ogi, undefined);
+  assert.equal(a.aquisicaoAtlas, undefined);
+  assert.equal(a.auditoriaVSCS, undefined);
+  assert.deepEqual(a.scoreModelo, { versao: 'v' });
+  assert.equal(a.contas[0].aquisicaoDigital, undefined);
+  assert.equal(a.contas[0].pesquisaSinais, undefined);
+  assert.deepEqual(a.contas[0].icpEvidencia, { requalificacao2G: { ramoAvaliado: 'R1', sede: { uf: 'SP', url: 'u' }, gatilhos: { g1: { status: 'confirmado', contaParaTierA: true } } } });
+  assert.equal(a.geradoEm, b.geradoEm);
+  assert.equal(a.sinais.length, b.sinais.length);
+});
